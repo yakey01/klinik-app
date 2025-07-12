@@ -6,6 +6,8 @@ use App\Filament\Petugas\Resources\TindakanResource\Pages;
 use App\Models\Tindakan;
 use App\Models\JenisTindakan;
 use App\Models\Pasien;
+use App\Models\Dokter;
+use App\Models\Pegawai;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -37,7 +39,7 @@ class TindakanResource extends Resource
                         Forms\Components\Select::make('jenis_tindakan_id')
                             ->label('Jenis Tindakan')
                             ->required()
-                            ->options(JenisTindakan::active()->pluck('nama', 'id'))
+                            ->options(JenisTindakan::where('is_active', true)->orderBy('nama')->pluck('nama', 'id'))
                             ->searchable()
                             ->placeholder('Pilih jenis tindakan')
                             ->reactive()
@@ -45,10 +47,24 @@ class TindakanResource extends Resource
                                 if ($state) {
                                     $jenisTindakan = JenisTindakan::find($state);
                                     if ($jenisTindakan) {
-                                        $set('tarif', $jenisTindakan->tarif);
-                                        $set('jasa_dokter', $jenisTindakan->jasa_dokter);
-                                        $set('jasa_paramedis', $jenisTindakan->jasa_paramedis);
+                                        $tarif = $jenisTindakan->tarif;
+                                        
+                                        // Get JASPEL percentage from config or use default
+                                        $persentaseJaspel = config('app.default_jaspel_percentage', 40);
+                                        
+                                        // Calculate JASPEL Petugas (same as admin calculation)
+                                        $jasaPetugas = $tarif * ($persentaseJaspel / 100);
+                                        
+                                        $set('tarif', $tarif);
+                                        $set('calculated_jaspel', $jasaPetugas); // Store calculated JASPEL
+                                        
+                                        // Reset all jasa fields initially
+                                        $set('jasa_dokter', 0);
+                                        $set('jasa_paramedis', 0);
                                         $set('jasa_non_paramedis', $jenisTindakan->jasa_non_paramedis);
+                                        
+                                        // Set hidden field to show the percentage used
+                                        $set('persentase_jaspel_info', $persentaseJaspel);
                                     }
                                 }
                             }),
@@ -64,7 +80,58 @@ class TindakanResource extends Resource
                             ->label('Tanggal Tindakan')
                             ->required()
                             ->default(now())
-                            ->maxDateTime(now()),
+                            ->maxDate(now()),
+
+                        Forms\Components\Select::make('dokter_id')
+                            ->label('Dokter Pelaksana')
+                            ->options(\App\Models\Dokter::where('aktif', true)->pluck('nama_lengkap', 'id'))
+                            ->searchable()
+                            ->placeholder('Pilih dokter (opsional)')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $calculatedJaspel = $get('calculated_jaspel') ?? 0;
+                                
+                                if ($state) {
+                                    // Doctor selected, give JASPEL to doctor
+                                    $set('jasa_dokter', $calculatedJaspel);
+                                    $set('jasa_paramedis', 0); // Remove from paramedic
+                                } else {
+                                    // No doctor selected, remove JASPEL from doctor
+                                    $set('jasa_dokter', 0);
+                                    
+                                    // Check if paramedic is selected to give them JASPEL
+                                    if ($get('paramedis_id')) {
+                                        $set('jasa_paramedis', $calculatedJaspel);
+                                    }
+                                }
+                            }),
+
+                        Forms\Components\Select::make('paramedis_id')
+                            ->label('Paramedis Pelaksana')
+                            ->options(\App\Models\Pegawai::where('jenis_pegawai', 'Paramedis')->where('aktif', true)->pluck('nama_lengkap', 'id'))
+                            ->searchable()
+                            ->placeholder('Pilih paramedis (opsional)')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $calculatedJaspel = $get('calculated_jaspel') ?? 0;
+                                
+                                if ($state && !$get('dokter_id')) {
+                                    // Paramedic selected and no doctor selected, give JASPEL to paramedic
+                                    $set('jasa_paramedis', $calculatedJaspel);
+                                } else if (!$state) {
+                                    // No paramedic selected, remove JASPEL from paramedic
+                                    $set('jasa_paramedis', 0);
+                                } else if ($get('dokter_id')) {
+                                    // Doctor has priority, remove JASPEL from paramedic
+                                    $set('jasa_paramedis', 0);
+                                }
+                            }),
+
+                        Forms\Components\Select::make('non_paramedis_id')
+                            ->label('Non-Paramedis Pelaksana')
+                            ->options(\App\Models\Pegawai::where('jenis_pegawai', 'Non-Paramedis')->where('aktif', true)->pluck('nama_lengkap', 'id'))
+                            ->searchable()
+                            ->placeholder('Pilih non-paramedis (opsional)'),
                         
                         Forms\Components\TextInput::make('tarif')
                             ->label('Tarif (Rp)')
@@ -75,9 +142,17 @@ class TindakanResource extends Resource
                             ->minValue(0)
                             ->disabled()
                             ->dehydrated(),
+
+                        Forms\Components\Hidden::make('persentase_jaspel_info')
+                            ->default(config('app.default_jaspel_percentage', 40)),
+
+                        Forms\Components\Hidden::make('calculated_jaspel')
+                            ->default(0),
+
                         
                         Forms\Components\TextInput::make('jasa_dokter')
                             ->label('Jasa Dokter (Rp)')
+                            ->helperText('JASPEL diberikan kepada dokter pelaksana (jika dipilih)')
                             ->numeric()
                             ->prefix('Rp')
                             ->default(0)
@@ -87,6 +162,7 @@ class TindakanResource extends Resource
                         
                         Forms\Components\TextInput::make('jasa_paramedis')
                             ->label('Jasa Paramedis (Rp)')
+                            ->helperText('JASPEL diberikan kepada paramedis pelaksana (jika tidak ada dokter)')
                             ->numeric()
                             ->prefix('Rp')
                             ->default(0)
@@ -100,7 +176,7 @@ class TindakanResource extends Resource
                             ->placeholder('Catatan tindakan (opsional)')
                             ->columnSpanFull(),
                     ])
-                    ->columns(2),
+                    ->columns(3),
             ]);
     }
 
@@ -124,6 +200,18 @@ class TindakanResource extends Resource
                     ->limit(30)
                     ->description(fn (Tindakan $record): string => $record->pasien->no_rekam_medis ?? ''),
                 
+                Tables\Columns\TextColumn::make('dokter.nama_lengkap')
+                    ->label('Dokter')
+                    ->searchable()
+                    ->placeholder('-')
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('paramedis.nama_lengkap')
+                    ->label('Paramedis')
+                    ->searchable()
+                    ->placeholder('-')
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('tarif')
                     ->label('Tarif')
                     ->money('IDR')
@@ -178,7 +266,7 @@ class TindakanResource extends Resource
                 
                 Tables\Filters\SelectFilter::make('jenis_tindakan_id')
                     ->label('Jenis Tindakan')
-                    ->options(JenisTindakan::active()->pluck('nama', 'id')),
+                    ->options(JenisTindakan::where('is_active', true)->orderBy('nama')->pluck('nama', 'id')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -201,7 +289,7 @@ class TindakanResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('input_by', Auth::id())
-            ->with(['jenisTindakan', 'pasien']);
+            ->with(['jenisTindakan', 'pasien', 'dokter', 'paramedis', 'nonParamedis']);
     }
 
     public static function getRelations(): array

@@ -50,17 +50,17 @@ class Tindakan extends Model
 
     public function dokter(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'dokter_id');
+        return $this->belongsTo(Dokter::class, 'dokter_id');
     }
 
     public function paramedis(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'paramedis_id');
+        return $this->belongsTo(Pegawai::class, 'paramedis_id');
     }
 
     public function nonParamedis(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'non_paramedis_id');
+        return $this->belongsTo(Pegawai::class, 'non_paramedis_id');
     }
 
     public function shift(): BelongsTo

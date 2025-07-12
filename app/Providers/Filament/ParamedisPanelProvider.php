@@ -41,9 +41,9 @@ class ParamedisPanelProvider extends PanelProvider
             ->widgets([
                 Widgets\AccountWidget::class,
                 \App\Filament\Paramedis\Widgets\WelcomeWidget::class,
-                \App\Filament\Paramedis\Widgets\AttendanceButtonWidget::class,
-                \App\Filament\Paramedis\Widgets\ParamedisAttendanceWidget::class,
-                \App\Filament\Paramedis\Widgets\JaspelSummaryWidget::class,
+                \App\Filament\Paramedis\Widgets\AttendanceStatusWidget::class,
+                \App\Filament\Paramedis\Widgets\JaspelHighlightWidget::class,
+                \App\Filament\Paramedis\Widgets\LocationStatusWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

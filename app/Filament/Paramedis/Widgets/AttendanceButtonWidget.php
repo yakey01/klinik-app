@@ -12,7 +12,7 @@ class AttendanceButtonWidget extends Widget
 {
     protected static string $view = 'filament.paramedis.widgets.attendance-button-clean';
     
-    protected static ?string $pollingInterval = '30s'; // Auto refresh every 30 seconds
+    protected static ?string $pollingInterval = null; // Disable polling to prevent clock destruction
     
     public static function canView(): bool
     {

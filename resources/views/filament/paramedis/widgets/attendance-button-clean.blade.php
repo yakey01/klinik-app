@@ -8,18 +8,65 @@
         </x-slot>
 
         <div class="space-y-6">
-            {{-- Real Time Clock --}}
-            <div class="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div class="text-5xl font-bold text-blue-600 dark:text-blue-400" id="realtime-clock">
+            {{-- Real Time Clock with Alpine.js --}}
+            <div 
+                x-data="{ 
+                    currentTime: new Date('{{ $currentTime->format('c') }}'), // ISO format with timezone
+                    init() {
+                        // Server time in Jakarta timezone
+                        const serverTime = new Date('{{ $currentTime->format('c') }}');
+                        const clientTime = new Date();
+                        this.timeOffset = serverTime.getTime() - clientTime.getTime();
+                        
+                        console.log('Server Jakarta time:', serverTime.toString());
+                        console.log('Client time:', clientTime.toString());
+                        console.log('Time offset:', this.timeOffset / 1000, 'seconds');
+                        
+                        // Update clock every second
+                        setInterval(() => {
+                            this.currentTime = new Date(new Date().getTime() + this.timeOffset);
+                        }, 1000);
+                    },
+                    formatTime() {
+                        return this.currentTime.toLocaleTimeString('id-ID', {
+                            timeZone: 'Asia/Jakarta',
+                            hour12: false,
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                    },
+                    formatDate() {
+                        return this.currentTime.toLocaleDateString('id-ID', {
+                            timeZone: 'Asia/Jakarta',
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                }"
+                class="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+            >
+                <div 
+                    x-text="formatTime()"
+                    class="text-5xl font-bold text-blue-600 dark:text-blue-400"
+                >
                     {{ $currentTime->format('H:i:s') }}
                 </div>
-                <div class="text-lg text-gray-600 dark:text-gray-400 mt-2" id="realtime-date">
+                <div 
+                    x-text="formatDate()"
+                    class="text-lg text-gray-600 dark:text-gray-400 mt-2"
+                >
                     {{ $currentTime->format('l, d F Y') }}
                 </div>
                 <div class="text-sm text-blue-500 dark:text-blue-400 mt-1">
                     🕐 Waktu Real-Time WIB
                 </div>
-                <div class="text-xs text-green-500 mt-1" id="live-indicator">
+                <div 
+                    x-text="'● Live ' + currentTime.getSeconds()"
+                    class="text-xs text-green-500 mt-1"
+                >
                     ● Live
                 </div>
             </div>
@@ -124,202 +171,212 @@
                     <div class="font-medium text-blue-800 dark:text-blue-300">⏰ Jam Kerja</div>
                     <div class="text-blue-600 dark:text-blue-400">08:00 - 17:00</div>
                 </div>
-                <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <div class="font-medium text-green-800 dark:text-green-300">📍 Lokasi</div>
-                    <div class="text-green-600 dark:text-green-400">Klinik Dokterku</div>
+                <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg cursor-pointer" onclick="toggleMap()">
+                    <div class="text-center">
+                        <div class="font-medium text-green-800 dark:text-green-300">📍 Lokasi</div>
+                        <div class="text-green-600 dark:text-green-400">Klinik Dokterku</div>
+                        <div class="text-xs text-green-500 mt-1">Klik untuk lihat peta</div>
+                    </div>
                 </div>
                 <div class="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                     <div class="font-medium text-purple-800 dark:text-purple-300">👤 Petugas</div>
                     <div class="text-purple-600 dark:text-purple-400">{{ $user->name }}</div>
                 </div>
             </div>
+
+            {{-- Interactive Map Section --}}
+            <div id="map-container" class="hidden mt-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 bg-green-600 text-white">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 class="text-lg font-semibold">📍 Lokasi Klinik Dokterku</h3>
+                                <p class="text-sm opacity-90">Lokasi yang ditentukan Admin untuk presensi</p>
+                            </div>
+                            <button onclick="toggleMap()" class="text-white hover:text-gray-200">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="klinik-map" class="h-64 w-full"></div>
+                    <div class="p-3 bg-gray-50 dark:bg-gray-700 text-sm text-gray-600 dark:text-gray-300">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <strong>📍 Koordinat:</strong> -6.2088, 106.8456 (Jakarta)
+                            </div>
+                            <div>
+                                <strong>📍 Radius:</strong> 100 meter
+                            </div>
+                        </div>
+                        <div class="mt-1 text-xs text-gray-500">
+                            * Presensi hanya bisa dilakukan dalam radius yang ditentukan
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </x-filament::section>
 
-    {{-- Enhanced Real-time Clock Script with Debug --}}
+    {{-- Leaflet CSS dan JS untuk peta --}}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    {{-- Map Script --}}
     <script>
-        console.log('📝 Attendance widget script loading...');
-        
-        // Global clock function to prevent conflicts
-        window.ParamedisClockStarted = false;
-        window.AccurateTimeOffset = 0; // Offset to correct system time
-        
-        // Get accurate time from internet
-        async function getAccurateTime() {
-            try {
-                // Use WorldTimeAPI for accurate Indonesia time
-                const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta');
-                const data = await response.json();
-                const accurateTime = new Date(data.datetime);
-                const systemTime = new Date();
-                
-                // Calculate offset between accurate time and system time
-                window.AccurateTimeOffset = accurateTime.getTime() - systemTime.getTime();
-                
-                console.log('✅ Got accurate time from API');
-                console.log('🔍 System time:', systemTime.toString());
-                console.log('🔍 Accurate time:', accurateTime.toString());
-                console.log('🔍 Offset:', window.AccurateTimeOffset / 1000, 'seconds');
-                
-                return accurateTime;
-            } catch (error) {
-                console.warn('⚠️ Could not get accurate time from API, using manual correction');
-                console.error(error);
-                
-                // Fallback: manual correction for Saturday July 13, 2024
-                const manualDate = new Date(2024, 6, 13); // July 13, 2024 (Saturday)
-                const currentTime = new Date();
-                manualDate.setHours(currentTime.getHours());
-                manualDate.setMinutes(currentTime.getMinutes());
-                manualDate.setSeconds(currentTime.getSeconds());
-                
-                window.AccurateTimeOffset = manualDate.getTime() - currentTime.getTime();
-                return manualDate;
-            }
-        }
-        
-        function getCurrentAccurateTime() {
-            const systemTime = new Date();
-            return new Date(systemTime.getTime() + window.AccurateTimeOffset);
-        }
-        
-        function startParamedisClock() {
-            if (window.ParamedisClockStarted) {
-                console.log('⚠️ Clock already started, skipping...');
-                return;
-            }
+        let klinikMap = null;
+        let mapInitialized = false;
+
+        // Koordinat klinik yang ditentukan admin
+        const klinikCoordinates = [-6.2088, 106.8456]; // Jakarta coordinates
+        const allowedRadius = 100; // meter
+
+        function toggleMap() {
+            const mapContainer = document.getElementById('map-container');
             
-            console.log('🚀 Starting Paramedis Clock...');
-            
-            const clockElement = document.getElementById('realtime-clock');
-            const dateElement = document.getElementById('realtime-date');
-            const indicator = document.getElementById('live-indicator');
-            
-            console.log('🔍 Elements found:', {
-                clock: !!clockElement,
-                date: !!dateElement, 
-                indicator: !!indicator
-            });
-            
-            if (!clockElement) {
-                console.error('❌ Clock element not found!');
-                return;
-            }
-            
-            function updateClock() {
-                try {
-                    // Get accurate current time
-                    const accurateNow = getCurrentAccurateTime();
-                    
-                    console.log('🔍 System time:', new Date().toString());
-                    console.log('🔍 Accurate time:', accurateNow.toString());
-                    
-                    // Format time and date using accurate time
-                    const timeOptions = {
-                        timeZone: 'Asia/Jakarta',
-                        hour12: false,
-                        hour: '2-digit',
-                        minute: '2-digit', 
-                        second: '2-digit'
-                    };
-                    
-                    const dateOptions = {
-                        timeZone: 'Asia/Jakarta',
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    };
-                    
-                    const timeString = accurateNow.toLocaleTimeString('id-ID', timeOptions);
-                    const dateString = accurateNow.toLocaleDateString('id-ID', dateOptions);
-                    
-                    if (clockElement) {
-                        clockElement.textContent = timeString;
-                    }
-                    
-                    if (dateElement) {
-                        dateElement.textContent = dateString;
-                    }
-                    
-                    // Update indicator with pulse effect
-                    if (indicator) {
-                        indicator.style.color = '#22c55e';
-                        indicator.textContent = '● Live ' + accurateNow.getSeconds();
-                        setTimeout(() => {
-                            if (indicator) {
-                                indicator.style.color = '#10b981';
-                                indicator.textContent = '● Live';
-                            }
-                        }, 100);
-                    }
-                    
-                    console.log('🕐 Clock updated:', timeString, '|', dateString);
-                } catch (error) {
-                    console.error('❌ Clock update error:', error);
+            if (mapContainer.classList.contains('hidden')) {
+                // Show map
+                mapContainer.classList.remove('hidden');
+                
+                // Initialize map if not already done
+                if (!mapInitialized) {
+                    initializeMap();
                 }
+            } else {
+                // Hide map
+                mapContainer.classList.add('hidden');
             }
+        }
+
+        function initializeMap() {
+            try {
+                // Initialize Leaflet map
+                klinikMap = L.map('klinik-map').setView(klinikCoordinates, 16);
+                
+                // Add OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(klinikMap);
+                
+                // Add marker for klinik location
+                const klinikMarker = L.marker(klinikCoordinates).addTo(klinikMap);
+                klinikMarker.bindPopup(`
+                    <div class="text-center">
+                        <strong>🏥 Klinik Dokterku</strong><br>
+                        <small>Lokasi Presensi</small><br>
+                        <small>Lat: ${klinikCoordinates[0]}</small><br>
+                        <small>Lng: ${klinikCoordinates[1]}</small>
+                    </div>
+                `).openPopup();
+                
+                // Add circle to show allowed radius
+                const allowedArea = L.circle(klinikCoordinates, {
+                    color: 'green',
+                    fillColor: '#22c55e',
+                    fillOpacity: 0.2,
+                    radius: allowedRadius
+                }).addTo(klinikMap);
+                
+                allowedArea.bindPopup(`
+                    <div class="text-center">
+                        <strong>✅ Area Presensi</strong><br>
+                        <small>Radius: ${allowedRadius} meter</small><br>
+                        <small>Presensi hanya bisa dilakukan dalam area ini</small>
+                    </div>
+                `);
+                
+                // Try to get user's current location
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        
+                        // Add user location marker
+                        const userMarker = L.marker([userLat, userLng], {
+                            icon: L.icon({
+                                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                                iconSize: [25, 41],
+                                iconAnchor: [12, 41],
+                                popupAnchor: [1, -34]
+                            })
+                        }).addTo(klinikMap);
+                        
+                        userMarker.bindPopup(`
+                            <div class="text-center">
+                                <strong>📍 Lokasi Anda</strong><br>
+                                <small>Lat: ${userLat.toFixed(6)}</small><br>
+                                <small>Lng: ${userLng.toFixed(6)}</small>
+                            </div>
+                        `);
+                        
+                        // Calculate distance
+                        const distance = klinikMap.distance(klinikCoordinates, [userLat, userLng]);
+                        
+                        // Show distance info
+                        const distanceInfo = L.popup()
+                            .setLatLng([userLat, userLng])
+                            .setContent(`
+                                <div class="text-center">
+                                    <strong>${distance <= allowedRadius ? '✅' : '❌'} Jarak: ${Math.round(distance)}m</strong><br>
+                                    <small>${distance <= allowedRadius ? 'Dalam area presensi' : 'Di luar area presensi'}</small>
+                                </div>
+                            `);
+                        
+                        // Optional: Auto-open distance popup
+                        setTimeout(() => {
+                            distanceInfo.openOn(klinikMap);
+                        }, 1000);
+                        
+                    }, function(error) {
+                        console.log('Geolocation error:', error);
+                        // Add info about location access
+                        L.popup()
+                            .setLatLng(klinikCoordinates)
+                            .setContent(`
+                                <div class="text-center text-orange-600">
+                                    <strong>⚠️ Akses Lokasi Ditolak</strong><br>
+                                    <small>Izinkan akses lokasi untuk melihat posisi Anda</small>
+                                </div>
+                            `)
+                            .openOn(klinikMap);
+                    });
+                }
+                
+                mapInitialized = true;
+                console.log('✅ Klinik map initialized successfully');
+                
+            } catch (error) {
+                console.error('❌ Error initializing map:', error);
+            }
+        }
+
+        // Auto-resize map when container becomes visible
+        function resizeMap() {
+            if (klinikMap) {
+                setTimeout(() => {
+                    klinikMap.invalidateSize();
+                }, 100);
+            }
+        }
+
+        // Listen for map container visibility changes
+        const mapContainer = document.getElementById('map-container');
+        if (mapContainer) {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        if (!mapContainer.classList.contains('hidden')) {
+                            resizeMap();
+                        }
+                    }
+                });
+            });
             
-            // Get accurate time first, then start clock
-            getAccurateTime().then(() => {
-                // Update immediately and then every second
-                updateClock();
-                const interval = setInterval(updateClock, 1000);
-                window.ParamedisClockStarted = true;
-                
-                console.log('✅ Paramedis real-time clock started successfully with accurate time');
-                
-                // Store interval for cleanup
-                window.ParamedisClockInterval = interval;
-            }).catch(error => {
-                console.error('❌ Failed to get accurate time, starting with system time');
-                
-                // Fallback to system time if API fails
-                updateClock();
-                const interval = setInterval(updateClock, 1000);
-                window.ParamedisClockStarted = true;
-                window.ParamedisClockInterval = interval;
+            observer.observe(mapContainer, {
+                attributes: true,
+                attributeFilter: ['class']
             });
         }
-        
-        // Multiple initialization methods to ensure it runs
-        console.log('📋 Document readyState:', document.readyState);
-        
-        // Method 1: DOM ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                console.log('🎯 DOM loaded, starting clock...');
-                setTimeout(startParamedisClock, 100);
-            });
-        } else {
-            console.log('🎯 DOM already ready, starting clock immediately...');
-            setTimeout(startParamedisClock, 100);
-        }
-        
-        // Method 2: Livewire events
-        document.addEventListener('livewire:navigated', () => {
-            console.log('🔄 Livewire navigated, restarting clock...');
-            window.ParamedisClockStarted = false;
-            if (window.ParamedisClockInterval) {
-                clearInterval(window.ParamedisClockInterval);
-            }
-            setTimeout(startParamedisClock, 200);
-        });
-        
-        // Method 3: Window load as fallback
-        window.addEventListener('load', () => {
-            console.log('🌐 Window loaded, ensuring clock is running...');
-            if (!window.ParamedisClockStarted) {
-                setTimeout(startParamedisClock, 100);
-            }
-        });
-        
-        // Method 4: Force start after delay
-        setTimeout(() => {
-            console.log('⏰ Force checking clock after 2 seconds...');
-            if (!window.ParamedisClockStarted) {
-                startParamedisClock();
-            }
-        }, 2000);
     </script>
 </x-filament-widgets::widget>

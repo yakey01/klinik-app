@@ -35,7 +35,12 @@ class PetugasPanelProvider extends PanelProvider
             ])
             ->darkMode()
             ->plugin(ThemesPlugin::make())
-            ->discoverResources(in: app_path('Filament/Petugas/Resources'), for: 'App\\Filament\\Petugas\\Resources')
+            ->resources([
+                \App\Filament\Petugas\Resources\PasienResource::class,
+                \App\Filament\Petugas\Resources\PendapatanHarianResource::class,
+                \App\Filament\Petugas\Resources\PengeluaranHarianResource::class,
+                \App\Filament\Petugas\Resources\TindakanResource::class,
+            ])
             ->pages([
                 Pages\Dashboard::class,
             ])

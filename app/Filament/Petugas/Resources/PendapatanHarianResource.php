@@ -56,6 +56,8 @@ class PendapatanHarianResource extends Resource
                         titleAttribute: 'nama_pendapatan',
                         modifyQueryUsing: fn (Builder $query) =>
                             $query->where('is_aktif', true)
+                                  ->whereNotNull('nama_pendapatan')
+                                  ->where('nama_pendapatan', '!=', '')
                     )
                     ->searchable()
                     ->required()
@@ -150,6 +152,26 @@ class PendapatanHarianResource extends Resource
                             ->money('IDR')
                             ->label('🎯 Total Pendapatan'),
                     ]),
+                Tables\Columns\BadgeColumn::make('status_validasi')
+                    ->label('📋 Status Validasi')
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'warning',
+                        'disetujui' => 'success',
+                        'ditolak' => 'danger',
+                        default => 'gray',
+                    })
+                    ->icon(fn (string $state): string => match ($state) {
+                        'pending' => 'heroicon-o-clock',
+                        'disetujui' => 'heroicon-o-check-circle',
+                        'ditolak' => 'heroicon-o-x-circle',
+                        default => 'heroicon-o-question-mark-circle',
+                    })
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'pending' => '⏳ Menunggu',
+                        'disetujui' => '✅ Disetujui',
+                        'ditolak' => '❌ Ditolak',
+                        default => ucfirst($state),
+                    }),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('👤 Input Oleh')
                     ->sortable()
@@ -183,6 +205,14 @@ class PendapatanHarianResource extends Resource
                     ])
                     ->placeholder('Semua Shift')
                     ->multiple(),
+                Tables\Filters\SelectFilter::make('status_validasi')
+                    ->label('📋 Status Validasi')
+                    ->options([
+                        'pending' => '⏳ Menunggu Validasi',
+                        'disetujui' => '✅ Disetujui',
+                        'ditolak' => '❌ Ditolak',
+                    ])
+                    ->placeholder('Semua Status'),
                 Tables\Filters\Filter::make('tanggal_input')
                     ->label('📅 Rentang Tanggal')
                     ->form([
@@ -256,6 +286,7 @@ class PendapatanHarianResource extends Resource
                         ->color('warning')
                         ->icon('heroicon-o-pencil-square')
                         ->tooltip('Edit pendapatan')
+                        ->visible(fn ($record): bool => $record->status_validasi === 'pending')
                         ->successNotification(
                             Notification::make()
                                 ->success()
@@ -291,6 +322,7 @@ class PendapatanHarianResource extends Resource
                         ->color('danger')
                         ->icon('heroicon-o-trash')
                         ->tooltip('Hapus pendapatan')
+                        ->visible(fn ($record): bool => $record->status_validasi === 'pending')
                         ->successNotification(
                             Notification::make()
                                 ->success()

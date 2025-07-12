@@ -46,6 +46,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 Widgets\AccountWidget::class,
                 \App\Filament\Widgets\ClinicStatsWidget::class,
+                \App\Filament\Widgets\EmployeeCardStatsWidget::class,
                 \App\Filament\Widgets\AttendanceLabOverview::class,
                 \App\Filament\Widgets\FinancialSummaryWidget::class,
                 \App\Filament\Widgets\FinancialChartWidget::class,

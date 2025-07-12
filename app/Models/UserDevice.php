@@ -97,6 +97,104 @@ class UserDevice extends Model
     }
 
     /**
+     * Auto-register device based on configuration settings
+     */
+    public static function autoRegisterDevice(int $userId, array $deviceInfo): ?self
+    {
+        $config = \App\Models\GpsSpoofingConfig::getActiveConfig();
+        
+        // Check if auto-registration is enabled
+        if (!$config || !$config->isAutoDeviceRegistrationEnabled()) {
+            return null;
+        }
+
+        $deviceFingerprint = self::generateFingerprint($deviceInfo);
+        
+        // Check if device already exists
+        $existingDevice = self::where('user_id', $userId)
+            ->where('device_fingerprint', $deviceFingerprint)
+            ->first();
+            
+        if ($existingDevice) {
+            // Update activity
+            $existingDevice->updateActivity();
+            return $existingDevice;
+        }
+
+        // Check device limits
+        $activeDevicesCount = self::where('user_id', $userId)
+            ->where('is_active', true)
+            ->count();
+            
+        $maxDevices = $config->getMaxDevicesPerUser();
+        $policy = $config->getDeviceLimitPolicy();
+        
+        // Handle device limit enforcement
+        if ($activeDevicesCount >= $maxDevices) {
+            switch ($policy) {
+                case 'strict':
+                    if ($config->shouldAutoRevokeExcessDevices()) {
+                        // Remove oldest device
+                        $oldestDevice = self::where('user_id', $userId)
+                            ->where('is_active', true)
+                            ->orderBy('last_login_at', 'asc')
+                            ->first();
+                        if ($oldestDevice) {
+                            $oldestDevice->update([
+                                'is_active' => false,
+                                'status' => 'suspended',
+                                'is_primary' => false
+                            ]);
+                        }
+                    } else {
+                        return null; // Don't register new device
+                    }
+                    break;
+                    
+                case 'warn':
+                    // Allow registration but mark for admin review
+                    break;
+                    
+                case 'flexible':
+                    // Allow multiple devices
+                    break;
+            }
+        }
+
+        // Determine device status
+        $requiresApproval = $config->requiresAdminApprovalForNewDevices();
+        $status = $requiresApproval ? 'pending' : 'active';
+        $isActive = !$requiresApproval;
+        
+        // Set as primary if it's the first device
+        $isPrimary = ($activeDevicesCount == 0) || ($policy === 'strict');
+
+        // Create new device
+        return self::create([
+            'user_id' => $userId,
+            'device_id' => $deviceInfo['device_id'],
+            'device_name' => $deviceInfo['device_name'] ?? null,
+            'device_type' => $deviceInfo['device_type'] ?? 'mobile',
+            'platform' => $deviceInfo['platform'] ?? 'unknown',
+            'os_version' => $deviceInfo['os_version'] ?? null,
+            'browser_name' => $deviceInfo['browser_name'] ?? null,
+            'browser_version' => $deviceInfo['browser_version'] ?? null,
+            'user_agent' => $deviceInfo['user_agent'] ?? null,
+            'ip_address' => $deviceInfo['ip_address'] ?? null,
+            'mac_address' => $deviceInfo['mac_address'] ?? null,
+            'device_specs' => $deviceInfo['device_specs'] ?? null,
+            'device_fingerprint' => $deviceFingerprint,
+            'push_token' => $deviceInfo['push_token'] ?? null,
+            'is_active' => $isActive,
+            'is_primary' => $isPrimary,
+            'status' => $status,
+            'first_login_at' => Carbon::now(),
+            'last_login_at' => Carbon::now(),
+            'last_activity_at' => Carbon::now(),
+        ]);
+    }
+
+    /**
      * Bind new device to user (STRICT mode - only one device per user)
      */
     public static function bindDevice(int $userId, array $deviceInfo): self

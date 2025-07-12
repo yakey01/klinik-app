@@ -21,6 +21,8 @@ class PasienResource extends Resource
     
     protected static ?string $navigationGroup = 'Medis';
     
+    protected static bool $shouldRegisterNavigation = false;
+    
     protected static ?string $modelLabel = 'Pasien';
     
     protected static ?string $pluralModelLabel = 'Pasien';

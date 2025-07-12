@@ -13,7 +13,8 @@ class TindakanPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view-procedures');
+        // Allow users with input_transactions permission to view procedures
+        return $user->can('input_transactions') || $user->can('view-procedures');
     }
 
     /**
@@ -21,7 +22,8 @@ class TindakanPolicy
      */
     public function view(User $user, Tindakan $tindakan): bool
     {
-        return $user->can('view-procedures');
+        // Allow users with input_transactions permission to view procedures
+        return $user->can('input_transactions') || $user->can('view-procedures');
     }
 
     /**
@@ -29,7 +31,8 @@ class TindakanPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create-procedures');
+        // Allow users with input_transactions permission to create procedures
+        return $user->can('input_transactions') || $user->can('create-procedures');
     }
 
     /**
@@ -38,12 +41,12 @@ class TindakanPolicy
     public function update(User $user, Tindakan $tindakan): bool
     {
         // User can edit if they have permission AND (they created it OR they're involved in it)
-        return $user->can('edit-procedures') && (
+        return ($user->can('input_transactions') || $user->can('edit-procedures')) && (
             $tindakan->input_by === $user->id ||
             $tindakan->dokter_id === $user->id ||
             $tindakan->paramedis_id === $user->id ||
             $tindakan->non_paramedis_id === $user->id ||
-            $user->hasRole(['admin', 'manajer'])
+            $user->role && in_array($user->role->name, ['admin', 'manajer'])
         );
     }
 
@@ -52,9 +55,9 @@ class TindakanPolicy
      */
     public function delete(User $user, Tindakan $tindakan): bool
     {
-        return $user->can('delete-procedures') && (
+        return ($user->can('input_transactions') || $user->can('delete-procedures')) && (
             $tindakan->input_by === $user->id ||
-            $user->hasRole(['admin', 'manajer'])
+            $user->role && in_array($user->role->name, ['admin', 'manajer'])
         );
     }
 
@@ -79,6 +82,6 @@ class TindakanPolicy
      */
     public function forceDelete(User $user, Tindakan $tindakan): bool
     {
-        return $user->hasRole('admin');
+        return $user->role && $user->role->name === 'admin';
     }
 }

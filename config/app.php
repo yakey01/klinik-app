@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Default JASPEL Percentage
+    |--------------------------------------------------------------------------
+    |
+    | This value is the default percentage used for JASPEL calculations
+    | when creating medical procedures (tindakan).
+    |
+    */
+
+    'default_jaspel_percentage' => env('DEFAULT_JASPEL_PERCENTAGE', 40),
+
 ];

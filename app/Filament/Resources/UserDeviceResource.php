@@ -27,7 +27,7 @@ class UserDeviceResource extends Resource
     protected static ?string $modelLabel = 'User Device';
     protected static ?string $pluralModelLabel = 'User Devices';
     protected static ?string $navigationGroup = 'Presensi';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
     {
@@ -151,7 +151,11 @@ class UserDeviceResource extends Resource
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('User')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->description(function ($record) {
+                        $deviceCount = UserDevice::where('user_id', $record->user_id)->where('is_active', true)->count();
+                        return "📱 {$deviceCount} device(s)";
+                    }),
 
                 Tables\Columns\TextColumn::make('formatted_device_info')
                     ->label('Device Info')
@@ -242,6 +246,22 @@ class UserDeviceResource extends Resource
                 Filter::make('primary')
                     ->label('Primary Devices Only')
                     ->query(fn (Builder $query): Builder => $query->primary()),
+                    
+                Filter::make('multiple_devices')
+                    ->label('🚨 Users with Multiple Devices')
+                    ->query(function (Builder $query): Builder {
+                        $usersWithMultiple = UserDevice::select('user_id')
+                            ->where('is_active', true)
+                            ->groupBy('user_id')
+                            ->havingRaw('COUNT(*) > 1')
+                            ->pluck('user_id');
+                            
+                        return $query->whereIn('user_id', $usersWithMultiple);
+                    }),
+                    
+                Filter::make('unverified')
+                    ->label('⚠️ Unverified Devices')
+                    ->query(fn (Builder $query): Builder => $query->whereNull('verified_at')),
 
                 Tables\Filters\TrashedFilter::make(),
             ])
@@ -254,7 +274,63 @@ class UserDeviceResource extends Resource
                     ->action(function ($record) {
                         $record->verify();
                         Notification::make()
-                            ->title('Device verified successfully')
+                            ->title('✅ Device verified successfully')
+                            ->body($record->formatted_device_info . ' is now verified')
+                            ->success()
+                            ->send();
+                    }),
+
+                Action::make('set_primary')
+                    ->label('Set Primary')
+                    ->icon('heroicon-m-star')
+                    ->color('warning')
+                    ->visible(fn ($record) => !$record->is_primary && $record->status === 'active')
+                    ->action(function ($record) {
+                        // Remove primary status from other devices of the same user
+                        UserDevice::where('user_id', $record->user_id)
+                            ->where('id', '!=', $record->id)
+                            ->update(['is_primary' => false]);
+                        
+                        // Set this device as primary
+                        $record->update(['is_primary' => true]);
+                        
+                        Notification::make()
+                            ->title('⭐ Primary device updated')
+                            ->body($record->formatted_device_info . ' is now the primary device')
+                            ->success()
+                            ->send();
+                    }),
+
+                Action::make('force_single_device')
+                    ->label('🔒 Force Single Device')
+                    ->icon('heroicon-m-device-phone-mobile')
+                    ->color('danger')
+                    ->visible(function ($record) {
+                        return UserDevice::where('user_id', $record->user_id)->where('is_active', true)->count() > 1;
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Force Single Device Policy')
+                    ->modalDescription('This will deactivate all other devices for this user and keep only this device active.')
+                    ->action(function ($record) {
+                        // Deactivate all other devices for this user
+                        $deactivatedCount = UserDevice::where('user_id', $record->user_id)
+                            ->where('id', '!=', $record->id)
+                            ->update([
+                                'is_active' => false,
+                                'status' => 'suspended',
+                                'is_primary' => false
+                            ]);
+                        
+                        // Make this device primary and active
+                        $record->update([
+                            'is_active' => true,
+                            'status' => 'active',
+                            'is_primary' => true
+                        ]);
+                        
+                        Notification::make()
+                            ->title('🔒 Single device policy enforced')
+                            ->body("Deactivated {$deactivatedCount} other device(s). Only " . $record->formatted_device_info . ' remains active.')
                             ->success()
                             ->send();
                     }),
@@ -268,7 +344,8 @@ class UserDeviceResource extends Resource
                     ->action(function ($record) {
                         $record->revoke();
                         Notification::make()
-                            ->title('Device revoked successfully')
+                            ->title('❌ Device revoked successfully')
+                            ->body($record->formatted_device_info . ' has been revoked')
                             ->success()
                             ->send();
                     }),
@@ -279,6 +356,103 @@ class UserDeviceResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('bulk_verify')
+                        ->label('✅ Verify Selected')
+                        ->icon('heroicon-m-check-badge')
+                        ->color('success')
+                        ->action(function ($records) {
+                            $verified = 0;
+                            foreach ($records as $record) {
+                                if (is_null($record->verified_at)) {
+                                    $record->verify();
+                                    $verified++;
+                                }
+                            }
+                            
+                            Notification::make()
+                                ->title("✅ Verified {$verified} device(s)")
+                                ->success()
+                                ->send();
+                        }),
+                        
+                    Tables\Actions\BulkAction::make('bulk_revoke')
+                        ->label('❌ Revoke Selected')
+                        ->icon('heroicon-m-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->action(function ($records) {
+                            $revoked = 0;
+                            foreach ($records as $record) {
+                                if ($record->status !== 'revoked') {
+                                    $record->revoke();
+                                    $revoked++;
+                                }
+                            }
+                            
+                            Notification::make()
+                                ->title("❌ Revoked {$revoked} device(s)")
+                                ->success()
+                                ->send();
+                        }),
+                        
+                    Tables\Actions\BulkAction::make('enforce_single_device_policy')
+                        ->label('🔒 Enforce Single Device Policy')
+                        ->icon('heroicon-m-shield-check')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Enforce Single Device Policy')
+                        ->modalDescription('This will find users with multiple active devices and keep only their primary device active.')
+                        ->action(function () {
+                            $usersWithMultipleDevices = UserDevice::select('user_id')
+                                ->where('is_active', true)
+                                ->groupBy('user_id')
+                                ->havingRaw('COUNT(*) > 1')
+                                ->pluck('user_id');
+                            
+                            $totalDeactivated = 0;
+                            
+                            foreach ($usersWithMultipleDevices as $userId) {
+                                // Get primary device or the most recent one
+                                $primaryDevice = UserDevice::where('user_id', $userId)
+                                    ->where('is_active', true)
+                                    ->where('is_primary', true)
+                                    ->first();
+                                    
+                                if (!$primaryDevice) {
+                                    $primaryDevice = UserDevice::where('user_id', $userId)
+                                        ->where('is_active', true)
+                                        ->orderBy('last_login_at', 'desc')
+                                        ->first();
+                                }
+                                
+                                if ($primaryDevice) {
+                                    // Deactivate all other devices
+                                    $deactivated = UserDevice::where('user_id', $userId)
+                                        ->where('id', '!=', $primaryDevice->id)
+                                        ->where('is_active', true)
+                                        ->update([
+                                            'is_active' => false,
+                                            'status' => 'suspended',
+                                            'is_primary' => false
+                                        ]);
+                                    
+                                    // Ensure primary device is marked correctly
+                                    $primaryDevice->update([
+                                        'is_primary' => true,
+                                        'status' => 'active'
+                                    ]);
+                                    
+                                    $totalDeactivated += $deactivated;
+                                }
+                            }
+                            
+                            Notification::make()
+                                ->title('🔒 Single device policy enforced')
+                                ->body("Found {$usersWithMultipleDevices->count()} users with multiple devices. Deactivated {$totalDeactivated} excess devices.")
+                                ->success()
+                                ->send();
+                        }),
+                        
                     Tables\Actions\DeleteBulkAction::make(),
                     Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),

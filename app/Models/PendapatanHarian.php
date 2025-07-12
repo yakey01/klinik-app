@@ -16,11 +16,16 @@ class PendapatanHarian extends Model
         'nominal',
         'deskripsi',
         'user_id',
+        'status_validasi',
+        'validasi_by',
+        'validasi_at',
+        'catatan_validasi',
     ];
 
     protected $casts = [
         'tanggal_input' => 'date',
         'nominal' => 'decimal:2',
+        'validasi_at' => 'datetime',
     ];
 
     public function pendapatan(): BelongsTo
@@ -31,5 +36,15 @@ class PendapatanHarian extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function inputBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function validasiBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validasi_by');
     }
 }

@@ -31,6 +31,7 @@ class PegawaiResource extends Resource
     protected static ?string $pluralModelLabel = 'Pegawai';
 
     protected static ?string $navigationGroup = 'SDM';
+    protected static ?int $navigationSort = 20;
 
     public static function form(Form $form): Form
     {
@@ -97,58 +98,79 @@ class PegawaiResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->contentGrid([
+                'sm' => 1,
+                'md' => 2,
+                'lg' => 3,
+            ])
+            ->toggleColumnsTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('📋 Tampilan Tabel')
+            )
             ->columns([
-                Tables\Columns\ImageColumn::make('foto')
-                    ->label('Foto')
-                    ->circular()
-                    ->defaultImageUrl(fn ($record) => $record->default_avatar)
-                    ->size(50),
-
-                Tables\Columns\TextColumn::make('nama_lengkap')
-                    ->label('Nama Lengkap')
-                    ->weight(FontWeight::Bold)
-                    ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('nik')
-                    ->label('NIK')
-                    ->searchable()
-                    ->sortable()
-                    ->copyable(),
-
-                Tables\Columns\TextColumn::make('jabatan')
-                    ->label('Jabatan')
-                    ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('jenis_pegawai')
-                    ->label('Jenis')
-                    ->badge()
-                    ->color(fn ($state) => match ($state) {
-                        'Paramedis' => 'primary',
-                        'Non-Paramedis' => 'success',
-                        default => 'gray',
-                    }),
-
-                Tables\Columns\TextColumn::make('jenis_kelamin')
-                    ->label('L/P')
-                    ->formatStateUsing(fn ($state) => $state === 'Laki-laki' ? 'L' : 'P')
-                    ->badge()
-                    ->color('gray'),
-
-                Tables\Columns\IconColumn::make('aktif')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-m-check-circle')
-                    ->falseIcon('heroicon-m-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
-                    ->dateTime('d/m/Y')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\Layout\Stack::make([
+                    // Header: Photo + Name + NIK
+                    Tables\Columns\Layout\Split::make([
+                        Tables\Columns\ImageColumn::make('foto')
+                            ->circular()
+                            ->size(50)
+                            ->defaultImageUrl(fn ($record) => $record->default_avatar),
+                        
+                        Tables\Columns\Layout\Stack::make([
+                            Tables\Columns\TextColumn::make('nama_lengkap')
+                                ->weight(FontWeight::Bold)
+                                ->size('sm')
+                                ->limit(20)
+                                ->tooltip(fn ($record) => $record->nama_lengkap),
+                            Tables\Columns\TextColumn::make('nik')
+                                ->color('gray')
+                                ->size('xs')
+                                ->prefix('NIK: '),
+                        ])->space(1),
+                    ]),
+                    
+                    // Body: Job Info
+                    Tables\Columns\Layout\Stack::make([
+                        Tables\Columns\TextColumn::make('jabatan')
+                            ->icon('heroicon-m-briefcase')
+                            ->color('primary')
+                            ->size('xs')
+                            ->limit(15)
+                            ->tooltip(fn ($record) => $record->jabatan),
+                        
+                        Tables\Columns\TextColumn::make('jenis_pegawai')
+                            ->badge()
+                            ->size('xs')
+                            ->color(fn ($state) => match ($state) {
+                                'Paramedis' => 'info',
+                                'Non-Paramedis' => 'success',
+                                default => 'gray',
+                            }),
+                    ])->space(1),
+                    
+                    // Footer: Status + Card Info
+                    Tables\Columns\Layout\Split::make([
+                        Tables\Columns\IconColumn::make('aktif')
+                            ->boolean()
+                            ->trueIcon('heroicon-m-check-circle')
+                            ->falseIcon('heroicon-m-x-circle')
+                            ->trueColor('success')
+                            ->falseColor('danger')
+                            ->size('sm'),
+                        
+                        Tables\Columns\TextColumn::make('employee_card_status')
+                            ->getStateUsing(function ($record) {
+                                $hasCard = \App\Models\EmployeeCard::where('pegawai_id', $record->id)->exists();
+                                return $hasCard ? '🆔' : '❌';
+                            })
+                            ->tooltip(function ($record) {
+                                $hasCard = \App\Models\EmployeeCard::where('pegawai_id', $record->id)->exists();
+                                return $hasCard ? 'Sudah ada kartu' : 'Belum ada kartu';
+                            })
+                            ->size('sm'),
+                    ]),
+                ])->space(2),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('jenis_pegawai')

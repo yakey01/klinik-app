@@ -11,14 +11,8 @@ class AccurateTimeHelper
      */
     public static function now(): Carbon
     {
-        $systemNow = Carbon::now();
-        
-        // If system shows 2025, correct to 2024
-        if ($systemNow->year === 2025) {
-            return $systemNow->subYear();
-        }
-        
-        return $systemNow;
+        // Return current time in Jakarta timezone (WIB)
+        return Carbon::now('Asia/Jakarta');
     }
     
     /**

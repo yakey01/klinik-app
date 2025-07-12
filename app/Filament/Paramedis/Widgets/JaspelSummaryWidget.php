@@ -11,7 +11,7 @@ use App\Helpers\AccurateTimeHelper;
 
 class JaspelSummaryWidget extends BaseWidget
 {
-    protected static ?string $pollingInterval = '30s'; // Sync with other widgets
+    protected static ?string $pollingInterval = null; // Disable polling; // Sync with other widgets
     
     public static function canView(): bool
     {

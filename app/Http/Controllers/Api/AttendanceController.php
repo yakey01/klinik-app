@@ -41,9 +41,23 @@ class AttendanceController extends Controller
                 ], 400);
             }
 
-            // Get device information
+            // Get device information and auto-register device
             $deviceInfo = UserDevice::extractDeviceInfo($request);
             $deviceFingerprint = UserDevice::generateFingerprint($deviceInfo);
+            
+            // Auto-register device if enabled
+            $registeredDevice = UserDevice::autoRegisterDevice($user->id, $deviceInfo);
+            $deviceRegistrationInfo = null;
+            
+            if ($registeredDevice) {
+                $deviceRegistrationInfo = [
+                    'device_id' => $registeredDevice->id,
+                    'device_name' => $registeredDevice->formatted_device_info,
+                    'is_new' => $registeredDevice->wasRecentlyCreated,
+                    'requires_approval' => $registeredDevice->status === 'pending',
+                    'status' => $registeredDevice->status
+                ];
+            }
 
             // Handle face image base64
             $photoPath = null;
@@ -87,13 +101,17 @@ class AttendanceController extends Controller
                 ]
             ];
 
-            // Add device binding info if new device
-            if ($deviceBinding && $deviceBinding['new_device']) {
-                $response['device_binding'] = [
-                    'new_device' => true,
-                    'message' => 'Device baru berhasil didaftarkan',
-                    'requires_verification' => $deviceBinding['requires_verification']
-                ];
+            // Add device registration info
+            if ($deviceRegistrationInfo) {
+                $response['device_registration'] = $deviceRegistrationInfo;
+                
+                if ($deviceRegistrationInfo['is_new']) {
+                    if ($deviceRegistrationInfo['requires_approval']) {
+                        $response['message'] .= ' (Device baru memerlukan persetujuan admin)';
+                    } else {
+                        $response['message'] .= ' (Device baru berhasil didaftarkan)';
+                    }
+                }
             }
 
             return response()->json($response, 201);
@@ -149,6 +167,21 @@ class AttendanceController extends Controller
                 ], 400);
             }
 
+            // Get device information and auto-register device
+            $deviceInfo = UserDevice::extractDeviceInfo($request);
+            $registeredDevice = UserDevice::autoRegisterDevice($user->id, $deviceInfo);
+            $deviceRegistrationInfo = null;
+            
+            if ($registeredDevice) {
+                $deviceRegistrationInfo = [
+                    'device_id' => $registeredDevice->id,
+                    'device_name' => $registeredDevice->formatted_device_info,
+                    'is_new' => $registeredDevice->wasRecentlyCreated,
+                    'requires_approval' => $registeredDevice->status === 'pending',
+                    'status' => $registeredDevice->status
+                ];
+            }
+
             // Handle face image base64
             $photoPath = null;
             if ($request->face_image) {
@@ -169,7 +202,7 @@ class AttendanceController extends Controller
                     $request->notes,
             ]);
 
-            return response()->json([
+            $response = [
                 'success' => true,
                 'message' => 'Check-out berhasil',
                 'data' => [
@@ -183,7 +216,22 @@ class AttendanceController extends Controller
                         'longitude' => $request->longitude
                     ]
                 ]
-            ], 200);
+            ];
+
+            // Add device registration info
+            if ($deviceRegistrationInfo) {
+                $response['device_registration'] = $deviceRegistrationInfo;
+                
+                if ($deviceRegistrationInfo['is_new']) {
+                    if ($deviceRegistrationInfo['requires_approval']) {
+                        $response['message'] .= ' (Device baru memerlukan persetujuan admin)';
+                    } else {
+                        $response['message'] .= ' (Device baru berhasil didaftarkan)';
+                    }
+                }
+            }
+
+            return response()->json($response, 200);
 
         } catch (ValidationException $e) {
             return response()->json([

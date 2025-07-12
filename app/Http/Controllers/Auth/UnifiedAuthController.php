@@ -87,8 +87,8 @@ class UnifiedAuthController extends Controller
                 Log::info('Redirecting dokter user to /doctor/dashboard');
                 return redirect()->intended('/doctor/dashboard');
             } elseif ($user->hasRole('paramedis')) {
-                Log::info('Redirecting paramedis user to /paramedic/dashboard');
-                return redirect()->intended('/paramedic/dashboard');
+                Log::info('Redirecting paramedis user to /paramedis');
+                return redirect()->intended('/paramedis');
             } elseif ($user->hasRole('non_paramedis')) {
                 Log::info('Redirecting non_paramedis user to /non-paramedic/dashboard');
                 return redirect()->intended('/non-paramedic/dashboard');

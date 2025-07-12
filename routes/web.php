@@ -49,9 +49,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/doctor/dashboard', function () {
         return view('doctor.dashboard');
     })->middleware('role:dokter')->name('doctor.dashboard');
-    Route::get('/paramedic/dashboard', function () {
-        return view('paramedic.dashboard');
-    })->middleware('role:paramedis')->name('paramedic.dashboard');
     Route::get('/non-paramedic/dashboard', function () {
         return view('non-paramedic.dashboard');
     })->middleware('role:non_paramedis')->name('non-paramedic.dashboard');

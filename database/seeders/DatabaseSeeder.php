@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             Master\JenisTindakanSeeder::class,
             RolePermissionSeeder::class,
             UserSeeder::class,
+            LocationValidationSeeder::class,
+            GpsSpoofingDetectionSeeder::class,
         ]);
     }
 }

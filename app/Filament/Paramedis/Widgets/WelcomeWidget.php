@@ -4,11 +4,11 @@ namespace App\Filament\Paramedis\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use App\Helpers\AccurateTimeHelper;
+use Carbon\Carbon;
 
 class WelcomeWidget extends BaseWidget
 {
-    protected static ?string $pollingInterval = '30s'; // Sync with other widgets
+    protected static ?string $pollingInterval = null; // Disable polling
     
     public static function canView(): bool
     {
@@ -26,8 +26,8 @@ class WelcomeWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-user-circle')
                 ->color('success'),
                 
-            Stat::make('📅 Hari Ini', AccurateTimeHelper::formatDate('d M Y'))
-                ->description(AccurateTimeHelper::now()->format('l'))
+            Stat::make('📅 Hari Ini', Carbon::now('Asia/Jakarta')->format('d M Y'))
+                ->description(Carbon::now('Asia/Jakarta')->format('l'))
                 ->descriptionIcon('heroicon-m-calendar-days')
                 ->color('info'),
                 
@@ -40,7 +40,7 @@ class WelcomeWidget extends BaseWidget
     
     private function getGreeting(): string
     {
-        $hour = AccurateTimeHelper::getHour();
+        $hour = Carbon::now('Asia/Jakarta')->hour;
         
         if ($hour < 11) {
             return 'Selamat Pagi';
@@ -55,6 +55,6 @@ class WelcomeWidget extends BaseWidget
     
     protected function getColumns(): int
     {
-        return 3;
+        return 1; // Make it single column for mobile
     }
 }

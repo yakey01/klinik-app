@@ -186,6 +186,19 @@ This project uses **FilamentPHP v3.3** with multiple panels:
 - **Resources**: `app/Filament/Petugas/Resources/`
 - **Colors**: Primary Blue (`Color::Blue`)
 
+### Paramedis Panel (`/paramedis`)
+- **Provider**: `app/Providers/Filament/ParamedisPanelProvider.php`
+- **Widgets**: `app/Filament/Paramedis/Widgets/`
+- **Resources**: `app/Filament/Paramedis/Resources/`
+- **Colors**: Primary Green (`Color::Green`)
+- **Features**: Attendance tracking, Jaspel management, Location detection
+
+### Bendahara Panel (`/bendahara`)
+- **Provider**: `app/Providers/Filament/BendaharaPanelProvider.php`
+- **Widgets**: `app/Filament/Bendahara/Widgets/`
+- **Resources**: `app/Filament/Bendahara/Resources/`
+- **Features**: Financial validation, Revenue tracking
+
 ### Filament Development Best Practices
 
 #### ✅ DO's:
@@ -238,3 +251,52 @@ This project uses **FilamentPHP v3.3** with multiple panels:
 - ✅ Auto-refresh every 15 seconds
 
 **Access**: `http://localhost:8000/petugas` (Login: petugas@dokterku.com / petugas123)
+
+## Attendance & Location System
+
+### Filament Plugins Integration
+- **diogogpinto/filament-geolocate-me** (v0.1.1) - Geolocation actions for Filament
+- **dotswan/filament-map-picker** (v1.8) - Interactive maps with OpenStreetMap
+- **bezhansalleh/filament-shield** (v3.3) - Role-based permissions
+- **spatie/laravel-permission** (v6.20) - Permission management backend
+
+### Location Detection Architecture
+The system uses a multi-widget approach for location-based attendance:
+
+#### LocationDetectionWidget
+- **File**: `app/Filament/Paramedis/Widgets/LocationDetectionWidget.php`
+- **Purpose**: Detects user location and validates distance to clinic
+- **Technology**: Livewire + JavaScript Geolocation API
+- **Features**: Device info detection, distance calculation, attendance radius validation
+
+#### ClinicMapWidget  
+- **File**: `app/Filament/Paramedis/Widgets/ClinicMapWidget.php`
+- **Purpose**: Interactive map showing clinic location and attendance radius
+- **Technology**: dotswan/filament-map-picker with OpenStreetMap
+- **Features**: Clinic marker, user location button, 100m attendance radius
+
+#### AttendanceButtonWidget
+- **File**: `app/Filament/Paramedis/Widgets/AttendanceButtonWidget.php`
+- **Purpose**: Real-time clock and check-in/out functionality
+- **Technology**: Server-side time management with Jakarta timezone
+- **Features**: Live clock, face recognition integration, attendance validation
+
+### Key Principles for Location Widgets
+1. **Use existing Filament plugins** - Avoid custom Alpine.js implementations
+2. **Server-side validation** - Distance calculation and attendance rules on backend  
+3. **No JavaScript polling** - Set `pollingInterval = null` to prevent clock destruction
+4. **Livewire event communication** - Use `dispatch()` for JS-to-PHP communication
+5. **Proper error handling** - Filament notifications for permission denied, timeout, etc.
+
+### User Model Panel Access
+The `User` model implements `FilamentUser` interface with `canAccessPanel()` method:
+```php
+public function canAccessPanel(Panel $panel): bool
+{
+    if ($panel->getId() === 'admin') return $this->hasRole('admin');
+    if ($panel->getId() === 'petugas') return $this->hasRole('petugas');
+    if ($panel->getId() === 'paramedis') return $this->hasRole('paramedis');
+    if ($panel->getId() === 'bendahara') return $this->hasRole('bendahara');
+    return false;
+}
+```

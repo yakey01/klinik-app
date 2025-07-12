@@ -97,6 +97,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Pengeluaran::class, 'input_by');
     }
 
+    public function locationValidations(): HasMany
+    {
+        return $this->hasMany(LocationValidation::class);
+    }
+
+    public function gpsSpoofingDetections(): HasMany
+    {
+        return $this->hasMany(GpsSpoofingDetection::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
@@ -135,21 +145,51 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Check if user has a specific permission through their role
+     */
+    public function hasPermission(string $permission): bool
+    {
+        if (!$this->role || !$this->role->permissions) {
+            return false;
+        }
+        
+        return in_array($permission, $this->role->permissions);
+    }
+
+    /**
+     * Override the can method to use custom role permissions
+     */
+    public function can($abilities, $arguments = []): bool
+    {
+        // First check custom role permissions
+        if (is_string($abilities) && $this->hasPermission($abilities)) {
+            return true;
+        }
+        
+        // Fall back to Spatie's can method
+        return parent::can($abilities, $arguments);
+    }
+
+    /**
      * Determine if the user can access the given Filament panel.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        // Check panel ID and user role
+        // Check panel ID and user role using custom role relationship
         if ($panel->getId() === 'admin') {
-            return $this->hasRole('admin');
+            return $this->role && $this->role->name === 'admin';
+        }
+        
+        if ($panel->getId() === 'bendahara') {
+            return $this->role && $this->role->name === 'bendahara';
         }
         
         if ($panel->getId() === 'petugas') {
-            return $this->hasRole('petugas');
+            return $this->role && $this->role->name === 'petugas';
         }
         
         if ($panel->getId() === 'paramedis') {
-            return $this->hasRole('paramedis');
+            return $this->role && $this->role->name === 'paramedis';
         }
         
         return false;

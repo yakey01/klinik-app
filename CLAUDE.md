@@ -300,3 +300,11 @@ public function canAccessPanel(Panel $panel): bool
     return false;
 }
 ```
+
+## Project Memory
+
+- Project started as a solo project to streamline clinic financial management
+- Key motivation: simplify complex financial workflows for medical staff
+- Initial development began in February 2024
+- Using Laravel and FilamentPHP for rapid development
+- Focuses on role-based access and financial transparency

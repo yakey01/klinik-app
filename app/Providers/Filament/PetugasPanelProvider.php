@@ -11,8 +11,6 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
-use Hasnayeen\Themes\ThemesPlugin;
-use Hasnayeen\Themes\Http\Middleware\SetTheme;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -34,7 +32,6 @@ class PetugasPanelProvider extends PanelProvider
                 'primary' => Color::Blue,
             ])
             ->darkMode()
-            ->plugin(ThemesPlugin::make())
             ->resources([
                 \App\Filament\Petugas\Resources\PasienResource::class,
                 \App\Filament\Petugas\Resources\PendapatanHarianResource::class,
@@ -59,7 +56,6 @@ class PetugasPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                SetTheme::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

@@ -106,6 +106,18 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(GpsSpoofingDetection::class);
     }
+    
+    // Relationship to dokter if user is a dokter
+    public function dokter()
+    {
+        return $this->hasOne(Dokter::class, 'user_id');
+    }
+    
+    // Relationship to pegawai if user is a pegawai
+    public function pegawai()
+    {
+        return $this->hasOne(Pegawai::class, 'user_id');
+    }
 
     public function scopeActive($query)
     {
@@ -190,6 +202,14 @@ class User extends Authenticatable implements FilamentUser
         
         if ($panel->getId() === 'paramedis') {
             return $this->role && $this->role->name === 'paramedis';
+        }
+        
+        if ($panel->getId() === 'dokter') {
+            return $this->role && $this->role->name === 'dokter';
+        }
+        
+        if ($panel->getId() === 'manajer') {
+            return $this->role && $this->role->name === 'manajer';
         }
         
         return false;

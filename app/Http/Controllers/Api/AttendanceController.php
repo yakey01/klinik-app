@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\UserDevice;
+use App\Services\GeolocationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -38,6 +39,42 @@ class AttendanceController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda sudah melakukan check-in hari ini'
+                ], 400);
+            }
+            
+            // Validate geolocation
+            $clinicCoords = GeolocationService::getClinicCoordinates();
+            $isWithinRadius = GeolocationService::isWithinRadius(
+                $request->latitude,
+                $request->longitude,
+                $clinicCoords['latitude'],
+                $clinicCoords['longitude'],
+                $clinicCoords['radius']
+            );
+            
+            if (!$isWithinRadius) {
+                $distance = GeolocationService::calculateDistance(
+                    $request->latitude,
+                    $request->longitude,
+                    $clinicCoords['latitude'],
+                    $clinicCoords['longitude']
+                );
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lokasi Anda terlalu jauh dari klinik',
+                    'data' => [
+                        'distance' => GeolocationService::formatDistance($distance),
+                        'max_distance' => GeolocationService::formatDistance($clinicCoords['radius']),
+                    ]
+                ], 400);
+            }
+            
+            // Validate GPS accuracy if provided
+            if ($request->accuracy && !GeolocationService::isAccuracyValid($request->accuracy)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akurasi GPS tidak memenuhi syarat. Pastikan GPS Anda aktif dengan baik.',
                 ], 400);
             }
 

@@ -12,8 +12,6 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Filament\Support\Enums\ThemeMode;
-use Hasnayeen\Themes\ThemesPlugin;
-use Hasnayeen\Themes\Http\Middleware\SetTheme;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -21,6 +19,8 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Support\Facades\FilamentView;
+use Cheesegrits\FilamentGoogleMaps\FilamentGoogleMapsPlugin;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -36,7 +36,6 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Blue,
             ])
             ->darkMode()
-            ->plugin(ThemesPlugin::make())
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -50,6 +49,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\AttendanceLabOverview::class,
                 \App\Filament\Widgets\FinancialSummaryWidget::class,
                 \App\Filament\Widgets\FinancialChartWidget::class,
+                \App\Filament\Widgets\CalendarWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -61,7 +61,6 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                SetTheme::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -69,6 +68,24 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authGuard('web')
             ->databaseNotifications()
+            ->plugins([
+                FilamentShieldPlugin::make()
+                    ->gridColumns([
+                        'default' => 1,
+                        'sm' => 2,
+                        'lg' => 3
+                    ])
+                    ->sectionColumnSpan(1)
+                    ->checkboxListColumns([
+                        'default' => 1,
+                        'sm' => 2,
+                        'lg' => 3,
+                    ])
+                    ->resourceCheckboxListColumns([
+                        'default' => 1,
+                        'sm' => 2,
+                    ]),
+            ])
             ->tenant(null); // Disable multi-tenancy for now
     }
 }

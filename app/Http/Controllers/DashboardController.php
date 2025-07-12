@@ -24,7 +24,7 @@ class DashboardController extends Controller
         } elseif ($user->hasRole('petugas')) {
             return redirect('/petugas'); // Redirect to Filament petugas panel
         } elseif ($user->hasRole('dokter')) {
-            return redirect()->route('doctor.dashboard');
+            return redirect('/dokter');
         } elseif ($user->hasRole('paramedis')) {
             return redirect('/paramedis'); // Redirect to Filament paramedis panel
         } elseif ($user->hasRole('non_paramedis')) {

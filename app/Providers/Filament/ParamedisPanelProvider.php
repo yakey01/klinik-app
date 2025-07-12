@@ -17,6 +17,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Cheesegrits\FilamentGoogleMaps\FilamentGoogleMapsPlugin;
 
 class ParamedisPanelProvider extends PanelProvider
 {
@@ -35,15 +36,14 @@ class ParamedisPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Paramedis/Resources'), for: 'App\\Filament\\Paramedis\\Resources')
             ->discoverPages(in: app_path('Filament/Paramedis/Pages'), for: 'App\\Filament\\Paramedis\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                \App\Filament\Paramedis\Pages\MobileDashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Paramedis/Widgets'), for: 'App\\Filament\\Paramedis\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                \App\Filament\Paramedis\Widgets\WelcomeWidget::class,
-                \App\Filament\Paramedis\Widgets\AttendanceStatusWidget::class,
-                \App\Filament\Paramedis\Widgets\JaspelHighlightWidget::class,
-                \App\Filament\Paramedis\Widgets\LocationStatusWidget::class,
+                \App\Filament\Paramedis\Widgets\MobileAttendanceWidget::class,
+                \App\Filament\Paramedis\Widgets\MobileScheduleWidget::class,
+                \App\Filament\Paramedis\Widgets\MobilePerformanceWidget::class,
+                \App\Filament\Paramedis\Widgets\MobileNotificationWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

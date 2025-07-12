@@ -13,6 +13,7 @@ class Dokter extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'user_id',
         'nama_lengkap',
         'nik',
         'tanggal_lahir',
@@ -32,6 +33,11 @@ class Dokter extends Model
     ];
 
     // Relationships
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function inputBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'input_by');

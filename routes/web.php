@@ -3,7 +3,6 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Manager\ManagerDashboardController;
 use App\Http\Controllers\Treasurer\TreasurerDashboardController;
 use App\Http\Controllers\Staff\StaffDashboardController;
 use App\Http\Controllers\Auth\UnifiedAuthController;
@@ -43,12 +42,15 @@ Route::get('/dashboard', DashboardController::class)->middleware(['auth'])->name
 // Role-specific dashboard routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/legacy-admin/dashboard', [AdminDashboardController::class, 'index'])->name('legacy-admin.dashboard');
-    Route::get('/manager/dashboard', [ManagerDashboardController::class, 'index'])->name('manager.dashboard');
+    Route::get('/manager/dashboard', function () {
+        return redirect('/manajer');
+    })->name('manager.dashboard');
     Route::get('/treasurer/dashboard', [TreasurerDashboardController::class, 'index'])->name('treasurer.dashboard');
     Route::get('/staff/dashboard', [StaffDashboardController::class, 'index'])->name('staff.dashboard');
+    // Keep legacy route for backward compatibility
     Route::get('/doctor/dashboard', function () {
-        return view('doctor.dashboard');
-    })->middleware('role:dokter')->name('doctor.dashboard');
+        return redirect('/dokter');
+    })->middleware('role:dokter');
     Route::get('/non-paramedic/dashboard', function () {
         return view('non-paramedic.dashboard');
     })->middleware('role:non_paramedis')->name('non-paramedic.dashboard');
@@ -90,5 +92,34 @@ Route::middleware(['auth'])->group(function () {
         return response()->download($filePath, $fileName);
     })->name('employee-card.download');
 });
+
+
+// Dokter Dashboard Routes - DISABLED (Using Filament Panel instead at /dokter)
+// Route::middleware(['auth', 'role:dokter'])->prefix('dokter')->name('dokter.')->group(function () {
+//     Route::get('/dashboard', [\App\Http\Controllers\Dokter\DashboardController::class, 'index'])->name('dashboard');
+//     
+//     // Presensi Routes
+//     Route::get('/presensi', [\App\Http\Controllers\Dokter\PresensiController::class, 'index'])->name('presensi.index');
+//     Route::post('/presensi/masuk', [\App\Http\Controllers\Dokter\PresensiController::class, 'masuk'])->name('presensi.masuk');
+//     Route::post('/presensi/pulang', [\App\Http\Controllers\Dokter\PresensiController::class, 'pulang'])->name('presensi.pulang');
+//     
+//     // Jaspel Routes
+//     Route::get('/jaspel', [\App\Http\Controllers\Dokter\JaspelController::class, 'index'])->name('jaspel.index');
+//     Route::get('/jaspel/export', [\App\Http\Controllers\Dokter\JaspelController::class, 'export'])->name('jaspel.export');
+// });
+
+// Redirect legacy dokter routes to Filament panel
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dokter/dashboard', function () {
+        return redirect('/dokter');
+    });
+    Route::get('/dokter/presensi', function () {
+        return redirect('/dokter/dokter-presensis');
+    });
+    Route::get('/dokter/jaspel', function () {
+        return redirect('/dokter/jaspel-dokters');
+    });
+});
+
 
 // require __DIR__.'/auth.php'; // Using unified auth instead

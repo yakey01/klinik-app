@@ -1,0 +1,196 @@
+/* Mobile-first CSS for Paramedis Panel */
+
+/* Remove desktop navigation on mobile */
+@media (max-width: 768px) {
+    .fi-sidebar {
+        display: none !important;
+    }
+    
+    .fi-sidebar-open .fi-main {
+        margin-left: 0 !important;
+    }
+    
+    /* Full width content on mobile */
+    .fi-main {
+        margin-left: 0 !important;
+    }
+    
+    /* Adjust page padding for mobile */
+    .fi-page {
+        padding: 1rem !important;
+    }
+    
+    /* Mobile-optimized card spacing */
+    .fi-section {
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Compact widget spacing */
+    .fi-wi {
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Hide desktop-only elements */
+    .fi-topbar-nav {
+        display: none !important;
+    }
+    
+    /* Adjust header for mobile */
+    .fi-header {
+        padding: 0.75rem 1rem !important;
+    }
+    
+    /* Bottom navigation spacing */
+    .fi-page-content {
+        padding-bottom: 5rem !important;
+    }
+}
+
+/* Bottom navigation styles */
+.mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    z-index: 50;
+    box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark .mobile-bottom-nav {
+    background: #1f2937;
+    border-top-color: #374151;
+}
+
+/* Touch-friendly buttons */
+.mobile-action-button {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Improved tap targets */
+@media (max-width: 768px) {
+    button, a {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Larger form inputs on mobile */
+    input, select, textarea {
+        font-size: 16px !important;
+        padding: 0.75rem !important;
+    }
+}
+
+/* Performance optimizations */
+@media (max-width: 768px) {
+    /* Reduce animations on mobile */
+    *, *::before, *::after {
+        animation-duration: 0.1s !important;
+        transition-duration: 0.1s !important;
+    }
+    
+    /* Optimize scrolling */
+    .fi-main-ctn {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+}
+
+/* Geolocation indicator */
+.location-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.location-status.active {
+    background-color: #10b981;
+    color: white;
+}
+
+.location-status.inactive {
+    background-color: #ef4444;
+    color: white;
+}
+
+/* Loading states */
+.mobile-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.mobile-loading svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Notification badge */
+.notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 9999px;
+    padding: 0 4px;
+}
+
+/* Mobile card styles */
+.mobile-card {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+}
+
+.dark .mobile-card {
+    background: #1f2937;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Quick action buttons */
+.quick-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.quick-action-button {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.quick-action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}

@@ -3,7 +3,7 @@
 namespace App\Filament\Bendahara\Widgets;
 
 use App\Models\PendapatanHarian;
-use App\Models\Pengeluaran;
+use App\Models\PengeluaranHarian;
 use App\Models\Tindakan;
 use App\Models\Jaspel;
 use Carbon\Carbon;
@@ -23,7 +23,7 @@ class BendaharaStatsWidget extends BaseWidget
             ->sum('nominal');
 
         // Today's expenses (approved only)
-        $pengeluaranHariIni = Pengeluaran::whereDate('tanggal', $today)
+        $pengeluaranHariIni = PengeluaranHarian::whereDate('tanggal_input', $today)
             ->where('status_validasi', 'disetujui')
             ->sum('nominal');
 

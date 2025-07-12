@@ -34,7 +34,7 @@ class TindakanResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Card::make()
+                Forms\Components\Section::make('Input Tindakan Medis')
                     ->schema([
                         Forms\Components\Select::make('jenis_tindakan_id')
                             ->label('Jenis Tindakan')
@@ -82,9 +82,16 @@ class TindakanResource extends Resource
                             ->default(now())
                             ->maxDate(now()),
 
+                        Forms\Components\Select::make('shift_id')
+                            ->label('Shift')
+                            ->relationship('shift', 'name')
+                            ->required()
+                            ->searchable()
+                            ->placeholder('Pilih shift'),
+
                         Forms\Components\Select::make('dokter_id')
                             ->label('Dokter Pelaksana')
-                            ->options(\App\Models\Dokter::where('aktif', true)->pluck('nama_lengkap', 'id'))
+                            ->relationship('dokter', 'nama_lengkap')
                             ->searchable()
                             ->placeholder('Pilih dokter (opsional)')
                             ->reactive()
@@ -108,7 +115,7 @@ class TindakanResource extends Resource
 
                         Forms\Components\Select::make('paramedis_id')
                             ->label('Paramedis Pelaksana')
-                            ->options(\App\Models\Pegawai::where('jenis_pegawai', 'Paramedis')->where('aktif', true)->pluck('nama_lengkap', 'id'))
+                            ->relationship('paramedis', 'nama_lengkap')
                             ->searchable()
                             ->placeholder('Pilih paramedis (opsional)')
                             ->reactive()
@@ -129,7 +136,7 @@ class TindakanResource extends Resource
 
                         Forms\Components\Select::make('non_paramedis_id')
                             ->label('Non-Paramedis Pelaksana')
-                            ->options(\App\Models\Pegawai::where('jenis_pegawai', 'Non-Paramedis')->where('aktif', true)->pluck('nama_lengkap', 'id'))
+                            ->relationship('nonParamedis', 'nama_lengkap')
                             ->searchable()
                             ->placeholder('Pilih non-paramedis (opsional)'),
                         
@@ -169,12 +176,38 @@ class TindakanResource extends Resource
                             ->minValue(0)
                             ->disabled()
                             ->dehydrated(),
+
+                        Forms\Components\TextInput::make('jasa_non_paramedis')
+                            ->label('Jasa Non-Paramedis (Rp)')
+                            ->helperText('Jasa untuk non-paramedis yang terlibat')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->default(0)
+                            ->minValue(0)
+                            ->disabled()
+                            ->dehydrated(),
                         
                         Forms\Components\Textarea::make('catatan')
                             ->label('Catatan')
                             ->maxLength(500)
                             ->placeholder('Catatan tindakan (opsional)')
                             ->columnSpanFull(),
+
+                        Forms\Components\Select::make('status')
+                            ->label('Status Tindakan')
+                            ->options([
+                                'pending' => 'Pending',
+                                'selesai' => 'Selesai',
+                                'batal' => 'Batal',
+                            ])
+                            ->default('pending')
+                            ->required(),
+
+                        Forms\Components\Hidden::make('input_by')
+                            ->default(fn () => Auth::id()),
+
+                        Forms\Components\Hidden::make('status_validasi')
+                            ->default('pending'),
                     ])
                     ->columns(3),
             ]);
@@ -211,6 +244,16 @@ class TindakanResource extends Resource
                     ->searchable()
                     ->placeholder('-')
                     ->toggleable(),
+
+                Tables\Columns\TextColumn::make('shift.name')
+                    ->label('Shift')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Pagi' => 'info',
+                        'Sore' => 'warning',
+                        'Malam' => 'primary',
+                        default => 'gray'
+                    }),
 
                 Tables\Columns\TextColumn::make('tarif')
                     ->label('Tarif')
@@ -267,6 +310,10 @@ class TindakanResource extends Resource
                 Tables\Filters\SelectFilter::make('jenis_tindakan_id')
                     ->label('Jenis Tindakan')
                     ->options(JenisTindakan::where('is_active', true)->orderBy('nama')->pluck('nama', 'id')),
+                
+                Tables\Filters\SelectFilter::make('dokter_id')
+                    ->label('Dokter')
+                    ->options(\App\Models\Dokter::where('aktif', true)->orderBy('nama_lengkap')->pluck('nama_lengkap', 'id')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

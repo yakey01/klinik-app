@@ -67,5 +67,12 @@ Route::middleware('auth:sanctum')->group(function () {
                 ]
             ]);
         });
+        
+        // Mobile Dashboard Routes
+        Route::get('/dashboard', [\App\Http\Controllers\Api\ParamedisDashboardController::class, 'dashboard']);
+        Route::get('/schedule', [\App\Http\Controllers\Api\ParamedisDashboardController::class, 'schedule']);
+        Route::get('/performance', [\App\Http\Controllers\Api\ParamedisDashboardController::class, 'performance']);
+        Route::get('/notifications', [\App\Http\Controllers\Api\ParamedisDashboardController::class, 'notifications']);
+        Route::put('/notifications/{id}/read', [\App\Http\Controllers\Api\ParamedisDashboardController::class, 'markNotificationRead']);
     });
 });

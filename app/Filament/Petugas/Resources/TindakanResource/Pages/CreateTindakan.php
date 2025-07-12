@@ -13,17 +13,10 @@ class CreateTindakan extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['input_by'] = Auth::id();
-        $data['status'] = 'pending';
+        $data['status_validasi'] = 'pending';
         
-        // Set current user as dokter if not specified
-        if (!isset($data['dokter_id'])) {
-            $data['dokter_id'] = Auth::id();
-        }
-        
-        // Set default shift to current shift (assuming shift 1 for now)
-        if (!isset($data['shift_id'])) {
-            $data['shift_id'] = 1;
-        }
+        // Don't set default dokter_id - let user choose
+        // Don't set default shift_id - make it required in form
         
         return $data;
     }

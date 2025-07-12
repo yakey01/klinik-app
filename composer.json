@@ -9,14 +9,17 @@
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
         "bezhansalleh/filament-shield": "^3.3",
+        "cheesegrits/filament-google-maps": "^3.0",
         "diogogpinto/filament-geolocate-me": "^0.1.1",
         "dotswan/filament-map-picker": "^1.8",
         "filament/filament": "^3.3",
-        "hasnayeen/themes": "^3.0",
         "intervention/image": "^3.11",
         "laravel/framework": "^11.0",
         "laravel/sanctum": "*",
         "laravel/tinker": "^2.10.1",
+        "leandrocfe/filament-apex-charts": "^3.1",
+        "saade/filament-fullcalendar": "^3.2",
+        "solution-forest/filament-access-management": "^2.2",
         "spatie/laravel-permission": "^6.20"
     },
     "require-dev": {

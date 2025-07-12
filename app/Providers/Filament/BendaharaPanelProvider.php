@@ -11,8 +11,6 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
-use Hasnayeen\Themes\ThemesPlugin;
-use Hasnayeen\Themes\Http\Middleware\SetTheme;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -31,12 +29,13 @@ class BendaharaPanelProvider extends PanelProvider
             ->brandName('Dokterku - Bendahara')
             ->favicon(asset('favicon.ico'))
             ->colors([
-                'primary' => Color::Emerald,
+                'primary' => Color::Blue,
             ])
             ->darkMode()
-            ->plugin(ThemesPlugin::make())
             ->resources([
                 \App\Filament\Bendahara\Resources\ValidasiPendapatanHarianResource::class,
+                \App\Filament\Bendahara\Resources\ValidasiPengeluaranHarianResource::class,
+                \App\Filament\Bendahara\Resources\ValidasiTindakanResource::class,
             ])
             ->pages([
                 Pages\Dashboard::class,
@@ -47,6 +46,7 @@ class BendaharaPanelProvider extends PanelProvider
                 \App\Filament\Bendahara\Widgets\BendaharaStatsWidget::class,
                 \App\Filament\Bendahara\Widgets\ValidasiChartWidget::class,
                 \App\Filament\Bendahara\Widgets\PendapatanMingguanWidget::class,
+                \App\Filament\Bendahara\Widgets\PengeluaranMingguanWidget::class,
             ])
             ->navigationGroups([
                 '🏠 Dashboard',
@@ -65,7 +65,6 @@ class BendaharaPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                SetTheme::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

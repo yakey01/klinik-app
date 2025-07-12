@@ -27,11 +27,16 @@ class Tindakan extends Model
         'jasa_non_paramedis',
         'catatan',
         'status',
+        'status_validasi',
+        'validated_by',
+        'validated_at',
+        'komentar_validasi',
         'input_by',
     ];
 
     protected $casts = [
         'tanggal_tindakan' => 'datetime',
+        'validated_at' => 'datetime',
         'tarif' => 'decimal:2',
         'jasa_dokter' => 'decimal:2',
         'jasa_paramedis' => 'decimal:2',
@@ -68,9 +73,15 @@ class Tindakan extends Model
         return $this->belongsTo(Shift::class);
     }
 
+
     public function inputBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'input_by');
+    }
+
+    public function validatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validated_by');
     }
 
     public function jaspel(): HasMany
@@ -96,5 +107,20 @@ class Tindakan extends Model
     public function scopeByDokter($query, $dokterId)
     {
         return $query->where('dokter_id', $dokterId);
+    }
+
+    public function scopePendingValidasi($query)
+    {
+        return $query->where('status_validasi', 'pending');
+    }
+
+    public function scopeDisetujui($query)
+    {
+        return $query->where('status_validasi', 'disetujui');
+    }
+
+    public function scopeDitolak($query)
+    {
+        return $query->where('status_validasi', 'ditolak');
     }
 }

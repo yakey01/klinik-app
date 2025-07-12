@@ -3,7 +3,7 @@
 namespace App\Filament\Bendahara\Widgets;
 
 use App\Models\PendapatanHarian;
-use App\Models\Pengeluaran;
+use App\Models\PengeluaranHarian;
 use App\Models\Tindakan;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
@@ -26,11 +26,11 @@ class ValidasiChartWidget extends ChartWidget
             ->where('status_validasi', 'pending')
             ->count();
 
-        $pengeluaranApproved = Pengeluaran::whereBetween('tanggal', [$currentMonth, $endOfMonth])
+        $pengeluaranApproved = PengeluaranHarian::whereBetween('tanggal_input', [$currentMonth, $endOfMonth])
             ->where('status_validasi', 'disetujui')
             ->count();
 
-        $pengeluaranPending = Pengeluaran::whereBetween('tanggal', [$currentMonth, $endOfMonth])
+        $pengeluaranPending = PengeluaranHarian::whereBetween('tanggal_input', [$currentMonth, $endOfMonth])
             ->where('status_validasi', 'pending')
             ->count();
 

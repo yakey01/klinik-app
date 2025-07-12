@@ -1,61 +1,155 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🏥 Dokterku - Clinic Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A comprehensive clinic financial management system built with Laravel 11 and FilamentPHP, featuring mobile-first design and advanced GPS-based attendance tracking.
 
-## About Laravel
+## ✨ Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### 🎯 Core Features
+- **Multi-Panel Architecture** - Role-based dashboards (Admin, Manajer, Bendahara, Petugas, Paramedis, Dokter)
+- **Financial Management** - Complete income/expense tracking with validation workflows
+- **GPS-Based Attendance** - Auto-detect location with geofencing (100m radius)
+- **Mobile-First Design** - Optimized for Android & iOS devices
+- **Real-time Notifications** - Badge indicators and instant updates
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 📱 Mobile Dashboard (Paramedis)
+- **🎯 Auto GPS Detection** - Using Leaflet + leaflet-locatecontrol
+- **🗺️ Interactive Maps** - OpenStreetMap without API requirements
+- **📊 Performance Tracking** - Patients served, procedures, service fees
+- **📅 Smart Scheduling** - Today's shifts and weekly overview
+- **🔔 Notification System** - Real-time updates with unread badges
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 💰 Financial Management
+- **Pendapatan Harian** - Daily income tracking with validation
+- **Pengeluaran Harian** - Expense management with approval workflow
+- **Jaspel (Service Fees)** - Automatic calculation for medical staff
+- **Validation System** - Multi-level approval process
 
-## Learning Laravel
+## 🚀 Technology Stack
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **Backend**: Laravel 11, PHP 8.2+
+- **Frontend**: FilamentPHP v3.3, Tailwind CSS 4.0
+- **Database**: SQLite (development), MySQL (production)
+- **Maps**: Leaflet.js + leaflet-locatecontrol
+- **Testing**: Pest Framework
+- **Build**: Vite
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## 📦 Installation
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+# Clone repository
+git clone https://github.com/yakey01/klinik-app.git
+cd klinik-app
 
-## Laravel Sponsors
+# Install dependencies
+composer install
+npm install
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Environment setup
+cp .env.example .env
+php artisan key:generate
 
-### Premium Partners
+# Database setup
+php artisan migrate:fresh --seed
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# Start development
+composer dev  # Starts server, queue, logs, and vite
+```
 
-## Contributing
+## 🔧 Development Commands
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+# Start all services
+composer dev
 
-## Code of Conduct
+# Individual commands
+php artisan serve          # Development server
+npm run dev                # Vite development
+php artisan test           # Run tests with Pest
+./vendor/bin/pint          # Code formatting
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 👥 Default Accounts
 
-## Security Vulnerabilities
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@dokterku.com | admin123 |
+| Manajer | manajer@dokterku.com | manajer123 |
+| Bendahara | bendahara@dokterku.com | bendahara123 |
+| Petugas | petugas@dokterku.com | petugas123 |
+| Paramedis | perawat@dokterku.com | perawat123 |
+| Dokter | dokter@dokterku.com | dokter123 |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🌐 Access Points
 
-## License
+- **Admin Panel**: `/admin`
+- **Manajer Panel**: `/manajer`
+- **Bendahara Panel**: `/bendahara`
+- **Petugas Panel**: `/petugas`
+- **Paramedis Panel**: `/paramedis` (Mobile-optimized)
+- **Dokter Panel**: `/dokter`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 📱 Mobile Features
+
+### Auto GPS Detection
+- Automatic location detection on page load
+- Real-time tracking with 100m geofencing
+- Accuracy validation with visual feedback
+- Fallback to manual detection if needed
+
+### Mobile API Endpoints
+```
+GET  /api/paramedis/dashboard      # Dashboard summary
+GET  /api/paramedis/schedule       # Weekly schedule
+POST /api/paramedis/attendance/checkin   # GPS check-in
+POST /api/paramedis/attendance/checkout  # GPS check-out
+```
+
+## 🔧 Configuration
+
+### GPS Settings (.env)
+```env
+APP_CLINIC_LATITUDE=-6.2088
+APP_CLINIC_LONGITUDE=106.8456
+APP_CLINIC_RADIUS=100
+```
+
+## 📁 Project Structure
+
+```
+app/
+├── Filament/
+│   ├── Resources/          # Admin resources
+│   ├── Paramedis/         # Mobile-first paramedis panel
+│   ├── Bendahara/         # Financial management panel
+│   └── ...
+├── Models/                # Eloquent models
+├── Services/              # Business logic services
+└── Http/
+    ├── Controllers/Api/   # Mobile API endpoints
+    └── Middleware/        # Custom middleware
+
+resources/
+├── views/filament/        # Custom Filament views
+└── css/                   # Tailwind CSS
+
+database/
+├── migrations/            # Database schema
+└── seeders/              # Sample data
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+composer test
+
+# Run specific test
+php artisan test tests/Feature/AttendanceTest.php
+
+# Test with coverage
+php artisan test --coverage
+```
+
+## 📄 License
+
+This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

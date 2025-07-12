@@ -100,13 +100,13 @@ class JadwalJaga extends Model
     public static function getAvailableStaffForUnit($unit_kerja)
     {
         if ($unit_kerja === 'Dokter Jaga') {
-            // Get users with dokter role
-            return User::whereHas('roles', function ($query) {
+            // Get users with dokter role using legacy role relationship
+            return User::whereHas('role', function ($query) {
                 $query->where('name', 'dokter');
             })->get();
         } else {
             // Get users with non-dokter roles (petugas, paramedis, etc.)
-            return User::whereHas('roles', function ($query) {
+            return User::whereHas('role', function ($query) {
                 $query->whereIn('name', ['petugas', 'paramedis', 'bendahara', 'admin']);
             })->get();
         }

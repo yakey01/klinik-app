@@ -18,6 +18,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\Pages\Auth\CustomLogin;
 
 class DokterPanelProvider extends PanelProvider
 {
@@ -26,7 +27,7 @@ class DokterPanelProvider extends PanelProvider
         return $panel
             ->id('dokter')
             ->path('dokter')
-            ->login()
+            ->login(CustomLogin::class)
             ->brandName('Dokterku - Dashboard Dokter')
             ->brandLogoHeight('2rem')
             ->favicon(asset('favicon.ico'))

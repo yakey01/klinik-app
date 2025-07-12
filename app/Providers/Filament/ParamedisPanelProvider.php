@@ -18,6 +18,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Cheesegrits\FilamentGoogleMaps\FilamentGoogleMapsPlugin;
+use App\Filament\Pages\Auth\CustomLogin;
 
 class ParamedisPanelProvider extends PanelProvider
 {
@@ -26,7 +27,7 @@ class ParamedisPanelProvider extends PanelProvider
         return $panel
             ->id('paramedis')
             ->path('paramedis')
-            ->login()
+            ->login(CustomLogin::class)
             ->brandName('Dokterku - Paramedis')
             ->favicon(asset('favicon.ico'))
             ->colors([

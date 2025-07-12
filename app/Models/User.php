@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 use App\Traits\Auditable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -17,7 +16,7 @@ use Filament\Panel;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes, HasRoles, Auditable;
+    use HasFactory, Notifiable, SoftDeletes, Auditable;
 
     /**
      * The attributes that are mass assignable.
@@ -60,6 +59,66 @@ class User extends Authenticatable implements FilamentUser
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * Compatibility method for Spatie Permission - creates a HasMany relationship
+     * that returns the user's single role as if it were multiple roles
+     */
+    public function roles()
+    {
+        // Use a HasMany relationship to the Role model, but constrain it to only return
+        // the role that matches this user's role_id
+        return $this->hasMany(Role::class, 'id', 'role_id');
+    }
+
+    /**
+     * Get role names (Spatie compatibility)
+     */
+    public function getRoleNames()
+    {
+        return $this->roles()->pluck('name');
+    }
+
+    /**
+     * Assign role (Spatie compatibility) - limited to single role
+     */
+    public function assignRole($role)
+    {
+        if (is_string($role)) {
+            $roleModel = Role::where('name', $role)->first();
+            if ($roleModel) {
+                $this->role_id = $roleModel->id;
+                $this->save();
+            }
+        } elseif ($role instanceof Role) {
+            $this->role_id = $role->id;
+            $this->save();
+        }
+        return $this;
+    }
+
+    /**
+     * Sync roles (Spatie compatibility) - only takes first role
+     */
+    public function syncRoles($roles)
+    {
+        if (is_array($roles) && count($roles) > 0) {
+            return $this->assignRole($roles[0]);
+        } elseif (is_string($roles)) {
+            return $this->assignRole($roles);
+        }
+        return $this;
+    }
+
+    /**
+     * Remove role (Spatie compatibility)
+     */
+    public function removeRole($role = null)
+    {
+        $this->role_id = null;
+        $this->save();
+        return $this;
     }
 
     public function tindakanAsDokter(): HasMany
@@ -132,9 +191,9 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Check if user has a specific role (custom implementation for legacy compatibility)
+     * Check if user has a specific role (Spatie compatibility)
      */
-    public function hasLegacyRole($roleName)
+    public function hasRole($roleName)
     {
         // Support both single role string and array of roles
         if (is_array($roleName)) {
@@ -142,6 +201,14 @@ class User extends Authenticatable implements FilamentUser
         }
         
         return $this->role && $this->role->name === $roleName;
+    }
+
+    /**
+     * Check if user has a specific role (custom implementation for legacy compatibility)
+     */
+    public function hasLegacyRole($roleName)
+    {
+        return $this->hasRole($roleName);
     }
 
     /**
@@ -169,7 +236,7 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Override the can method to use custom role permissions
+     * Check if user can perform an ability based on role permissions
      */
     public function can($abilities, $arguments = []): bool
     {
@@ -178,8 +245,26 @@ class User extends Authenticatable implements FilamentUser
             return true;
         }
         
-        // Fall back to Spatie's can method
+        // Fall back to Laravel's default can method
         return parent::can($abilities, $arguments);
+    }
+
+    /**
+     * Find user by email or name for authentication
+     */
+    public static function findForAuth(string $identifier): ?self
+    {
+        return static::where('email', $identifier)
+            ->orWhere('name', $identifier)
+            ->first();
+    }
+
+    /**
+     * Get the identifier field used for authentication
+     */
+    public function getAuthIdentifierName(): string
+    {
+        return 'id';  // Always use ID as the primary identifier
     }
 
     /**

@@ -6,6 +6,7 @@ use Filament\Widgets\Widget;
 use Filament\Notifications\Notification;
 use DiogoGPinto\GeolocateMe\Data\Coordinates;
 use DiogoGPinto\GeolocateMe\Concerns\HasGeolocation;
+use App\Models\WorkLocation;
 use Livewire\Attributes\On;
 
 class LocationDetectionWidget extends Widget
@@ -33,14 +34,39 @@ class LocationDetectionWidget extends Widget
     public $deviceInfo = null;
     public $ipAddress = null;
     
-    // Clinic coordinates
-    private const CLINIC_LAT = -6.2088;
-    private const CLINIC_LNG = 106.8456;
-    private const CLINIC_RADIUS = 100; // meters
+    // Work location properties  
+    public $currentWorkLocation = null;
     
     public function mount()
     {
         $this->detectDeviceInfo();
+        $this->loadWorkLocation();
+    }
+    
+    /**
+     * Load primary work location
+     */
+    private function loadWorkLocation()
+    {
+        $this->currentWorkLocation = WorkLocation::active()
+            ->where('location_type', 'main_office')
+            ->first() ?? WorkLocation::active()->first();
+    }
+    
+    /**
+     * Get clinic coordinates from WorkLocation
+     */
+    private function getClinicCoordinates()
+    {
+        if ($this->currentWorkLocation) {
+            return [
+                'lat' => (float) $this->currentWorkLocation->latitude,
+                'lng' => (float) $this->currentWorkLocation->longitude,
+                'radius' => $this->currentWorkLocation->radius_meters,
+            ];
+        }
+        
+        return ['lat' => -6.2088, 'lng' => 106.8456, 'radius' => 100];
     }
     
     public function detectLocation()
@@ -72,15 +98,16 @@ class LocationDetectionWidget extends Widget
         $this->accuracy = $accuracy;
         $this->locationDetected = true;
         
-        // Calculate distance to clinic
+        // Calculate distance to clinic using WorkLocation
+        $clinic = $this->getClinicCoordinates();
         $this->distanceToClinic = $this->calculateDistance(
             $latitude, 
             $longitude, 
-            self::CLINIC_LAT, 
-            self::CLINIC_LNG
+            $clinic['lat'], 
+            $clinic['lng']
         );
         
-        $this->withinRadius = $this->distanceToClinic <= self::CLINIC_RADIUS;
+        $this->withinRadius = $this->distanceToClinic <= $clinic['radius'];
         
         // Send notification
         Notification::make()
@@ -148,9 +175,10 @@ class LocationDetectionWidget extends Widget
             'browserInfo' => $this->browserInfo ?? 'Unknown',
             'deviceInfo' => $this->deviceInfo ?? 'Unknown',
             'ipAddress' => $this->ipAddress ?? 'Unknown',
-            'clinicLat' => self::CLINIC_LAT,
-            'clinicLng' => self::CLINIC_LNG,
-            'clinicRadius' => self::CLINIC_RADIUS,
+            'clinic' => $this->getClinicCoordinates(),
+            'clinicLat' => $this->getClinicCoordinates()['lat'],
+            'clinicLng' => $this->getClinicCoordinates()['lng'],
+            'clinicRadius' => $this->getClinicCoordinates()['radius'],
         ];
     }
 }

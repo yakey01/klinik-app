@@ -17,6 +17,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\Pages\Auth\CustomLogin;
 
 class PetugasPanelProvider extends PanelProvider
 {
@@ -25,7 +26,7 @@ class PetugasPanelProvider extends PanelProvider
         return $panel
             ->id('petugas')
             ->path('petugas')
-            ->login()
+            ->login(CustomLogin::class)
             ->brandName('Dokterku - Petugas')
             ->favicon(asset('favicon.ico'))
             ->colors([

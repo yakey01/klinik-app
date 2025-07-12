@@ -510,7 +510,7 @@ class GpsSpoofingDetectionService
                 
                 if (empty($recipients)) {
                     // Fallback to admin users
-                    $admins = User::whereHas('roles', function($query) {
+                    $admins = User::whereHas('role', function($query) {
                         $query->where('name', 'admin');
                     })->get();
                     

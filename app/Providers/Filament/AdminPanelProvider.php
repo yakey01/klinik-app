@@ -20,7 +20,8 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Support\Facades\FilamentView;
 use Cheesegrits\FilamentGoogleMaps\FilamentGoogleMapsPlugin;
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
+use App\Filament\Pages\Auth\CustomLogin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -30,7 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(CustomLogin::class)
             ->brandName('Dokterku Admin')
             ->colors([
                 'primary' => Color::Blue,
@@ -69,22 +70,7 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('web')
             ->databaseNotifications()
             ->plugins([
-                FilamentShieldPlugin::make()
-                    ->gridColumns([
-                        'default' => 1,
-                        'sm' => 2,
-                        'lg' => 3
-                    ])
-                    ->sectionColumnSpan(1)
-                    ->checkboxListColumns([
-                        'default' => 1,
-                        'sm' => 2,
-                        'lg' => 3,
-                    ])
-                    ->resourceCheckboxListColumns([
-                        'default' => 1,
-                        'sm' => 2,
-                    ]),
+                FilamentFullCalendarPlugin::make(),
             ])
             ->tenant(null); // Disable multi-tenancy for now
     }

@@ -121,5 +121,11 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
+// Dokter Gigi Dashboard Routes (Isolated from Filament)
+Route::middleware(['auth', 'role:dokter_gigi'])->prefix('dokter-gigi')->name('dokter-gigi.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\DokterGigi\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/jaspel', [\App\Http\Controllers\DokterGigi\DashboardController::class, 'jaspel'])->name('jaspel');
+});
+
 
 // require __DIR__.'/auth.php'; // Using unified auth instead

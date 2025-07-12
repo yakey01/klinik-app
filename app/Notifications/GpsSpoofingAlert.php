@@ -179,7 +179,7 @@ class GpsSpoofingAlert extends Notification implements ShouldQueue
                     ->openUrlInNewTab()
                     ->button(),
             ])
-            ->sendToDatabase(\App\Models\User::whereHas('roles', function($query) {
+            ->sendToDatabase(\App\Models\User::whereHas('role', function($query) {
                 $query->where('name', 'admin');
             })->get());
     }

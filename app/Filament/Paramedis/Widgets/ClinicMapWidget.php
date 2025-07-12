@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Dotswan\MapPicker\Fields\Map;
+use App\Models\WorkLocation;
 
 class ClinicMapWidget extends Widget implements HasForms
 {
@@ -24,19 +25,45 @@ class ClinicMapWidget extends Widget implements HasForms
     
     protected int | string | array $columnSpan = 'full';
     
-    // Clinic coordinates
-    private const CLINIC_LAT = -6.2088;
-    private const CLINIC_LNG = 106.8456;
-    private const CLINIC_RADIUS = 100; // meters
-    
+    // Work location properties
+    public $currentWorkLocation = null;
     public $clinic_location = [];
     
     public function mount()
     {
+        $this->loadWorkLocation();
+        $clinic = $this->getClinicCoordinates();
         $this->clinic_location = [
-            'lat' => self::CLINIC_LAT,
-            'lng' => self::CLINIC_LNG,
+            'lat' => $clinic['lat'],
+            'lng' => $clinic['lng'],
         ];
+    }
+    
+    /**
+     * Load primary work location
+     */
+    private function loadWorkLocation()
+    {
+        $this->currentWorkLocation = WorkLocation::active()
+            ->where('location_type', 'main_office')
+            ->first() ?? WorkLocation::active()->first();
+    }
+    
+    /**
+     * Get clinic coordinates from WorkLocation
+     */
+    private function getClinicCoordinates()
+    {
+        if ($this->currentWorkLocation) {
+            return [
+                'lat' => (float) $this->currentWorkLocation->latitude,
+                'lng' => (float) $this->currentWorkLocation->longitude,
+                'radius' => $this->currentWorkLocation->radius_meters,
+                'name' => $this->currentWorkLocation->name,
+            ];
+        }
+        
+        return ['lat' => -6.2088, 'lng' => 106.8456, 'radius' => 100, 'name' => 'Klinik Dokterku'];
     }
     
     public function form(Form $form): Form
@@ -46,9 +73,9 @@ class ClinicMapWidget extends Widget implements HasForms
                 Grid::make(1)
                     ->schema([
                         Map::make('clinic_location')
-                            ->label('📍 Klinik Dokterku Location')
+                            ->label('📍 ' . $this->getClinicCoordinates()['name'])
                             ->columnSpanFull()
-                            ->defaultLocation(self::CLINIC_LAT, self::CLINIC_LNG)
+                            ->defaultLocation($this->getClinicCoordinates()['lat'], $this->getClinicCoordinates()['lng'])
                             ->extraStyles([
                                 'min-height: 50vh',
                                 'border-radius: 10px',
@@ -68,10 +95,13 @@ class ClinicMapWidget extends Widget implements HasForms
     
     public function getViewData(): array
     {
+        $clinic = $this->getClinicCoordinates();
         return [
-            'clinicLat' => self::CLINIC_LAT,
-            'clinicLng' => self::CLINIC_LNG,
-            'clinicRadius' => self::CLINIC_RADIUS,
+            'clinic' => $clinic,
+            'clinicLat' => $clinic['lat'],
+            'clinicLng' => $clinic['lng'],
+            'clinicRadius' => $clinic['radius'],
+            'clinicName' => $clinic['name'],
         ];
     }
 }

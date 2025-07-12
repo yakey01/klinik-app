@@ -5,15 +5,19 @@ namespace App\Filament\Paramedis\Pages;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
 use App\Models\Attendance;
+use App\Models\WorkLocation;
 use Carbon\Carbon;
 use DiogoGPinto\GeolocateMe\Concerns\HasGeolocation;
 use Dotswan\MapPicker\Fields\Map;
 use Livewire\Attributes\On;
 
-class PresensiPage extends Page
+class PresensiPage extends Page implements HasForms
 {
-    use HasGeolocation;
+    use HasGeolocation, InteractsWithForms;
     
     protected static ?string $navigationIcon = 'heroicon-o-clock';
     
@@ -39,45 +43,169 @@ class PresensiPage extends Page
     public $deviceInfo = null;
     public $ipAddress = null;
     
-    // Clinic coordinates - same as LocationDetectionWidget
-    private const CLINIC_LAT = -6.2088;
-    private const CLINIC_LNG = 106.8456;
-    private const CLINIC_RADIUS = 100; // meters
+    // Work location properties (using admin geofencing)
+    public $currentWorkLocation = null;
+    public $availableWorkLocations = [];
+    
+    // Form state for map  
+    public ?array $mapData = [];
     
     public function mount()
     {
         $this->detectDeviceInfo();
+        $this->loadWorkLocations();
+        $this->form->fill();
+    }
+    
+    /**
+     * Load available work locations from admin geofencing
+     */
+    private function loadWorkLocations()
+    {
+        // Get active work locations
+        $this->availableWorkLocations = WorkLocation::active()
+            ->orderBy('location_type')
+            ->orderBy('name')
+            ->get();
+            
+        // Set primary location (main office) as default
+        $this->currentWorkLocation = $this->availableWorkLocations
+            ->where('location_type', 'main_office')
+            ->first() ?? $this->availableWorkLocations->first();
+    }
+    
+    /**
+     * Get current clinic coordinates from WorkLocation
+     */
+    private function getClinicCoordinates()
+    {
+        if ($this->currentWorkLocation) {
+            return [
+                'lat' => (float) $this->currentWorkLocation->latitude,
+                'lng' => (float) $this->currentWorkLocation->longitude,
+                'radius' => $this->currentWorkLocation->radius_meters,
+                'name' => $this->currentWorkLocation->name,
+            ];
+        }
+        
+        // Fallback ke koordinat default jika tidak ada work location
+        return [
+            'lat' => -6.2088,
+            'lng' => 106.8456,
+            'radius' => 100,
+            'name' => 'Klinik Dokterku (Default)',
+        ];
+    }
+    
+    // Create map form - fixed method signature
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Map::make('location')
+                    ->label('📍 Pilih Lokasi pada Peta')
+                    ->showMyLocationButton()
+                    ->zoom(17) // High zoom for accuracy
+                    ->extraStyles(['height: 350px'])
+                    ->afterStateUpdated(function (callable $get, callable $set, ?array $state): void {
+                        if ($state && isset($state['lat'], $state['lng'])) {
+                            $this->handleLocationReceived($state['lat'], $state['lng'], null);
+                        }
+                    })
+                    ->reactive()
+                    ->default(function () {
+                        $clinic = $this->getClinicCoordinates();
+                        return [
+                            'lat' => $this->locationDetected ? $this->latitude : $clinic['lat'],
+                            'lng' => $this->locationDetected ? $this->longitude : $clinic['lng']
+                        ];
+                    })
+                    ->columnSpanFull(),
+            ])
+            ->statePath('mapData');
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('autoDetectLocation')
-                ->label('🎯 Auto Detect GPS')
-                ->icon('heroicon-o-map-pin')
+            Action::make('switchLocation')
+                ->label('🏢 Pilih Lokasi')
+                ->icon('heroicon-o-building-office')
+                ->color('primary')
+                ->form([
+                    \Filament\Forms\Components\Select::make('work_location_id')
+                        ->label('Pilih Lokasi Kerja')
+                        ->options($this->availableWorkLocations->pluck('name', 'id'))
+                        ->default($this->currentWorkLocation?->id)
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state) {
+                            $location = $this->availableWorkLocations->find($state);
+                            if ($location) {
+                                $this->currentWorkLocation = $location;
+                                $this->resetLocation(); // Reset current location detection
+                            }
+                        }),
+                ])
+                ->action(function ($data) {
+                    $location = $this->availableWorkLocations->find($data['work_location_id']);
+                    if ($location) {
+                        $this->currentWorkLocation = $location;
+                        $this->resetLocation();
+                        
+                        Notification::make()
+                            ->title('✅ Lokasi Kerja Diubah')
+                            ->body("Beralih ke: {$location->name}")
+                            ->success()
+                            ->send();
+                    }
+                })
+                ->visible(fn () => $this->availableWorkLocations->count() > 1),
+            Action::make('startLiveTracking')
+                ->label('🎯 Live Tracking')
+                ->icon('heroicon-o-signal')
                 ->color('success')
                 ->action(function () {
-                    $this->dispatch('auto-locate-start');
+                    $this->dispatch('start-tracking');
+                    Notification::make()
+                        ->title('🎯 Live Tracking Started')
+                        ->body('Location akan diperbarui secara otomatis')
+                        ->success()
+                        ->send();
                 })
-                ->tooltip('Aktifkan deteksi lokasi otomatis dengan GPS'),
+                ->tooltip('Mulai pelacakan lokasi real-time otomatis'),
+            Action::make('stopLiveTracking')
+                ->label('🛑 Stop Tracking')
+                ->icon('heroicon-o-stop')
+                ->color('danger')
+                ->action(function () {
+                    $this->dispatch('stop-tracking');
+                    Notification::make()
+                        ->title('🛑 Live Tracking Stopped')
+                        ->body('Pelacakan lokasi dihentikan')
+                        ->warning()
+                        ->send();
+                })
+                ->tooltip('Hentikan pelacakan lokasi real-time'),
             Action::make('manualLocation')
-                ->label('📍 Manual')
-                ->icon('heroicon-o-cursor-arrow-rays')
+                ->label('📍 Detect Once')
+                ->icon('heroicon-o-map-pin')
                 ->color('primary')
                 ->action(function () {
                     $this->dispatch('request-location-manual');
                 })
-                ->tooltip('Deteksi lokasi manual'),
+                ->tooltip('Deteksi lokasi sekali saja'),
             Action::make('refreshStatus')
                 ->label('🔄 Reset')
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->action(function () {
                     $this->resetLocation();
+                    $this->dispatch('stop-tracking');
                     $this->dispatch('reset-location-control');
                     Notification::make()
-                        ->title('✅ Lokasi direset')
-                        ->body('Silakan deteksi ulang dengan tombol Auto Detect GPS')
+                        ->title('✅ Status direset')
+                        ->body('Pelacakan dihentikan dan lokasi direset')
                         ->success()
                         ->send();
                 }),
@@ -97,15 +225,16 @@ class PresensiPage extends Page
             // Location detected but accuracy is poor, still allow but warn
         }
         
-        // Calculate distance to clinic
+        // Calculate distance to clinic using WorkLocation
+        $clinic = $this->getClinicCoordinates();
         $this->distanceToClinic = $this->calculateDistance(
             $latitude, 
             $longitude, 
-            self::CLINIC_LAT, 
-            self::CLINIC_LNG
+            $clinic['lat'], 
+            $clinic['lng']
         );
         
-        $this->withinRadius = $this->distanceToClinic <= self::CLINIC_RADIUS;
+        $this->withinRadius = $this->distanceToClinic <= $clinic['radius'];
         
         // Enhanced notification with accuracy info
         $accuracyText = $accuracy ? " (±{$accuracy}m)" : "";
@@ -118,7 +247,7 @@ class PresensiPage extends Page
             $notification->success()->send();
         } else {
             $notification->warning()
-                ->body("⚠️ Anda berada " . round($this->distanceToClinic - self::CLINIC_RADIUS) . 
+                ->body("⚠️ Anda berada " . round($this->distanceToClinic - $this->getClinicCoordinates()['radius']) . 
                        "m di luar radius. Mendekatlah ke klinik untuk presensi.")
                 ->persistent()
                 ->send();
@@ -160,9 +289,10 @@ class PresensiPage extends Page
         }
         
         if (!$this->withinRadius) {
+            $clinic = $this->getClinicCoordinates();
             Notification::make()
-                ->title('❌ Di Luar Radius Klinik')
-                ->body('Anda harus berada dalam radius ' . self::CLINIC_RADIUS . ' meter dari klinik')
+                ->title('❌ Di Luar Radius ' . $clinic['name'])
+                ->body('Anda harus berada dalam radius ' . $clinic['radius'] . ' meter dari ' . $clinic['name'])
                 ->danger()
                 ->send();
             return;
@@ -218,9 +348,10 @@ class PresensiPage extends Page
         }
         
         if (!$this->withinRadius) {
+            $clinic = $this->getClinicCoordinates();
             Notification::make()
-                ->title('❌ Di Luar Radius Klinik')
-                ->body('Anda harus berada dalam radius ' . self::CLINIC_RADIUS . ' meter dari klinik')
+                ->title('❌ Di Luar Radius ' . $clinic['name'])
+                ->body('Anda harus berada dalam radius ' . $clinic['radius'] . ' meter dari ' . $clinic['name'])
                 ->danger()
                 ->send();
             return;
@@ -331,12 +462,12 @@ class PresensiPage extends Page
             'distance' => $this->distanceToClinic,
             'within_radius' => $this->withinRadius,
             'google_maps_url' => "https://maps.google.com/maps?q={$this->latitude},{$this->longitude}",
-            'directions_url' => "https://www.google.com/maps/dir/{$this->latitude},{$this->longitude}/{self::CLINIC_LAT},{self::CLINIC_LNG}"
+            'directions_url' => "https://www.google.com/maps/dir/{$this->latitude},{$this->longitude}/{$this->getClinicCoordinates()['lat']},{$this->getClinicCoordinates()['lng']}"
         ];
     }
 
     /**
-     * Get Filament Map field for enhanced location picking (Dotswan)
+     * Get Filament Map field for enhanced location picking (Dotswan) - Same as Admin Geofencing
      */
     public function getFilamentMapField(): Map
     {
@@ -353,7 +484,14 @@ class PresensiPage extends Page
             ->reactive()
             ->columnSpanFull();
             
-        // Set default location if detected
+        // Set default location if detected - shows clinic location initially
+        $clinic = $this->getClinicCoordinates();
+        $mapField->default([
+            'lat' => $clinic['lat'],
+            'lng' => $clinic['lng']
+        ]);
+        
+        // Update to user location if detected
         if ($this->locationDetected && $this->latitude && $this->longitude) {
             $mapField->default([
                 'lat' => $this->latitude,
@@ -422,9 +560,14 @@ class PresensiPage extends Page
             'browserInfo' => $this->browserInfo ?? 'Unknown',
             'deviceInfo' => $this->deviceInfo ?? 'Unknown',
             'ipAddress' => $this->ipAddress ?? 'Unknown',
-            'clinicLat' => self::CLINIC_LAT,
-            'clinicLng' => self::CLINIC_LNG,
-            'clinicRadius' => self::CLINIC_RADIUS,
+            // WorkLocation coordinates
+            'clinic' => $this->getClinicCoordinates(),
+            'clinicLat' => $this->getClinicCoordinates()['lat'],
+            'clinicLng' => $this->getClinicCoordinates()['lng'],
+            'clinicRadius' => $this->getClinicCoordinates()['radius'],
+            'clinicName' => $this->getClinicCoordinates()['name'],
+            'availableWorkLocations' => $this->availableWorkLocations,
+            'currentWorkLocation' => $this->currentWorkLocation,
             // Enhanced map data
             'mapField' => $this->getFilamentMapField(),
             'locationDisplay' => $this->getLocationDisplay(),

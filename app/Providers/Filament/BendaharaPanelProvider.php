@@ -17,6 +17,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\Pages\Auth\CustomLogin;
 
 class BendaharaPanelProvider extends PanelProvider
 {
@@ -25,11 +26,11 @@ class BendaharaPanelProvider extends PanelProvider
         return $panel
             ->id('bendahara')
             ->path('bendahara')
-            ->login()
+            ->login(CustomLogin::class)
             ->brandName('Dokterku - Bendahara')
             ->favicon(asset('favicon.ico'))
             ->colors([
-                'primary' => Color::Blue,
+                'primary' => Color::Red,
             ])
             ->darkMode()
             ->resources([

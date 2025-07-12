@@ -1,0 +1,85 @@
+<?php
+
+namespace App\Providers;
+
+use App\Models\User;
+use Illuminate\Auth\EloquentUserProvider;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+
+class CustomAuthServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        Auth::provider('custom_eloquent', function ($app, array $config) {
+            return new CustomEloquentUserProvider($app['hash'], $config['model']);
+        });
+    }
+}
+
+class CustomEloquentUserProvider extends EloquentUserProvider
+{
+    /**
+     * Retrieve a user by the given credentials.
+     */
+    public function retrieveByCredentials(array $credentials): ?Authenticatable
+    {
+        if (empty($credentials) || 
+            (count($credentials) === 1 && str_contains($this->firstCredentialKey($credentials), 'password'))) {
+            return null;
+        }
+
+        // Handle email or name login
+        if (isset($credentials['email'])) {
+            $identifier = $credentials['email'];
+            
+            // Try to find user by email first, then by name
+            $query = $this->newModelQuery();
+            $query->where('email', $identifier)->orWhere('name', $identifier);
+            
+            return $query->first();
+        }
+
+        // For other credential types, use the default behavior
+        $query = $this->newModelQuery();
+
+        foreach ($credentials as $key => $value) {
+            if (str_contains($key, 'password')) {
+                continue;
+            }
+
+            if (is_array($value) || $value instanceof \Arrayable) {
+                $query->whereIn($key, $value);
+            } else {
+                $query->where($key, $value);
+            }
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * Get the first key from the credential array.
+     */
+    protected function firstCredentialKey(array $credentials): string
+    {
+        foreach ($credentials as $key => $value) {
+            return $key;
+        }
+
+        return '';
+    }
+}

@@ -17,6 +17,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\Pages\Auth\CustomLogin;
 
 class ManajerPanelProvider extends PanelProvider
 {
@@ -25,7 +26,7 @@ class ManajerPanelProvider extends PanelProvider
         return $panel
             ->id('manajer')
             ->path('manajer')
-            ->login()
+            ->login(CustomLogin::class)
             ->brandName('Dokterku - Manajer')
             ->favicon(asset('favicon.ico'))
             ->colors([
@@ -33,7 +34,9 @@ class ManajerPanelProvider extends PanelProvider
             ])
             ->darkMode()
             ->resources([
-                // Add manajer-specific resources here
+                \App\Filament\Manajer\Resources\LaporanKeuanganResource::class,
+                \App\Filament\Manajer\Resources\ManajemenKaryawanResource::class,
+                \App\Filament\Manajer\Resources\AnalyticsKinerjaResource::class,
             ])
             ->pages([
                 Pages\Dashboard::class,

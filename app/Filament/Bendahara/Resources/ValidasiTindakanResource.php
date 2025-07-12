@@ -17,15 +17,22 @@ class ValidasiTindakanResource extends Resource
 {
     protected static ?string $model = Tindakan::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-heart';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
     protected static ?string $navigationGroup = '💵 Validasi Transaksi';
 
     protected static ?string $navigationLabel = '🔹 Validasi Tindakan';
 
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $modelLabel = 'Tindakan';
 
     protected static ?string $pluralModelLabel = 'Validasi Tindakan';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
+    }
 
     public static function form(Form $form): Form
     {

@@ -25,11 +25,24 @@ class Dokter extends Model
         'foto',
         'keterangan',
         'input_by',
+        // Auth management fields
+        'username',
+        'password',
+        'status_akun',
+        'password_changed_at',
+        'last_login_at',
+        'password_reset_by',
     ];
 
     protected $casts = [
         'tanggal_lahir' => 'date',
         'aktif' => 'boolean',
+        'password_changed_at' => 'datetime',
+        'last_login_at' => 'datetime',
+    ];
+
+    protected $hidden = [
+        'password',
     ];
 
     // Relationships
@@ -41,6 +54,11 @@ class Dokter extends Model
     public function inputBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'input_by');
+    }
+
+    public function passwordResetBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'password_reset_by');
     }
 
     // Scopes
@@ -90,6 +108,38 @@ class Dokter extends Model
         return $this->aktif ? 'Aktif' : 'Nonaktif';
     }
 
+    public function getStatusAkunBadgeColorAttribute(): string
+    {
+        return match ($this->status_akun) {
+            'Aktif' => 'success',
+            'Suspend' => 'danger',
+            default => 'gray',
+        };
+    }
+
+    public function getHasLoginAccountAttribute(): bool
+    {
+        return !empty($this->username) && !empty($this->password);
+    }
+
+    public function getAccountStatusTextAttribute(): string
+    {
+        if (!$this->has_login_account) {
+            return 'Belum Punya Akun';
+        }
+        
+        return $this->status_akun === 'Aktif' ? 'Login Aktif' : 'Login Suspend';
+    }
+
+    public function getAccountStatusBadgeColorAttribute(): string
+    {
+        if (!$this->has_login_account) {
+            return 'warning';
+        }
+        
+        return $this->status_akun === 'Aktif' ? 'success' : 'danger';
+    }
+
     // Helper methods
     public static function generateNik(): string
     {
@@ -103,6 +153,120 @@ class Dokter extends Model
     public function getAgeAttribute(): ?int
     {
         return $this->tanggal_lahir ? $this->tanggal_lahir->age : null;
+    }
+
+    /**
+     * Generate random password for dokter
+     */
+    public static function generateRandomPassword(): string
+    {
+        return Str::random(8);
+    }
+
+    /**
+     * Generate unique username for dokter
+     */
+    public static function generateUsername(string $namaLengkap): string
+    {
+        // Create base username from name
+        $baseUsername = strtolower(str_replace([' ', '.', ','], '', $namaLengkap));
+        $baseUsername = Str::ascii($baseUsername); // Remove accents
+        $baseUsername = preg_replace('/[^a-z0-9]/', '', $baseUsername); // Only alphanumeric
+        $baseUsername = substr($baseUsername, 0, 20); // Max 20 chars
+        
+        $username = $baseUsername;
+        $counter = 1;
+        
+        // Ensure uniqueness
+        while (static::where('username', $username)->exists()) {
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
+        
+        return $username;
+    }
+
+    /**
+     * Create login account for dokter
+     */
+    public function createLoginAccount(?string $username = null, ?string $password = null): array
+    {
+        if ($this->has_login_account) {
+            return [
+                'success' => false,
+                'message' => 'Dokter sudah memiliki akun login',
+            ];
+        }
+
+        $generatedUsername = $username ?: static::generateUsername($this->nama_lengkap);
+        $generatedPassword = $password ?: static::generateRandomPassword();
+
+        $this->update([
+            'username' => $generatedUsername,
+            'password' => bcrypt($generatedPassword),
+            'status_akun' => 'Aktif',
+            'password_changed_at' => now(),
+            'password_reset_by' => auth()->id(),
+        ]);
+
+        return [
+            'success' => true,
+            'username' => $generatedUsername,
+            'password' => $generatedPassword,
+            'message' => 'Akun login berhasil dibuat',
+        ];
+    }
+
+    /**
+     * Reset password dokter
+     */
+    public function resetPassword(?string $newPassword = null): array
+    {
+        if (!$this->has_login_account) {
+            return [
+                'success' => false,
+                'message' => 'Dokter belum memiliki akun login',
+            ];
+        }
+
+        $generatedPassword = $newPassword ?: static::generateRandomPassword();
+
+        $this->update([
+            'password' => bcrypt($generatedPassword),
+            'password_changed_at' => now(),
+            'password_reset_by' => auth()->id(),
+        ]);
+
+        return [
+            'success' => true,
+            'password' => $generatedPassword,
+            'message' => 'Password berhasil direset',
+        ];
+    }
+
+    /**
+     * Toggle account status
+     */
+    public function toggleAccountStatus(): array
+    {
+        if (!$this->has_login_account) {
+            return [
+                'success' => false,
+                'message' => 'Dokter belum memiliki akun login',
+            ];
+        }
+
+        $newStatus = $this->status_akun === 'Aktif' ? 'Suspend' : 'Aktif';
+        
+        $this->update([
+            'status_akun' => $newStatus,
+        ]);
+
+        return [
+            'success' => true,
+            'new_status' => $newStatus,
+            'message' => "Status akun berhasil diubah menjadi {$newStatus}",
+        ];
     }
 
     // Boot

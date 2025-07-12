@@ -80,6 +80,7 @@ class RolePermissionSeeder extends Seeder
             'doctor-dashboard',
             'paramedic-dashboard',
             'non-paramedic-dashboard',
+            'dentist-dashboard',
         ];
 
         foreach ($permissions as $permission) {
@@ -148,11 +149,18 @@ class RolePermissionSeeder extends Seeder
                     'edit-procedures', 'non-paramedic-dashboard', 'view-jaspel',
                 ],
             ],
+            'dokter_gigi' => [
+                'display_name' => 'Dokter Gigi',
+                'description' => 'Dental professional with limited access to view service fees',
+                'permissions' => [
+                    'view-jaspel', 'dentist-dashboard',
+                ],
+            ],
         ];
 
         foreach ($roles as $roleName => $roleData) {
             $role = Role::updateOrCreate(
-                ['name' => $roleName, 'guard_name' => 'web'],
+                ['name' => $roleName],
                 [
                     'display_name' => $roleData['display_name'],
                     'description' => $roleData['description'],
@@ -160,14 +168,9 @@ class RolePermissionSeeder extends Seeder
                 ]
             );
 
-            // Clear existing permissions and assign new ones
-            $role->permissions()->detach();
-            foreach ($roleData['permissions'] as $permissionName) {
-                $permission = Permission::where('name', $permissionName)->first();
-                if ($permission) {
-                    $role->permissions()->attach($permission);
-                }
-            }
+            // Set permissions array directly for our custom Role model
+            $role->permissions = $roleData['permissions'];
+            $role->save();
         }
     }
 }

@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Hash;
 
 class DokterResource extends Resource
 {
@@ -24,6 +25,26 @@ class DokterResource extends Resource
     protected static ?string $modelLabel = 'Dokter';
     protected static ?string $pluralModelLabel = 'Dokter';
     protected static ?string $recordTitleAttribute = 'nama_lengkap';
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->hasRole('admin') || auth()->user()?->hasRole('manajer');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasRole('admin') || auth()->user()?->hasRole('manajer');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->hasRole('admin');
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->hasRole('admin');
+    }
 
     public static function form(Form $form): Form
     {
@@ -101,6 +122,40 @@ class DokterResource extends Resource
                     ])
                     ->columns(3),
 
+                Forms\Components\Section::make('🔐 Manajemen Akun Login')
+                    ->description('Pengaturan akun login dokter (khusus admin)')
+                    ->schema([
+                        Forms\Components\TextInput::make('username')
+                            ->label('Username Login')
+                            ->unique(ignoreRecord: true)
+                            ->placeholder('Auto-generate jika kosong')
+                            ->helperText('Username untuk login ke sistem')
+                            ->columnSpan(1)
+                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+
+                        Forms\Components\TextInput::make('password')
+                            ->label('Password')
+                            ->password()
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->placeholder('Auto-generate jika kosong')
+                            ->helperText('Kosongkan jika tidak ingin mengubah password')
+                            ->columnSpan(1)
+                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+
+                        Forms\Components\Select::make('status_akun')
+                            ->label('Status Akun')
+                            ->options([
+                                'Aktif' => 'Aktif',
+                                'Suspend' => 'Suspend',
+                            ])
+                            ->default('Aktif')
+                            ->helperText('Status akun login dokter')
+                            ->columnSpan(1)
+                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                    ])
+                    ->columns(3)
+                    ->visible(fn () => auth()->user()?->hasRole('admin')),
+
                 Forms\Components\Section::make('📝 Informasi Tambahan')
                     ->description('Catatan dan foto dokter')
                     ->schema([
@@ -170,7 +225,7 @@ class DokterResource extends Resource
                             ->tooltip(fn ($record) => 'SIP: ' . $record->nomor_sip),
                     ])->space(1),
                     
-                    // Footer: Status + Contact
+                    // Footer: Status + Contact + Account
                     Tables\Columns\Layout\Split::make([
                         Tables\Columns\TextColumn::make('status_text')
                             ->getStateUsing(fn ($record) => $record->status_text)
@@ -185,6 +240,25 @@ class DokterResource extends Resource
                             ->limit(20)
                             ->tooltip(fn ($record) => $record->email ?: 'Tidak ada email'),
                     ]),
+                    
+                    // Account Status Row
+                    Tables\Columns\Layout\Split::make([
+                        Tables\Columns\TextColumn::make('account_status_text')
+                            ->getStateUsing(fn ($record) => $record->account_status_text)
+                            ->badge()
+                            ->color(fn ($record) => $record->account_status_badge_color)
+                            ->size('xs')
+                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                        
+                        Tables\Columns\TextColumn::make('username')
+                            ->icon('heroicon-m-user')
+                            ->color('info')
+                            ->size('xs')
+                            ->limit(15)
+                            ->placeholder('—')
+                            ->tooltip(fn ($record) => $record->username ? 'Username: ' . $record->username : 'Belum punya username')
+                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                    ])->visible(fn () => auth()->user()?->hasRole('admin')),
                 ])->space(2),
             ])
             ->filters([
@@ -203,12 +277,119 @@ class DokterResource extends Resource
                     ->trueLabel('Aktif')
                     ->falseLabel('Nonaktif'),
 
+                Tables\Filters\SelectFilter::make('status_akun')
+                    ->label('Status Login')
+                    ->options([
+                        'Aktif' => 'Aktif',
+                        'Suspend' => 'Suspend',
+                    ])
+                    ->placeholder('Semua Status Login')
+                    ->visible(fn () => auth()->user()?->hasRole('admin')),
+
+                Tables\Filters\TernaryFilter::make('has_login_account')
+                    ->label('Akun Login')
+                    ->placeholder('Semua')
+                    ->trueLabel('Punya Akun')
+                    ->falseLabel('Belum Punya Akun')
+                    ->queries(
+                        true: fn ($query) => $query->whereNotNull('username')->whereNotNull('password'),
+                        false: fn ($query) => $query->whereNull('username')->orWhereNull('password'),
+                    )
+                    ->visible(fn () => auth()->user()?->hasRole('admin')),
+
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\Action::make('create_account')
+                    ->label('Buat Akun')
+                    ->icon('heroicon-m-user-plus')
+                    ->color('success')
+                    ->visible(fn ($record) => !$record->has_login_account && auth()->user()?->hasRole('admin'))
+                    ->action(function ($record) {
+                        $result = $record->createLoginAccount();
+                        
+                        if ($result['success']) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Akun Login Berhasil Dibuat')
+                                ->body("Username: {$result['username']}<br>Password: {$result['password']}")
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Membuat Akun')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Buat Akun Login')
+                    ->modalDescription('Akun login akan dibuat secara otomatis dengan username dan password yang di-generate sistem.')
+                    ->modalSubmitActionLabel('Buat Akun'),
+
+                Tables\Actions\Action::make('reset_password')
+                    ->label('Reset Password')
+                    ->icon('heroicon-m-key')
+                    ->color('warning')
+                    ->visible(fn ($record) => $record->has_login_account && auth()->user()?->hasRole('admin'))
+                    ->action(function ($record) {
+                        $result = $record->resetPassword();
+                        
+                        if ($result['success']) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Password Berhasil Direset')
+                                ->body("Password baru: {$result['password']}")
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Reset Password')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset Password')
+                    ->modalDescription('Password akan direset dan password baru akan di-generate secara otomatis.')
+                    ->modalSubmitActionLabel('Reset Password'),
+
+                Tables\Actions\Action::make('toggle_account')
+                    ->label(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend' : 'Aktifkan')
+                    ->icon(fn ($record) => $record->status_akun === 'Aktif' ? 'heroicon-m-x-circle' : 'heroicon-m-check-circle')
+                    ->color(fn ($record) => $record->status_akun === 'Aktif' ? 'danger' : 'success')
+                    ->visible(fn ($record) => $record->has_login_account && auth()->user()?->hasRole('admin'))
+                    ->action(function ($record) {
+                        $result = $record->toggleAccountStatus();
+                        
+                        if ($result['success']) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Status Akun Berhasil Diubah')
+                                ->body($result['message'])
+                                ->success()
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Mengubah Status')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend Akun' : 'Aktifkan Akun')
+                    ->modalDescription(fn ($record) => $record->status_akun === 'Aktif' 
+                        ? 'Akun login dokter akan di-suspend dan tidak dapat digunakan untuk login.' 
+                        : 'Akun login dokter akan diaktifkan kembali.'
+                    )
+                    ->modalSubmitActionLabel(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend' : 'Aktifkan'),
+
                 Tables\Actions\EditAction::make()
                     ->iconButton()
                     ->tooltip('Edit Dokter'),
+                    
                 Tables\Actions\DeleteAction::make()
                     ->iconButton()
                     ->tooltip('Hapus Dokter'),

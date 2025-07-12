@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Form Debug Analysis</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .code { background: #f5f5f5; padding: 10px; font-family: monospace; white-space: pre-wrap; }
+        .debug-button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .debug-button:hover { background: #0056b3; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🔍 GPS Form Debug Analysis</h1>
+    
+    <div class="section">
+        <h2>📝 Form Field Analysis</h2>
+        <button class="debug-button" onclick="analyzeFormFields()">Analyze Form Fields</button>
+        <div id="form-analysis" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🎯 Input Detection Strategies</h2>
+        <button class="debug-button" onclick="testInputStrategies()">Test Input Detection</button>
+        <div id="strategy-results" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>📡 Livewire Component Analysis</h2>
+        <button class="debug-button" onclick="analyzeLivewireComponents()">Analyze Livewire</button>
+        <div id="livewire-analysis" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🧪 GPS Detection Test</h2>
+        <button class="debug-button" onclick="testGPSDetection()">Test GPS</button>
+        <div id="gps-results" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>📋 Form State Analysis</h2>
+        <button class="debug-button" onclick="analyzeFormState()">Analyze Form State</button>
+        <div id="form-state" class="result"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            console.log(`[GPS Debug] ${message}`);
+        }
+
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = content;
+            element.className = `result ${type}`;
+        }
+
+        function analyzeFormFields() {
+            log('Starting form field analysis...');
+            
+            const allInputs = document.querySelectorAll('input');
+            const textInputs = document.querySelectorAll('input[type="text"], input[type="number"]');
+            const wireInputs = document.querySelectorAll('input[wire\\:model]');
+            
+            let analysis = `
+<h3>📊 Input Field Summary</h3>
+• Total inputs found: ${allInputs.length}
+• Text/Number inputs: ${textInputs.length}  
+• Wire:model inputs: ${wireInputs.length}
+
+<h3>🔍 Detailed Analysis</h3>
+            `;
+            
+            // Analyze each input
+            allInputs.forEach((input, index) => {
+                const wireModel = input.getAttribute('wire:model');
+                const name = input.getAttribute('name');
+                const id = input.getAttribute('id');
+                const dataField = input.getAttribute('data-field');
+                const type = input.getAttribute('type');
+                const parentLabel = input.closest('.fi-fo-field-wrp')?.querySelector('label')?.textContent;
+                
+                analysis += `
+<div style="margin: 10px 0; padding: 8px; background: #f8f9fa; border-left: 3px solid #007bff;">
+  <strong>Input ${index + 1}:</strong><br>
+  • Type: ${type || 'undefined'}<br>
+  • Wire:model: ${wireModel || 'none'}<br>
+  • Name: ${name || 'none'}<br>
+  • ID: ${id || 'none'}<br>
+  • Data-field: ${dataField || 'none'}<br>
+  • Parent label: ${parentLabel || 'none'}<br>
+  • Value: "${input.value}"
+</div>
+                `;
+            });
+            
+            showResult('form-analysis', analysis, 'info');
+        }
+
+        function testInputStrategies() {
+            log('Testing input detection strategies...');
+            
+            let results = `<h3>🎯 Input Detection Strategy Results</h3>`;
+            
+            // Strategy 1: Filament wire:model
+            const wireInputs = document.querySelectorAll('input[wire\\:model]');
+            let latInput1 = null, lonInput1 = null;
+            wireInputs.forEach(input => {
+                const model = input.getAttribute('wire:model');
+                if (model && model.includes('latitude')) latInput1 = input;
+                if (model && model.includes('longitude')) lonInput1 = input;
+            });
+            results += `<div class="code">Strategy 1 - Wire:model:
+Latitude: ${latInput1 ? '✅ Found' : '❌ Not found'} ${latInput1 ? '(' + latInput1.getAttribute('wire:model') + ')' : ''}
+Longitude: ${lonInput1 ? '✅ Found' : '❌ Not found'} ${lonInput1 ? '(' + lonInput1.getAttribute('wire:model') + ')' : ''}</div>`;
+            
+            // Strategy 2: Form field names
+            const latInput2 = document.querySelector('input[name="latitude"]');
+            const lonInput2 = document.querySelector('input[name="longitude"]');
+            results += `<div class="code">Strategy 2 - Name attribute:
+Latitude: ${latInput2 ? '✅ Found' : '❌ Not found'}
+Longitude: ${lonInput2 ? '✅ Found' : '❌ Not found'}</div>`;
+            
+            // Strategy 3: ID-based search
+            const latInput3a = document.querySelector('#latitude');
+            const latInput3b = document.querySelector('#latitude-input');
+            const lonInput3a = document.querySelector('#longitude');
+            const lonInput3b = document.querySelector('#longitude-input');
+            results += `<div class="code">Strategy 3 - ID selectors:
+#latitude: ${latInput3a ? '✅ Found' : '❌ Not found'}
+#latitude-input: ${latInput3b ? '✅ Found' : '❌ Not found'}
+#longitude: ${lonInput3a ? '✅ Found' : '❌ Not found'}
+#longitude-input: ${lonInput3b ? '✅ Found' : '❌ Not found'}</div>`;
+            
+            // Strategy 4: Data attributes
+            const latInput4 = document.querySelector('input[data-field="latitude"]');
+            const lonInput4 = document.querySelector('input[data-field="longitude"]');
+            results += `<div class="code">Strategy 4 - Data attributes:
+Latitude: ${latInput4 ? '✅ Found' : '❌ Not found'}
+Longitude: ${lonInput4 ? '✅ Found' : '❌ Not found'}</div>`;
+            
+            // Strategy 5: Label text search
+            let latInput5 = null, lonInput5 = null;
+            const allInputs = document.querySelectorAll('input[type="text"], input[type="number"]');
+            allInputs.forEach(input => {
+                const label = input.closest('.fi-fo-field-wrp')?.querySelector('label')?.textContent?.toLowerCase();
+                if (label?.includes('latitude') || label?.includes('lintang')) latInput5 = input;
+                if (label?.includes('longitude') || label?.includes('bujur')) lonInput5 = input;
+            });
+            results += `<div class="code">Strategy 5 - Label text search:
+Latitude: ${latInput5 ? '✅ Found' : '❌ Not found'}
+Longitude: ${lonInput5 ? '✅ Found' : '❌ Not found'}</div>`;
+            
+            showResult('strategy-results', results, 'info');
+        }
+
+        function analyzeLivewireComponents() {
+            log('Analyzing Livewire components...');
+            
+            let analysis = `<h3>🔌 Livewire Analysis</h3>`;
+            
+            // Check if Livewire is loaded
+            analysis += `<div class="code">Livewire Global: ${window.Livewire ? '✅ Available' : '❌ Not found'}</div>`;
+            
+            if (window.Livewire) {
+                // Find Livewire components
+                const wireComponents = document.querySelectorAll('[wire\\:id]');
+                analysis += `<div class="code">Wire components found: ${wireComponents.length}</div>`;
+                
+                wireComponents.forEach((comp, index) => {
+                    const wireId = comp.getAttribute('wire:id');
+                    analysis += `<div class="code">Component ${index + 1}: ${wireId}</div>`;
+                });
+                
+                // Check Alpine.js
+                analysis += `<div class="code">Alpine.js: ${window.Alpine ? '✅ Available' : '❌ Not found'}</div>`;
+            }
+            
+            showResult('livewire-analysis', analysis, 'info');
+        }
+
+        function testGPSDetection() {
+            log('Testing GPS detection...');
+            
+            if (!navigator.geolocation) {
+                showResult('gps-results', '❌ Geolocation not supported in this browser', 'error');
+                return;
+            }
+            
+            showResult('gps-results', '🔍 Detecting GPS location...', 'info');
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude.toFixed(8);
+                    const lon = position.coords.longitude.toFixed(8);
+                    const acc = Math.round(position.coords.accuracy);
+                    
+                    const result = `
+<h3>✅ GPS Detection Successful</h3>
+<div class="code">Latitude: ${lat}
+Longitude: ${lon}
+Accuracy: ±${acc} meters
+Timestamp: ${new Date(position.timestamp).toLocaleString()}</div>
+                    `;
+                    
+                    showResult('gps-results', result, 'success');
+                },
+                function(error) {
+                    let message = '';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = 'Permission denied - Please allow location access';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = 'Position unavailable - Check GPS/internet connection';
+                            break;
+                        case error.TIMEOUT:
+                            message = 'Timeout - GPS took too long to respond';
+                            break;
+                        default:
+                            message = 'Unknown error: ' + error.message;
+                            break;
+                    }
+                    
+                    showResult('gps-results', `❌ GPS Error: ${message}`, 'error');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        function analyzeFormState() {
+            log('Analyzing form state...');
+            
+            let analysis = `<h3>📋 Form State Analysis</h3>`;
+            
+            // Check for form elements
+            const forms = document.querySelectorAll('form');
+            analysis += `<div class="code">Forms found: ${forms.length}</div>`;
+            
+            // Check for Filament form wrapper
+            const filamentForms = document.querySelectorAll('.fi-fo-form, [data-filament-form]');
+            analysis += `<div class="code">Filament forms: ${filamentForms.length}</div>`;
+            
+            // Check current URL
+            analysis += `<div class="code">Current URL: ${window.location.href}</div>`;
+            
+            // Check for latitude/longitude values
+            const latInput = document.querySelector('input[wire\\:model*="latitude"], input[name="latitude"], #latitude, #latitude-input, input[data-field="latitude"]');
+            const lonInput = document.querySelector('input[wire\\:model*="longitude"], input[name="longitude"], #longitude, #longitude-input, input[data-field="longitude"]');
+            
+            analysis += `<div class="code">Latitude input value: "${latInput ? latInput.value : 'Input not found'}"
+Longitude input value: "${lonInput ? lonInput.value : 'Input not found'}"</div>`;
+            
+            showResult('form-state', analysis, 'info');
+        }
+        
+        // Auto-run analysis on load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Debug page loaded');
+        });
+    </script>
+</body>
+</html>

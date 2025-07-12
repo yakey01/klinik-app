@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Attendance Widget Real-Time Features</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8">🕐 Real-Time Clock & Face Recognition Test</h1>
+        
+        <!-- Real-Time Clock Test -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">⏰ Real-Time Clock Test</h2>
+            <div class="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <div class="text-5xl font-bold text-blue-600" id="real-time-clock">
+                    Loading...
+                </div>
+                <div class="text-lg text-gray-600 mt-2" id="real-time-date">
+                    Loading...
+                </div>
+                <div class="text-sm text-blue-500 mt-1">
+                    🕐 Waktu Real-Time WIB (Auto Update Every Second)
+                </div>
+                <div class="text-xs text-green-500 mt-1" id="update-indicator">
+                    ● Initializing...
+                </div>
+            </div>
+        </div>
+        
+        <!-- Face Recognition Test -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">👤 Face Recognition Test</h2>
+            <div id="face-section" class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    Face Recognition Camera
+                </h3>
+                <div class="relative bg-gray-800 rounded-lg overflow-hidden" style="aspect-ratio: 4/3; max-width: 400px; margin: 0 auto;">
+                    <video id="face-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
+                    <canvas id="face-canvas" class="absolute inset-0 w-full h-full"></canvas>
+                    <div id="face-status" class="absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium bg-yellow-500 text-white">
+                        📷 Initializing Camera...
+                    </div>
+                    <div id="face-detection-status" class="absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium bg-gray-500 text-white">
+                        👤 No Face
+                    </div>
+                </div>
+                <div class="mt-2 text-center text-sm text-gray-600">
+                    Face recognition enhances attendance security
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Buttons -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">✅ Test Buttons</h2>
+            <div class="flex gap-4 justify-center">
+                <button 
+                    id="checkin-btn"
+                    class="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 text-lg shadow-lg"
+                    disabled
+                >
+                    <span id="checkin-text">👤 Wajah Belum Terdeteksi</span>
+                </button>
+                
+                <button 
+                    id="checkout-btn"
+                    class="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 text-lg shadow-lg"
+                    disabled
+                >
+                    <span id="checkout-text">👤 Wajah Belum Terdeteksi</span>
+                </button>
+            </div>
+            
+            <div class="mt-4 text-center">
+                <div class="text-sm text-gray-600">Status: <span id="overall-status" class="font-medium">Initializing...</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        class AttendanceSystemRealTime {
+            constructor() {
+                this.clockInterval = null;
+                this.faceDetected = false;
+                this.video = null;
+                this.canvas = null;
+                this.faceDetectionInterval = null;
+                this.modelsLoaded = false;
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('🚀 Initializing Real-Time Attendance System...');
+                this.updateOverallStatus('Starting real-time clock...');
+                
+                // Start real-time clock immediately
+                this.startRealTimeClock();
+                
+                // Initialize face recognition with delay to ensure DOM is ready
+                setTimeout(() => {
+                    this.updateOverallStatus('Loading face recognition...');
+                    this.initFaceRecognition();
+                }, 1000);
+                
+                // Update button states initially
+                this.updateButtonStates();
+            }
+            
+            startRealTimeClock() {
+                // Clear existing interval
+                if (this.clockInterval) {
+                    clearInterval(this.clockInterval);
+                }
+                
+                const updateClock = () => {
+                    try {
+                        // Create Jakarta time
+                        const now = new Date();
+                        const jakartaTime = new Intl.DateTimeFormat('id-ID', {
+                            timeZone: 'Asia/Jakarta',
+                            hour12: false,
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        }).format(now);
+                        
+                        const jakartaDate = new Intl.DateTimeFormat('id-ID', {
+                            timeZone: 'Asia/Jakarta',
+                            weekday: 'long',
+                            year: 'numeric', 
+                            month: 'long',
+                            day: 'numeric'
+                        }).format(now);
+                        
+                        // Update time
+                        const clockElement = document.getElementById('real-time-clock');
+                        if (clockElement) {
+                            clockElement.textContent = jakartaTime;
+                        }
+                        
+                        // Update date
+                        const dateElement = document.getElementById('real-time-date');
+                        if (dateElement) {
+                            dateElement.textContent = jakartaDate;
+                        }
+                        
+                        // Update indicator with pulsing effect
+                        const indicator = document.getElementById('update-indicator');
+                        if (indicator) {
+                            indicator.style.color = '#22c55e';
+                            indicator.textContent = '● Live - ' + now.getSeconds();
+                            setTimeout(() => {
+                                if (indicator) {
+                                    indicator.style.color = '#10b981';
+                                    indicator.textContent = '● Live';
+                                }
+                            }, 100);
+                        }
+                    } catch (error) {
+                        console.error('❌ Clock update error:', error);
+                    }
+                };
+                
+                // Initial update
+                updateClock();
+                
+                // Update every second
+                this.clockInterval = setInterval(updateClock, 1000);
+                
+                console.log('🕐 Real-time clock started');
+                this.updateOverallStatus('Real-time clock running ✅');
+            }
+            
+            async initFaceRecognition() {
+                try {
+                    console.log('🤖 Loading face recognition models...');
+                    this.updateOverallStatus('Loading AI models...');
+                    
+                    this.video = document.getElementById('face-video');
+                    this.canvas = document.getElementById('face-canvas');
+                    
+                    // Load face-api models with better error handling
+                    try {
+                        await Promise.all([
+                            faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'),
+                            faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'),
+                            faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights')
+                        ]);
+                        
+                        this.modelsLoaded = true;
+                        console.log('✅ Face recognition models loaded successfully');
+                        this.showFaceRecognitionStatus('✅ Models Loaded', 'bg-blue-500');
+                        this.updateOverallStatus('AI models loaded ✅');
+                    } catch (modelError) {
+                        console.warn('⚠️ Face API models failed to load, using fallback mode:', modelError);
+                        this.showFaceRecognitionStatus('⚠️ Basic Mode', 'bg-yellow-500');
+                        this.updateOverallStatus('Basic mode (no face detection)');
+                        // Continue without face detection for now
+                        this.enableButtonsManually();
+                        return;
+                    }
+                    
+                    // Start camera
+                    await this.startCamera();
+                    
+                    // Start face detection
+                    this.startFaceDetection();
+                    
+                } catch (error) {
+                    console.error('❌ Face recognition initialization failed:', error);
+                    this.showFaceRecognitionStatus('❌ Camera Failed', 'bg-red-500');
+                    this.updateOverallStatus('Camera failed, using manual mode');
+                    // Enable buttons manually as fallback
+                    this.enableButtonsManually();
+                }
+            }
+            
+            async startCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: 400, 
+                            height: 300,
+                            facingMode: 'user'
+                        } 
+                    });
+                    
+                    this.video.srcObject = stream;
+                    this.showFaceRecognitionStatus('✅ Camera Active', 'bg-green-500');
+                    this.updateOverallStatus('Camera active, detecting faces...');
+                    
+                    console.log('📷 Camera started successfully');
+                } catch (error) {
+                    console.error('❌ Camera access failed:', error);
+                    this.showFaceRecognitionStatus('❌ Camera Denied', 'bg-red-500');
+                    this.updateOverallStatus('Camera access denied');
+                }
+            }
+            
+            startFaceDetection() {
+                const detectFaces = async () => {
+                    if (this.video && this.video.readyState === 4 && this.modelsLoaded) {
+                        try {
+                            const detections = await faceapi.detectAllFaces(
+                                this.video, 
+                                new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })
+                            );
+                            
+                            // Clear previous drawings
+                            if (this.canvas) {
+                                const ctx = this.canvas.getContext('2d');
+                                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                                
+                                // Set canvas size to match video
+                                this.canvas.width = this.video.videoWidth;
+                                this.canvas.height = this.video.videoHeight;
+                            }
+                            
+                            if (detections.length > 0) {
+                                if (!this.faceDetected) {
+                                    this.faceDetected = true;
+                                    this.showFaceDetectionStatus('✅ Face Detected', 'bg-green-500');
+                                    this.updateOverallStatus('Face detected! Buttons enabled ✅');
+                                    this.updateButtonStates();
+                                    console.log('👤 Face detected');
+                                }
+                                
+                                // Draw face detection boxes
+                                if (this.canvas) {
+                                    faceapi.draw.drawDetections(this.canvas, detections);
+                                }
+                            } else {
+                                if (this.faceDetected) {
+                                    this.faceDetected = false;
+                                    this.showFaceDetectionStatus('👤 No Face', 'bg-gray-500');
+                                    this.updateOverallStatus('No face detected, buttons disabled');
+                                    this.updateButtonStates();
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Face detection error:', error);
+                        }
+                    }
+                };
+                
+                // Run face detection every 500ms
+                this.faceDetectionInterval = setInterval(detectFaces, 500);
+                console.log('🔍 Face detection started');
+            }
+            
+            showFaceRecognitionStatus(text, bgClass) {
+                const status = document.getElementById('face-status');
+                if (status) {
+                    status.textContent = text;
+                    status.className = `absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium text-white ${bgClass}`;
+                }
+            }
+            
+            showFaceDetectionStatus(text, bgClass) {
+                const status = document.getElementById('face-detection-status');
+                if (status) {
+                    status.textContent = text;
+                    status.className = `absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium text-white ${bgClass}`;
+                }
+            }
+            
+            updateOverallStatus(text) {
+                const status = document.getElementById('overall-status');
+                if (status) {
+                    status.textContent = text;
+                }
+            }
+            
+            updateButtonStates() {
+                const checkinBtn = document.getElementById('checkin-btn');
+                const checkoutBtn = document.getElementById('checkout-btn');
+                const checkinText = document.getElementById('checkin-text');
+                const checkoutText = document.getElementById('checkout-text');
+                
+                // For development mode: always enable buttons after 3 seconds
+                setTimeout(() => {
+                    if (checkinBtn && checkinText) {
+                        checkinBtn.disabled = false;
+                        checkinBtn.classList.remove('disabled:bg-green-400');
+                        checkinBtn.classList.add('hover:bg-green-700');
+                        checkinText.textContent = '✅ Check In Masuk';
+                        this.updateOverallStatus('Buttons enabled (development mode) ✅');
+                    }
+                    
+                    if (checkoutBtn && checkoutText) {
+                        checkoutBtn.disabled = false;
+                        checkoutBtn.classList.remove('disabled:bg-orange-400');
+                        checkoutBtn.classList.add('hover:bg-orange-700');
+                        checkoutText.textContent = '🏠 Check Out Pulang';
+                    }
+                }, 3000);
+                
+                // If face is detected, enable immediately
+                if (this.faceDetected) {
+                    if (checkinBtn && checkinText) {
+                        checkinBtn.disabled = false;
+                        checkinBtn.classList.remove('disabled:bg-green-400');
+                        checkinBtn.classList.add('hover:bg-green-700');
+                        checkinText.textContent = '👤 Check In - Wajah Terdeteksi';
+                    }
+                    
+                    if (checkoutBtn && checkoutText) {
+                        checkoutBtn.disabled = false;
+                        checkoutBtn.classList.remove('disabled:bg-orange-400');
+                        checkoutBtn.classList.add('hover:bg-orange-700');
+                        checkoutText.textContent = '👤 Check Out - Wajah Terdeteksi';
+                    }
+                }
+            }
+            
+            enableButtonsManually() {
+                setTimeout(() => {
+                    const checkinBtn = document.getElementById('checkin-btn');
+                    const checkoutBtn = document.getElementById('checkout-btn');
+                    const checkinText = document.getElementById('checkin-text');
+                    const checkoutText = document.getElementById('checkout-text');
+                    
+                    if (checkinBtn && checkinText) {
+                        checkinBtn.disabled = false;
+                        checkinBtn.classList.remove('disabled:bg-green-400');
+                        checkinBtn.classList.add('hover:bg-green-700');
+                        checkinText.textContent = '✅ Check In Masuk';
+                    }
+                    
+                    if (checkoutBtn && checkoutText) {
+                        checkoutBtn.disabled = false;
+                        checkoutBtn.classList.remove('disabled:bg-orange-400');
+                        checkoutBtn.classList.add('hover:bg-orange-700');
+                        checkoutText.textContent = '🏠 Check Out Pulang';
+                    }
+                    
+                    this.updateOverallStatus('Buttons enabled (fallback mode) ✅');
+                    console.log('🔓 Buttons enabled manually (fallback mode)');
+                }, 2000);
+            }
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            new AttendanceSystemRealTime();
+        });
+        
+        // Also initialize if this script runs after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                new AttendanceSystemRealTime();
+            });
+        } else {
+            new AttendanceSystemRealTime();
+        }
+    </script>
+</body>
+</html>

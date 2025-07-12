@@ -1,0 +1,272 @@
+/* World-Class UX for Petugas Pendapatan Harians Table */
+
+/* 🎯 Table Container - Premium Glass Effect */
+.petugas-table-container .fi-ta {
+    @apply relative overflow-hidden rounded-2xl;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode glass effect */
+.dark .petugas-table-container .fi-ta {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.9) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 🚀 World-Class Row Hover Effects */
+.petugas-table-container .fi-ta-row {
+    @apply relative transition-all duration-500 ease-out cursor-pointer;
+    transform-origin: center;
+    border-radius: 12px;
+    margin: 2px 0;
+}
+
+/* Row default state */
+.petugas-table-container .fi-ta-row:not(:hover) {
+    @apply bg-white/50 backdrop-blur-sm;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark .petugas-table-container .fi-ta-row:not(:hover) {
+    @apply bg-gray-800/30;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* 🌟 Premium Hover State with Scale Animation */
+.petugas-table-container .fi-ta-row:hover {
+    @apply transform scale-[1.02] z-10;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%);
+    box-shadow: 
+        0 20px 40px rgba(59, 130, 246, 0.15),
+        0 8px 16px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(59, 130, 246, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.dark .petugas-table-container .fi-ta-row:hover {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 50%, #111827 100%);
+    box-shadow: 
+        0 20px 40px rgba(59, 130, 246, 0.2),
+        0 8px 16px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(59, 130, 246, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+/* 💫 Ripple Effect on Click */
+.petugas-table-container .fi-ta-row {
+    position: relative;
+    overflow: hidden;
+}
+
+.petugas-table-container .fi-ta-row::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease-out, height 0.6s ease-out;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.petugas-table-container .fi-ta-row:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* 🎨 Enhanced Cell Styling */
+.petugas-table-container .fi-ta-cell {
+    @apply relative z-10 transition-all duration-300 ease-out;
+    padding: 16px 12px;
+}
+
+.petugas-table-container .fi-ta-row:hover .fi-ta-cell {
+    @apply text-gray-800 font-medium;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.dark .petugas-table-container .fi-ta-row:hover .fi-ta-cell {
+    @apply text-gray-100;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 🏆 Premium Header Styling */
+.petugas-table-container .fi-ta-header {
+    @apply relative;
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
+    border-radius: 16px 16px 0 0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.petugas-table-container .fi-ta-header-cell {
+    @apply text-white font-bold text-sm tracking-wide relative;
+    padding: 20px 12px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.petugas-table-container .fi-ta-header-cell::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+}
+
+/* 🎯 Enhanced Badge Styling */
+.petugas-table-container .fi-badge {
+    @apply relative overflow-hidden font-semibold tracking-wide transition-all duration-300;
+    border-radius: 8px;
+    padding: 6px 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.petugas-table-container .fi-ta-row:hover .fi-badge {
+    @apply transform scale-105 shadow-lg;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* 🌈 Shift Badge Special Effects */
+.petugas-table-container .fi-badge[data-shift="Pagi"] {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.petugas-table-container .fi-badge[data-shift="Sore"] {
+    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* 💰 Money Column Enhancement */
+.petugas-table-container [data-column="nominal"] {
+    @apply font-bold text-lg;
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 1px 2px rgba(16, 185, 129, 0.3));
+}
+
+.petugas-table-container .fi-ta-row:hover [data-column="nominal"] {
+    @apply transform scale-110;
+    filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.4));
+}
+
+/* 📝 Description Column Styling */
+.petugas-table-container [data-column="deskripsi"] {
+    @apply italic text-gray-600 dark:text-gray-400;
+    font-style: italic;
+}
+
+/* 🎪 Action Buttons Enhancement */
+.petugas-table-container .fi-ta-actions {
+    @apply flex gap-2 justify-end opacity-70 transition-all duration-300;
+}
+
+.petugas-table-container .fi-ta-row:hover .fi-ta-actions {
+    @apply opacity-100 transform scale-105;
+}
+
+.petugas-table-container .fi-ta-actions button {
+    @apply relative overflow-hidden transition-all duration-300 backdrop-blur-sm;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.petugas-table-container .fi-ta-actions button:hover {
+    @apply transform scale-110 shadow-xl;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* 🎨 Micro Animations for Better UX */
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.petugas-table-container .fi-ta-row::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+    transition: left 0.5s ease-out;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.petugas-table-container .fi-ta-row:hover::after {
+    animation: shimmer 0.8s ease-out;
+}
+
+/* 📱 Responsive Enhancements */
+@media (max-width: 768px) {
+    .petugas-table-container .fi-ta-row:hover {
+        @apply scale-[1.01];
+    }
+    
+    .petugas-table-container .fi-ta-cell {
+        padding: 12px 8px;
+    }
+}
+
+/* 🎯 Empty State Enhancement */
+.petugas-table-container .fi-ta-empty-state {
+    @apply py-20 px-8 text-center;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 197, 253, 0.1) 100%);
+    border-radius: 16px;
+    border: 2px dashed rgba(59, 130, 246, 0.2);
+}
+
+.petugas-table-container .fi-ta-empty-state-icon {
+    @apply text-blue-400 mb-6 animate-pulse;
+    filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3));
+}
+
+/* 🌟 Loading State with Skeleton Effect */
+.petugas-table-loading .fi-ta-row {
+    @apply animate-pulse;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+    background-size: 200% 100%;
+    animation: loading-shimmer 2s infinite;
+}
+
+@keyframes loading-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* 🎭 Focus States for Accessibility */
+.petugas-table-container .fi-ta-row:focus-within {
+    @apply outline-none ring-4 ring-blue-500/30 ring-offset-2;
+    border-color: #3b82f6;
+}
+
+/* 🚀 Performance Optimizations */
+.petugas-table-container {
+    contain: layout style paint;
+    will-change: transform;
+}
+
+.petugas-table-container .fi-ta-row {
+    will-change: transform, box-shadow;
+    transform: translateZ(0); /* Enable hardware acceleration */
+}

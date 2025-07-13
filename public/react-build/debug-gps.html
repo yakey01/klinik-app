@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Debug Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .btn { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #2563eb; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+        .code { background: #f3f4f6; padding: 10px; border-radius: 5px; font-family: monospace; margin: 10px 0; }
+        input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #d1d5db; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔬 GPS & Form Debug Tool</h1>
+    
+    <h2>1. GPS Test</h2>
+    <button id="testGPS" class="btn">📍 Test GPS</button>
+    <div id="gpsResult" class="result" style="display: none;"></div>
+    
+    <h2>2. Input Field Detection</h2>
+    <button id="scanInputs" class="btn">🔍 Scan All Input Fields</button>
+    <div id="inputResult" class="result" style="display: none;"></div>
+    
+    <h2>3. Filament Wire Model Test</h2>
+    <button id="testWireModel" class="btn">⚡ Test Wire Model Detection</button>
+    <div id="wireResult" class="result" style="display: none;"></div>
+    
+    <h2>4. Manual Input Test</h2>
+    <input type="text" id="testLat" placeholder="Test Latitude Input" data-test="latitude">
+    <input type="text" id="testLon" placeholder="Test Longitude Input" data-test="longitude">
+    <button id="testManualFill" class="btn">📝 Test Manual Fill</button>
+    <div id="manualResult" class="result" style="display: none;"></div>
+    
+    <h2>5. DOM Inspector</h2>
+    <button id="inspectDOM" class="btn">🔍 Inspect Current DOM</button>
+    <div id="domResult" class="result" style="display: none;"></div>
+
+    <script>
+        // GPS Test
+        document.getElementById('testGPS').addEventListener('click', function() {
+            const result = document.getElementById('gpsResult');
+            result.style.display = 'block';
+            result.className = 'result info';
+            result.innerHTML = '🔄 Testing GPS...';
+            
+            if (!navigator.geolocation) {
+                result.className = 'result error';
+                result.innerHTML = '❌ Geolocation not supported';
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    result.className = 'result success';
+                    result.innerHTML = `✅ GPS Working!<br>
+                        📍 Lat: ${position.coords.latitude.toFixed(8)}<br>
+                        📍 Lon: ${position.coords.longitude.toFixed(8)}<br>
+                        🎯 Accuracy: ±${Math.round(position.coords.accuracy)}m`;
+                },
+                function(error) {
+                    result.className = 'result error';
+                    result.innerHTML = `❌ GPS Error: ${error.message} (Code: ${error.code})`;
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+        
+        // Input Field Scanner
+        document.getElementById('scanInputs').addEventListener('click', function() {
+            const result = document.getElementById('inputResult');
+            result.style.display = 'block';
+            result.className = 'result info';
+            
+            const allInputs = document.querySelectorAll('input');
+            const wireInputs = document.querySelectorAll('input[wire\\:model]');
+            const nameInputs = document.querySelectorAll('input[name]');
+            const idInputs = document.querySelectorAll('input[id]');
+            
+            let html = `📊 Input Field Analysis:<br>
+                • Total inputs: ${allInputs.length}<br>
+                • Wire:model inputs: ${wireInputs.length}<br>
+                • Named inputs: ${nameInputs.length}<br>
+                • ID inputs: ${idInputs.length}<br><br>`;
+            
+            html += '<div class="code">All Inputs:<br>';
+            allInputs.forEach((input, index) => {
+                html += `${index + 1}. Type: ${input.type} | ID: ${input.id || 'none'} | Name: ${input.name || 'none'} | Wire: ${input.getAttribute('wire:model') || 'none'}<br>`;
+            });
+            html += '</div>';
+            
+            result.innerHTML = html;
+        });
+        
+        // Wire Model Test
+        document.getElementById('testWireModel').addEventListener('click', function() {
+            const result = document.getElementById('wireResult');
+            result.style.display = 'block';
+            result.className = 'result info';
+            
+            // Check for Livewire
+            const hasLivewire = typeof window.Livewire !== 'undefined';
+            const wireComponents = document.querySelectorAll('[wire\\:id]');
+            
+            let html = `⚡ Livewire Analysis:<br>
+                • Livewire available: ${hasLivewire ? '✅' : '❌'}<br>
+                • Wire components: ${wireComponents.length}<br><br>`;
+            
+            if (wireComponents.length > 0) {
+                html += '<div class="code">Wire Components:<br>';
+                wireComponents.forEach((comp, index) => {
+                    html += `${index + 1}. ID: ${comp.getAttribute('wire:id')}<br>`;
+                });
+                html += '</div>';
+            }
+            
+            result.innerHTML = html;
+        });
+        
+        // Manual Fill Test
+        document.getElementById('testManualFill').addEventListener('click', function() {
+            const result = document.getElementById('manualResult');
+            const latInput = document.getElementById('testLat');
+            const lonInput = document.getElementById('testLon');
+            
+            result.style.display = 'block';
+            result.className = 'result info';
+            result.innerHTML = '🔄 Testing manual input fill...';
+            
+            // Simulate GPS coordinates
+            const testLat = '-6.12345678';
+            const testLon = '106.87654321';
+            
+            latInput.value = testLat;
+            lonInput.value = testLon;
+            
+            // Trigger events
+            [latInput, lonInput].forEach(input => {
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.focus();
+                input.blur();
+            });
+            
+            result.className = 'result success';
+            result.innerHTML = `✅ Manual fill test complete!<br>
+                📍 Set Lat: ${testLat}<br>
+                📍 Set Lon: ${testLon}<br>
+                🔄 Events triggered: input, change, focus, blur`;
+        });
+        
+        // DOM Inspector
+        document.getElementById('inspectDOM').addEventListener('click', function() {
+            const result = document.getElementById('domResult');
+            result.style.display = 'block';
+            result.className = 'result info';
+            
+            let html = '<div class="code">🔍 DOM Structure Analysis:<br><br>';
+            
+            // Check for common Filament classes
+            const filamentInputs = document.querySelectorAll('.fi-fo-text-input input, .fi-input-wrp input');
+            html += `Filament inputs found: ${filamentInputs.length}<br>`;
+            
+            // Check for form wrapper
+            const formWrappers = document.querySelectorAll('form, .fi-fo-form');
+            html += `Form wrappers found: ${formWrappers.length}<br>`;
+            
+            // Check for Alpine.js
+            const hasAlpine = typeof window.Alpine !== 'undefined';
+            html += `Alpine.js available: ${hasAlpine ? '✅' : '❌'}<br><br>`;
+            
+            // List all form-related elements
+            const formElements = document.querySelectorAll('input, select, textarea');
+            html += `Total form elements: ${formElements.length}<br><br>`;
+            
+            if (formElements.length > 0) {
+                html += 'Form Elements Details:<br>';
+                formElements.forEach((el, index) => {
+                    if (index < 10) { // Limit to first 10
+                        html += `${index + 1}. Tag: ${el.tagName} | Type: ${el.type || 'N/A'} | Classes: ${el.className || 'none'}<br>`;
+                    }
+                });
+            }
+            
+            html += '</div>';
+            result.innerHTML = html;
+        });
+    </script>
+</body>
+</html>

@@ -16,14 +16,24 @@ class NotificationDispatcher
 
     public function dispatchIncomeSuccess(array $data): void
     {
-        $message = $this->telegramService->formatNotificationMessage('income_success', $data);
-        $this->sendToRoles(['petugas'], 'income_success', $message);
+        $message = $this->telegramService->formatNotificationMessage('pendapatan', $data);
+        $this->sendToRoles(['bendahara'], 'pendapatan', $message);
+    }
+
+    public function dispatchExpenseSuccess(array $data): void
+    {
+        \Log::info('NotificationDispatcher::dispatchExpenseSuccess', ['data' => $data]);
+        
+        $message = $this->telegramService->formatNotificationMessage('pengeluaran', $data);
+        \Log::info('Formatted pengeluaran message', ['message_length' => strlen($message)]);
+        
+        $this->sendToRoles(['bendahara'], 'pengeluaran', $message);
     }
 
     public function dispatchPatientSuccess(array $data): void
     {
-        $message = $this->telegramService->formatNotificationMessage('patient_success', $data);
-        $this->sendToRoles(['petugas'], 'patient_success', $message);
+        $message = $this->telegramService->formatNotificationMessage('pasien', $data);
+        $this->sendToRoles(['bendahara'], 'pasien', $message);
     }
 
     public function dispatchDailyValidationApproved(array $data): void

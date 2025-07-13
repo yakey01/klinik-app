@@ -32,7 +32,7 @@ class AbsenceRequestResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Permintaan Izin';
 
-    protected static ?int $navigationSort = 53;
+    protected static ?int $navigationSort = 55;
 
     public static function form(Form $form): Form
     {

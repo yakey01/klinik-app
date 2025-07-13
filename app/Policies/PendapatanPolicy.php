@@ -13,7 +13,7 @@ class PendapatanPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view-finances');
+        return $user->hasPermission('manage_finance') || $user->hasPermission('validate_transactions');
     }
 
     /**
@@ -21,7 +21,7 @@ class PendapatanPolicy
      */
     public function view(User $user, Pendapatan $pendapatan): bool
     {
-        return $user->can('view-finances');
+        return $user->hasPermission('manage_finance') || $user->hasPermission('validate_transactions');
     }
 
     /**
@@ -29,7 +29,7 @@ class PendapatanPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create-finances');
+        return $user->hasPermission('manage_finance');
     }
 
     /**
@@ -38,7 +38,7 @@ class PendapatanPolicy
     public function update(User $user, Pendapatan $pendapatan): bool
     {
         // Can edit if they have permission AND (they created it OR it's pending OR they're admin/manager)
-        return $user->can('edit-finances') && (
+        return $user->hasPermission('manage_finance') && (
             $pendapatan->input_by === $user->id ||
             $pendapatan->status === 'pending' ||
             $user->hasRole(['admin', 'manajer'])
@@ -50,7 +50,7 @@ class PendapatanPolicy
      */
     public function delete(User $user, Pendapatan $pendapatan): bool
     {
-        return $user->can('delete-finances') && (
+        return $user->hasPermission('manage_finance') && (
             $pendapatan->input_by === $user->id ||
             $user->hasRole(['admin', 'manajer'])
         );
@@ -61,7 +61,7 @@ class PendapatanPolicy
      */
     public function approve(User $user, Pendapatan $pendapatan): bool
     {
-        return $user->can('approve-finances') && $pendapatan->status === 'pending';
+        return $user->hasPermission('validate_transactions') && $pendapatan->status === 'pending';
     }
 
     /**
@@ -69,7 +69,7 @@ class PendapatanPolicy
      */
     public function reject(User $user, Pendapatan $pendapatan): bool
     {
-        return $user->can('reject-finances') && $pendapatan->status === 'pending';
+        return $user->hasPermission('validate_transactions') && $pendapatan->status === 'pending';
     }
 
     /**
@@ -77,7 +77,7 @@ class PendapatanPolicy
      */
     public function restore(User $user, Pendapatan $pendapatan): bool
     {
-        return $user->can('delete-finances');
+        return $user->hasPermission('manage_finance');
     }
 
     /**

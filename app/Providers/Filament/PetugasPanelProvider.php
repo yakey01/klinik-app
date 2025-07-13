@@ -34,6 +34,7 @@ class PetugasPanelProvider extends PanelProvider
             ])
             ->darkMode()
             ->resources([
+                \App\Filament\Petugas\Resources\JumlahPasienHarianResource::class,
                 \App\Filament\Petugas\Resources\PasienResource::class,
                 \App\Filament\Petugas\Resources\PendapatanHarianResource::class,
                 \App\Filament\Petugas\Resources\PengeluaranHarianResource::class,

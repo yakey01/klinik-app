@@ -17,6 +17,9 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\IncomeCreated::class => [
             \App\Listeners\SendTelegramNotification::class,
         ],
+        \App\Events\ExpenseCreated::class => [
+            \App\Listeners\SendTelegramNotification::class,
+        ],
         \App\Events\PatientCreated::class => [
             \App\Listeners\SendTelegramNotification::class,
         ],

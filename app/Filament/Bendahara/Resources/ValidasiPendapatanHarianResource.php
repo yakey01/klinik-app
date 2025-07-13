@@ -2,13 +2,15 @@
 
 namespace App\Filament\Bendahara\Resources;
 
+use App\Enums\TelegramNotificationType;
 use App\Models\PendapatanHarian;
+use App\Services\TelegramService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
@@ -198,6 +200,27 @@ class ValidasiPendapatanHarianResource extends Resource
                             ->title('Pendapatan harian disetujui')
                             ->success()
                             ->send();
+
+                        // Send Telegram notification to manajer
+                        try {
+                            $telegramService = app(TelegramService::class);
+                            $message = $telegramService->formatNotificationMessage(
+                                TelegramNotificationType::VALIDASI_DISETUJUI->value,
+                                [
+                                    'validator_name' => Auth::user()->name,
+                                    'type' => 'Pendapatan',
+                                    'amount' => $record->nominal,
+                                    'description' => $record->deskripsi ?? 'Pendapatan dari '.($record->pendapatan->nama_pendapatan ?? '-'),
+                                    'date' => $record->tanggal_input->format('d/m/Y'),
+                                    'shift' => $record->shift,
+                                    'petugas' => $record->inputBy->name ?? 'Unknown',
+                                ]
+                            );
+
+                            $telegramService->sendNotificationToRole('manajer', TelegramNotificationType::VALIDASI_DISETUJUI->value, $message);
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to send telegram notification for approval: '.$e->getMessage());
+                        }
                     })
                     ->requiresConfirmation()
                     ->visible(fn (PendapatanHarian $record): bool => $record->status_validasi === 'pending'),

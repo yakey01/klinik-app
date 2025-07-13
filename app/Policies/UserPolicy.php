@@ -12,7 +12,7 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view-users');
+        return $user->hasPermission('manage_users') || $user->hasRole(['admin', 'manajer']);
     }
 
     /**
@@ -20,7 +20,7 @@ class UserPolicy
      */
     public function view(User $user, User $model): bool
     {
-        return $user->can('view-users') || $user->id === $model->id;
+        return $user->hasPermission('manage_users') || $user->hasRole(['admin', 'manajer']) || $user->id === $model->id;
     }
 
     /**
@@ -28,7 +28,7 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create-users');
+        return $user->hasPermission('manage_users') || $user->hasRole('admin');
     }
 
     /**
@@ -38,7 +38,7 @@ class UserPolicy
     {
         // Users can edit themselves, or if they have permission and appropriate role
         return $user->id === $model->id || (
-            $user->can('edit-users') && 
+            $user->hasPermission('manage_users') && 
             $user->hasRole(['admin', 'manajer'])
         );
     }
@@ -50,7 +50,7 @@ class UserPolicy
     {
         // Cannot delete yourself, must have permission and be admin
         return $user->id !== $model->id && 
-               $user->can('delete-users') && 
+               $user->hasPermission('manage_users') && 
                $user->hasRole('admin');
     }
 
@@ -59,7 +59,7 @@ class UserPolicy
      */
     public function manageRoles(User $user): bool
     {
-        return $user->can('manage-roles');
+        return $user->hasPermission('manage_roles') || $user->hasRole('admin');
     }
 
     /**
@@ -67,7 +67,7 @@ class UserPolicy
      */
     public function restore(User $user, User $model): bool
     {
-        return $user->can('delete-users');
+        return $user->hasPermission('manage_users');
     }
 
     /**

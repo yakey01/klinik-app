@@ -47,7 +47,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/manager/dashboard', function () {
         return redirect('/manajer');
     })->name('manager.dashboard');
-    Route::get('/treasurer/dashboard', [TreasurerDashboardController::class, 'index'])->name('treasurer.dashboard');
+    Route::get('/treasurer/dashboard', function () {
+        return redirect('/bendahara');
+    })->name('treasurer.dashboard');
     Route::get('/staff/dashboard', [StaffDashboardController::class, 'index'])->name('staff.dashboard');
     // Keep legacy route for backward compatibility
     Route::get('/doctor/dashboard', function () {
@@ -56,6 +58,106 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/non-paramedic/dashboard', function () {
         return view('non-paramedic.dashboard');
     })->middleware('role:non_paramedis')->name('non-paramedic.dashboard');
+    
+    // React Dashboard Test Route (untuk semua role)
+    Route::get('/react-dashboard-demo', function () {
+        // Debug current user
+        $user = auth()->user();
+        if (!$user) {
+            return redirect('/login')->with('error', 'Please login first');
+        }
+        
+        \Log::info('Paramedis React Dashboard Access', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_role' => $user->role?->name ?? 'no_role',
+            'has_role' => $user->role ? 'YES' : 'NO'
+        ]);
+        
+        // Allow all roles for demo
+        // if ($user->role?->name !== 'paramedis') {
+        //     return response()->json([
+        //         'error' => 'Access denied',
+        //         'user_role' => $user->role?->name ?? 'no_role',
+        //         'required_role' => 'paramedis'
+        //     ], 403);
+        // }
+        
+        return view('react-dashboard-standalone');
+    })->middleware('auth')->name('paramedis.react.dashboard');
+    
+    // Debug route to check users and roles
+    Route::get('/debug-users', function () {
+        $users = \App\Models\User::with('role')->get(['id', 'name', 'email', 'role_id']);
+        return response()->json([
+            'current_user' => auth()->user() ? [
+                'id' => auth()->user()->id,
+                'name' => auth()->user()->name,
+                'email' => auth()->user()->email,
+                'role' => auth()->user()->role?->name ?? 'no_role'
+            ] : 'not_logged_in',
+            'all_users' => $users->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role?->name ?? 'no_role'
+                ];
+            })
+        ]);
+    })->middleware('auth');
+    
+    // Simple API test route
+    Route::get('/api-test', function () {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'API working',
+            'data' => [
+                'jaspel_monthly' => 15200000,
+                'paramedis_name' => 'Test User'
+            ]
+        ]);
+    });
+    
+    // Standalone React Dashboard (tanpa Filament)
+    Route::get('/react-dashboard', function () {
+        $user = auth()->user();
+        if (!$user) {
+            return redirect('/login')->with('error', 'Please login first');
+        }
+        
+        return view('react-dashboard-standalone');
+    })->middleware('auth')->name('react.dashboard');
+    
+    // New Jaspel Dashboard (Premium Design)
+    Route::get('/jaspel-dashboard', function () {
+        $user = auth()->user();
+        if (!$user) {
+            return redirect('/login')->with('error', 'Please login first');
+        }
+        
+        return view('paramedis-jaspel-dashboard');
+    })->middleware('auth')->name('jaspel.dashboard');
+    
+    // Premium React Native Dashboard - Redirect to Filament Panel
+    Route::get('/premium-dashboard', function () {
+        $user = auth()->user();
+        if (!$user) {
+            return redirect('/login')->with('error', 'Please login first');
+        }
+        
+        // Redirect paramedis users to their proper panel
+        if ($user->hasRole('paramedis')) {
+            return redirect('/paramedis');
+        }
+        
+        return view('premium-paramedis-dashboard-simple');
+    })->middleware('auth')->name('premium.dashboard');
+    
+    // Direct test route for premium dashboard
+    Route::get('/premium-test', function () {
+        return view('premium-paramedis-dashboard-simple');
+    })->middleware('auth');
 });
 
 // Legacy Admin routes (moved from /admin to /legacy-admin)
@@ -91,6 +193,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('settings')->name('settings.')
         Route::get('/export-excel', [\App\Http\Controllers\Settings\BackupController::class, 'exportMasterData'])->name('export-excel');
         Route::get('/export-json', [\App\Http\Controllers\Settings\BackupController::class, 'exportJson'])->name('export-json');
         Route::post('/import-json', [\App\Http\Controllers\Settings\BackupController::class, 'importJson'])->name('import-json');
+    });
+    
+    // Telegram Settings
+    Route::prefix('telegram')->name('telegram.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Settings\TelegramController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\Settings\TelegramController::class, 'update'])->name('update');
+        Route::post('/test', [\App\Http\Controllers\Settings\TelegramController::class, 'testNotification'])->name('test');
+        Route::get('/bot-info', [\App\Http\Controllers\Settings\TelegramController::class, 'getBotInfo'])->name('bot-info');
     });
     
 });

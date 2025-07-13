@@ -1,0 +1,23 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/css/app-BwVkE0gQ.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/css/filament/dokter-mobile.css": {
+    "file": "assets/css/dokter-mobile-Cqd5QgL8.css",
+    "src": "resources/css/filament/dokter-mobile.css",
+    "isEntry": true
+  },
+  "resources/css/filament/paramedis-mobile.css": {
+    "file": "assets/css/paramedis-mobile-ClsAggz_.css",
+    "src": "resources/css/filament/paramedis-mobile.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-DaBYqt0m.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  }
+}

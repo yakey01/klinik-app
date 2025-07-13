@@ -33,6 +33,33 @@ class CustomAuthServiceProvider extends ServiceProvider
 class CustomEloquentUserProvider extends EloquentUserProvider
 {
     /**
+     * Store for virtual users (pegawai logins)
+     */
+    protected static $virtualUsers = [];
+    
+    /**
+     * Store virtual user for session persistence
+     */
+    public static function storeVirtualUser($id, Authenticatable $user): void
+    {
+        static::$virtualUsers[$id] = $user;
+    }
+    
+    /**
+     * Retrieve user by ID, including virtual users
+     */
+    public function retrieveById($identifier): ?Authenticatable
+    {
+        // Check virtual users first
+        if (isset(static::$virtualUsers[$identifier])) {
+            return static::$virtualUsers[$identifier];
+        }
+        
+        // Fall back to database lookup
+        return parent::retrieveById($identifier);
+    }
+    
+    /**
      * Retrieve a user by the given credentials.
      */
     public function retrieveByCredentials(array $credentials): ?Authenticatable

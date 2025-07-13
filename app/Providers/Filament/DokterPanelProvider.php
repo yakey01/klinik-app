@@ -36,6 +36,13 @@ class DokterPanelProvider extends PanelProvider
             ])
             ->darkMode()
             ->sidebarCollapsibleOnDesktop()
+            ->userMenuItems([
+                'profile' => \Filament\Navigation\MenuItem::make()
+                    ->label(fn () => 'Selamat datang, ' . auth()->user()?->name)
+                    ->icon('heroicon-o-user-circle')
+                    ->url('#')
+                    ->sort(-1),
+            ])
             ->navigationGroups([
                 'Dashboard',
                 'Presensi & Jaspel',
@@ -45,6 +52,8 @@ class DokterPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Dokter/Pages'), for: 'App\\Filament\\Dokter\\Pages')
             ->pages([
                 \App\Filament\Dokter\Pages\DashboardDokter::class,
+                \App\Filament\Dokter\Pages\PresensiMobilePage::class,
+                \App\Filament\Dokter\Pages\JaspelMobilePage::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Dokter/Widgets'), for: 'App\\Filament\\Dokter\\Widgets')
             ->widgets([
@@ -67,11 +76,55 @@ class DokterPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->authGuard('web')
+            ->renderHook(
+                'panels::head.end',
+                fn () => view('filament.dokter.partials.mobile-meta')
+            )
             ->plugin(\Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin::make());
     }
 
     public function canAccessPanel(\Illuminate\Contracts\Auth\Authenticatable $user): bool
     {
-        return $user->role && $user->role->name === 'dokter';
+        \Log::info('DokterPanel: canAccessPanel check', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'has_role' => $user->role ? 'YES' : 'NO',
+            'role_name' => $user->role?->name ?: 'NULL',
+            'role_id' => $user->role_id ?: 'NULL',
+            'is_active' => $user->is_active ?? 'NULL'
+        ]);
+        
+        $hasAccess = $user->role && $user->role->name === 'dokter';
+        
+        \Log::info('DokterPanel: access decision', [
+            'user_id' => $user->id,
+            'has_access' => $hasAccess ? 'GRANTED' : 'DENIED',
+            'reason' => $hasAccess ? 'User has dokter role' : 'User does not have dokter role or role is null'
+        ]);
+        
+        // If user doesn't have access but has a different role, redirect them to their correct panel
+        if (!$hasAccess && $user->role) {
+            $roleName = $user->role->name;
+            $redirectUrl = match($roleName) {
+                'admin' => '/admin',
+                'petugas' => '/petugas', 
+                'manajer' => '/manager/dashboard',
+                'bendahara' => '/bendahara',
+                'paramedis' => '/paramedis',
+                'non_paramedis' => '/non-paramedic/dashboard',
+                default => '/login'
+            };
+            
+            \Log::info('DokterPanel: Redirecting user to correct panel', [
+                'user_id' => $user->id,
+                'role' => $roleName,
+                'redirect_to' => $redirectUrl
+            ]);
+            
+            // Store the redirect URL in session to be handled by middleware
+            session(['role_redirect' => $redirectUrl]);
+        }
+        
+        return $hasAccess;
     }
 }

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use App\Traits\Auditable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -16,7 +17,7 @@ use Filament\Panel;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes, Auditable;
+    use HasFactory, Notifiable, SoftDeletes, Auditable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -291,7 +292,31 @@ class User extends Authenticatable implements FilamentUser
         }
         
         if ($panel->getId() === 'dokter') {
-            return $this->role && $this->role->name === 'dokter';
+            \Log::info('User model: canAccessPanel for dokter panel', [
+                'user_id' => $this->id,
+                'user_email' => $this->email,
+                'role_id' => $this->role_id,
+                'has_role_relation' => $this->role ? 'YES' : 'NO',
+                'role_name' => $this->role?->name ?: 'NULL',
+                'relationLoaded' => $this->relationLoaded('role') ? 'YES' : 'NO'
+            ]);
+            
+            // Ensure role relationship is loaded
+            if (!$this->relationLoaded('role')) {
+                $this->load('role');
+                \Log::info('User model: role relationship loaded', [
+                    'user_id' => $this->id,
+                    'role_name_after_load' => $this->role?->name ?: 'NULL'
+                ]);
+            }
+            
+            $hasAccess = $this->role && $this->role->name === 'dokter';
+            \Log::info('User model: dokter panel access decision', [
+                'user_id' => $this->id,
+                'has_access' => $hasAccess ? 'GRANTED' : 'DENIED'
+            ]);
+            
+            return $hasAccess;
         }
         
         if ($panel->getId() === 'manajer') {

@@ -25,7 +25,7 @@ class PengeluaranResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Master Pengeluaran';
 
-    protected static ?int $navigationSort = 21;
+    protected static ?int $navigationSort = 22;
 
     public static function form(Form $form): Form
     {

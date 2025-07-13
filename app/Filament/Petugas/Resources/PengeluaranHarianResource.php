@@ -287,4 +287,10 @@ class PengeluaranHarianResource extends Resource
             'edit' => Pages\EditPengeluaranHarian::route('/{record}/edit'),
         ];
     }
+
+    public static function getUrl(string $name = 'index', array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null): string
+    {
+        $panel = $panel ?? 'petugas';
+        return parent::getUrl($name, $parameters, $isAbsolute, $panel, $tenant);
+    }
 }

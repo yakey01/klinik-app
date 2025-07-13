@@ -2,6 +2,17 @@
     <div class="space-y-6">
         <!-- Bot Status Card -->
         <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+            @if(isset($botInfo['demo_mode']) && $botInfo['demo_mode'])
+            <div class="mb-3 bg-yellow-500/20 border border-yellow-400/30 rounded-lg p-3">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-yellow-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    <span class="text-yellow-200 text-sm font-medium">DEMO MODE - Setup token bot yang valid untuk production</span>
+                </div>
+            </div>
+            @endif
+            
             <div class="flex items-center space-x-4">
                 <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
                     <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
@@ -12,6 +23,9 @@
                     <h3 class="text-xl font-bold">{{ $botInfo['first_name'] ?? 'Unknown Bot' }}</h3>
                     <p class="text-blue-100">@{{ $botInfo['username'] ?? 'unknown' }}</p>
                     <p class="text-sm text-blue-200">Bot ID: {{ $botInfo['id'] ?? 'N/A' }}</p>
+                    @if(isset($botInfo['demo_mode']) && $botInfo['demo_mode'])
+                    <p class="text-xs text-yellow-200 mt-1">🟡 Demo Mode Active</p>
+                    @endif
                 </div>
             </div>
         </div>

@@ -53,13 +53,13 @@ class JaspelResource extends Resource
                             ->required()
                             ->disabled(),
 
-                        Forms\Components\TextInput::make('jumlah')
+                        Forms\Components\TextInput::make('nominal')
                             ->label('Jumlah Jaspel')
                             ->numeric()
                             ->prefix('Rp')
                             ->disabled(),
 
-                        Forms\Components\Textarea::make('keterangan')
+                        Forms\Components\Textarea::make('catatan_validasi')
                             ->label('Keterangan')
                             ->rows(3)
                             ->disabled(),
@@ -86,26 +86,26 @@ class JaspelResource extends Resource
                     ->searchable()
                     ->limit(30),
 
-                Tables\Columns\TextColumn::make('jumlah')
+                Tables\Columns\TextColumn::make('nominal')
                     ->label('Jumlah Jaspel')
                     ->money('IDR')
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('status')
+                Tables\Columns\BadgeColumn::make('status_validasi')
                     ->label('Status')
                     ->colors([
                         'warning' => 'pending',
-                        'success' => 'approved', 
-                        'danger' => 'rejected',
+                        'success' => 'disetujui', 
+                        'danger' => 'ditolak',
                     ])
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'pending' => '⏳ Pending',
-                        'approved' => '✅ Disetujui',
-                        'rejected' => '❌ Ditolak',
+                        'disetujui' => '✅ Disetujui',
+                        'ditolak' => '❌ Ditolak',
                         default => $state,
                     }),
 
-                Tables\Columns\TextColumn::make('keterangan')
+                Tables\Columns\TextColumn::make('catatan_validasi')
                     ->label('Keterangan')
                     ->limit(40)
                     ->placeholder('Tidak ada'),
@@ -134,17 +134,17 @@ class JaspelResource extends Resource
                         ])
                     ),
 
-                SelectFilter::make('status')
+                SelectFilter::make('status_validasi')
                     ->label('Status')
                     ->options([
                         'pending' => 'Pending',
-                        'approved' => 'Disetujui',
-                        'rejected' => 'Ditolak',
+                        'disetujui' => 'Disetujui',
+                        'ditolak' => 'Ditolak',
                     ]),
 
                 Filter::make('approved_only')
                     ->label('Hanya Disetujui')
-                    ->query(fn (Builder $query): Builder => $query->where('status', 'approved')),
+                    ->query(fn (Builder $query): Builder => $query->where('status_validasi', 'disetujui')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -155,12 +155,27 @@ class JaspelResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        // Security: Only show current user's jaspel records
-        return parent::getEloquentQuery()
+        // Debug logging
+        \Log::info('JaspelResource: getEloquentQuery called', [
+            'auth_user_id' => auth()->id(),
+            'auth_user_email' => auth()->user()->email ?? 'not_logged_in',
+            'auth_user_role' => auth()->user()->role->name ?? 'no_role'
+        ]);
+
+        $query = parent::getEloquentQuery()
             ->where('user_id', auth()->id())
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+
+        // Debug the query results
+        $count = $query->count();
+        \Log::info('JaspelResource: query results', [
+            'user_id' => auth()->id(),
+            'jaspel_count' => $count
+        ]);
+
+        return $query;
     }
 
     public static function getPages(): array

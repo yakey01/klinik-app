@@ -129,22 +129,32 @@ class DokterResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('username')
                                     ->label('Username Login')
-                                    ->unique(ignoreRecord: true)
+                                    ->unique(table: 'dokters', column: 'username', ignoreRecord: true)
+                                    ->nullable()
                                     ->placeholder('Auto-generate jika kosong')
-                                    ->helperText('Username untuk login ke sistem')
-                                    ->alphaNum()
+                                    ->helperText('Username untuk login (huruf, angka, spasi, titik, koma diizinkan)')
+                                    ->rules(['nullable', 'regex:/^[a-zA-Z0-9\s.,-]+$/'])
                                     ->minLength(3)
-                                    ->maxLength(20)
+                                    ->maxLength(50)
                                     ->suffixIcon('heroicon-m-user')
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state) {
+                                        \Log::info('DokterResource: Username field updated', [
+                                            'new_value' => $state,
+                                            'length' => strlen($state ?? ''),
+                                            'validation_result' => preg_match('/^[a-zA-Z0-9\s.,-]+$/', $state ?? '') ? 'VALID' : 'INVALID'
+                                        ]);
+                                    })
                                     ->columnSpan(3),
 
                                 Forms\Components\TextInput::make('password')
                                     ->label('Password Baru')
                                     ->password()
                                     ->revealable()
-                                    ->dehydrated(fn ($state) => filled($state))
-                                    ->placeholder('Auto-generate jika kosong')
-                                    ->helperText('Kosongkan jika tidak ingin mengubah password')
+                                    ->dehydrated(fn (?string $state): bool => filled($state))
+                                    ->placeholder(fn (string $operation): string => 
+                                        $operation === 'create' ? 'Auto-generate jika kosong' : 'Kosongkan jika tidak ingin mengubah password')
+                                    ->helperText('Minimal 6 karakter')
                                     ->minLength(6)
                                     ->maxLength(50)
                                     ->suffixIcon('heroicon-m-key')
@@ -208,7 +218,8 @@ class DokterResource extends Resource
 
                         Forms\Components\Textarea::make('keterangan')
                             ->label('Keterangan')
-                            ->placeholder('Catatan tambahan tentang dokter...')
+                            ->placeholder('Catatan tambahan tentang dokter (opsional)...')
+                            ->nullable()
                             ->rows(4)
                             ->columnSpan(2),
                     ])

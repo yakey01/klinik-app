@@ -3,6 +3,7 @@
 namespace App\Services\Transaksi;
 
 use App\Events\DataInputDisimpan;
+use App\Events\PatientCreated;
 use App\Models\JenisTindakan;
 use App\Models\Tindakan;
 use App\Repositories\TindakanRepository;
@@ -39,6 +40,16 @@ class TindakanService
             
             // Trigger event for data input
             event(new DataInputDisimpan($tindakan, auth()->user()));
+            
+            // Trigger new role-based notification system for patient/tindakan
+            event(new PatientCreated([
+                'patient_name' => $tindakan->pasien?->nama ?? 'Unknown Patient',
+                'procedure' => $jenisTindakan->nama ?? 'Unknown Procedure',
+                'user_name' => auth()->user()->name,
+                'user_role' => auth()->user()->role?->name ?? 'Unknown',
+                'tindakan_id' => $tindakan->id,
+                'tarif' => $jenisTindakan->tarif ?? 0,
+            ]));
             
             return $tindakan;
         });

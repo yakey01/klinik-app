@@ -32,8 +32,8 @@ class CreateUser extends CreateRecord
         $employeeType = $data['employee_type'] ?? null;
         $relatedRecordId = request()->get('related_record_id');
         
-        // Validate role consistency if role_id is already set
-        if (!empty($data['role_id'])) {
+        // Validate role consistency if role_id is already set and source is provided
+        if (!empty($data['role_id']) && !empty($source)) {
             $validator = new ConsistentRoleAssignmentRule($source, $employeeType, $relatedRecordId);
             
             try {
@@ -50,18 +50,21 @@ class CreateUser extends CreateRecord
         if (empty($data['role_id'])) {
             $data['role_id'] = $this->getAutoAssignedRoleId($source, $employeeType);
             
+            // Only require role if we can't auto-assign and no role was manually selected
             if (empty($data['role_id'])) {
                 throw ValidationException::withMessages([
-                    'role_id' => 'Tidak dapat menentukan role secara otomatis. Silakan pilih role secara manual.'
+                    'role_id' => 'Silakan pilih role untuk user ini.'
                 ]);
             }
         }
         
-        // Final validation after role assignment
-        $finalValidator = new ConsistentRoleAssignmentRule($source, $employeeType, $relatedRecordId);
-        $finalValidator->validate('role_id', $data['role_id'], function($message) {
-            throw ValidationException::withMessages(['role_id' => $message]);
-        });
+        // Final validation after role assignment (only if source is provided)
+        if (!empty($source)) {
+            $finalValidator = new ConsistentRoleAssignmentRule($source, $employeeType, $relatedRecordId);
+            $finalValidator->validate('role_id', $data['role_id'], function($message) {
+                throw ValidationException::withMessages(['role_id' => $message]);
+            });
+        }
         
         // Remove temporary fields before saving
         unset($data['source'], $data['employee_type']);
@@ -82,8 +85,13 @@ class CreateUser extends CreateRecord
     /**
      * Auto-assign role based on source and employee type
      */
-    private function getAutoAssignedRoleId(string $source, ?string $employeeType): ?int
+    private function getAutoAssignedRoleId(?string $source, ?string $employeeType): ?int
     {
+        // Return null if no source is provided (manual role selection)
+        if (empty($source)) {
+            return null;
+        }
+        
         if ($source === 'dokter') {
             return Role::where('name', 'dokter')->first()?->id;
         }

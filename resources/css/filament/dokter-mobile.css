@@ -1,0 +1,682 @@
+/* Mobile-first CSS for Dokter Panel */
+
+/* Remove desktop navigation on mobile */
+@media (max-width: 768px) {
+    body.fi-panel-dokter .fi-sidebar {
+        display: none !important;
+    }
+    
+    body.fi-panel-dokter .fi-sidebar-open .fi-main {
+        margin-left: 0 !important;
+    }
+    
+    /* Full width content on mobile */
+    body.fi-panel-dokter .fi-main {
+        margin-left: 0 !important;
+    }
+    
+    /* Adjust page padding for mobile */
+    body.fi-panel-dokter .fi-page {
+        padding: 1rem !important;
+    }
+    
+    /* Mobile-optimized card spacing */
+    body.fi-panel-dokter .fi-section {
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Compact widget spacing */
+    body.fi-panel-dokter .fi-wi {
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Hide desktop-only elements */
+    body.fi-panel-dokter .fi-topbar-nav {
+        display: none !important;
+    }
+    
+    /* Adjust header for mobile */
+    body.fi-panel-dokter .fi-header {
+        padding: 0.75rem 1rem !important;
+    }
+    
+    /* Bottom navigation spacing */
+    body.fi-panel-dokter .fi-page-content {
+        padding-bottom: 6rem !important;
+    }
+}
+
+/* Bottom navigation styles */
+body.fi-panel-dokter .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    z-index: 50;
+    box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: 0.5rem 0;
+}
+
+body.fi-panel-dokter.dark .mobile-bottom-nav {
+    background: #1f2937;
+    border-top-color: #374151;
+}
+
+body.fi-panel-dokter .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #6b7280;
+    transition: color 0.2s;
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+}
+
+body.fi-panel-dokter .nav-item.active {
+    color: #3b82f6;
+}
+
+body.fi-panel-dokter .nav-item svg {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 0.25rem;
+}
+
+body.fi-panel-dokter .nav-item span {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Dashboard Profile Header */
+body.fi-panel-dokter .profile-header {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+body.fi-panel-dokter.dark .profile-header {
+    background: #1f2937;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+body.fi-panel-dokter .profile-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    flex-shrink: 0;
+}
+
+body.fi-panel-dokter .profile-info h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+body.fi-panel-dokter.dark .profile-info h2 {
+    color: #f9fafb;
+}
+
+body.fi-panel-dokter .profile-info p {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 0.25rem 0 0 0;
+}
+
+/* Action Tiles Grid */
+body.fi-panel-dokter .action-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+body.fi-panel-dokter .action-tile {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+
+body.fi-panel-dokter.dark .action-tile {
+    background: #1f2937;
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.3);
+}
+
+body.fi-panel-dokter .action-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px 0 rgba(0, 0, 0, 0.15);
+}
+
+body.fi-panel-dokter .action-tile:active {
+    transform: translateY(-2px);
+}
+
+/* Tile color variations */
+body.fi-panel-dokter .action-tile.attendance {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+    color: white !important;
+}
+
+body.fi-panel-dokter .action-tile.schedule {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+    color: #1565c0 !important;
+}
+
+body.fi-panel-dokter .action-tile.piket {
+    background: linear-gradient(135deg, #4db6ac 0%, #26a69a 100%) !important;
+    color: white !important;
+}
+
+body.fi-panel-dokter .action-tile.jaspel {
+    background: linear-gradient(135deg, #7c4dff 0%, #651fff 100%) !important;
+    color: white !important;
+}
+
+body.fi-panel-dokter .tile-icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 0.75rem;
+    padding: 0.5rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.fi-panel-dokter .tile-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+body.fi-panel-dokter .tile-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+body.fi-panel-dokter .tile-subtitle {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+/* Notification badge on tiles */
+body.fi-panel-dokter .tile-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 9999px;
+    padding: 0 4px;
+}
+
+/* Touch-friendly interactions */
+@media (max-width: 768px) {
+    body.fi-panel-dokter .action-tile {
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    /* Larger form inputs on mobile */
+    body.fi-panel-dokter input, 
+    body.fi-panel-dokter select, 
+    body.fi-panel-dokter textarea {
+        font-size: 16px !important;
+        padding: 0.75rem !important;
+    }
+    
+    /* Improved tap targets */
+    body.fi-panel-dokter button, 
+    body.fi-panel-dokter a {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Performance optimizations */
+@media (max-width: 768px) {
+    /* Reduce animations on mobile */
+    body.fi-panel-dokter *, 
+    body.fi-panel-dokter *::before, 
+    body.fi-panel-dokter *::after {
+        animation-duration: 0.2s !important;
+        transition-duration: 0.2s !important;
+    }
+    
+    /* Optimize scrolling */
+    body.fi-panel-dokter .fi-main-ctn {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+}
+
+/* Loading states */
+body.fi-panel-dokter .mobile-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+body.fi-panel-dokter .mobile-loading svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Dark mode adjustments */
+body.fi-panel-dokter.dark .action-tile.schedule {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
+    color: #e0f2fe !important;
+}
+
+/* Responsive tablet adjustments */
+@media (min-width: 768px) and (max-width: 1024px) {
+    body.fi-panel-dokter .action-tiles {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    body.fi-panel-dokter .action-tile {
+        min-height: 140px;
+    }
+}
+
+/* Presensi Mobile Page Styles */
+body.fi-panel-dokter .dokter-presensi-mobile {
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
+}
+
+body.fi-panel-dokter .map-container {
+    margin-bottom: 2rem;
+}
+
+/* Location Display Card */
+body.fi-panel-dokter .location-display-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+}
+
+body.fi-panel-dokter.dark .location-display-card {
+    background: #1f2937;
+    border-color: #374151;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+/* Clinic Info Section */
+body.fi-panel-dokter .clinic-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+body.fi-panel-dokter .clinic-icon {
+    font-size: 3rem;
+    flex-shrink: 0;
+}
+
+body.fi-panel-dokter .clinic-details {
+    flex: 1;
+}
+
+body.fi-panel-dokter .clinic-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+body.fi-panel-dokter.dark .clinic-name {
+    color: #f9fafb;
+}
+
+body.fi-panel-dokter .clinic-coords,
+body.fi-panel-dokter .clinic-radius {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.125rem;
+}
+
+body.fi-panel-dokter.dark .clinic-coords,
+body.fi-panel-dokter.dark .clinic-radius {
+    color: #9ca3af;
+}
+
+/* Location Separator */
+body.fi-panel-dokter .location-separator {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+    margin: 1rem 0;
+}
+
+body.fi-panel-dokter.dark .location-separator {
+    background: linear-gradient(to right, transparent, #374151, transparent);
+}
+
+/* User Location Info */
+body.fi-panel-dokter .user-location-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+body.fi-panel-dokter .user-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
+
+body.fi-panel-dokter .user-details {
+    flex: 1;
+}
+
+body.fi-panel-dokter .user-label {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+body.fi-panel-dokter.dark .user-label {
+    color: #d1d5db;
+}
+
+body.fi-panel-dokter .user-coords {
+    font-size: 0.875rem;
+    color: #1f2937;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    background: #f9fafb;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 0.5rem;
+}
+
+body.fi-panel-dokter.dark .user-coords {
+    color: #e5e7eb;
+    background: #111827;
+    border-color: #374151;
+}
+
+body.fi-panel-dokter .distance-info {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+}
+
+body.fi-panel-dokter.dark .distance-info {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+body.fi-panel-dokter .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0 1rem;
+}
+
+body.fi-panel-dokter .check-button {
+    width: 100%;
+    padding: 1.5rem 2rem;
+    border: none;
+    border-radius: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.15);
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.fi-panel-dokter .check-in-button {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+body.fi-panel-dokter .check-in-button:hover {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px 0 rgba(245, 158, 11, 0.3);
+}
+
+body.fi-panel-dokter .check-out-button {
+    background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+}
+
+body.fi-panel-dokter .check-out-button:hover {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px 0 rgba(249, 115, 22, 0.3);
+}
+
+body.fi-panel-dokter .check-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.15);
+}
+
+body.fi-panel-dokter .check-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+body.fi-panel-dokter .completed-message {
+    text-align: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 1rem;
+    color: white;
+}
+
+body.fi-panel-dokter .completed-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+body.fi-panel-dokter .completed-subtitle {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* Location Status Styles */
+body.fi-panel-dokter .location-status-container {
+    margin-bottom: 1.5rem;
+    padding: 0 1rem;
+}
+
+body.fi-panel-dokter .location-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+body.fi-panel-dokter .location-status.loading {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    color: #4b5563;
+    border: 2px solid #d1d5db;
+}
+
+body.fi-panel-dokter .location-status.inside {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: 2px solid #065f46;
+    box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.25);
+}
+
+body.fi-panel-dokter .location-status.outside {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: 2px solid #991b1b;
+    box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.25);
+}
+
+body.fi-panel-dokter .location-status.error {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: 2px solid #92400e;
+    box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.25);
+}
+
+body.fi-panel-dokter .status-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+body.fi-panel-dokter .status-text {
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+body.fi-panel-dokter .coordinates-display {
+    text-align: center;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    color: #64748b;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+body.fi-panel-dokter.dark .coordinates-display {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+}
+
+/* Location Error Styles */
+body.fi-panel-dokter .location-error {
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 1rem;
+    color: #92400e;
+}
+
+body.fi-panel-dokter .error-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+body.fi-panel-dokter .error-subtitle {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+/* Button Disabled State */
+body.fi-panel-dokter .check-button.disabled,
+body.fi-panel-dokter .check-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    filter: grayscale(0.3);
+}
+
+body.fi-panel-dokter .check-button.disabled:hover,
+body.fi-panel-dokter .check-button:disabled:hover {
+    transform: none !important;
+    box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Mobile optimizations for presensi page */
+@media (max-width: 768px) {
+    body.fi-panel-dokter .fi-page {
+        padding: 1rem !important;
+    }
+    
+    body.fi-panel-dokter .map-container {
+        height: 50vh;
+        margin-bottom: 1.5rem;
+    }
+    
+    body.fi-panel-dokter .check-button {
+        padding: 1.25rem 1.5rem;
+        font-size: 1.125rem;
+        min-height: 56px;
+    }
+    
+    /* Hide sidebar completely on mobile for presensi page */
+    body.fi-panel-dokter .fi-sidebar {
+        display: none !important;
+    }
+    
+    body.fi-panel-dokter .fi-main {
+        margin-left: 0 !important;
+    }
+}
+
+/* Desktop - Standard Filament layout */
+@media (min-width: 1024px) {
+    body.fi-panel-dokter .mobile-bottom-nav {
+        display: none;
+    }
+    
+    body.fi-panel-dokter .fi-page-content {
+        padding-bottom: 1rem !important;
+    }
+    
+    body.fi-panel-dokter .action-tiles {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+}

@@ -27,7 +27,8 @@ class ParamedisPanelProvider extends PanelProvider
         return $panel
             ->id('paramedis')
             ->path('paramedis')
-            ->login(false)
+            ->login()
+            ->default()
             ->brandName('Dokterku - Paramedis')
             ->favicon(asset('favicon.ico'))
             ->colors([
@@ -35,9 +36,9 @@ class ParamedisPanelProvider extends PanelProvider
             ])
             ->darkMode()
             ->discoverResources(in: app_path('Filament/Paramedis/Resources'), for: 'App\\Filament\\Paramedis\\Resources')
-            ->discoverPages(in: app_path('Filament/Paramedis/Pages'), for: 'App\\Filament\\Paramedis\\Pages')
             ->pages([
-                \App\Filament\Paramedis\Pages\MobileDashboard::class,
+                \App\Filament\Paramedis\Pages\PremiumDashboard::class,
+                \App\Filament\Paramedis\Pages\PresensiMobilePage::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Paramedis/Widgets'), for: 'App\\Filament\\Paramedis\\Widgets')
             ->widgets([
@@ -61,7 +62,34 @@ class ParamedisPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->authGuard('web')
+            ->renderHook(
+                'panels::head.end',
+                fn () => view('filament.paramedis.partials.mobile-meta')
+            )
             ->databaseNotifications()
-            ->tenant(null);
+            ->tenant(null)
+            ->homeUrl('/paramedis');
+    }
+
+    public function canAccessPanel(\Illuminate\Contracts\Auth\Authenticatable $user): bool
+    {
+        \Log::info('ParamedisPanel: canAccessPanel check', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'has_role' => $user->role ? 'YES' : 'NO',
+            'role_name' => $user->role?->name ?: 'NULL',
+            'role_id' => $user->role_id ?: 'NULL',
+            'is_active' => $user->is_active ?? 'NULL'
+        ]);
+        
+        $hasAccess = $user->role && $user->role->name === 'paramedis';
+        
+        \Log::info('ParamedisPanel: access decision', [
+            'user_id' => $user->id,
+            'has_access' => $hasAccess ? 'GRANTED' : 'DENIED',
+            'reason' => $hasAccess ? 'User has paramedis role' : 'User does not have paramedis role or role is null'
+        ]);
+        
+        return $hasAccess;
     }
 }

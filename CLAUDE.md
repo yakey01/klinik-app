@@ -142,13 +142,19 @@ The system uses **admin geofencing** as the single source of truth:
 4. **Attendance Recording** - Store GPS coordinates, device info, accuracy data
 
 #### Map Implementation Strategy
-**Primary**: Google Maps JavaScript API (most popular, reliable)
-**Fallback**: Leaflet.js with OpenStreetMap (if Google Maps fails)
+**2024 Updated Architecture**:
+- **Admin Geofencing**: Interactive maps using FilamentGoogleMapsPlugin for location setup
+- **Mobile Attendance**: Lightweight static maps with HTML5 Geolocation API (HTTPS required)
+- **Fallback Strategy**: Placeholder maps when API fails + manual coordinate input for testing
 
 ```php
-// Map integration uses same plugin as admin geofencing
-FilamentGoogleMapsPlugin::make() // in ParamedisPanelProvider
+// Admin map integration (interactive)
+FilamentGoogleMapsPlugin::make() // in ParamedisPanelProvider  
 dotswan/filament-map-picker      // Interactive map fields
+
+// Mobile attendance (lightweight, 2024 optimized)
+// Uses static map images + HTML5 Geolocation API
+// No heavy JavaScript libraries for mobile performance
 ```
 
 ### Key Models & Relationships
@@ -160,9 +166,17 @@ dotswan/filament-map-picker      // Interactive map fields
 - **Role/User** - Role-based access control
 
 #### Location & Attendance Models
-- **WorkLocation** - Admin-configurable geofencing locations
-- **Attendance** - GPS-tracked check-in/out records
+- **WorkLocation** - Admin-configurable geofencing locations  
+- **Attendance** - GPS-tracked check-in/out records (Paramedis panel)
+- **DokterPresensi** - Doctor-specific attendance records (Dokter panel)
 - **LocationValidation** - Validation logs for location-based operations
+- **GpsSpoofingDetection** - Anti-spoofing security measures
+- **UserDevice** - Device fingerprinting for attendance security
+
+#### Communication & Notification Models
+- **TelegramSetting** - Telegram bot configuration for notifications
+- **SystemConfig** - Global system configuration settings
+- **LeaveType** - Leave/absence type definitions
 
 #### Data Precision Features
 - **Decimal(15,2)** for all monetary values
@@ -185,12 +199,22 @@ After seeding, these accounts are available:
 
 ### Filament Plugin Dependencies
 ```php
-"cheesegrits/filament-google-maps": "^3.0",     // Google Maps integration
-"dotswan/filament-map-picker": "^1.8",          // Interactive map fields
-"diogogpinto/filament-geolocate-me": "^0.1.1",  // Geolocation components
-"bezhansalleh/filament-shield": "^3.3",         // Role-based permissions
-"leandrocfe/filament-apex-charts": "^3.1",      // Chart widgets
-"saade/filament-fullcalendar": "^3.2"           // Calendar integration
+"cheesegrits/filament-google-maps": "^3.0",     // Google Maps integration (admin geofencing)
+"dotswan/filament-map-picker": "^1.8",          // Interactive map fields (admin setup)
+"diogogpinto/filament-geolocate-me": "^0.1.1",  // Geolocation components (legacy)
+"bezhansalleh/filament-shield": "^3.3",         // Role-based permissions & policies
+"leandrocfe/filament-apex-charts": "^3.1",      // Chart widgets for financial reports
+"saade/filament-fullcalendar": "^3.2",          // Calendar integration for scheduling
+"hasnayeen/themes": "^3.0",                     // Filament theme management
+"solution-forest/filament-access-management": "^2.2"  // Advanced access control
+```
+
+### Core Laravel Dependencies
+```php
+"irazasyed/telegram-bot-sdk": "^3.15",          // Telegram notifications
+"barryvdh/laravel-dompdf": "^3.1",             // PDF generation for reports
+"intervention/image": "^3.11",                 // Image processing
+"spatie/laravel-permission": "^6.20"           // Role & permission management
 ```
 
 ### Panel Access Control
@@ -203,10 +227,13 @@ public function canAccessPanel(Panel $panel): bool
 ```
 
 ### Mobile-First Considerations
-- **Paramedis panel** optimized for Android APK conversion
+- **Paramedis & Dokter panels** optimized for mobile web and Android APK conversion
 - **Touch-friendly controls** (44px minimum button size)
-- **Progressive disclosure UI** (overview vs action separation)
-- **Continuous GPS tracking** with battery optimization
+- **Progressive disclosure UI** (overview vs action separation)  
+- **Lightweight geolocation** (2024): Static maps + HTML5 API instead of heavy libraries
+- **HTTPS requirement**: Geolocation API mandatory security requirement
+- **Progressive accuracy**: High → Medium → Low accuracy fallback strategies
+- **Debug mode**: Manual coordinate input and GPS refresh for troubleshooting
 
 ## Development Best Practices
 
@@ -219,10 +246,15 @@ public function canAccessPanel(Panel $panel): bool
 
 ### Location System Development
 1. **Never hardcode coordinates** - Always use WorkLocation model
-2. **Use Filament map plugins** - Don't implement custom JavaScript
-3. **Server-side validation** - Distance calculations on backend
-4. **Graceful fallback** - Handle GPS permission denied/timeout
-5. **Plugin consistency** - Use same maps across admin and attendance
+2. **Dual architecture approach**:
+   - **Admin geofencing**: Use Filament map plugins (interactive)
+   - **Mobile attendance**: Use lightweight static maps + HTML5 Geolocation
+3. **Server-side validation** - Distance calculations on backend with Haversine formula
+4. **HTTPS enforcement** - Check `window.location.protocol === 'https:'` before geolocation
+5. **Progressive fallback strategies**:
+   - High accuracy (10s timeout) → Medium accuracy (15s) → Low accuracy (60s)
+   - Manual coordinate input for testing and troubleshooting
+6. **New Livewire methods** - Use `checkinWithLocation()` and `checkoutWithLocation()` instead of old methods
 
 ### Financial Workflow Development
 1. **Respect validation states** - pending → approved/rejected workflow
@@ -232,18 +264,37 @@ public function canAccessPanel(Panel $panel): bool
 
 ## Common Issues & Solutions
 
-### Map Display Problems
+### Geolocation Issues (2024 Updated)
+**Issue**: "tidak berhasil untuk get locationnya" - GPS not working
+**Solutions**:
+1. **HTTPS Required**: Ensure development/production uses HTTPS (localhost exempted)
+2. **Browser permissions**: Check `navigator.permissions.query({name: 'geolocation'})`
+3. **Use debug mode**: Manual coordinate input + "🔄 Coba GPS" button for testing
+4. **Progressive fallback**: System tries High → Medium → Low accuracy automatically
+5. **Check browser console**: Enhanced logging shows detailed geolocation status
+
+### Map Display Problems  
 **Issue**: Empty map areas, coordinate mismatch
-**Solution**: Ensure paramedis attendance uses WorkLocation from admin geofencing, not hardcoded coordinates
+**Solution**: 
+- **Admin maps**: Ensure Filament map plugins are properly configured
+- **Mobile maps**: Static maps will fallback to placeholder if API fails
+- Always use WorkLocation model, never hardcode coordinates
 
 ### Panel Access Errors
 **Issue**: 403 Forbidden on panel access
 **Solution**: Check `canAccessPanel()` method in User model and ensure user has correct role
 
-### Large Icon Issues
-**Issue**: Oversized icons in Filament widgets
-**Solution**: Remove custom CSS files with transform/scale properties, use standard Filament components
+### Performance Issues
+**Issue**: Slow mobile loading
+**Solution**: 
+- Use lightweight static maps instead of interactive maps for mobile
+- Build assets with `npm run build` after geolocation changes
+- Avoid heavy JavaScript libraries on mobile panels
 
 ### Cache-Related Errors
 **Issue**: Changes not reflecting in Filament panels
 **Solution**: Run the full cache clearing sequence for Filament development
+
+### Attendance Data Issues
+**Issue**: Location data not reaching backend
+**Solution**: Use new Livewire methods `checkinWithLocation()` and `checkoutWithLocation()` with location data parameter

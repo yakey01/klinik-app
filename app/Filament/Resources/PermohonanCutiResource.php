@@ -40,7 +40,7 @@ class PermohonanCutiResource extends Resource
     {
         // Only non-admin users can create leave requests
         // Admin can only view and approve
-        return !auth()->user()->hasRole('admin');
+        return !auth()->user()?->hasRole('admin') ?? true;
     }
     
     public static function getEloquentQuery(): Builder
@@ -48,7 +48,7 @@ class PermohonanCutiResource extends Resource
         $query = parent::getEloquentQuery();
         
         // If user is not admin or manajer, only show their own leave requests
-        if (!auth()->user()->hasRole(['admin', 'manajer'])) {
+        if (!auth()->user()?->hasRole(['admin', 'manajer']) ?? true) {
             $query->where('pegawai_id', auth()->id());
         }
         
@@ -69,8 +69,8 @@ class PermohonanCutiResource extends Resource
                             ->searchable()
                             ->preload()
                             ->default(fn () => auth()->id())
-                            ->hidden(fn (): bool => !auth()->user()->hasRole(['admin', 'manajer']))
-                            ->disabled(fn (): bool => !auth()->user()->hasRole(['admin', 'manajer'])),
+                            ->hidden(fn (): bool => !auth()->user()?->hasRole(['admin', 'manajer']))
+                            ->disabled(fn (): bool => !auth()->user()?->hasRole(['admin', 'manajer'])),
                     ]),
                     
                 Forms\Components\Section::make('Detail Cuti')
@@ -460,7 +460,7 @@ class PermohonanCutiResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn (): bool => auth()->user()->hasRole('admin')),
+                        ->visible(fn (): bool => auth()->user()?->hasRole('admin')),
                         
                     Tables\Actions\BulkAction::make('bulk_approve')
                         ->label('✅ Setujui Semua')
@@ -482,7 +482,7 @@ class PermohonanCutiResource extends Resource
                                 ->send();
                         })
                         ->requiresConfirmation()
-                        ->visible(fn (): bool => auth()->user()->hasRole(['admin', 'manajer'])),
+                        ->visible(fn (): bool => auth()->user()?->hasRole(['admin', 'manajer'])),
                 ]),
             ])
             ->defaultSort('tanggal_pengajuan', 'desc')

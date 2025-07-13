@@ -57,8 +57,9 @@ class PegawaiResource extends Resource
 
                         Forms\Components\DatePicker::make('tanggal_lahir')
                             ->label('Tanggal Lahir')
-                            ->native(false)
                             ->maxDate(now()->subYears(17))
+                            ->minDate(now()->subYears(80)) 
+                            ->helperText('Usia minimal 17 tahun')
                             ->columnSpan(1),
 
                         Forms\Components\Select::make('jenis_kelamin')
@@ -95,6 +96,87 @@ class PegawaiResource extends Resource
                             ->columnSpan(1),
                     ])
                     ->columns(3),
+
+                Forms\Components\Section::make('🔐 Manajemen Akun Login')
+                    ->description('Pengaturan akun login pegawai (khusus admin)')
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('username')
+                                    ->label('Username Login')
+                                    ->unique(table: 'pegawais', column: 'username', ignoreRecord: true)
+                                    ->nullable()
+                                    ->placeholder('Auto-generate jika kosong')
+                                    ->helperText('Username untuk login (huruf, angka, spasi, titik, koma diizinkan)')
+                                    ->rules(['nullable', 'regex:/^[a-zA-Z0-9\s.,-]+$/'])
+                                    ->minLength(3)
+                                    ->maxLength(50)
+                                    ->suffixIcon('heroicon-m-user')
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state) {
+                                        \Log::info('PegawaiResource: Username field updated', [
+                                            'new_value' => $state,
+                                            'length' => strlen($state ?? ''),
+                                            'validation_result' => preg_match('/^[a-zA-Z0-9\s.,-]+$/', $state ?? '') ? 'VALID' : 'INVALID'
+                                        ]);
+                                    })
+                                    ->columnSpan(3),
+
+                                Forms\Components\TextInput::make('password')
+                                    ->label('Password Baru')
+                                    ->password()
+                                    ->revealable()
+                                    ->dehydrated(fn (?string $state): bool => filled($state))
+                                    ->placeholder(fn (string $operation): string => 
+                                        $operation === 'create' ? 'Auto-generate jika kosong' : 'Kosongkan jika tidak ingin mengubah password')
+                                    ->helperText('Minimal 6 karakter')
+                                    ->minLength(6)
+                                    ->maxLength(50)
+                                    ->suffixIcon('heroicon-m-key')
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('password_confirmation')
+                                    ->label('Konfirmasi Password')
+                                    ->password()
+                                    ->revealable()
+                                    ->dehydrated(false)
+                                    ->placeholder('Ketik ulang password baru')
+                                    ->helperText('Harus sama dengan password baru')
+                                    ->same('password')
+                                    ->requiredWith('password')
+                                    ->suffixIcon('heroicon-m-check-circle')
+                                    ->columnSpan(1),
+
+                                Forms\Components\Select::make('status_akun')
+                                    ->label('Status Akun Login')
+                                    ->options([
+                                        'Aktif' => '✅ Aktif - Dapat Login',
+                                        'Suspend' => '❌ Suspend - Tidak Dapat Login',
+                                    ])
+                                    ->default('Aktif')
+                                    ->helperText('Status akun login pegawai')
+                                    ->suffixIcon('heroicon-m-shield-check')
+                                    ->columnSpan(1),
+                            ]),
+
+                        Forms\Components\Placeholder::make('password_info')
+                            ->label('ℹ️ Informasi Password')
+                            ->content(function () {
+                                return new \Illuminate\Support\HtmlString('
+                                    <div class="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                                        <ul class="space-y-1">
+                                            <li>• Password minimal 6 karakter, maksimal 50 karakter</li>
+                                            <li>• Gunakan kombinasi huruf, angka, dan simbol untuk keamanan</li>
+                                            <li>• Konfirmasi password harus sama dengan password baru</li>
+                                            <li>• Klik ikon mata untuk melihat/menyembunyikan password</li>
+                                            <li>• Jika kosong, sistem akan auto-generate password</li>
+                                        </ul>
+                                    </div>
+                                ');
+                            })
+                            ->columnSpan('full'),
+                    ])
+                    ->visible(fn () => auth()->user()?->hasRole('admin')),
             ]);
     }
 
@@ -174,6 +256,25 @@ class PegawaiResource extends Resource
                             ->size('sm'),
                     ]),
                     
+                    // Login Account Status Row
+                    Tables\Columns\Layout\Split::make([
+                        Tables\Columns\TextColumn::make('account_status_text')
+                            ->getStateUsing(fn ($record) => $record->account_status_text)
+                            ->badge()
+                            ->color(fn ($record) => $record->account_status_badge_color)
+                            ->size('xs')
+                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                        
+                        Tables\Columns\TextColumn::make('username')
+                            ->icon('heroicon-m-user')
+                            ->color('info')
+                            ->size('xs')
+                            ->limit(15)
+                            ->placeholder('—')
+                            ->tooltip(fn ($record) => $record->username ? 'Username: ' . $record->username : 'Belum punya username')
+                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                    ])->visible(fn () => auth()->user()?->hasRole('admin')),
+
                     // User Account Status Row
                     Tables\Columns\Layout\Split::make([
                         Tables\Columns\TextColumn::make('user_account_status')
@@ -209,6 +310,26 @@ class PegawaiResource extends Resource
                     ])
                     ->placeholder('Semua Status'),
 
+                Tables\Filters\SelectFilter::make('status_akun')
+                    ->label('Status Login')
+                    ->options([
+                        'Aktif' => 'Aktif',
+                        'Suspend' => 'Suspend',
+                    ])
+                    ->placeholder('Semua Status Login')
+                    ->visible(fn () => auth()->user()?->hasRole('admin')),
+
+                Tables\Filters\TernaryFilter::make('has_login_account')
+                    ->label('Akun Login')
+                    ->placeholder('Semua')
+                    ->trueLabel('Punya Akun Login')
+                    ->falseLabel('Belum Punya Akun Login')
+                    ->queries(
+                        true: fn ($query) => $query->whereNotNull('username')->whereNotNull('password'),
+                        false: fn ($query) => $query->whereNull('username')->orWhereNull('password'),
+                    )
+                    ->visible(fn () => auth()->user()?->hasRole('admin')),
+
                 Tables\Filters\TernaryFilter::make('has_user_account')
                     ->label('Akun User')
                     ->placeholder('Semua')
@@ -234,6 +355,93 @@ class PegawaiResource extends Resource
                     }),
             ])
             ->actions([
+                // Login Account Management Actions
+                Tables\Actions\Action::make('create_account')
+                    ->label('Buat Akun Login')
+                    ->icon('heroicon-m-user-plus')
+                    ->color('success')
+                    ->visible(fn ($record) => !$record->has_login_account && auth()->user()?->hasRole('admin'))
+                    ->action(function ($record) {
+                        $result = $record->createLoginAccount();
+                        
+                        if ($result['success']) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Akun Login Berhasil Dibuat')
+                                ->body("Username: {$result['username']}<br>Password: {$result['password']}")
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Membuat Akun')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Buat Akun Login Pegawai')
+                    ->modalDescription('Akun login akan dibuat secara otomatis dengan username dan password yang di-generate sistem.')
+                    ->modalSubmitActionLabel('Buat Akun'),
+
+                Tables\Actions\Action::make('reset_password')
+                    ->label('Reset Password')
+                    ->icon('heroicon-m-key')
+                    ->color('warning')
+                    ->visible(fn ($record) => $record->has_login_account && auth()->user()?->hasRole('admin'))
+                    ->action(function ($record) {
+                        $result = $record->resetPassword();
+                        
+                        if ($result['success']) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Password Berhasil Direset')
+                                ->body("Password baru: {$result['password']}")
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Reset Password')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset Password')
+                    ->modalDescription('Password akan direset dan password baru akan di-generate secara otomatis.')
+                    ->modalSubmitActionLabel('Reset Password'),
+
+                Tables\Actions\Action::make('toggle_account')
+                    ->label(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend' : 'Aktifkan')
+                    ->icon(fn ($record) => $record->status_akun === 'Aktif' ? 'heroicon-m-x-circle' : 'heroicon-m-check-circle')
+                    ->color(fn ($record) => $record->status_akun === 'Aktif' ? 'danger' : 'success')
+                    ->visible(fn ($record) => $record->has_login_account && auth()->user()?->hasRole('admin'))
+                    ->action(function ($record) {
+                        $result = $record->toggleAccountStatus();
+                        
+                        if ($result['success']) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Status Akun Berhasil Diubah')
+                                ->body($result['message'])
+                                ->success()
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Mengubah Status')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend Akun' : 'Aktifkan Akun')
+                    ->modalDescription(fn ($record) => $record->status_akun === 'Aktif' 
+                        ? 'Akun login pegawai akan di-suspend dan tidak dapat digunakan untuk login.' 
+                        : 'Akun login pegawai akan diaktifkan kembali.'
+                    )
+                    ->modalSubmitActionLabel(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend' : 'Aktifkan'),
+
                 Action::make('create_user_account')
                     ->label('Buat Akun User')
                     ->icon('heroicon-m-identification')

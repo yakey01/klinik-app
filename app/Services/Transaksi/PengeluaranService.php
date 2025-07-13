@@ -3,6 +3,7 @@
 namespace App\Services\Transaksi;
 
 use App\Events\DataInputDisimpan;
+use App\Events\ExpenseCreated;
 use App\Models\Pengeluaran;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,16 @@ class PengeluaranService
             
             // Trigger event for data input
             event(new DataInputDisimpan($pengeluaran, auth()->user()));
+            
+            // Trigger new role-based notification system
+            event(new ExpenseCreated([
+                'amount' => $pengeluaran->nominal,
+                'description' => $pengeluaran->keterangan ?? $pengeluaran->nama_pengeluaran ?? 'Pengeluaran baru',
+                'user_name' => auth()->user()->name,
+                'user_role' => auth()->user()->role?->name ?? 'Unknown',
+                'pengeluaran_id' => $pengeluaran->id,
+                'category' => $pengeluaran->kategori ?? 'Umum',
+            ]));
             
             return $pengeluaran;
         });

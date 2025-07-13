@@ -3,6 +3,7 @@
 namespace App\Services\Transaksi;
 
 use App\Events\DataInputDisimpan;
+use App\Events\IncomeCreated;
 use App\Models\Pendapatan;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,17 @@ class PendapatanService
             
             // Trigger event for data input
             event(new DataInputDisimpan($pendapatan, auth()->user()));
+            
+            // Trigger new role-based notification system
+            event(new IncomeCreated([
+                'amount' => $pendapatan->nominal,
+                'description' => $pendapatan->keterangan ?? $pendapatan->nama_pendapatan ?? 'Pendapatan baru',
+                'user_name' => auth()->user()->name,
+                'user_role' => auth()->user()->role?->name ?? 'Unknown',
+                'pendapatan_id' => $pendapatan->id,
+                'category' => $pendapatan->kategori ?? 'Umum',
+                'source' => $pendapatan->sumber_pendapatan ?? 'Manual',
+            ]));
             
             return $pendapatan;
         });

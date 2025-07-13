@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class PasienResource extends Resource
@@ -228,5 +229,11 @@ class PasienResource extends Resource
             'view' => Pages\ViewPasien::route('/{record}'),
             'edit' => Pages\EditPasien::route('/{record}/edit'),
         ];
+    }
+
+    public static function getUrl(string $name = 'index', array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null): string
+    {
+        $panel = $panel ?? 'petugas';
+        return parent::getUrl($name, $parameters, $isAbsolute, $panel, $tenant);
     }
 }

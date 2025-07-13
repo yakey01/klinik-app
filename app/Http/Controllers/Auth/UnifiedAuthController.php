@@ -8,8 +8,10 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
+use App\Providers\CustomEloquentUserProvider;
 
 class UnifiedAuthController extends Controller
 {
@@ -57,8 +59,79 @@ class UnifiedAuthController extends Controller
         $password = $request->input('password');
         $remember = $request->boolean('remember');
 
-        // Find user by email or username
+        // Find user by email or username from User table first
         $user = \App\Models\User::findForAuth($identifier);
+        
+        // If not found in User table, try to find in Pegawai table
+        if (!$user) {
+            $pegawai = \App\Models\Pegawai::where('username', $identifier)
+                ->whereNotNull('username')
+                ->whereNotNull('password')
+                ->where('status_akun', 'Aktif')
+                ->first();
+                
+            if ($pegawai) {
+                // Check password for pegawai
+                if (Hash::check($password, $pegawai->password)) {
+                    // Create or get associated User for the pegawai
+                    if ($pegawai->user_id && $pegawai->user) {
+                        $user = $pegawai->user;
+                        Log::info('Debug: Pegawai login - using linked User account', [
+                            'pegawai_id' => $pegawai->id,
+                            'user_id' => $user->id,
+                            'username' => $pegawai->username
+                        ]);
+                    } else {
+                        // Create temporary User object for pegawai login
+                        $roleName = match($pegawai->jenis_pegawai) {
+                            'Paramedis' => 'paramedis',
+                            'Non-Paramedis' => 'petugas', // Use petugas for non-paramedis for now
+                            default => 'petugas'
+                        };
+                        $role = \App\Models\Role::where('name', $roleName)->first();
+                        
+                        if ($role) {
+                            // Create a real User record in database for pegawai
+                            $userEmail = $pegawai->nik . '@pegawai.local';
+                            
+                            // Check if user already exists
+                            $existingUser = \App\Models\User::where('email', $userEmail)->first();
+                            
+                            if (!$existingUser) {
+                                // Create real user record in database
+                                $user = \App\Models\User::create([
+                                    'name' => $pegawai->nama_lengkap,
+                                    'username' => $pegawai->username,
+                                    'email' => $userEmail,
+                                    'role_id' => $role->id,
+                                    'is_active' => $pegawai->aktif,
+                                    'password' => $pegawai->password,
+                                ]);
+                                
+                                // Update pegawai with user_id
+                                $pegawai->update(['user_id' => $user->id]);
+                            } else {
+                                $user = $existingUser;
+                                // Update existing user data
+                                $user->update([
+                                    'name' => $pegawai->nama_lengkap,
+                                    'username' => $pegawai->username,
+                                    'role_id' => $role->id,
+                                    'is_active' => $pegawai->aktif,
+                                ]);
+                            }
+                            
+                            Log::info('Debug: Pegawai login - created virtual User', [
+                                'pegawai_id' => $pegawai->id,
+                                'virtual_user_id' => $user->id,
+                                'role' => $role->name,
+                                'username' => $pegawai->username
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
         
         $originalPassword = $request->input('password');
         Log::info('Debug: User lookup', [
@@ -67,6 +140,7 @@ class UnifiedAuthController extends Controller
             'user_id' => $user ? $user->id : null,
             'user_email' => $user ? $user->email : null,
             'user_active' => $user ? $user->is_active : null,
+            'user_source' => $user && isset($pegawai) ? 'pegawai' : 'user_table',
             'password_provided' => !empty($password),
             'original_password_length' => strlen($originalPassword),
             'trimmed_password_length' => strlen($password),
@@ -91,7 +165,27 @@ class UnifiedAuthController extends Controller
             ]);
         }
 
-        if ($user && Auth::attempt(['email' => $user->email, 'password' => $password], $remember)) {
+        $loginSuccessful = false;
+        
+        if ($user) {
+            // Check if this is a pegawai user (password already verified above)
+            if (isset($pegawai)) {
+                // Manual login for pegawai - password already verified
+                Auth::login($user, $remember);
+                $loginSuccessful = true;
+                
+                Log::info('Debug: Pegawai manual login successful', [
+                    'pegawai_id' => $pegawai->id,
+                    'virtual_user_id' => $user->id,
+                    'username' => $pegawai->username
+                ]);
+            } else {
+                // Regular Auth::attempt for normal users
+                $loginSuccessful = Auth::attempt(['email' => $user->email, 'password' => $password], $remember);
+            }
+        }
+        
+        if ($loginSuccessful) {
             // Clear failed attempts on successful login
             \Illuminate\Support\Facades\RateLimiter::clear($key);
             
@@ -114,28 +208,31 @@ class UnifiedAuthController extends Controller
                 ]);
             }
             
+            // Clear any previous intended URL to prevent cross-role redirects
+            $request->session()->forget('url.intended');
+            
             // Redirect based on user role
             if ($user->hasRole('admin')) {
                 Log::info('Redirecting admin user to /admin');
-                return redirect()->intended('/admin');
+                return redirect('/admin');
             } elseif ($user->hasRole('petugas')) {
                 Log::info('Redirecting petugas user to /petugas');
-                return redirect()->intended('/petugas');
+                return redirect('/petugas');
             } elseif ($user->hasRole('manajer')) {
                 Log::info('Redirecting manajer user to /manager/dashboard');
-                return redirect()->intended('/manager/dashboard');
+                return redirect('/manager/dashboard');
             } elseif ($user->hasRole('bendahara')) {
-                Log::info('Redirecting bendahara user to /treasurer/dashboard');
-                return redirect()->intended('/treasurer/dashboard');
+                Log::info('Redirecting bendahara user to /bendahara');
+                return redirect('/bendahara');
             } elseif ($user->hasRole('dokter')) {
                 Log::info('Redirecting dokter user to /dokter');
-                return redirect()->intended('/dokter');
+                return redirect('/dokter');
             } elseif ($user->hasRole('paramedis')) {
                 Log::info('Redirecting paramedis user to /paramedis');
-                return redirect()->intended('/paramedis');
+                return redirect('/paramedis');
             } elseif ($user->hasRole('non_paramedis')) {
                 Log::info('Redirecting non_paramedis user to /non-paramedic/dashboard');
-                return redirect()->intended('/non-paramedic/dashboard');
+                return redirect('/non-paramedic/dashboard');
             }
 
             // Default fallback

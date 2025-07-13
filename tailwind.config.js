@@ -17,5 +17,28 @@ export default {
         },
     },
 
-    plugins: [forms],
+    plugins: [forms, require('daisyui')],
+    
+    daisyui: {
+        themes: [
+            {
+                dokterku: {
+                    "primary": "#667eea",
+                    "secondary": "#764ba2", 
+                    "accent": "#10b981",
+                    "neutral": "#3d4451",
+                    "base-100": "#ffffff",
+                    "info": "#3abff8",
+                    "success": "#10b981",
+                    "warning": "#fbbd23",
+                    "error": "#ef4444",
+                },
+            },
+            "light",
+            "dark",
+        ],
+        base: true,
+        styled: true,
+        utils: true,
+    },
 };

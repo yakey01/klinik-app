@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html
+    lang="en"
+    dir="ltr"
+    class="fi min-h-screen"
+>
+    <head>
+        
+
+        <meta charset="utf-8" />
+        <meta name="csrf-token" content="VGB233JBCCV7ie4Opk7k5GvuXnTemRBCfgUModJU" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+                    <link rel="icon" href="http://127.0.0.1:8000/favicon.ico" />
+        
+        
+        <title>
+            Presensi Masuk &amp; Pulang -  Dokterku - Paramedis
+        </title>
+
+        
+
+        <style>
+            [x-cloak=''],
+            [x-cloak='x-cloak'],
+            [x-cloak='1'] {
+                display: none !important;
+            }
+
+            @media (max-width: 1023px) {
+                [x-cloak='-lg'] {
+                    display: none !important;
+                }
+            }
+
+            @media (min-width: 1024px) {
+                [x-cloak='lg'] {
+                    display: none !important;
+                }
+            }
+        </style>
+
+        <link
+            href="http://127.0.0.1:8000/css/dotswan/filament-map-picker/filament-map-picker-styles.css?v=1.8.7.0"
+            rel="stylesheet"
+            data-navigate-track
+        />
+                <link
+            href="http://127.0.0.1:8000/css/filament/forms/forms.css?v=3.3.31.0"
+            rel="stylesheet"
+            data-navigate-track
+        />
+                <link
+            href="http://127.0.0.1:8000/css/filament/support/support.css?v=3.3.31.0"
+            rel="stylesheet"
+            data-navigate-track
+        />
+                <link
+            href="http://127.0.0.1:8000/css/guava/filament-icon-picker/filament-icon-picker-stylesheet.css?v=2.3.0.0"
+            rel="stylesheet"
+            data-navigate-track
+        />
+                <link
+            href="http://127.0.0.1:8000/css/saade/filament-fullcalendar/filament-fullcalendar-styles.css?v=3.2.4.0"
+            rel="stylesheet"
+            data-navigate-track
+        />
+                <link
+            href="http://127.0.0.1:8000/css/solution-forest/filament-tree/filament-tree-min.css?v=2.1.5.0"
+            rel="stylesheet"
+            data-navigate-track
+        />
+    
+<style>
+    :root {
+         --danger-50:254, 242, 242;  --danger-100:254, 226, 226;  --danger-200:254, 202, 202;  --danger-300:252, 165, 165;  --danger-400:248, 113, 113;  --danger-500:239, 68, 68;  --danger-600:220, 38, 38;  --danger-700:185, 28, 28;  --danger-800:153, 27, 27;  --danger-900:127, 29, 29;  --danger-950:69, 10, 10;  --gray-50:250, 250, 250;  --gray-100:244, 244, 245;  --gray-200:228, 228, 231;  --gray-300:212, 212, 216;  --gray-400:161, 161, 170;  --gray-500:113, 113, 122;  --gray-600:82, 82, 91;  --gray-700:63, 63, 70;  --gray-800:39, 39, 42;  --gray-900:24, 24, 27;  --gray-950:9, 9, 11;  --info-50:239, 246, 255;  --info-100:219, 234, 254;  --info-200:191, 219, 254;  --info-300:147, 197, 253;  --info-400:96, 165, 250;  --info-500:59, 130, 246;  --info-600:37, 99, 235;  --info-700:29, 78, 216;  --info-800:30, 64, 175;  --info-900:30, 58, 138;  --info-950:23, 37, 84;  --primary-50:240, 253, 244;  --primary-100:220, 252, 231;  --primary-200:187, 247, 208;  --primary-300:134, 239, 172;  --primary-400:74, 222, 128;  --primary-500:34, 197, 94;  --primary-600:22, 163, 74;  --primary-700:21, 128, 61;  --primary-800:22, 101, 52;  --primary-900:20, 83, 45;  --primary-950:5, 46, 22;  --success-50:240, 253, 244;  --success-100:220, 252, 231;  --success-200:187, 247, 208;  --success-300:134, 239, 172;  --success-400:74, 222, 128;  --success-500:34, 197, 94;  --success-600:22, 163, 74;  --success-700:21, 128, 61;  --success-800:22, 101, 52;  --success-900:20, 83, 45;  --success-950:5, 46, 22;  --warning-50:255, 251, 235;  --warning-100:254, 243, 199;  --warning-200:253, 230, 138;  --warning-300:252, 211, 77;  --warning-400:251, 191, 36;  --warning-500:245, 158, 11;  --warning-600:217, 119, 6;  --warning-700:180, 83, 9;  --warning-800:146, 64, 14;  --warning-900:120, 53, 15;  --warning-950:69, 26, 3;     }
+</style>
+
+        <link
+            href="http://127.0.0.1:8000/css/filament/filament/app.css?v=3.3.31.0"
+            rel="stylesheet"
+            data-navigate-track
+        />
+        
+            <link rel="preconnect" href="https://fonts.bunny.net">
+            <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
+        
+
+        <style>
+            :root {
+                --font-family: 'Inter';
+                --sidebar-width: 20rem;
+                --collapsed-sidebar-width: 4.5rem;
+                --default-theme-mode: system;
+            }
+        </style>
+
+        
+        
+
+                    <script>
+                const loadDarkMode = () => {
+                    window.theme = localStorage.getItem('theme') ?? 'system'
+                    if (
+                        window.theme === 'dark' ||
+                        (window.theme === 'system' &&
+                            window.matchMedia('(prefers-color-scheme: dark)')
+                                .matches)
+                    ) {
+                        document.documentElement.classList.add('dark')
+                    }
+                }
+
+                loadDarkMode()
+
+                document.addEventListener('livewire:navigated', loadDarkMode)
+            </script>
+        
+        <meta name="csrf-token" content="VGB233JBCCV7ie4Opk7k5GvuXnTemRBCfgUModJU"><!-- Mobile optimization meta tags -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Dokterku Paramedis">
+<meta name="theme-color" content="#10b981">
+
+<!-- PWA manifest for mobile app-like experience -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Touch icons -->
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+<!-- Prevent tap highlighting on mobile -->
+<style>
+    * {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+    
+    input, textarea, select {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+        user-select: text;
+    }
+    
+    /* Smooth scrolling for mobile */
+    html {
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Optimize touch interactions */
+    @media (max-width: 768px) {
+        /* Hide scrollbars while maintaining functionality */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        
+        /* Ensure proper mobile layout */
+        body {
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+        }
+    }
+</style>
+    <!-- Livewire Styles --><style >[wire\:loading][wire\:loading], [wire\:loading\.delay][wire\:loading\.delay], [wire\:loading\.inline-block][wire\:loading\.inline-block], [wire\:loading\.inline][wire\:loading\.inline], [wire\:loading\.block][wire\:loading\.block], [wire\:loading\.flex][wire\:loading\.flex], [wire\:loading\.table][wire\:loading\.table], [wire\:loading\.grid][wire\:loading\.grid], [wire\:loading\.inline-flex][wire\:loading\.inline-flex] {display: none;}[wire\:loading\.delay\.none][wire\:loading\.delay\.none], [wire\:loading\.delay\.shortest][wire\:loading\.delay\.shortest], [wire\:loading\.delay\.shorter][wire\:loading\.delay\.shorter], [wire\:loading\.delay\.short][wire\:loading\.delay\.short], [wire\:loading\.delay\.default][wire\:loading\.delay\.default], [wire\:loading\.delay\.long][wire\:loading\.delay\.long], [wire\:loading\.delay\.longer][wire\:loading\.delay\.longer], [wire\:loading\.delay\.longest][wire\:loading\.delay\.longest] {display: none;}[wire\:offline][wire\:offline] {display: none;}[wire\:dirty]:not(textarea):not(input):not(select) {display: none;}:root {--livewire-progress-bar-color: #2299dd;}[x-cloak] {display: none !important;}[wire\:cloak] {display: none !important;}</style>
+</head>
+
+    <body
+        class="fi-body fi-panel-paramedis min-h-screen bg-gray-50 font-normal text-gray-950 antialiased dark:bg-gray-950 dark:text-white"
+    >
+        
+
+        <div
+        class="fi-layout flex min-h-screen w-full flex-row-reverse overflow-x-clip"
+    >
+        <div
+                            x-data="{}"
+                x-bind:style="'display: flex; opacity:1;'" 
+                        class="fi-main-ctn w-screen flex-1 flex-col opacity-0"
+        >
+                            
+
+                <div
+    class="fi-topbar sticky top-0 z-20 overflow-x-clip"
+>
+    <nav
+        class="flex h-16 items-center gap-x-4 bg-white px-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 md:px-6 lg:px-8"
+    >
+        
+
+                    <!--[if BLOCK]><![endif]-->    <button
+                                style="--c-300:var(--gray-300);--c-400:var(--gray-400);--c-500:var(--gray-500);--c-600:var(--gray-600);" class="fi-icon-btn relative flex items-center justify-center rounded-lg outline-none transition duration-75 focus-visible:ring-2 -m-1.5 h-9 w-9 text-gray-400 hover:text-gray-500 focus-visible:ring-primary-600 dark:text-gray-500 dark:hover:text-gray-400 dark:focus-visible:ring-primary-500 fi-color-gray fi-topbar-open-sidebar-btn lg:hidden" title="Expand sidebar" type="button" wire:loading.attr="disabled" x-cloak="x-cloak" x-data="{}" x-on:click="$store.sidebar.open()" x-show="! $store.sidebar.isOpen"
+    >
+        <!--[if BLOCK]><![endif]-->            <span class="sr-only">
+                Expand sidebar
+            </span>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->    <svg class="fi-icon-btn-icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </button>
+<!--[if ENDBLOCK]><![endif]-->
+
+            <!--[if BLOCK]><![endif]-->    <button
+                                style="--c-300:var(--gray-300);--c-400:var(--gray-400);--c-500:var(--gray-500);--c-600:var(--gray-600);" class="fi-icon-btn relative flex items-center justify-center rounded-lg outline-none transition duration-75 focus-visible:ring-2 -m-1.5 h-9 w-9 text-gray-400 hover:text-gray-500 focus-visible:ring-primary-600 dark:text-gray-500 dark:hover:text-gray-400 dark:focus-visible:ring-primary-500 fi-color-gray fi-topbar-close-sidebar-btn lg:hidden" title="Collapse sidebar" type="button" wire:loading.attr="disabled" x-cloak="x-cloak" x-data="{}" x-on:click="$store.sidebar.close()" x-show="$store.sidebar.isOpen"
+    >
+        <!--[if BLOCK]><![endif]-->            <span class="sr-only">
+                Collapse sidebar
+            </span>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->    <svg class="fi-icon-btn-icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </button>
+<!--[if ENDBLOCK]><![endif]-->
+        
+        
+        <div
+                            x-persist="topbar.end.panel-paramedis"
+                        class="ms-auto flex items-center gap-x-4"
+        >
+            
+
+            
+            
+
+                                                <div wire:snapshot="{&quot;data&quot;:{&quot;paginators&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}]},&quot;memo&quot;:{&quot;id&quot;:&quot;W3OpDhBrEVvRQI3XXQQB&quot;,&quot;name&quot;:&quot;filament.livewire.database-notifications&quot;,&quot;path&quot;:&quot;paramedis\/presensi-page&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;children&quot;:[],&quot;scripts&quot;:[],&quot;assets&quot;:[],&quot;lazyLoaded&quot;:false,&quot;lazyIsolated&quot;:true,&quot;errors&quot;:[],&quot;locale&quot;:&quot;en&quot;},&quot;checksum&quot;:&quot;27be0580407cac752becb229d760e4f58925639007bd7f9cae1e08463f458e22&quot;}" wire:effects="{&quot;listeners&quot;:[&quot;databaseNotificationsSent&quot;,&quot;notificationClosed&quot;,&quot;markedNotificationAsRead&quot;,&quot;markedNotificationAsUnread&quot;]}" wire:id="W3OpDhBrEVvRQI3XXQQB" x-intersect="$wire.__lazyLoad(&#039;eyJkYXRhIjp7ImZvck1vdW50IjpbW10seyJzIjoiYXJyIn1dfSwibWVtbyI6eyJpZCI6IlpXZEVCVHBKcTFqY2JFZTd6c1Y0IiwibmFtZSI6Il9fbW91bnRQYXJhbXNDb250YWluZXIifSwiY2hlY2tzdW0iOiI0Mjg2MTQ0NDQ3ZmMzMWVhMzNhMmI1ZWIxMjBhNzI3NmQ0MjZkM2FjYWM4MjEwNTkxYmVlNTdlNDAwNWNjNTcwIn0=&#039;)"></div>                
+                <div
+    x-data="{
+        toggle: function (event) {
+            $refs.panel?.toggle(event)
+        },
+
+        open: function (event) {
+            $refs.panel?.open(event)
+        },
+
+        close: function (event) {
+            $refs.panel?.close(event)
+        },
+    }"
+    class="fi-dropdown fi-user-menu"
+>
+    <div
+        x-on:click="toggle"
+        class="fi-dropdown-trigger flex cursor-pointer"
+    >
+        <button
+            aria-label="User menu"
+            type="button"
+            class="shrink-0"
+        >
+            <img
+    class="fi-avatar object-cover object-center fi-circular rounded-full h-8 w-8 fi-user-avatar" src="https://ui-avatars.com/api/?name=T+P+L&amp;color=FFFFFF&amp;background=09090b" alt="Avatar of Test Pegawai Login"
+/>
+        </button>
+    </div>
+
+    <!--[if BLOCK]><![endif]-->        <div
+            x-cloak
+            x-float.placement.bottom-end.flip.teleport.offset="{ offset: 8,  }"
+            x-ref="panel"
+            x-transition:enter-start="opacity-0"
+            x-transition:leave-end="opacity-0"
+                        class="fi-dropdown-panel absolute z-10 w-screen divide-y divide-gray-100 rounded-lg bg-white shadow-lg ring-1 ring-gray-950/5 transition dark:divide-white/5 dark:bg-gray-900 dark:ring-white/10 !max-w-[14rem]"
+            style=""
+        >
+            <div
+    class="fi-dropdown-header flex w-full gap-2 p-3 text-sm  fi-dropdown-header-color-gray fi-color-gray"
+>
+            <!--[if BLOCK]><![endif]-->    <svg class="fi-dropdown-header-icon h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-5.5-2.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM10 12a5.99 5.99 0 0 0-4.793 2.39A6.483 6.483 0 0 0 10 16.5a6.483 6.483 0 0 0 4.793-2.11A5.99 5.99 0 0 0 10 12Z" clip-rule="evenodd"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+    
+    <span
+        class="fi-dropdown-header-label flex-1 truncate text-start text-gray-700 dark:text-gray-200"
+        style=""
+    >
+        Test Pegawai Login
+    </span>
+</div>
+        
+        
+    
+            <div class="fi-dropdown-list p-1">
+    <div
+    x-data="{ theme: null }"
+    x-init="
+        $watch('theme', () => {
+            $dispatch('theme-changed', theme)
+        })
+
+        theme = localStorage.getItem('theme') || 'system'    "
+    class="fi-theme-switcher grid grid-flow-col gap-x-1"
+>
+    <button
+    aria-label="Enable light theme"
+    type="button"
+    x-on:click="(theme = 'light') && close()"
+    x-tooltip="{
+        content: 'Enable light theme',
+        theme: $store.theme,
+    }"
+    class="fi-theme-switcher-btn flex justify-center rounded-md p-2 outline-none transition duration-75 hover:bg-gray-50 focus-visible:bg-gray-50 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+    x-bind:class="
+        theme === 'light'            ? 'fi-active bg-gray-50 text-primary-500 dark:bg-white/5 dark:text-primary-400'
+            : 'text-gray-400 hover:text-gray-500 focus-visible:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 dark:focus-visible:text-gray-400'
+    "
+>
+    <!--[if BLOCK]><![endif]-->    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path d="M10 2a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 2ZM10 15a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 15ZM10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM15.657 5.404a.75.75 0 1 0-1.06-1.06l-1.061 1.06a.75.75 0 0 0 1.06 1.06l1.06-1.06ZM6.464 14.596a.75.75 0 1 0-1.06-1.06l-1.06 1.06a.75.75 0 0 0 1.06 1.06l1.06-1.06ZM18 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 18 10ZM5 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 5 10ZM14.596 15.657a.75.75 0 0 0 1.06-1.06l-1.06-1.061a.75.75 0 1 0-1.06 1.06l1.06 1.06ZM5.404 6.464a.75.75 0 0 0 1.06-1.06l-1.06-1.06a.75.75 0 1 0-1.061 1.06l1.06 1.06Z"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+</button>
+
+    <button
+    aria-label="Enable dark theme"
+    type="button"
+    x-on:click="(theme = 'dark') && close()"
+    x-tooltip="{
+        content: 'Enable dark theme',
+        theme: $store.theme,
+    }"
+    class="fi-theme-switcher-btn flex justify-center rounded-md p-2 outline-none transition duration-75 hover:bg-gray-50 focus-visible:bg-gray-50 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+    x-bind:class="
+        theme === 'dark'            ? 'fi-active bg-gray-50 text-primary-500 dark:bg-white/5 dark:text-primary-400'
+            : 'text-gray-400 hover:text-gray-500 focus-visible:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 dark:focus-visible:text-gray-400'
+    "
+>
+    <!--[if BLOCK]><![endif]-->    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z" clip-rule="evenodd"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+</button>
+
+    <button
+    aria-label="Enable system theme"
+    type="button"
+    x-on:click="(theme = 'system') && close()"
+    x-tooltip="{
+        content: 'Enable system theme',
+        theme: $store.theme,
+    }"
+    class="fi-theme-switcher-btn flex justify-center rounded-md p-2 outline-none transition duration-75 hover:bg-gray-50 focus-visible:bg-gray-50 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+    x-bind:class="
+        theme === 'system'            ? 'fi-active bg-gray-50 text-primary-500 dark:bg-white/5 dark:text-primary-400'
+            : 'text-gray-400 hover:text-gray-500 focus-visible:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 dark:focus-visible:text-gray-400'
+    "
+>
+    <!--[if BLOCK]><![endif]-->    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M2 4.25A2.25 2.25 0 0 1 4.25 2h11.5A2.25 2.25 0 0 1 18 4.25v8.5A2.25 2.25 0 0 1 15.75 15h-3.105a3.501 3.501 0 0 0 1.1 1.677A.75.75 0 0 1 13.26 18H6.74a.75.75 0 0 1-.484-1.323A3.501 3.501 0 0 0 7.355 15H4.25A2.25 2.25 0 0 1 2 12.75v-8.5Zm1.5 0a.75.75 0 0 1 .75-.75h11.5a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-.75.75H4.25a.75.75 0 0 1-.75-.75v-7.5Z" clip-rule="evenodd"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+</button>
+</div>
+</div>
+    
+    <div class="fi-dropdown-list p-1">
+    <!--[if BLOCK]><![endif]-->    <form
+        action="http://127.0.0.1:8000/paramedis/logout" method="post"
+    >
+        <input type="hidden" name="_token" value="VGB233JBCCV7ie4Opk7k5GvuXnTemRBCfgUModJU" autocomplete="off">
+        <button
+                                                type="submit"
+            style=";" class="fi-dropdown-list-item flex w-full items-center gap-2 whitespace-nowrap rounded-md p-2 text-sm transition-colors duration-75 outline-none disabled:pointer-events-none disabled:opacity-70 hover:bg-gray-50 focus-visible:bg-gray-50 dark:hover:bg-white/5 dark:focus-visible:bg-white/5 fi-dropdown-list-item-color-gray fi-color-gray"
+        >
+            <!--[if BLOCK]><![endif]-->                <!--[if BLOCK]><![endif]-->    <svg class="fi-dropdown-list-item-icon h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clip-rule="evenodd"/>
+  <path fill-rule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-.943a.75.75 0 1 0-1.004-1.114l-2.5 2.25a.75.75 0 0 0 0 1.114l2.5 2.25a.75.75 0 1 0 1.004-1.114l-1.048-.943h9.546A.75.75 0 0 0 19 10Z" clip-rule="evenodd"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+            <!--[if ENDBLOCK]><![endif]-->
+
+            <span class="fi-dropdown-list-item-label flex-1 truncate text-start text-gray-700 dark:text-gray-200" style="">
+                Sign out
+            </span>
+
+            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+        </button>
+    </form>
+<!--[if ENDBLOCK]><![endif]-->
+</div>
+        </div>
+    <!--[if ENDBLOCK]><![endif]-->
+</div>
+
+
+                    </div>
+
+        
+    </nav>
+</div>
+
+                
+            
+            
+
+            <main
+                class="fi-main mx-auto h-full w-full px-4 md:px-6 lg:px-8 max-w-7xl"
+            >
+                
+
+                <div wire:snapshot="{&quot;data&quot;:{&quot;latitude&quot;:null,&quot;longitude&quot;:null,&quot;accuracy&quot;:null,&quot;locationDetected&quot;:false,&quot;withinRadius&quot;:false,&quot;distanceToClinic&quot;:null,&quot;browserInfo&quot;:&quot;Unknown&quot;,&quot;deviceInfo&quot;:&quot;Desktop&quot;,&quot;ipAddress&quot;:&quot;127.0.0.1&quot;,&quot;currentWorkLocation&quot;:null,&quot;availableWorkLocations&quot;:[null,{&quot;keys&quot;:[],&quot;class&quot;:&quot;Illuminate\\Database\\Eloquent\\Collection&quot;,&quot;modelClass&quot;:null,&quot;s&quot;:&quot;elcln&quot;}],&quot;mapData&quot;:[{&quot;location&quot;:[{&quot;lat&quot;:-6.2088,&quot;lng&quot;:106.8456},{&quot;s&quot;:&quot;arr&quot;}]},{&quot;s&quot;:&quot;arr&quot;}],&quot;mountedActions&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;mountedActionsArguments&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;mountedActionsData&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;defaultAction&quot;:null,&quot;defaultActionArguments&quot;:null,&quot;componentFileAttachments&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;areFormStateUpdateHooksDisabledForTesting&quot;:false,&quot;mountedFormComponentActions&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;mountedFormComponentActionsArguments&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;mountedFormComponentActionsData&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;mountedFormComponentActionsComponents&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;mountedInfolistActions&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;mountedInfolistActionsData&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;mountedInfolistActionsComponent&quot;:null,&quot;mountedInfolistActionsInfolist&quot;:null,&quot;pendingGeolocationAction&quot;:null,&quot;waitingForGeolocation&quot;:false,&quot;shouldGeocode&quot;:false},&quot;memo&quot;:{&quot;id&quot;:&quot;DKS0hlgrY4ON0UJ44oRS&quot;,&quot;name&quot;:&quot;app.filament.paramedis.pages.presensi-page&quot;,&quot;path&quot;:&quot;paramedis\/presensi-page&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;children&quot;:[],&quot;scripts&quot;:[],&quot;assets&quot;:[],&quot;errors&quot;:[],&quot;locale&quot;:&quot;en&quot;},&quot;checksum&quot;:&quot;79687e386c58afb325ecabd8060df99bc10318d39598cb2de3c312dafb5d7810&quot;}" wire:effects="{&quot;url&quot;:{&quot;defaultAction&quot;:{&quot;as&quot;:&quot;action&quot;,&quot;use&quot;:&quot;replace&quot;,&quot;alwaysShow&quot;:false,&quot;except&quot;:null},&quot;defaultActionArguments&quot;:{&quot;as&quot;:&quot;actionArguments&quot;,&quot;use&quot;:&quot;replace&quot;,&quot;alwaysShow&quot;:false,&quot;except&quot;:null}},&quot;listeners&quot;:[&quot;location-received&quot;,&quot;location-error&quot;,&quot;geolocationFromAlpine&quot;]}" wire:id="DKS0hlgrY4ON0UJ44oRS"
+    class="fi-page"
+>
+    
+
+    <section
+        class="flex flex-col gap-y-8 py-8"
+    >
+        <!--[if BLOCK]><![endif]-->            
+            <header
+    class="fi-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+>
+    <div>
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+        <h1
+            class="fi-header-heading text-2xl font-bold tracking-tight text-gray-950 dark:text-white sm:text-3xl"
+        >
+            Presensi Masuk &amp; Pulang
+        </h1>
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </div>
+
+    <div
+        class="flex shrink-0 items-center gap-3"
+    >
+        
+
+        <!--[if BLOCK]><![endif]-->            <!--[if BLOCK]><![endif]-->    <div
+        class="fi-ac gap-3 flex flex-wrap items-center justify-start"
+    >
+        <!--[if BLOCK]><![endif]-->            <!--[if BLOCK]><![endif]-->                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+<button
+                x-data="{}"
+                    x-tooltip="{
+            content: 'Mulai pelacakan lokasi real-time otomatis',
+            theme: $store.theme,
+        }"
+            style="--c-400:var(--success-400);--c-500:var(--success-500);--c-600:var(--success-600);" class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-custom fi-btn-color-success fi-color-success fi-size-md fi-btn-size-md gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-custom-600 text-white hover:bg-custom-500 focus-visible:ring-custom-500/50 dark:bg-custom-500 dark:hover:bg-custom-400 dark:focus-visible:ring-custom-400/50 fi-ac-action fi-ac-btn-action" type="button" wire:loading.attr="disabled" wire:click="mountAction(&#039;startLiveTracking&#039;)"
+>
+    <!--[if BLOCK]><![endif]-->        <!--[if BLOCK]><![endif]-->            <!--[if BLOCK]><![endif]-->    <svg wire:loading.remove.delay.default="1" wire:target="mountAction('startLiveTracking')" class="fi-btn-icon transition duration-75 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->            <svg
+    fill="none"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    class="animate-spin fi-btn-icon transition duration-75 h-5 w-5 text-white" wire:loading.delay.default="" wire:target="mountAction('startLiveTracking')"
+>
+    <path
+        clip-rule="evenodd"
+        d="M12 19C15.866 19 19 15.866 19 12C19 8.13401 15.866 5 12 5C8.13401 5 5 8.13401 5 12C5 15.866 8.13401 19 12 19ZM12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+        fill-rule="evenodd"
+        fill="currentColor"
+        opacity="0.2"
+    ></path>
+    <path
+        d="M2 12C2 6.47715 6.47715 2 12 2V5C8.13401 5 5 8.13401 5 12H2Z"
+        fill="currentColor"
+    ></path>
+</svg>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <span
+                class="fi-btn-label"
+    >
+        🎯 Live Tracking
+    </span>
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+</button>
+
+                            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+<button
+                x-data="{}"
+                    x-tooltip="{
+            content: 'Hentikan pelacakan lokasi real-time',
+            theme: $store.theme,
+        }"
+            style="--c-400:var(--danger-400);--c-500:var(--danger-500);--c-600:var(--danger-600);" class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-custom fi-btn-color-danger fi-color-danger fi-size-md fi-btn-size-md gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-custom-600 text-white hover:bg-custom-500 focus-visible:ring-custom-500/50 dark:bg-custom-500 dark:hover:bg-custom-400 dark:focus-visible:ring-custom-400/50 fi-ac-action fi-ac-btn-action" type="button" wire:loading.attr="disabled" wire:click="mountAction(&#039;stopLiveTracking&#039;)"
+>
+    <!--[if BLOCK]><![endif]-->        <!--[if BLOCK]><![endif]-->            <!--[if BLOCK]><![endif]-->    <svg wire:loading.remove.delay.default="1" wire:target="mountAction('stopLiveTracking')" class="fi-btn-icon transition duration-75 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->            <svg
+    fill="none"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    class="animate-spin fi-btn-icon transition duration-75 h-5 w-5 text-white" wire:loading.delay.default="" wire:target="mountAction('stopLiveTracking')"
+>
+    <path
+        clip-rule="evenodd"
+        d="M12 19C15.866 19 19 15.866 19 12C19 8.13401 15.866 5 12 5C8.13401 5 5 8.13401 5 12C5 15.866 8.13401 19 12 19ZM12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+        fill-rule="evenodd"
+        fill="currentColor"
+        opacity="0.2"
+    ></path>
+    <path
+        d="M2 12C2 6.47715 6.47715 2 12 2V5C8.13401 5 5 8.13401 5 12H2Z"
+        fill="currentColor"
+    ></path>
+</svg>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <span
+                class="fi-btn-label"
+    >
+        🛑 Stop Tracking
+    </span>
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+</button>
+
+                            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+<button
+                x-data="{}"
+                    x-tooltip="{
+            content: 'Deteksi lokasi sekali saja',
+            theme: $store.theme,
+        }"
+            style="--c-400:var(--primary-400);--c-500:var(--primary-500);--c-600:var(--primary-600);" class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-custom fi-btn-color-primary fi-color-primary fi-size-md fi-btn-size-md gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-custom-600 text-white hover:bg-custom-500 focus-visible:ring-custom-500/50 dark:bg-custom-500 dark:hover:bg-custom-400 dark:focus-visible:ring-custom-400/50 fi-ac-action fi-ac-btn-action" type="button" wire:loading.attr="disabled" wire:click="mountAction(&#039;manualLocation&#039;)"
+>
+    <!--[if BLOCK]><![endif]-->        <!--[if BLOCK]><![endif]-->            <!--[if BLOCK]><![endif]-->    <svg wire:loading.remove.delay.default="1" wire:target="mountAction('manualLocation')" class="fi-btn-icon transition duration-75 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->            <svg
+    fill="none"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    class="animate-spin fi-btn-icon transition duration-75 h-5 w-5 text-white" wire:loading.delay.default="" wire:target="mountAction('manualLocation')"
+>
+    <path
+        clip-rule="evenodd"
+        d="M12 19C15.866 19 19 15.866 19 12C19 8.13401 15.866 5 12 5C8.13401 5 5 8.13401 5 12C5 15.866 8.13401 19 12 19ZM12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+        fill-rule="evenodd"
+        fill="currentColor"
+        opacity="0.2"
+    ></path>
+    <path
+        d="M2 12C2 6.47715 6.47715 2 12 2V5C8.13401 5 5 8.13401 5 12H2Z"
+        fill="currentColor"
+    ></path>
+</svg>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <span
+                class="fi-btn-label"
+    >
+        📍 Detect Once
+    </span>
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+</button>
+
+                            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+<button
+                        style=";" class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg  fi-btn-color-gray fi-color-gray fi-size-md fi-btn-size-md gap-1.5 px-3 py-2 text-sm inline-grid shadow-sm bg-white text-gray-950 hover:bg-gray-50 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 ring-1 ring-gray-950/10 dark:ring-white/20 [input:checked+&amp;]:bg-gray-400 [input:checked+&amp;]:text-white [input:checked+&amp;]:ring-0 [input:checked+&amp;]:hover:bg-gray-300 dark:[input:checked+&amp;]:bg-gray-600 dark:[input:checked+&amp;]:hover:bg-gray-500 fi-ac-action fi-ac-btn-action" type="button" wire:loading.attr="disabled" wire:click="mountAction(&#039;refreshStatus&#039;)"
+>
+    <!--[if BLOCK]><![endif]-->        <!--[if BLOCK]><![endif]-->            <!--[if BLOCK]><![endif]-->    <svg wire:loading.remove.delay.default="1" wire:target="mountAction('refreshStatus')" class="fi-btn-icon transition duration-75 h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->            <svg
+    fill="none"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    class="animate-spin fi-btn-icon transition duration-75 h-5 w-5 text-gray-400 dark:text-gray-500" wire:loading.delay.default="" wire:target="mountAction('refreshStatus')"
+>
+    <path
+        clip-rule="evenodd"
+        d="M12 19C15.866 19 19 15.866 19 12C19 8.13401 15.866 5 12 5C8.13401 5 5 8.13401 5 12C5 15.866 8.13401 19 12 19ZM12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+        fill-rule="evenodd"
+        fill="currentColor"
+        opacity="0.2"
+    ></path>
+    <path
+        d="M2 12C2 6.47715 6.47715 2 12 2V5C8.13401 5 5 8.13401 5 12H2Z"
+        fill="currentColor"
+    ></path>
+</svg>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <span
+                class="fi-btn-label"
+    >
+        🔄 Reset
+    </span>
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+</button>
+
+            <!--[if ENDBLOCK]><![endif]-->
+        <!--[if ENDBLOCK]><![endif]-->
+    </div>
+<!--[if ENDBLOCK]><![endif]-->
+        <!--[if ENDBLOCK]><![endif]-->
+
+        
+    </div>
+</header>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <div
+            class=""
+        >
+            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+            <div
+                class="grid flex-1 auto-cols-fr gap-y-8"
+            >
+                
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                
+
+                <div class="space-y-4">
+        
+        <section
+    
+    x-data="{
+        isCollapsed:  false ,
+    }"
+        class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+>
+    <!--[if BLOCK]><![endif]-->        <header
+                        class="fi-section-header flex flex-col gap-3 px-6 py-4"
+        >
+            <div class="flex items-center gap-3">
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]-->                    <div class="grid flex-1 gap-y-1">
+                        <!--[if BLOCK]><![endif]-->                            <h3
+    class="fi-section-header-heading text-base font-semibold leading-6 text-gray-950 dark:text-white"
+>
+    <div class="flex items-center gap-x-2">
+                    <svg class="h-6 w-6 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+</svg>                    <span class="text-lg font-semibold">Waktu Saat Ini</span>
+                </div>
+</h3>
+                        <!--[if ENDBLOCK]><![endif]-->
+
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                    </div>
+                <!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+            </div>
+
+            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+        </header>
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <div
+                class="fi-section-content-ctn border-t border-gray-200 dark:border-white/10"
+    >
+        <div
+            class="fi-section-content p-6"
+        >
+            <div class="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
+                <div id="live-clock" class="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                    17:09:09
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Sunday, 13 July 2025</p>
+            </div>
+        </div>
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </div>
+</section>
+
+        
+        <section
+    
+    x-data="{
+        isCollapsed:  false ,
+    }"
+        class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+>
+    <!--[if BLOCK]><![endif]-->        <header
+                        class="fi-section-header flex flex-col gap-3 px-6 py-4"
+        >
+            <div class="flex items-center gap-3">
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]-->                    <div class="grid flex-1 gap-y-1">
+                        <!--[if BLOCK]><![endif]-->                            <h3
+    class="fi-section-header-heading text-base font-semibold leading-6 text-gray-950 dark:text-white"
+>
+    <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-x-2">
+                        <svg class="h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+</svg>                        <span>Status Lokasi & Peta</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        
+                        <div id="tracking-indicator" style="display: none;" class="text-xs px-3 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 font-medium pulse">
+                            🎯 Live Tracking Active
+                        </div>
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                    </div>
+                </div>
+</h3>
+                        <!--[if ENDBLOCK]><![endif]-->
+
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                    </div>
+                <!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+            </div>
+
+            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+        </header>
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <div
+                class="fi-section-content-ctn border-t border-gray-200 dark:border-white/10"
+    >
+        <div
+            class="fi-section-content p-6"
+        >
+            <div class="space-y-4">
+                
+                <div class="p-4 rounded-lg border bg-gray-50 border-gray-200 dark:bg-gray-800">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="text-2xl">
+                                <!--[if BLOCK]><![endif]-->                                    📍
+                                <!--[if ENDBLOCK]><![endif]-->
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-600">
+                                    <!--[if BLOCK]><![endif]-->                                        Lokasi Belum Terdeteksi
+                                    <!--[if ENDBLOCK]><![endif]-->
+                                </p>
+                                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                            </div>
+                        </div>
+                        
+                        
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                        
+                        
+                        <div class="text-sm text-gray-600">
+                            <p><strong>🏢 Lokasi Kerja:</strong></p>
+                            <p>Klinik Dokterku (Default)</p>
+                            <p>Radius: 100m</p>
+                            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="space-y-4">
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">🗺️ Peta Lokasi Interaktif</h4>
+                    
+                    
+                    <div class="border rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+                        <div class="p-4">
+                            <div class="space-y-3">
+                                
+                                <div class="text-xs text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                    <p class="font-medium mb-1">💡 Cara Menggunakan Peta:</p>
+                                    <ul class="list-disc list-inside space-y-1">
+                                        <li>Klik tombol "🌐 Get Location" untuk deteksi GPS otomatis</li>
+                                        <li>Drag marker pada peta untuk mengubah posisi</li>
+                                        <li>Gunakan search box untuk mencari alamat</li>
+                                        <li>Zoom in/out dengan scroll mouse atau kontrol peta</li>
+                                    </ul>
+                                </div>
+                                
+                                
+                                <div wire:ignore>
+                                    <div
+    style="--cols-default: repeat(1, minmax(0, 1fr));" class="grid grid-cols-[--cols-default] fi-fo-component-ctn gap-6" x-data="{}" x-on:form-validation-error.window="if ($event.detail.livewireId !== &#039;DKS0hlgrY4ON0UJ44oRS&#039;) {
+                return
+            }
+
+            $nextTick(() =&gt; {
+                let error = $el.querySelector(&#039;[data-validation-error]&#039;)
+
+                if (! error) {
+                    return
+                }
+
+                let elementToExpand = error
+
+                while (elementToExpand) {
+                    elementToExpand.dispatchEvent(new CustomEvent(&#039;expand&#039;))
+
+                    elementToExpand = elementToExpand.parentNode
+                }
+
+                setTimeout(
+                    () =&gt;
+                        error.closest(&#039;[data-field-wrapper]&#039;).scrollIntoView({
+                            behavior: &#039;smooth&#039;,
+                            block: &#039;start&#039;,
+                            inline: &#039;start&#039;,
+                        }),
+                    200,
+                )
+        })"
+>
+    <!--[if BLOCK]><![endif]-->        
+        <div
+    style="--col-span-default: 1 / -1;" class="col-[--col-span-default]" wire:key="DKS0hlgrY4ON0UJ44oRS.mapData.location.Dotswan\MapPicker\Fields\Map"
+>
+    <!--[if BLOCK]><![endif]-->                <div
+    data-field-wrapper
+    class="fi-fo-field-wrp"
+>
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <div
+        class="grid gap-y-2"
+    >
+        <!--[if BLOCK]><![endif]-->            <div
+                class="flex items-center gap-x-3 justify-between "
+            >
+                <!--[if BLOCK]><![endif]-->                    <label
+    class="fi-fo-field-wrp-label inline-flex items-center gap-x-3" for="mapData.location"
+>
+    
+
+    <span class="text-sm font-medium leading-6 text-gray-950 dark:text-white">
+        
+        📍 Pilih Lokasi pada Peta<!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </span>
+
+    
+</label>
+                <!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+            </div>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->            <div
+                class="grid auto-cols-fr gap-y-2"
+            >
+                <div x-data="mapPicker($wire, {&quot;type&quot;:&quot;field&quot;,&quot;statePath&quot;:&quot;mapData.location&quot;,&quot;draggable&quot;:true,&quot;showMarker&quot;:true,&quot;tilesUrl&quot;:&quot;https:\/\/tile.openstreetmap.org\/{z}\/{x}\/{y}.png&quot;,&quot;attribution&quot;:null,&quot;zoomOffset&quot;:-1,&quot;tileSize&quot;:512,&quot;detectRetina&quot;:true,&quot;rangeSelectField&quot;:&quot;mapData.distance&quot;,&quot;minZoom&quot;:0,&quot;maxZoom&quot;:28,&quot;zoom&quot;:15,&quot;clickable&quot;:false,&quot;markerColor&quot;:&quot;#3b82f6&quot;,&quot;liveLocation&quot;:false,&quot;bounds&quot;:false,&quot;showMyLocationButton&quot;:true,&quot;default&quot;:{&quot;lat&quot;:0,&quot;lng&quot;:0},&quot;markerHtml&quot;:&quot;&quot;,&quot;markerIconUrl&quot;:null,&quot;markerIconSize&quot;:[36,36],&quot;markerIconClassName&quot;:&quot;&quot;,&quot;markerIconAnchor&quot;:[18,36],&quot;geoMan&quot;:{&quot;show&quot;:false,&quot;editable&quot;:true,&quot;position&quot;:&quot;topleft&quot;,&quot;drawCircleMarker&quot;:true,&quot;rotateMode&quot;:true,&quot;drawMarker&quot;:true,&quot;drawPolygon&quot;:true,&quot;drawPolyline&quot;:true,&quot;drawCircle&quot;:true,&quot;dragMode&quot;:true,&quot;cutPolygon&quot;:true,&quot;editPolygon&quot;:true,&quot;deleteLayer&quot;:true,&quot;color&quot;:&quot;#3388ff&quot;,&quot;filledColor&quot;:&quot;#cad9ec&quot;,&quot;snappable&quot;:false,&quot;snapDistance&quot;:20,&quot;drawText&quot;:true,&quot;drawRectangle&quot;:true},&quot;controls&quot;:{&quot;zoomControl&quot;:true,&quot;scrollWheelZoom&quot;:&quot;center&quot;,&quot;doubleClickZoom&quot;:&quot;center&quot;,&quot;touchZoom&quot;:&quot;center&quot;,&quot;minZoom&quot;:1,&quot;maxZoom&quot;:28,&quot;zoom&quot;:17,&quot;fullscreenControl&quot;:true}})"
+            x-init="async () => {
+            do {
+                await (new Promise(resolve => setTimeout(resolve, 100)));
+            } while (!$refs.map);
+            attach($refs.map);
+        }" wire:ignore>
+        <div
+            x-ref="map"
+            class="w-full" style="min-height: 30vh; height: 350px">
+        </div>
+        <input type="text" id="mapData.location_fmrest" style="display:none"/>
+    </div>
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+            </div>
+        <!--[if ENDBLOCK]><![endif]-->
+    </div>
+</div>
+
+            <!--[if ENDBLOCK]><![endif]-->
+</div>
+    <!--[if ENDBLOCK]><![endif]-->
+</div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+            </div>
+        </div>
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </div>
+</section>
+
+        
+        <section
+    
+    x-data="{
+        isCollapsed:  false ,
+    }"
+        class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+>
+    <!--[if BLOCK]><![endif]-->        <header
+                        class="fi-section-header flex flex-col gap-3 px-6 py-4"
+        >
+            <div class="flex items-center gap-3">
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]-->                    <div class="grid flex-1 gap-y-1">
+                        <!--[if BLOCK]><![endif]-->                            <h3
+    class="fi-section-header-heading text-base font-semibold leading-6 text-gray-950 dark:text-white"
+>
+    Status Presensi Hari Ini
+</h3>
+                        <!--[if ENDBLOCK]><![endif]-->
+
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                    </div>
+                <!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+            </div>
+
+            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+        </header>
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <div
+                class="fi-section-content-ctn border-t border-gray-200 dark:border-white/10"
+    >
+        <div
+            class="fi-section-content p-6"
+        >
+            <div class="space-y-4">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-4 bg-gray-50 border-gray-200 dark:bg-gray-800 rounded-lg border text-center">
+                        <div class="text-2xl mb-2">⏰</div>
+                        <p class="text-xs font-medium text-gray-600">
+                            Belum Masuk
+                        </p>
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                    </div>
+                    
+                    <div class="p-4 bg-gray-50 border-gray-200 dark:bg-gray-800 rounded-lg border text-center">
+                        <div class="text-2xl mb-2">⏳</div>
+                        <p class="text-xs font-medium text-gray-600">
+                            Belum Pulang
+                        </p>
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                    </div>
+                </div>
+
+                
+                <div class="space-y-3">
+                    <!--[if BLOCK]><![endif]-->                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+<button
+                        style="--c-400:var(--success-400);--c-500:var(--success-500);--c-600:var(--success-600);" class="fi-btn relative grid-flow-col items-center justify-center font-semibold outline-none transition duration-75 focus-visible:ring-2 rounded-lg fi-color-custom fi-btn-color-success fi-color-success fi-size-lg fi-btn-size-lg gap-1.5 px-3.5 py-2.5 text-sm inline-grid shadow-sm bg-custom-600 text-white hover:bg-custom-500 focus-visible:ring-custom-500/50 dark:bg-custom-500 dark:hover:bg-custom-400 dark:focus-visible:ring-custom-400/50 w-full text-lg py-4" type="button" wire:loading.attr="disabled" wire:target="checkin" wire:click="checkin"
+>
+    <!--[if BLOCK]><![endif]-->        <!--[if BLOCK]><![endif]-->            <!--[if BLOCK]><![endif]-->    <svg wire:loading.remove.delay.default="1" wire:target="checkin" class="fi-btn-icon transition duration-75 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->            <svg
+    fill="none"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    class="animate-spin fi-btn-icon transition duration-75 h-5 w-5 text-white" wire:loading.delay.default="" wire:target="checkin"
+>
+    <path
+        clip-rule="evenodd"
+        d="M12 19C15.866 19 19 15.866 19 12C19 8.13401 15.866 5 12 5C8.13401 5 5 8.13401 5 12C5 15.866 8.13401 19 12 19ZM12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+        fill-rule="evenodd"
+        fill="currentColor"
+        opacity="0.2"
+    ></path>
+    <path
+        d="M2 12C2 6.47715 6.47715 2 12 2V5C8.13401 5 5 8.13401 5 12H2Z"
+        fill="currentColor"
+    ></path>
+</svg>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <span
+                class="fi-btn-label"
+    >
+        📝 CHECK IN - Mulai Bekerja
+    </span>
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+</button>
+                    <!--[if ENDBLOCK]><![endif]-->
+                </div>
+            </div>
+        </div>
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </div>
+</section>
+
+        
+        <section
+    
+    x-data="{
+        isCollapsed:  false ,
+    }"
+        class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+>
+    <!--[if BLOCK]><![endif]-->        <header
+                        class="fi-section-header flex flex-col gap-3 px-6 py-4"
+        >
+            <div class="flex items-center gap-3">
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]-->                    <div class="grid flex-1 gap-y-1">
+                        <!--[if BLOCK]><![endif]-->                            <h3
+    class="fi-section-header-heading text-base font-semibold leading-6 text-gray-950 dark:text-white"
+>
+    Informasi
+</h3>
+                        <!--[if ENDBLOCK]><![endif]-->
+
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                    </div>
+                <!--[if ENDBLOCK]><![endif]-->
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+            </div>
+
+            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+        </header>
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <div
+                class="fi-section-content-ctn border-t border-gray-200 dark:border-white/10"
+    >
+        <div
+            class="fi-section-content p-6"
+        >
+            <div class="grid grid-cols-2 gap-3">
+                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
+                    <div class="text-xl mb-1">⏰</div>
+                    <p class="text-xs font-medium text-blue-600">Jam Kerja</p>
+                    <p class="text-xs text-gray-600">08:00 - 17:00</p>
+                </div>
+                
+                <div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-center">
+                    <div class="text-xl mb-1">📍</div>
+                    <p class="text-xs font-medium text-purple-600">Lokasi</p>
+                    <p class="text-xs text-gray-600">Klinik Dokterku</p>
+                </div>
+            </div>
+        </div>
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </div>
+</section>
+    </div>
+
+                
+
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                
+            </div>
+
+            <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+        </div>
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </section>
+
+    <!--[if BLOCK]><![endif]-->        <!--[if BLOCK]><![endif]-->    <form wire:submit.prevent="callMountedAction">
+        
+        <div
+        aria-modal="true"
+    role="dialog"
+    x-data="{
+        isOpen: false,
+
+        livewire: null,
+
+        close: function () {
+            this.isOpen = false
+
+            this.$refs.modalContainer.dispatchEvent(
+                new CustomEvent('modal-closed', { detail: { id: 'DKS0hlgrY4ON0UJ44oRS-action' } }),
+            )
+        },
+
+        open: function () {
+            this.$nextTick(() => {
+                this.isOpen = true
+
+                
+                this.$refs.modalContainer.dispatchEvent(
+                    new CustomEvent('modal-opened', { detail: { id: 'DKS0hlgrY4ON0UJ44oRS-action' } }),
+                )
+            })
+        },
+    }"
+            x-on:close-modal.window="if ($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS-action') close()"
+        x-on:open-modal.window="if ($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS-action') open()"
+        data-fi-modal-id="DKS0hlgrY4ON0UJ44oRS-action"
+        x-trap.noscroll="isOpen"
+    x-bind:class="{
+        'fi-modal-open': isOpen,
+    }"
+    class="fi-modal block"
+>
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <div x-cloak x-show="isOpen">
+        <div
+            aria-hidden="true"
+            x-show="isOpen"
+            x-transition.duration.300ms.opacity
+            class="fi-modal-close-overlay fixed inset-0 z-40 bg-gray-950/50 dark:bg-gray-950/75"
+        ></div>
+
+        <div
+            class="fixed inset-0 z-40 overflow-y-auto cursor-pointer"
+        >
+            <div
+                x-ref="modalContainer"
+                                    
+                    x-on:click.self="
+                        document.activeElement.selectionStart === undefined &&
+                            document.activeElement.selectionEnd === undefined &&
+                            $dispatch(&#039;close-modal&#039;, { id: &#039;DKS0hlgrY4ON0UJ44oRS-action&#039; })
+                    "
+                                class="relative grid min-h-full grid-rows-[1fr_auto_1fr] justify-items-center sm:grid-rows-[1fr_auto_3fr] p-4" x-on:closed-form-component-action-modal.window="if (($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS') && $wire.mountedActions.length) open()" x-on:modal-closed.stop="if (!$event.detail?.id?.startsWith('DKS0hlgrY4ON0UJ44oRS-')) {
+                    return
+                }
+
+                const mountedActionShouldOpenModal = false
+
+
+                if (! mountedActionShouldOpenModal) {
+                    return
+                }
+
+                if ($wire.mountedFormComponentActions.length) {
+                    return
+                }
+
+                $wire.unmountAction(false, false)" x-on:opened-form-component-action-modal.window="if ($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS') close()"
+            >
+                <div
+                    x-data="{ isShown: false }"
+                    x-init="
+                        $nextTick(() => {
+                            isShown = isOpen
+                            $watch('isOpen', () => (isShown = isOpen))
+                        })
+                    "
+                                            x-on:keydown.window.escape="$dispatch(&#039;close-modal&#039;, { id: &#039;DKS0hlgrY4ON0UJ44oRS-action&#039; })"
+                                        x-show="isShown"
+                    x-transition:enter="duration-300"
+                    x-transition:leave="duration-300"
+                                            x-transition:enter-start="scale-95 opacity-0"
+                        x-transition:enter-end="scale-100 opacity-100"
+                        x-transition:leave-start="scale-100 opacity-100"
+                        x-transition:leave-end="scale-95 opacity-0"
+                                                                wire:key="DKS0hlgrY4ON0UJ44oRS.modal.DKS0hlgrY4ON0UJ44oRS-action.window"
+                                        class="fi-modal-window pointer-events-auto relative row-start-2 flex w-full cursor-default flex-col bg-white shadow-xl ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 mx-auto rounded-xl hidden max-w-sm"
+                >
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    </form>
+
+    <!--[if ENDBLOCK]><![endif]-->
+
+<!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+<!--[if BLOCK]><![endif]-->    <form wire:submit.prevent="callMountedInfolistAction">
+        
+        <div
+        aria-modal="true"
+    role="dialog"
+    x-data="{
+        isOpen: false,
+
+        livewire: null,
+
+        close: function () {
+            this.isOpen = false
+
+            this.$refs.modalContainer.dispatchEvent(
+                new CustomEvent('modal-closed', { detail: { id: 'DKS0hlgrY4ON0UJ44oRS-infolist-action' } }),
+            )
+        },
+
+        open: function () {
+            this.$nextTick(() => {
+                this.isOpen = true
+
+                
+                this.$refs.modalContainer.dispatchEvent(
+                    new CustomEvent('modal-opened', { detail: { id: 'DKS0hlgrY4ON0UJ44oRS-infolist-action' } }),
+                )
+            })
+        },
+    }"
+            x-on:close-modal.window="if ($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS-infolist-action') close()"
+        x-on:open-modal.window="if ($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS-infolist-action') open()"
+        data-fi-modal-id="DKS0hlgrY4ON0UJ44oRS-infolist-action"
+        x-trap.noscroll="isOpen"
+    x-bind:class="{
+        'fi-modal-open': isOpen,
+    }"
+    class="fi-modal block"
+>
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <div x-cloak x-show="isOpen">
+        <div
+            aria-hidden="true"
+            x-show="isOpen"
+            x-transition.duration.300ms.opacity
+            class="fi-modal-close-overlay fixed inset-0 z-40 bg-gray-950/50 dark:bg-gray-950/75"
+        ></div>
+
+        <div
+            class="fixed inset-0 z-40 overflow-y-auto cursor-pointer"
+        >
+            <div
+                x-ref="modalContainer"
+                                    
+                    x-on:click.self="
+                        document.activeElement.selectionStart === undefined &&
+                            document.activeElement.selectionEnd === undefined &&
+                            $dispatch(&#039;close-modal&#039;, { id: &#039;DKS0hlgrY4ON0UJ44oRS-infolist-action&#039; })
+                    "
+                                class="relative grid min-h-full grid-rows-[1fr_auto_1fr] justify-items-center sm:grid-rows-[1fr_auto_3fr] p-4" x-on:closed-form-component-action-modal.window="if (($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS') && $wire.mountedInfolistActions.length) open()" x-on:modal-closed.stop="if (!$event.detail?.id?.startsWith('DKS0hlgrY4ON0UJ44oRS-')) {
+                    return
+                }
+
+                const mountedInfolistActionShouldOpenModal = false
+
+
+                if (! mountedInfolistActionShouldOpenModal) {
+                    return
+                }
+
+                if ($wire.mountedFormComponentActions.length) {
+                    return
+                }
+
+                $wire.unmountInfolistAction(false, false)" x-on:opened-form-component-action-modal.window="if ($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS') close()"
+            >
+                <div
+                    x-data="{ isShown: false }"
+                    x-init="
+                        $nextTick(() => {
+                            isShown = isOpen
+                            $watch('isOpen', () => (isShown = isOpen))
+                        })
+                    "
+                                            x-on:keydown.window.escape="$dispatch(&#039;close-modal&#039;, { id: &#039;DKS0hlgrY4ON0UJ44oRS-infolist-action&#039; })"
+                                        x-show="isShown"
+                    x-transition:enter="duration-300"
+                    x-transition:leave="duration-300"
+                                            x-transition:enter-start="scale-95 opacity-0"
+                        x-transition:enter-end="scale-100 opacity-100"
+                        x-transition:leave-start="scale-100 opacity-100"
+                        x-transition:leave-end="scale-95 opacity-0"
+                                                                wire:key="DKS0hlgrY4ON0UJ44oRS.modal.DKS0hlgrY4ON0UJ44oRS-infolist-action.window"
+                                        class="fi-modal-window pointer-events-auto relative row-start-2 flex w-full cursor-default flex-col bg-white shadow-xl ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 mx-auto rounded-xl hidden max-w-sm"
+                >
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    </form>
+
+    <!--[if ENDBLOCK]><![endif]-->
+
+<!--[if BLOCK]><![endif]-->    
+    <form wire:submit.prevent="callMountedFormComponentAction">
+        <div
+        aria-modal="true"
+    role="dialog"
+    x-data="{
+        isOpen: false,
+
+        livewire: null,
+
+        close: function () {
+            this.isOpen = false
+
+            this.$refs.modalContainer.dispatchEvent(
+                new CustomEvent('modal-closed', { detail: { id: 'DKS0hlgrY4ON0UJ44oRS-form-component-action' } }),
+            )
+        },
+
+        open: function () {
+            this.$nextTick(() => {
+                this.isOpen = true
+
+                
+                this.$refs.modalContainer.dispatchEvent(
+                    new CustomEvent('modal-opened', { detail: { id: 'DKS0hlgrY4ON0UJ44oRS-form-component-action' } }),
+                )
+            })
+        },
+    }"
+            x-on:close-modal.window="if ($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS-form-component-action') close()"
+        x-on:open-modal.window="if ($event.detail.id === 'DKS0hlgrY4ON0UJ44oRS-form-component-action') open()"
+        data-fi-modal-id="DKS0hlgrY4ON0UJ44oRS-form-component-action"
+        x-trap.noscroll="isOpen"
+    x-bind:class="{
+        'fi-modal-open': isOpen,
+    }"
+    class="fi-modal block"
+>
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    <div x-cloak x-show="isOpen">
+        <div
+            aria-hidden="true"
+            x-show="isOpen"
+            x-transition.duration.300ms.opacity
+            class="fi-modal-close-overlay fixed inset-0 z-40 bg-gray-950/50 dark:bg-gray-950/75"
+        ></div>
+
+        <div
+            class="fixed inset-0 z-40 overflow-y-auto cursor-pointer"
+        >
+            <div
+                x-ref="modalContainer"
+                                    
+                    x-on:click.self="
+                        document.activeElement.selectionStart === undefined &&
+                            document.activeElement.selectionEnd === undefined &&
+                            $dispatch(&#039;close-modal&#039;, { id: &#039;DKS0hlgrY4ON0UJ44oRS-form-component-action&#039; })
+                    "
+                                class="relative grid min-h-full grid-rows-[1fr_auto_1fr] justify-items-center sm:grid-rows-[1fr_auto_3fr] p-4" x-on:modal-closed.stop="if (!$event.detail?.id?.startsWith('DKS0hlgrY4ON0UJ44oRS-')) {
+                    return
+                }
+
+                const mountedFormComponentActionShouldOpenModal = false
+
+
+                if (mountedFormComponentActionShouldOpenModal) {
+                    $wire.unmountFormComponentAction(false, false)
+                }"
+            >
+                <div
+                    x-data="{ isShown: false }"
+                    x-init="
+                        $nextTick(() => {
+                            isShown = isOpen
+                            $watch('isOpen', () => (isShown = isOpen))
+                        })
+                    "
+                                            x-on:keydown.window.escape="$dispatch(&#039;close-modal&#039;, { id: &#039;DKS0hlgrY4ON0UJ44oRS-form-component-action&#039; })"
+                                        x-show="isShown"
+                    x-transition:enter="duration-300"
+                    x-transition:leave="duration-300"
+                                            x-transition:enter-start="scale-95 opacity-0"
+                        x-transition:enter-end="scale-100 opacity-100"
+                        x-transition:leave-start="scale-100 opacity-100"
+                        x-transition:leave-end="scale-95 opacity-0"
+                                                                wire:key="DKS0hlgrY4ON0UJ44oRS.modal.DKS0hlgrY4ON0UJ44oRS-form-component-action.window"
+                                        class="fi-modal-window pointer-events-auto relative row-start-2 flex w-full cursor-default flex-col bg-white shadow-xl ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 mx-auto rounded-xl hidden max-w-sm"
+                >
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    </form>
+
+    <!--[if ENDBLOCK]><![endif]-->
+    <!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+    
+
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+</div>
+
+                
+            </main>
+
+            
+
+            
+        </div>
+
+                    <div
+                x-cloak
+                x-data="{}"
+                x-on:click="$store.sidebar.close()"
+                x-show="$store.sidebar.isOpen"
+                x-transition.opacity.300ms
+                class="fi-sidebar-close-overlay fixed inset-0 z-30 bg-gray-950/50 transition duration-500 dark:bg-gray-950/75 lg:hidden"
+            ></div>
+
+            <aside
+    x-data="{}"
+                        x-cloak="-lg"
+            x-bind:class="
+                $store.sidebar.isOpen
+                    ? 'fi-sidebar-open w-[--sidebar-width] translate-x-0 shadow-xl ring-1 ring-gray-950\/5 dark:ring-white\/10 rtl:-translate-x-0 lg:sticky'                    : 'w-[--sidebar-width] -translate-x-full rtl:translate-x-full lg:sticky'
+            "
+                class="fi-sidebar fixed inset-y-0 start-0 z-30 flex flex-col h-screen content-start bg-white transition-all dark:bg-gray-900 lg:z-0 lg:bg-transparent lg:shadow-none lg:ring-0 lg:transition-none dark:lg:bg-transparent lg:translate-x-0 rtl:lg:-translate-x-0 fi-main-sidebar"
+>
+    <div class="overflow-x-clip">
+        <header
+            class="fi-sidebar-header flex h-16 items-center bg-white px-6 ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 lg:shadow-sm"
+        >
+            <div
+                            >
+                                    <a href="http://127.0.0.1:8000/paramedis/presensi-page">
+                        <div
+            class="fi-logo flex text-xl font-bold leading-5 tracking-tight text-gray-950 dark:text-white"
+        >
+            Dokterku - Paramedis
+        </div>
+    
+            
+
+                    </a>
+                            </div>
+
+            
+                    </header>
+    </div>
+
+    <nav
+        class="fi-sidebar-nav flex-grow flex flex-col gap-y-7 overflow-y-auto overflow-x-hidden px-6 py-8"
+        style="scrollbar-gutter: stable"
+    >
+        
+
+        
+        <ul class="fi-sidebar-nav-groups -mx-2 flex flex-col gap-y-7">
+                            <li
+    x-data="{ label: null }"
+    data-group-label=""
+    class="fi-sidebar-group flex flex-col gap-y-1 fi-active"
+>
+    
+    
+    <ul
+                        class="fi-sidebar-group-items flex flex-col gap-y-1"
+    >
+                    
+            <li
+    class="fi-sidebar-item fi-active fi-sidebar-item-active flex flex-col gap-y-1"
+>
+    <a
+        href="http://127.0.0.1:8000/paramedis/presensi-page"
+        x-on:click="window.matchMedia(`(max-width: 1024px)`).matches && $store.sidebar.close()"
+                class="fi-sidebar-item-button relative flex items-center justify-center gap-x-3 rounded-lg px-2 py-2 outline-none transition duration-75 hover:bg-gray-100 focus-visible:bg-gray-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/5 bg-gray-100 dark:bg-white/5"
+    >
+                    <!--[if BLOCK]><![endif]-->    <svg class="fi-sidebar-item-icon h-6 w-6 text-primary-600 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        
+        
+        <span
+                        class="fi-sidebar-item-label flex-1 truncate text-sm font-medium text-primary-600 dark:text-primary-400"
+        >
+            Presensi
+        </span>
+
+            </a>
+
+    </li>
+                    
+            <li
+    class="fi-sidebar-item"
+>
+    <a
+        href="http://127.0.0.1:8000/paramedis/dashboard-paramedis"
+        x-on:click="window.matchMedia(`(max-width: 1024px)`).matches && $store.sidebar.close()"
+                class="fi-sidebar-item-button relative flex items-center justify-center gap-x-3 rounded-lg px-2 py-2 outline-none transition duration-75 hover:bg-gray-100 focus-visible:bg-gray-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+    >
+                    <!--[if BLOCK]><![endif]-->    <svg class="fi-sidebar-item-icon h-6 w-6 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        
+        
+        <span
+                        class="fi-sidebar-item-label flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-200"
+        >
+            Dashboard
+        </span>
+
+            </a>
+
+    </li>
+                    
+            <li
+    class="fi-sidebar-item"
+>
+    <a
+        href="http://127.0.0.1:8000/paramedis/presensi-mobile-page"
+        x-on:click="window.matchMedia(`(max-width: 1024px)`).matches && $store.sidebar.close()"
+                class="fi-sidebar-item-button relative flex items-center justify-center gap-x-3 rounded-lg px-2 py-2 outline-none transition duration-75 hover:bg-gray-100 focus-visible:bg-gray-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+    >
+                    <!--[if BLOCK]><![endif]-->    <svg class="fi-sidebar-item-icon h-6 w-6 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        
+        
+        <span
+                        class="fi-sidebar-item-label flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-200"
+        >
+            Presensi Mobile
+        </span>
+
+            </a>
+
+    </li>
+            </ul>
+</li>
+                            <li
+    x-data="{ label: 'Presensi' }"
+    data-group-label="Presensi"
+    class="fi-sidebar-group flex flex-col gap-y-1"
+>
+            <div
+                            x-on:click="$store.sidebar.toggleCollapsedGroup(label)"
+                                    class="fi-sidebar-group-button flex items-center gap-x-3 px-2 py-2 cursor-pointer"
+        >
+            
+            <span
+                class="fi-sidebar-group-label flex-1 text-sm font-medium leading-6 text-gray-500 dark:text-gray-400"
+            >
+                Presensi
+            </span>
+
+                            <!--[if BLOCK]><![endif]-->    <button
+                                style="--c-300:var(--gray-300);--c-400:var(--gray-400);--c-500:var(--gray-500);--c-600:var(--gray-600);" class="fi-icon-btn relative flex items-center justify-center rounded-lg outline-none transition duration-75 focus-visible:ring-2 -m-2 h-9 w-9 text-gray-400 hover:text-gray-500 focus-visible:ring-primary-600 dark:text-gray-500 dark:hover:text-gray-400 dark:focus-visible:ring-primary-500 fi-color-gray fi-sidebar-group-collapse-button" title="Presensi" type="button" wire:loading.attr="disabled" x-bind:aria-expanded="! $store.sidebar.groupIsCollapsed(label)" x-on:click.stop="$store.sidebar.toggleCollapsedGroup(label)" x-bind:class="{ '-rotate-180': $store.sidebar.groupIsCollapsed(label) }"
+    >
+        <!--[if BLOCK]><![endif]-->            <span class="sr-only">
+                Presensi
+            </span>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->    <svg class="fi-icon-btn-icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M9.47 6.47a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 1 1-1.06 1.06L10 8.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06l4.25-4.25Z" clip-rule="evenodd"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </button>
+<!--[if ENDBLOCK]><![endif]-->
+                    </div>
+    
+    
+    <ul
+                                    x-show="! $store.sidebar.groupIsCollapsed(label)"
+                        x-collapse.duration.200ms
+                        class="fi-sidebar-group-items flex flex-col gap-y-1"
+    >
+                    
+            <li
+    class="fi-sidebar-item"
+>
+    <a
+        href="http://127.0.0.1:8000/paramedis/attendances"
+        x-on:click="window.matchMedia(`(max-width: 1024px)`).matches && $store.sidebar.close()"
+                class="fi-sidebar-item-button relative flex items-center justify-center gap-x-3 rounded-lg px-2 py-2 outline-none transition duration-75 hover:bg-gray-100 focus-visible:bg-gray-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+    >
+                    <!--[if BLOCK]><![endif]-->    <svg class="fi-sidebar-item-icon h-6 w-6 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        
+        
+        <span
+                        class="fi-sidebar-item-label flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-200"
+        >
+            Presensi Saya
+        </span>
+
+            </a>
+
+    </li>
+            </ul>
+</li>
+                            <li
+    x-data="{ label: 'Jaspel' }"
+    data-group-label="Jaspel"
+    class="fi-sidebar-group flex flex-col gap-y-1"
+>
+            <div
+                            x-on:click="$store.sidebar.toggleCollapsedGroup(label)"
+                                    class="fi-sidebar-group-button flex items-center gap-x-3 px-2 py-2 cursor-pointer"
+        >
+            
+            <span
+                class="fi-sidebar-group-label flex-1 text-sm font-medium leading-6 text-gray-500 dark:text-gray-400"
+            >
+                Jaspel
+            </span>
+
+                            <!--[if BLOCK]><![endif]-->    <button
+                                style="--c-300:var(--gray-300);--c-400:var(--gray-400);--c-500:var(--gray-500);--c-600:var(--gray-600);" class="fi-icon-btn relative flex items-center justify-center rounded-lg outline-none transition duration-75 focus-visible:ring-2 -m-2 h-9 w-9 text-gray-400 hover:text-gray-500 focus-visible:ring-primary-600 dark:text-gray-500 dark:hover:text-gray-400 dark:focus-visible:ring-primary-500 fi-color-gray fi-sidebar-group-collapse-button" title="Jaspel" type="button" wire:loading.attr="disabled" x-bind:aria-expanded="! $store.sidebar.groupIsCollapsed(label)" x-on:click.stop="$store.sidebar.toggleCollapsedGroup(label)" x-bind:class="{ '-rotate-180': $store.sidebar.groupIsCollapsed(label) }"
+    >
+        <!--[if BLOCK]><![endif]-->            <span class="sr-only">
+                Jaspel
+            </span>
+        <!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]-->    <svg class="fi-icon-btn-icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M9.47 6.47a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 1 1-1.06 1.06L10 8.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06l4.25-4.25Z" clip-rule="evenodd"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </button>
+<!--[if ENDBLOCK]><![endif]-->
+                    </div>
+    
+    
+    <ul
+                                    x-show="! $store.sidebar.groupIsCollapsed(label)"
+                        x-collapse.duration.200ms
+                        class="fi-sidebar-group-items flex flex-col gap-y-1"
+    >
+                    
+            <li
+    class="fi-sidebar-item"
+>
+    <a
+        href="http://127.0.0.1:8000/paramedis/jaspels"
+        x-on:click="window.matchMedia(`(max-width: 1024px)`).matches && $store.sidebar.close()"
+                class="fi-sidebar-item-button relative flex items-center justify-center gap-x-3 rounded-lg px-2 py-2 outline-none transition duration-75 hover:bg-gray-100 focus-visible:bg-gray-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+    >
+                    <!--[if BLOCK]><![endif]-->    <svg class="fi-sidebar-item-icon h-6 w-6 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/>
+</svg><!--[if ENDBLOCK]><![endif]-->
+        
+        
+        <span
+                        class="fi-sidebar-item-label flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-200"
+        >
+            Jaspel Saya
+        </span>
+
+            </a>
+
+    </li>
+            </ul>
+</li>
+                    </ul>
+
+        <script>
+            var collapsedGroups = JSON.parse(
+                localStorage.getItem('collapsedGroups'),
+            )
+
+            if (collapsedGroups === null || collapsedGroups === 'null') {
+                localStorage.setItem(
+                    'collapsedGroups',
+                    JSON.stringify([]),
+                )
+            }
+
+            collapsedGroups = JSON.parse(
+                localStorage.getItem('collapsedGroups'),
+            )
+
+            document
+                .querySelectorAll('.fi-sidebar-group')
+                .forEach((group) => {
+                    if (
+                        !collapsedGroups.includes(group.dataset.groupLabel)
+                    ) {
+                        return
+                    }
+
+                    // Alpine.js loads too slow, so attempt to hide a
+                    // collapsed sidebar group earlier.
+                    group.querySelector(
+                        '.fi-sidebar-group-items',
+                    ).style.display = 'none'
+                    group
+                        .querySelector('.fi-sidebar-group-collapse-button')
+                        .classList.add('rotate-180')
+                })
+        </script>
+
+        
+    </nav>
+
+    
+</aside>
+
+
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(() => {
+                        let activeSidebarItem = document.querySelector(
+                            '.fi-main-sidebar .fi-sidebar-item.fi-active',
+                        )
+
+                        if (
+                            !activeSidebarItem ||
+                            activeSidebarItem.offsetParent === null
+                        ) {
+                            activeSidebarItem = document.querySelector(
+                                '.fi-main-sidebar .fi-sidebar-group.fi-active',
+                            )
+                        }
+
+                        if (
+                            !activeSidebarItem ||
+                            activeSidebarItem.offsetParent === null
+                        ) {
+                            return
+                        }
+
+                        const sidebarWrapper = document.querySelector(
+                            '.fi-main-sidebar .fi-sidebar-nav',
+                        )
+
+                        if (!sidebarWrapper) {
+                            return
+                        }
+
+                        sidebarWrapper.scrollTo(
+                            0,
+                            activeSidebarItem.offsetTop -
+                                window.innerHeight / 2,
+                        )
+                    }, 10)
+                })
+            </script>
+            </div>
+
+        <div wire:snapshot="{&quot;data&quot;:{&quot;isFilamentNotificationsComponent&quot;:true,&quot;notifications&quot;:[[],{&quot;class&quot;:&quot;Filament\\Notifications\\Collection&quot;,&quot;s&quot;:&quot;wrbl&quot;}]},&quot;memo&quot;:{&quot;id&quot;:&quot;XrOrCPLlVpQA6dcC4MeW&quot;,&quot;name&quot;:&quot;filament.livewire.notifications&quot;,&quot;path&quot;:&quot;paramedis\/presensi-page&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;children&quot;:[],&quot;scripts&quot;:[],&quot;assets&quot;:[],&quot;errors&quot;:[],&quot;locale&quot;:&quot;en&quot;},&quot;checksum&quot;:&quot;167e9f62798d2c82c3118705873db1035ca310e421193e455c057a78fc4f10d4&quot;}" wire:effects="{&quot;listeners&quot;:[&quot;notificationsSent&quot;,&quot;notificationSent&quot;,&quot;notificationClosed&quot;]}" wire:id="XrOrCPLlVpQA6dcC4MeW">
+    <div
+        class="fi-no pointer-events-none fixed inset-4 z-50 mx-auto flex gap-3 items-end flex-col-reverse justify-end"
+        role="status"
+    >
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    </div>
+
+    <!--[if BLOCK]><![endif]-->        <div
+    x-data="{}"
+    x-init="
+        window.addEventListener('EchoLoaded', () => {
+            window.Echo.private('App.Models.User.19').notification((notification) => {
+                setTimeout(() => $wire.handleBroadcastNotification(notification), 500)
+            })
+        })
+
+        if (window.Echo) {
+            window.dispatchEvent(new CustomEvent('EchoLoaded'))
+        }
+    "
+    
+></div>
+    <!--[if ENDBLOCK]><![endif]-->
+</div>
+
+        
+
+        <script>
+        window.filamentData = []    </script>
+
+            
+            <script
+                src="http://127.0.0.1:8000/js/dotswan/filament-map-picker/filament-map-picker-scripts.js?v=1.8.7.0"
+                
+                
+                
+                
+                
+                
+            ></script>
+        
+                
+            <script
+                src="http://127.0.0.1:8000/js/filament/notifications/notifications.js?v=3.3.31.0"
+                
+                
+                
+                
+                
+                
+            ></script>
+        
+                
+            <script
+                src="http://127.0.0.1:8000/js/filament/support/support.js?v=3.3.31.0"
+                
+                
+                
+                
+                
+                
+            ></script>
+        
+                
+            <script
+                src="http://127.0.0.1:8000/js/filament/filament/echo.js?v=3.3.31.0"
+                
+                
+                
+                
+                
+                
+            ></script>
+        
+                
+            <script
+                src="http://127.0.0.1:8000/js/filament/filament/app.js?v=3.3.31.0"
+                
+                
+                
+                
+                
+                
+            ></script>
+        
+    
+<style>
+    :root {
+            }
+</style>
+
+        
+                    <script>
+                loadDarkMode()
+            </script>
+        
+            <script>
+        // Simple clock function
+        function updateClock() {
+            const now = new Date();
+            const options = {
+                timeZone: 'Asia/Jakarta',
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const timeString = now.toLocaleTimeString('id-ID', options);
+            
+            const clockElement = document.getElementById('live-clock');
+            if (clockElement) {
+                clockElement.textContent = timeString;
+            }
+        }
+        
+        // Initialize clock
+        document.addEventListener('DOMContentLoaded', function() {
+            setInterval(updateClock, 1000);
+        });
+        
+        // GPS location functions (called from header actions)
+        function requestLocationManual() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        window.Livewire.find('DKS0hlgrY4ON0UJ44oRS').handleLocationReceived(
+                            position.coords.latitude, 
+                            position.coords.longitude, 
+                            position.coords.accuracy
+                        );
+                    },
+                    function(error) {
+                        window.Livewire.find('DKS0hlgrY4ON0UJ44oRS').handleLocationError('GPS error: ' + error.message);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 30000
+                    }
+                );
+            } else {
+                window.Livewire.find('DKS0hlgrY4ON0UJ44oRS').handleLocationError('Geolocation not supported by browser');
+            }
+        }
+        
+        // Continuous tracking functions
+        let watchId = null;
+        let isTracking = false;
+        
+        function startContinuousTracking() {
+            if (navigator.geolocation && !isTracking) {
+                isTracking = true;
+                document.getElementById('tracking-indicator').style.display = 'block';
+                
+                watchId = navigator.geolocation.watchPosition(
+                    function(position) {
+                        window.Livewire.find('DKS0hlgrY4ON0UJ44oRS').handleLocationReceived(
+                            position.coords.latitude, 
+                            position.coords.longitude, 
+                            position.coords.accuracy
+                        );
+                    },
+                    function(error) {
+                        console.warn('Tracking error:', error.message);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 30000
+                    }
+                );
+            }
+        }
+        
+        function stopContinuousTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                isTracking = false;
+                document.getElementById('tracking-indicator').style.display = 'none';
+            }
+        }
+        
+        // Listen for Livewire events
+        document.addEventListener('livewire:init', function () {
+            Livewire.on('start-tracking', startContinuousTracking);
+            Livewire.on('stop-tracking', stopContinuousTracking);
+            Livewire.on('request-location-manual', requestLocationManual);
+            Livewire.on('reset-location-control', stopContinuousTracking);
+        });
+    </script>
+    
+        
+
+        
+    <!-- Livewire Scripts -->
+<script src="/livewire/livewire.js?id=df3a17f2"   data-csrf="VGB233JBCCV7ie4Opk7k5GvuXnTemRBCfgUModJU" data-update-uri="/livewire/update" data-navigate-once="true"></script>
+</body>
+</html>

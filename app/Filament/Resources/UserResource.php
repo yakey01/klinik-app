@@ -29,6 +29,16 @@ class UserResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Pengguna';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRole(['admin', 'manajer']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasRole(['admin', 'manajer']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         $source = request()->get('source'); // Detect source from URL parameter
@@ -66,12 +76,12 @@ class UserResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('username')
                                     ->label('Username Login')
-                                    ->maxLength(20)
+                                    ->maxLength(50)
                                     ->unique(ignoreRecord: true)
                                     ->nullable()
                                     ->placeholder('Opsional - dapat digunakan sebagai alternatif login')
-                                    ->helperText('Username untuk login alternatif selain email')
-                                    ->alphaNum()
+                                    ->helperText('Username untuk login (huruf, angka, spasi, titik, koma diizinkan)')
+                                    ->rules(['regex:/^[a-zA-Z0-9\s.,-]+$/'])
                                     ->minLength(3)
                                     ->suffixIcon('heroicon-m-user')
                                     ->columnSpan(2),

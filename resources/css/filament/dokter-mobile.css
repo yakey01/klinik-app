@@ -93,52 +93,138 @@ body.fi-panel-dokter .nav-item span {
     font-weight: 500;
 }
 
-/* Dashboard Profile Header */
+/* Enhanced Glassmorphic Profile Header */
 body.fi-panel-dokter .profile-header {
-    background: white;
-    border-radius: 1rem;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 8px 32px 0 rgba(31, 38, 135, 0.37),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+body.fi-panel-dokter .profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.3), 
+        transparent);
 }
 
 body.fi-panel-dokter.dark .profile-header {
-    background: #1f2937;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+    background: rgba(31, 41, 55, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
+/* Enhanced Glassmorphic Profile Avatar */
 body.fi-panel-dokter .profile-avatar {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, 
+        rgba(102, 126, 234, 0.9) 0%, 
+        rgba(118, 75, 162, 0.9) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: bold;
     color: white;
     flex-shrink: 0;
+    position: relative;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 
+        0 8px 32px 0 rgba(102, 126, 234, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
 }
 
+body.fi-panel-dokter .profile-avatar::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0.1), 
+        rgba(255, 255, 255, 0.3), 
+        rgba(255, 255, 255, 0.1));
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.fi-panel-dokter .profile-avatar:hover::before {
+    opacity: 1;
+}
+
+body.fi-panel-dokter .profile-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 
+        0 12px 40px 0 rgba(102, 126, 234, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 20px rgba(102, 126, 234, 0.2);
+}
+
+/* Enhanced Glassmorphic Text Elements */
 body.fi-panel-dokter .profile-info h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.5rem;
+    font-weight: 700;
     color: #1f2937;
     margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 body.fi-panel-dokter.dark .profile-info h2 {
-    color: #f9fafb;
+    background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 body.fi-panel-dokter .profile-info p {
     color: #6b7280;
-    font-size: 0.875rem;
-    margin: 0.25rem 0 0 0;
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0.5rem 0 0 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+body.fi-panel-dokter.dark .profile-info p {
+    background: linear-gradient(135deg, #9ca3af 0%, #d1d5db 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 /* Action Tiles Grid */
@@ -149,30 +235,61 @@ body.fi-panel-dokter .action-tiles {
     margin-bottom: 2rem;
 }
 
+/* Enhanced Glassmorphic Action Tiles */
 body.fi-panel-dokter .action-tile {
-    background: white;
-    border-radius: 1rem;
-    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1.25rem;
+    padding: 1.75rem;
     text-align: center;
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
     text-decoration: none;
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 8px 32px 0 rgba(31, 38, 135, 0.37),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body.fi-panel-dokter.dark .action-tile {
-    background: #1f2937;
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.3);
+    background: rgba(31, 41, 55, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+body.fi-panel-dokter .action-tile::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.1), 
+        transparent);
+    transition: left 0.6s ease;
 }
 
 body.fi-panel-dokter .action-tile:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px 0 rgba(0, 0, 0, 0.15);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 
+        0 20px 40px 0 rgba(31, 38, 135, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+body.fi-panel-dokter .action-tile:hover::before {
+    left: 100%;
 }
 
 body.fi-panel-dokter .action-tile:active {
-    transform: translateY(-2px);
+    transform: translateY(-3px) scale(0.98);
+    transition: all 0.1s ease;
 }
 
 /* Tile color variations */
@@ -196,50 +313,146 @@ body.fi-panel-dokter .action-tile.jaspel {
     color: white !important;
 }
 
+/* Enhanced Glassmorphic Tile Icon */
 body.fi-panel-dokter .tile-icon {
-    width: 40px;
-    height: 40px;
-    margin: 0 auto 0.75rem;
-    padding: 0.5rem;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 1.25rem;
+    padding: 0.75rem;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 4px 16px 0 rgba(31, 38, 135, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+body.fi-panel-dokter .tile-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0.1), 
+        rgba(255, 255, 255, 0.2), 
+        rgba(255, 255, 255, 0.1));
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.fi-panel-dokter .tile-icon:hover::before {
+    opacity: 1;
+}
+
+body.fi-panel-dokter .tile-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 
+        0 8px 24px 0 rgba(31, 38, 135, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 15px rgba(255, 255, 255, 0.1);
 }
 
 body.fi-panel-dokter .tile-icon svg {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    transition: all 0.3s ease;
 }
 
+body.fi-panel-dokter .tile-icon:hover svg {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    transform: scale(1.1);
+}
+
+/* Enhanced Glassmorphic Tile Text */
 body.fi-panel-dokter .tile-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 body.fi-panel-dokter .tile-subtitle {
-    font-size: 0.75rem;
-    opacity: 0.8;
+    font-size: 0.8rem;
+    font-weight: 500;
+    opacity: 0.9;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(243, 244, 246, 0.9) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-/* Notification badge on tiles */
+body.fi-panel-dokter.dark .tile-title {
+    background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+body.fi-panel-dokter.dark .tile-subtitle {
+    background: linear-gradient(135deg, rgba(249, 250, 251, 0.9) 0%, rgba(229, 231, 235, 0.9) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Enhanced Glassmorphic Notification Badge */
 body.fi-panel-dokter .tile-badge {
     position: absolute;
     top: 0.75rem;
     right: 0.75rem;
-    min-width: 20px;
-    height: 20px;
+    min-width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #ef4444;
+    background: linear-gradient(135deg, 
+        rgba(239, 68, 68, 0.9) 0%, 
+        rgba(220, 38, 38, 0.9) 100%);
     color: white;
     font-size: 0.75rem;
     font-weight: bold;
     border-radius: 9999px;
-    padding: 0 4px;
+    padding: 0 6px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 
+        0 4px 12px 0 rgba(239, 68, 68, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 
+            0 4px 12px 0 rgba(239, 68, 68, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 
+            0 6px 16px 0 rgba(239, 68, 68, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            0 0 10px rgba(239, 68, 68, 0.2);
+    }
 }
 
 /* Touch-friendly interactions */
@@ -330,175 +543,344 @@ body.fi-panel-dokter .dokter-presensi-mobile {
 }
 
 body.fi-panel-dokter .map-container {
-    margin-bottom: 2rem;
-}
-
-/* Location Display Card */
-body.fi-panel-dokter .location-display-card {
-    background: white;
+    height: 60vh;
+    position: relative;
     border-radius: 1rem;
-    padding: 1.5rem;
+    overflow: hidden;
+    margin-bottom: 2rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e5e7eb;
 }
 
-body.fi-panel-dokter.dark .location-display-card {
-    background: #1f2937;
-    border-color: #374151;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+body.fi-panel-dokter .presensi-map {
+    height: 100%;
+    width: 100%;
+    border-radius: 1rem;
 }
 
-/* Clinic Info Section */
-body.fi-panel-dokter .clinic-info {
+/* Map Overlay Styles (Mobile-Optimized) */
+body.fi-panel-dokter .location-info-overlay {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.fi-panel-dokter.dark .location-info-overlay {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(75, 85, 99, 0.2);
+}
+
+body.fi-panel-dokter .clinic-info-compact {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
-}
-
-body.fi-panel-dokter .clinic-icon {
-    font-size: 3rem;
-    flex-shrink: 0;
-}
-
-body.fi-panel-dokter .clinic-details {
-    flex: 1;
+    margin-bottom: 0.5rem;
 }
 
 body.fi-panel-dokter .clinic-name {
-    font-size: 1.25rem;
+    font-size: 0.875rem;
     font-weight: 600;
     color: #1f2937;
-    margin-bottom: 0.25rem;
 }
 
 body.fi-panel-dokter.dark .clinic-name {
     color: #f9fafb;
 }
 
-body.fi-panel-dokter .clinic-coords,
 body.fi-panel-dokter .clinic-radius {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: #6b7280;
-    margin-bottom: 0.125rem;
 }
 
-body.fi-panel-dokter.dark .clinic-coords,
 body.fi-panel-dokter.dark .clinic-radius {
     color: #9ca3af;
 }
 
-/* Location Separator */
-body.fi-panel-dokter .location-separator {
-    height: 1px;
-    background: linear-gradient(to right, transparent, #e5e7eb, transparent);
-    margin: 1rem 0;
+body.fi-panel-dokter .distance-display {
+    text-align: center;
+    padding: 0.5rem;
+    background: rgba(243, 244, 246, 0.8);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(229, 231, 235, 0.5);
 }
 
-body.fi-panel-dokter.dark .location-separator {
-    background: linear-gradient(to right, transparent, #374151, transparent);
+body.fi-panel-dokter.dark .distance-display {
+    background: rgba(55, 65, 81, 0.8);
+    border-color: rgba(75, 85, 99, 0.5);
 }
 
-/* User Location Info */
-body.fi-panel-dokter .user-location-info {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-}
-
-body.fi-panel-dokter .user-icon {
-    font-size: 2rem;
-    flex-shrink: 0;
-    margin-top: 0.25rem;
-}
-
-body.fi-panel-dokter .user-details {
-    flex: 1;
-}
-
-body.fi-panel-dokter .user-label {
-    font-size: 1rem;
+body.fi-panel-dokter #distance-text {
+    font-size: 0.875rem;
     font-weight: 500;
     color: #374151;
-    margin-bottom: 0.5rem;
 }
 
-body.fi-panel-dokter.dark .user-label {
+body.fi-panel-dokter.dark #distance-text {
     color: #d1d5db;
 }
 
-body.fi-panel-dokter .user-coords {
-    font-size: 0.875rem;
-    color: #1f2937;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    background: #f9fafb;
-    padding: 0.5rem;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
-    margin-bottom: 0.5rem;
+/* Leaflet Mobile Customizations */
+body.fi-panel-dokter .leaflet-container {
+    background: #f8fafc;
 }
 
-body.fi-panel-dokter.dark .user-coords {
-    color: #e5e7eb;
-    background: #111827;
-    border-color: #374151;
+body.fi-panel-dokter.dark .leaflet-container {
+    background: #1e293b;
+    filter: brightness(0.9) contrast(1.1);
 }
 
-body.fi-panel-dokter .distance-info {
-    font-size: 0.875rem;
-    font-weight: 500;
-    padding: 0.5rem;
-    border-radius: 0.5rem;
-    background: #f3f4f6;
-    border: 1px solid #d1d5db;
-}
-
-body.fi-panel-dokter.dark .distance-info {
-    background: #374151;
-    border-color: #4b5563;
-}
-
-body.fi-panel-dokter .action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding: 0 1rem;
-}
-
-body.fi-panel-dokter .check-button {
-    width: 100%;
-    padding: 1.5rem 2rem;
-    border: none;
-    border-radius: 1rem;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.15);
-    min-height: 60px;
+/* Custom Clinic Marker */
+body.fi-panel-dokter .clinic-marker {
+    background: transparent !important;
+    border: none !important;
+    font-size: 2rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
+/* Locate Control Styling */
+body.fi-panel-dokter .leaflet-control-locate {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(229, 231, 235, 0.5) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+body.fi-panel-dokter.dark .leaflet-control-locate {
+    background: rgba(31, 41, 55, 0.9) !important;
+    border-color: rgba(75, 85, 99, 0.5) !important;
+}
+
+body.fi-panel-dokter .leaflet-control-locate a {
+    background-color: transparent !important;
+    color: #374151 !important;
+    font-size: 1.25rem !important;
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+}
+
+body.fi-panel-dokter.dark .leaflet-control-locate a {
+    color: #d1d5db !important;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+    body.fi-panel-dokter .map-container {
+        height: 50vh;
+        margin-bottom: 1.5rem;
+    }
+    
+    body.fi-panel-dokter .location-info-overlay {
+        top: 0.75rem;
+        left: 0.75rem;
+        right: 0.75rem;
+        padding: 0.75rem;
+    }
+    
+    body.fi-panel-dokter .clinic-name {
+        font-size: 0.8rem;
+    }
+    
+    body.fi-panel-dokter .clinic-radius {
+        font-size: 0.7rem;
+    }
+}
+
+/* Action Buttons - Enhanced Glassmorphic Design */
+body.fi-panel-dokter .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 0 1rem;
+    position: relative;
+}
+
+/* Glassmorphic Button Base */
+body.fi-panel-dokter .check-button {
+    width: 100%;
+    padding: 1.75rem;
+    border: none;
+    border-radius: 1.25rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    
+    /* Glassmorphic base */
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 8px 32px 0 rgba(31, 38, 135, 0.37),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Check In Button - Premium Gold Glassmorphic */
 body.fi-panel-dokter .check-in-button {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    background: linear-gradient(135deg, 
+        rgba(251, 191, 36, 0.9) 0%, 
+        rgba(245, 158, 11, 0.9) 50%,
+        rgba(217, 119, 6, 0.9) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    box-shadow: 
+        0 8px 32px 0 rgba(251, 191, 36, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 0 1px rgba(251, 191, 36, 0.1);
+}
+
+body.fi-panel-dokter .check-in-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.2), 
+        transparent);
+    transition: left 0.6s ease;
 }
 
 body.fi-panel-dokter .check-in-button:hover {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px 0 rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg, 
+        rgba(245, 158, 11, 0.95) 0%, 
+        rgba(217, 119, 6, 0.95) 50%,
+        rgba(180, 83, 9, 0.95) 100%);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 
+        0 20px 40px 0 rgba(251, 191, 36, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 0 0 1px rgba(251, 191, 36, 0.2);
 }
 
+body.fi-panel-dokter .check-in-button:hover::before {
+    left: 100%;
+}
+
+/* Check Out Button - Premium Orange Glassmorphic */
 body.fi-panel-dokter .check-out-button {
-    background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+    background: linear-gradient(135deg, 
+        rgba(251, 146, 60, 0.9) 0%, 
+        rgba(249, 115, 22, 0.9) 50%,
+        rgba(234, 88, 12, 0.9) 100%);
+    border: 1px solid rgba(251, 146, 60, 0.3);
+    box-shadow: 
+        0 8px 32px 0 rgba(251, 146, 60, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 0 1px rgba(251, 146, 60, 0.1);
+}
+
+body.fi-panel-dokter .check-out-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.2), 
+        transparent);
+    transition: left 0.6s ease;
 }
 
 body.fi-panel-dokter .check-out-button:hover {
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px 0 rgba(249, 115, 22, 0.3);
+    background: linear-gradient(135deg, 
+        rgba(249, 115, 22, 0.95) 0%, 
+        rgba(234, 88, 12, 0.95) 50%,
+        rgba(194, 65, 12, 0.95) 100%);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 
+        0 20px 40px 0 rgba(251, 146, 60, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 0 0 1px rgba(251, 146, 60, 0.2);
+}
+
+body.fi-panel-dokter .check-out-button:hover::before {
+    left: 100%;
+}
+
+/* Button Content Styling */
+body.fi-panel-dokter .button-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+    z-index: 2;
+}
+
+body.fi-panel-dokter .button-icon {
+    font-size: 1.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+body.fi-panel-dokter .button-text {
+    text-align: left;
+}
+
+body.fi-panel-dokter .button-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+body.fi-panel-dokter .button-subtitle {
+    font-size: 0.875rem;
+    font-weight: 500;
+    opacity: 0.9;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Active State Animation */
+body.fi-panel-dokter .check-button:active {
+    transform: translateY(-2px) scale(0.98);
+    transition: all 0.1s ease;
+}
+
+/* Dark Mode Enhancements */
+body.fi-panel-dokter.dark .check-button {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+body.fi-panel-dokter.dark .check-in-button {
+    background: linear-gradient(135deg, 
+        rgba(251, 191, 36, 0.8) 0%, 
+        rgba(245, 158, 11, 0.8) 50%,
+        rgba(217, 119, 6, 0.8) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+body.fi-panel-dokter.dark .check-out-button {
+    background: linear-gradient(135deg, 
+        rgba(251, 146, 60, 0.8) 0%, 
+        rgba(249, 115, 22, 0.8) 50%,
+        rgba(234, 88, 12, 0.8) 100%);
+    border: 1px solid rgba(251, 146, 60, 0.2);
 }
 
 body.fi-panel-dokter .check-button:active {
@@ -649,10 +1031,37 @@ body.fi-panel-dokter .check-button:disabled:hover {
         margin-bottom: 1.5rem;
     }
     
+    /* Enhanced mobile button styling */
     body.fi-panel-dokter .check-button {
-        padding: 1.25rem 1.5rem;
+        padding: 1.5rem;
         font-size: 1.125rem;
-        min-height: 56px;
+        min-height: 70px;
+        border-radius: 1rem;
+    }
+    
+    body.fi-panel-dokter .button-content {
+        gap: 0.75rem;
+    }
+    
+    body.fi-panel-dokter .button-icon {
+        font-size: 1.25rem;
+    }
+    
+    body.fi-panel-dokter .button-title {
+        font-size: 1rem;
+    }
+    
+    body.fi-panel-dokter .button-subtitle {
+        font-size: 0.8rem;
+    }
+    
+    /* Optimized glassmorphic effects for mobile */
+    body.fi-panel-dokter .check-button::before {
+        transition: left 0.4s ease;
+    }
+    
+    body.fi-panel-dokter .check-button:hover {
+        transform: translateY(-2px) scale(1.01);
     }
     
     /* Hide sidebar completely on mobile for presensi page */
@@ -679,4 +1088,118 @@ body.fi-panel-dokter .check-button:disabled:hover {
         grid-template-columns: repeat(4, 1fr);
         gap: 1.5rem;
     }
+    
+    /* Enhanced desktop button effects */
+    body.fi-panel-dokter .check-button {
+        min-height: 90px;
+        padding: 2rem;
+    }
+    
+    body.fi-panel-dokter .button-icon {
+        font-size: 1.75rem;
+    }
+    
+    body.fi-panel-dokter .button-title {
+        font-size: 1.25rem;
+    }
+    
+    body.fi-panel-dokter .button-subtitle {
+        font-size: 1rem;
+    }
+}
+
+/* Advanced Glassmorphic Effects */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 
+            0 8px 32px 0 rgba(31, 38, 135, 0.37),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        box-shadow: 
+            0 12px 40px 0 rgba(31, 38, 135, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            0 0 20px rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* Enhanced hover effects with shimmer */
+body.fi-panel-dokter .check-button:hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.1), 
+        transparent);
+    animation: shimmer 0.8s ease;
+}
+
+/* Pulse effect for active buttons */
+body.fi-panel-dokter .check-button:not(.disabled):hover {
+    animation: pulse-glow 2s infinite;
+}
+
+/* Frosted glass effect enhancement */
+body.fi-panel-dokter .check-button {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Neon glow effect for premium feel */
+body.fi-panel-dokter .check-in-button {
+    box-shadow: 
+        0 8px 32px 0 rgba(251, 191, 36, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 0 1px rgba(251, 191, 36, 0.1),
+        0 0 20px rgba(251, 191, 36, 0.1);
+}
+
+body.fi-panel-dokter .check-out-button {
+    box-shadow: 
+        0 8px 32px 0 rgba(251, 146, 60, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 0 1px rgba(251, 146, 60, 0.1),
+        0 0 20px rgba(251, 146, 60, 0.1);
+}
+
+/* Enhanced disabled state with glassmorphic effect */
+body.fi-panel-dokter .check-button.disabled,
+body.fi-panel-dokter .check-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    filter: grayscale(0.3) blur(0.5px);
+    background: rgba(107, 114, 128, 0.3) !important;
+    border: 1px solid rgba(107, 114, 128, 0.2) !important;
+    box-shadow: 
+        0 4px 16px 0 rgba(107, 114, 128, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Success state animation */
+body.fi-panel-dokter .check-button.success {
+    background: linear-gradient(135deg, 
+        rgba(16, 185, 129, 0.9) 0%, 
+        rgba(5, 150, 105, 0.9) 50%,
+        rgba(4, 120, 87, 0.9) 100%) !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    box-shadow: 
+        0 8px 32px 0 rgba(16, 185, 129, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 0 1px rgba(16, 185, 129, 0.1),
+        0 0 20px rgba(16, 185, 129, 0.1) !important;
+    animation: pulse-glow 1s infinite;
 }

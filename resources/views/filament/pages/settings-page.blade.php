@@ -4,7 +4,7 @@
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
             <div class="px-4 py-5 sm:p-6">
                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Menu Pengaturan</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- User Management -->
                     <a href="/settings/users" 
                        class="block p-6 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
@@ -44,6 +44,20 @@
                             <div>
                                 <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Backup & Export</h4>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">Export dan import data master</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Telegram Notifications -->
+                    <a href="/settings/telegram" 
+                       class="block p-6 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                        <div class="flex items-center">
+                            <svg class="w-8 h-8 text-blue-500 mr-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>
+                            </svg>
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Notifikasi Telegram</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Setup bot dan notifikasi role-based</p>
                             </div>
                         </div>
                     </a>

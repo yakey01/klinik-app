@@ -34,7 +34,7 @@ class PendapatanResource extends Resource
     
     protected static ?string $modelLabel = 'Pendapatan';
     
-    protected static ?string $pluralModelLabel = 'Pendapatan';
+    protected static ?string $pluralModelLabel = 'Master Pendapatan';
     
     protected static ?string $navigationBadgeTooltip = 'Jumlah pendapatan pending';
     

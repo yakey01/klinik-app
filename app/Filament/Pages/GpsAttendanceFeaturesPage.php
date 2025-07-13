@@ -11,7 +11,7 @@ class GpsAttendanceFeaturesPage extends Page
     protected static ?string $navigationLabel = 'Aplikasi Absensi Berbasis GPS';
     protected static ?string $title = 'Aplikasi Absensi Berbasis GPS';
     protected static ?string $navigationGroup = 'Presensi';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 40;
 
     public function getTitle(): string
     {

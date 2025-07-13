@@ -299,13 +299,15 @@ class AttendanceResource extends Resource
     {
         return [
             'index' => Pages\ListAttendances::route('/'),
+            'create' => Pages\CreateAttendance::route('/create'),
             'view' => Pages\ViewAttendance::route('/{record}'),
+            'edit' => Pages\EditAttendance::route('/{record}/edit'),
         ];
     }
 
     public static function canCreate(): bool
     {
-        return false; // Disable manual creation
+        return true; // Allow manual creation
     }
 
     public static function canEdit(Model $record): bool

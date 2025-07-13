@@ -5,6 +5,8 @@ namespace App\Filament\Dokter\Pages;
 use Filament\Pages\Page;
 use App\Models\DokterPresensi;
 use App\Models\User;
+use App\Models\WorkLocation;
+use App\Models\LocationValidation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Contracts\Support\Htmlable;
 use Filament\Notifications\Notification;
@@ -13,19 +15,37 @@ use Carbon\Carbon;
 class PresensiMobilePage extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
-    protected static ?string $navigationLabel = 'Presensi Mobile';
+    protected static ?string $navigationLabel = 'Presensi';
     protected static ?int $navigationSort = 2;
-    protected static string $view = 'filament.dokter.pages.presensi-mobile';
+    protected static string $view = 'filament.dokter.pages.presensi-mobile-premium';
     protected static string $routePath = '/presensi-mobile';
     
     public function getTitle(): string|Htmlable
     {
-        return 'Presensi';
+        return 'Beranda';
     }
     
     public function getHeading(): string|Htmlable
     {
         return '';
+    }
+    
+    public function getDokterInfo(): array
+    {
+        $user = Auth::user();
+        return [
+            'name' => 'dr. ' . $user->name,
+            'specialty' => 'Dokter Umum',
+            'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=3b82f6&color=fff&size=80'
+        ];
+    }
+    
+    public function getMeritInfo(): array
+    {
+        return [
+            'target' => 0,
+            'deficit' => 0
+        ];
     }
 
     public $user;
@@ -33,11 +53,23 @@ class PresensiMobilePage extends Page
     public $canCheckin;
     public $canCheckout;
     public $currentTime;
+    public $workLocations;
+    public $primaryLocation;
+    
+    // Livewire properties for location data
+    public $userLatitude;
+    public $userLongitude; 
+    public $userAccuracy;
 
     public function mount(): void
     {
         $this->user = Auth::user();
         $this->currentTime = Carbon::now('Asia/Jakarta');
+        
+        // Get active work locations from admin geofencing
+        $this->workLocations = WorkLocation::where('is_active', true)->get();
+        $this->primaryLocation = $this->workLocations->where('location_type', 'main_office')->first() 
+                                ?? $this->workLocations->first();
         
         // Get today's attendance
         $this->todayAttendance = DokterPresensi::where('dokter_id', Auth::id())
@@ -50,18 +82,50 @@ class PresensiMobilePage extends Page
     }
 
     // 🚀 New 2024 method: Check-in with location data
-    public function checkinWithLocation($locationData)
+    public function checkinWithLocation()
     {
+        // Validate location data exists
+        if (!$this->userLatitude || !$this->userLongitude) {
+            Notification::make()
+                ->title('❌ Lokasi Diperlukan')
+                ->body('GPS tidak terdeteksi. Aktifkan GPS dan coba lagi.')
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        $locationData = [
+            'latitude' => $this->userLatitude,
+            'longitude' => $this->userLongitude,
+            'accuracy' => $this->userAccuracy ?? 0
+        ];
+        
         return $this->processAttendance('checkin', $locationData);
     }
     
     // 🚀 New 2024 method: Check-out with location data  
-    public function checkoutWithLocation($locationData)
+    public function checkoutWithLocation()
     {
+        // Validate location data exists
+        if (!$this->userLatitude || !$this->userLongitude) {
+            Notification::make()
+                ->title('❌ Lokasi Diperlukan')
+                ->body('GPS tidak terdeteksi. Aktifkan GPS dan coba lagi.')
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        $locationData = [
+            'latitude' => $this->userLatitude,
+            'longitude' => $this->userLongitude,
+            'accuracy' => $this->userAccuracy ?? 0
+        ];
+        
         return $this->processAttendance('checkout', $locationData);
     }
     
-    // 🎯 Unified attendance processing method
+    // 🎯 Unified attendance processing method with advanced geofencing
     private function processAttendance($action, $locationData)
     {
         try {
@@ -89,44 +153,86 @@ class PresensiMobilePage extends Page
             $userLat = floatval($userLat);
             $userLng = floatval($userLng);
 
-            // Validate geofencing (server-side)
-            $adminLat = -6.1754;
-            $adminLng = 106.8272;
-            $allowedRadius = 100; // meters
+            // 🏢 Advanced geofencing validation using WorkLocation model
+            $validLocation = null;
+            $validationResults = [];
             
-            $distance = $this->calculateDistance($userLat, $userLng, $adminLat, $adminLng);
+            foreach ($this->workLocations as $location) {
+                $isWithinGeofence = $location->isWithinGeofence($userLat, $userLng, $accuracy);
+                $distance = $location->calculateDistance($userLat, $userLng);
+                
+                // Log validation attempt
+                $validation = LocationValidation::create([
+                    'user_id' => Auth::id(),
+                    'work_location_id' => $location->id,
+                    'latitude' => $userLat,
+                    'longitude' => $userLng,
+                    'accuracy' => $accuracy,
+                    'is_within_zone' => $isWithinGeofence,
+                    'distance_meters' => $distance,
+                    'validation_type' => $action,
+                    'validation_time' => Carbon::now('Asia/Jakarta'),
+                    'additional_data' => [
+                        'user_agent' => request()->userAgent(),
+                        'ip_address' => request()->ip(),
+                        'location_name' => $location->name,
+                        'radius_meters' => $location->radius_meters,
+                        'strict_geofence' => $location->strict_geofence
+                    ]
+                ]);
+                
+                $validationResults[] = [
+                    'location' => $location,
+                    'distance' => $distance,
+                    'isValid' => $isWithinGeofence,
+                    'validation' => $validation
+                ];
+                
+                if ($isWithinGeofence) {
+                    $validLocation = $location;
+                    break; // Found valid location, stop checking
+                }
+            }
             
-            if ($distance > $allowedRadius) {
+            if (!$validLocation) {
+                // Find closest location for better error message
+                $closestResult = collect($validationResults)->sortBy('distance')->first();
+                $closestLocation = $closestResult['location'];
+                $closestDistance = $closestResult['distance'];
+                
                 Notification::make()
                     ->title('❌ Di Luar Area Presensi')
-                    ->body("Jarak: {$distance}m. Maksimal: {$allowedRadius}m dari klinik.")
+                    ->body("Terdekat: {$closestLocation->name} ({$closestDistance}m). Maks: {$closestLocation->radius_meters}m")
                     ->danger()
+                    ->duration(8000)
                     ->send();
                 return;
             }
 
             $now = Carbon::now('Asia/Jakarta');
+            $validDistance = $validLocation->calculateDistance($userLat, $userLng);
             
             if ($action === 'checkin') {
-                // Create new attendance record
+                // Create new attendance record with WorkLocation reference
                 DokterPresensi::create([
                     'dokter_id' => Auth::id(),
                     'tanggal' => $now->toDateString(),
                     'jam_masuk' => $now->toTimeString(),
                     'status' => $now->hour < 8 ? 'tepat_waktu' : 'terlambat',
-                    'keterangan' => "Mobile GPS - Lat: {$userLat}, Lng: {$userLng}, Jarak: {$distance}m, Akurasi: ±{$accuracy}m"
+                    'keterangan' => "📍 {$validLocation->name} - GPS: {$userLat}, {$userLng} | Jarak: {$validDistance}m | Akurasi: ±{$accuracy}m | Tipe: {$validLocation->location_type}"
                 ]);
 
                 Notification::make()
                     ->title('✅ Check In Berhasil')
-                    ->body("Masuk tercatat {$now->format('H:i')} - {$distance}m dari klinik")
+                    ->body("Masuk tercatat {$now->format('H:i')} di {$validLocation->name} ({$validDistance}m)")
                     ->success()
+                    ->duration(6000)
                     ->send();
                     
             } elseif ($action === 'checkout') {
                 if ($this->todayAttendance) {
                     $currentKeterangan = $this->todayAttendance->keterangan ?? '';
-                    $checkoutInfo = "Checkout: Lat: {$userLat}, Lng: {$userLng}, Jarak: {$distance}m, Akurasi: ±{$accuracy}m";
+                    $checkoutInfo = "📤 Checkout: {$validLocation->name} - GPS: {$userLat}, {$userLng} | Jarak: {$validDistance}m | Akurasi: ±{$accuracy}m";
                     
                     $this->todayAttendance->update([
                         'jam_pulang' => $now->toTimeString(),
@@ -136,8 +242,9 @@ class PresensiMobilePage extends Page
 
                     Notification::make()
                         ->title('✅ Check Out Berhasil')
-                        ->body("Pulang tercatat {$now->format('H:i')} - {$distance}m dari klinik")
+                        ->body("Pulang tercatat {$now->format('H:i')} dari {$validLocation->name} ({$validDistance}m)")
                         ->success()
+                        ->duration(6000)
                         ->send();
                 }
             }

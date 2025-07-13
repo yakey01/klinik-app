@@ -19,70 +19,63 @@ class TelegramController extends Controller
 
     public function index()
     {
-        $roles = ['petugas', 'bendahara', 'admin', 'manajer'];
-        $settings = [];
+        $telegramSettings = TelegramSetting::all();
+        $adminChatId = SystemConfig::where('key', 'TELEGRAM_ADMIN_CHAT_ID')->value('value');
         
-        foreach ($roles as $role) {
-            $setting = TelegramSetting::where('role', $role)->first();
-            if (!$setting) {
-                $setting = TelegramSetting::create([
-                    'role' => $role,
-                    'chat_id' => null,
-                    'notification_types' => TelegramSetting::getRoleNotifications($role),
-                    'is_active' => true,
-                ]);
-            }
-            $settings[$role] = $setting;
-        }
-
-        $telegramToken = SystemConfig::get('telegram_bot_token', '');
-        $notificationTypes = TelegramSetting::getAvailableNotificationTypes();
-
-        return view('settings.telegram.index', compact('settings', 'telegramToken', 'notificationTypes'));
+        return view('settings.telegram.simple', compact('telegramSettings', 'adminChatId'));
     }
 
     public function update(Request $request)
     {
         $request->validate([
-            'telegram_bot_token' => 'nullable|string',
-            'settings' => 'required|array',
-            'settings.*.chat_id' => 'nullable|string',
-            'settings.*.notification_types' => 'nullable|array',
-            'settings.*.is_active' => 'boolean',
+            'admin_chat_id' => 'nullable|string',
+            'roles' => 'nullable|array',
+            'roles.*.chat_id' => 'nullable|string',
+            'roles.*.notifications' => 'nullable|array',
+            'roles.*.is_active' => 'nullable|boolean',
         ]);
 
-        // Save telegram bot token
-        if ($request->has('telegram_bot_token')) {
-            SystemConfig::set('telegram_bot_token', $request->telegram_bot_token, 'telegram', 'Telegram Bot Token');
-        }
-
-        // Update settings for each role
-        foreach ($request->settings as $role => $data) {
-            TelegramSetting::updateOrCreate(
-                ['role' => $role],
+        // Save admin chat ID
+        if ($request->has('admin_chat_id')) {
+            SystemConfig::updateOrCreate(
+                ['key' => 'TELEGRAM_ADMIN_CHAT_ID'],
                 [
-                    'chat_id' => $data['chat_id'] ?? null,
-                    'notification_types' => $data['notification_types'] ?? [],
-                    'is_active' => $data['is_active'] ?? false,
+                    'value' => $request->admin_chat_id,
+                    'description' => 'Chat ID admin utama untuk fallback notifikasi',
+                    'type' => 'text'
                 ]
             );
         }
 
-        return redirect()->route('settings.telegram.index')->with('success', 'Pengaturan Telegram berhasil disimpan.');
+        // Update settings for each role
+        if ($request->has('roles')) {
+            foreach ($request->roles as $role => $data) {
+                TelegramSetting::updateOrCreate(
+                    ['role' => $role],
+                    [
+                        'chat_id' => $data['chat_id'] ?? null,
+                        'notification_types' => $data['notifications'] ?? [],
+                        'is_active' => isset($data['is_active']) ? true : false,
+                    ]
+                );
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengaturan Telegram berhasil disimpan.'
+        ]);
     }
 
     public function testNotification(Request $request)
     {
         $request->validate([
-            'role' => 'required|string|in:petugas,bendahara,admin,manajer',
             'chat_id' => 'required|string',
+            'message' => 'nullable|string',
         ]);
 
         try {
-            $message = "🤖 Test notifikasi untuk role: {$request->role}\n\n";
-            $message .= "✅ Konfigurasi Telegram berhasil!\n";
-            $message .= "📅 " . now()->format('d/m/Y H:i:s') . "\n";
-            $message .= "🏥 Dokterku - SAHABAT MENUJU SEHAT";
+            $message = $request->message ?? "🧪 Test koneksi Telegram Bot berhasil!\n\nBot: Dokterku\nWaktu: " . now()->format('d M Y H:i:s');
 
             $result = $this->telegramService->sendMessage($request->chat_id, $message);
 

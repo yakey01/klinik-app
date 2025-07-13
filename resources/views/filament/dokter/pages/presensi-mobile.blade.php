@@ -1,601 +1,468 @@
 <x-filament-panels::page>
     @push('styles')
-    <link rel="stylesheet" href="{{ asset('build/assets/css/dokter-mobile-D_kgz9Xy.css') }}">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                        '4xl': '72px',
+                        '5xl': '96px',
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
+                        'gradient-x': 'gradient-x 15s ease infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        'pulse-soft': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.7 },
+                        },
+                        'gradient-x': {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Hide desktop sidebar completely */
+        @media (max-width: 1024px) {
+            .fi-sidebar {
+                display: none !important;
+            }
+            .fi-main {
+                margin-left: 0 !important;
+            }
+            .fi-topbar {
+                display: none !important;
+            }
+        }
+
+        /* Glassmorphic styles */
+        .glass {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .glass-strong {
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        
+        .gradient-mesh {
+            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
+            background-size: 400% 400%;
+            animation: gradient-x 15s ease infinite;
+        }
+        
+        .text-shadow-glow {
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+        
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .shine-effect:hover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shine 0.5s ease-in-out;
+        }
+        
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+    </style>
     @endpush
     
-    <div class="dokter-presensi-mobile">
-        <!-- Simple Location Display Container -->
-        <div class="map-container">
-            <div id="location-display" class="location-display-card">
-                <div class="location-header">
-                    <div class="clinic-info">
-                        <div class="clinic-icon">🏥</div>
-                        <div class="clinic-details">
-                            <div class="clinic-name">Klinik Dokterku</div>
-                            <div class="clinic-coords">📍 -6.1754, 106.8272</div>
-                            <div class="clinic-radius">📏 Radius: 100 meter</div>
+    <!-- Glassmorphic Background -->
+    <div class="min-h-screen gradient-mesh overflow-x-hidden relative">
+        <!-- Floating Background Elements -->
+        <div class="fixed inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full animate-float"></div>
+            <div class="absolute top-32 right-16 w-16 h-16 bg-white/5 rounded-full animate-float" style="animation-delay: 1s;"></div>
+            <div class="absolute bottom-32 left-1/4 w-12 h-12 bg-white/15 rounded-full animate-float" style="animation-delay: 2s;"></div>
+            <div class="absolute bottom-16 right-1/3 w-24 h-24 bg-white/8 rounded-full animate-float" style="animation-delay: 3s;"></div>
+            
+            <!-- Gradient Orbs -->
+            <div class="absolute top-1/4 right-8 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-xl animate-pulse-soft"></div>
+            <div class="absolute bottom-1/4 left-8 w-40 h-40 bg-gradient-to-br from-blue-400/15 to-cyan-400/15 rounded-full blur-2xl animate-pulse-soft" style="animation-delay: 1.5s;"></div>
+        </div>
+
+        <!-- Main Container -->
+        <div class="relative z-10 max-w-md mx-auto min-h-screen p-6">
+            
+            <!-- Profile Header -->
+            <header class="mb-8 pt-8">
+                <div class="glass-strong rounded-3xl p-6 mb-6 shine-effect">
+                    <div class="flex items-center space-x-4">
+                        <!-- Avatar -->
+                        <div class="relative">
+                            <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                                {{ strtoupper(substr($user->name ?? 'DR', 0, 2)) }}
+                            </div>
+                            <!-- Online Status -->
+                            <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                        </div>
+                        
+                        <!-- User Info -->
+                        <div class="flex-1">
+                            <h1 class="text-white text-xl font-bold text-shadow-glow">{{ $user->name ?? 'Dr. Dokter' }}</h1>
+                            <p class="text-white/80 text-sm">{{ $user->role->name ?? 'Dokter Umum' }}</p>
+                            <div class="flex items-center mt-1">
+                                <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                                <span class="text-white/70 text-xs font-medium">Online</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="location-separator"></div>
-                
-                <div id="user-location-info" class="user-location-info">
-                    <div class="user-icon">👤</div>
-                    <div class="user-details">
-                        <div class="user-label">Lokasi Anda:</div>
-                        <div id="user-coords-text" class="user-coords">Mengambil lokasi...</div>
-                        <div id="distance-info" class="distance-info">-</div>
+            </header>
+
+            <!-- Current Time & Date -->
+            <section class="mb-8">
+                <div class="glass-strong rounded-3xl p-8 text-center">
+                    <!-- Date -->
+                    <div id="current-date" class="text-white/80 text-lg font-medium mb-4">Tuesday, July 13, 2025</div>
+                    
+                    <!-- Time -->
+                    <div id="current-time" class="text-white text-6xl font-thin mb-4 text-shadow-glow">17:30</div>
+                    
+                    <!-- Location -->
+                    <div class="glass rounded-xl p-3 mx-4">
+                        <div class="flex items-center justify-center space-x-2">
+                            <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span id="coordinates-value" class="text-white/70 text-sm font-mono">-6.4074650, 106.8062669</span>
+                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- Location Status -->
-        <div class="location-status-container">
-            <div id="location-status" class="location-status loading">
-                <div class="status-icon">📍</div>
-                <div class="status-text">Mengambil lokasi...</div>
-            </div>
-            <div id="coordinates-display" class="coordinates-display">
-                <span id="user-coordinates">Koordinat: -</span>
-            </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <button 
-                id="checkin-button"
-                wire:click="checkin"
-                wire:loading.attr="disabled"
-                wire:loading.class="opacity-50"
-                class="check-button check-in-button"
-                disabled
-                style="display: {{ $canCheckin ? 'flex' : 'none' }}"
-            >
-                <span wire:loading.remove wire:target="checkin">Check In</span>
-                <span wire:loading wire:target="checkin">Processing...</span>
-            </button>
-            
-            <button 
-                id="checkout-button"
-                wire:click="checkout"
-                wire:loading.attr="disabled"
-                wire:loading.class="opacity-50"
-                class="check-button check-out-button"
-                disabled
-                style="display: {{ $canCheckout ? 'flex' : 'none' }}"
-            >
-                <span wire:loading.remove wire:target="checkout">Check Out</span>
-                <span wire:loading wire:target="checkout">Processing...</span>
-            </button>
-
-            @if($todayAttendance && $todayAttendance->jam_pulang)
-                <div class="completed-message">
-                    <div class="completed-title">✅ Presensi Selesai</div>
-                    <div class="completed-subtitle">
-                        Masuk: {{ Carbon\Carbon::parse($todayAttendance->jam_masuk)->format('H:i') }} - 
-                        Pulang: {{ Carbon\Carbon::parse($todayAttendance->jam_pulang)->format('H:i') }}
+            <!-- Action Buttons -->
+            <section class="mb-8 space-y-4">
+                <!-- Check In Button -->
+                <button 
+                    id="checkin-button"
+                    wire:click="checkinWithLocation"
+                    wire:loading.attr="disabled"
+                    class="w-full glass-strong rounded-2xl p-6 hover:glass transition-all duration-300 hover:scale-105 hover:shadow-2xl shine-effect group"
+                    disabled
+                    style="display: {{ $canCheckin ? 'block' : 'none' }}"
+                >
+                    <div class="flex items-center justify-center space-x-4">
+                        <div class="p-3 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1 text-left">
+                            <div class="text-white text-lg font-semibold">
+                                <span wire:loading.remove wire:target="checkinWithLocation">Check In</span>
+                                <span wire:loading wire:target="checkinWithLocation">Processing...</span>
+                            </div>
+                            <div class="text-white/70 text-sm">Start your day</div>
+                        </div>
+                        <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div wire:loading.remove wire:target="checkinWithLocation">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </div>
+                            <div wire:loading wire:target="checkinWithLocation">
+                                <div class="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            @endif
-
-            <div id="location-error" class="location-error" style="display: none;">
-                <div class="error-title">⚠️ Akses Lokasi Diperlukan</div>
-                <div class="error-subtitle">Izinkan akses lokasi untuk melakukan presensi</div>
+                </button>
                 
-                <!-- Manual Location Input for Testing -->
-                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #d97706;">
-                    <div style="font-size: 0.75rem; margin-bottom: 0.5rem; font-weight: 600;">🔧 Mode Debug:</div>
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                        <input type="number" id="manual-lat" placeholder="Latitude" 
-                               style="flex: 1; padding: 0.375rem; font-size: 0.75rem; border: 1px solid #d97706; border-radius: 0.25rem;"
-                               step="any" value="-6.175400">
-                        <input type="number" id="manual-lng" placeholder="Longitude" 
-                               style="flex: 1; padding: 0.375rem; font-size: 0.75rem; border: 1px solid #d97706; border-radius: 0.25rem;"
-                               step="any" value="106.827200">
+                <!-- Check Out Button -->
+                <button 
+                    id="checkout-button"
+                    wire:click="checkoutWithLocation"
+                    wire:loading.attr="disabled"
+                    class="w-full glass-strong rounded-2xl p-6 hover:glass transition-all duration-300 hover:scale-105 hover:shadow-2xl shine-effect group"
+                    disabled
+                    style="display: {{ $canCheckout ? 'block' : 'none' }}"
+                >
+                    <div class="flex items-center justify-center space-x-4">
+                        <div class="p-3 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1 text-left">
+                            <div class="text-white text-lg font-semibold">
+                                <span wire:loading.remove wire:target="checkoutWithLocation">Check Out</span>
+                                <span wire:loading wire:target="checkoutWithLocation">Processing...</span>
+                            </div>
+                            <div class="text-white/70 text-sm">End your shift</div>
+                        </div>
+                        <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div wire:loading.remove wire:target="checkoutWithLocation">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </div>
+                            <div wire:loading wire:target="checkoutWithLocation">
+                                <div class="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 0.25rem; margin-bottom: 0.5rem;">
-                        <button onclick="useManualLocation()" 
-                                style="flex: 1; padding: 0.5rem; font-size: 0.7rem; background: #d97706; color: white; border: none; border-radius: 0.25rem;">
-                            📍 Test Lokasi
-                        </button>
-                        <button onclick="getCurrentLocationDebug()" 
-                                style="flex: 1; padding: 0.5rem; font-size: 0.7rem; background: #059669; color: white; border: none; border-radius: 0.25rem;">
-                            🔄 Coba GPS
-                        </button>
+                </button>
+
+                @if($todayAttendance && $todayAttendance->jam_pulang)
+                    <div class="glass-strong rounded-2xl p-4 border border-green-400/30">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2 bg-green-400/20 rounded-lg">
+                                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">Presensi Completed!</div>
+                                <div class="text-white/70 text-sm">
+                                    Check In: {{ Carbon\Carbon::parse($todayAttendance->jam_masuk)->format('H:i') }} • 
+                                    Check Out: {{ Carbon\Carbon::parse($todayAttendance->jam_pulang)->format('H:i') }}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div id="debug-info" style="font-size: 0.65rem; color: #7c2d12; background: #fef3c7; padding: 0.5rem; border-radius: 0.25rem; margin-top: 0.5rem;"></div>
-                </div>
-            </div>
+                @endif
+            </section>
+
+            <!-- Bottom Spacing -->
+            <div class="h-8"></div>
         </div>
     </div>
 
     @push('scripts')
     <script>
-        // 🚀 Lightweight Geolocation System 2024
-        // Global variables
+        // 🌟 Glassmorphic Presensi System
         let currentUserLocation = null;
-        let watchId = null;
-        let isHTTPS = window.location.protocol === 'https:';
+        let locationWatchId = null;
+        let timeUpdateInterval = null;
         
-        // Admin geofencing coordinates (Jakarta)
-        const adminCoordinates = {lat: -6.1754, lng: 106.8272};
-        const geofenceRadius = 100; // 100 meter radius
+        // 🏢 Load work locations from admin geofencing system
+        const workLocations = @json($workLocations ?? []);
+        const primaryLocation = @json($primaryLocation ?? null);
 
         document.addEventListener('DOMContentLoaded', function() {
-            checkHTTPSRequirement();
-            initializeLocationDisplay();
-            requestLocationPermission();
+            startRealTimeClock();
+            startLocationTracking();
+            setupButtonListeners();
+            addTouchFeedback();
         });
-
-        // ✅ Check HTTPS requirement (mandatory in 2024)
-        function checkHTTPSRequirement() {
-            if (!isHTTPS && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-                updateLocationStatus('error', '🔒 HTTPS diperlukan untuk akses lokasi');
-                updateDebugInfo('❌ HTTPS diperlukan: Geolocation API memerlukan koneksi aman');
-                showLocationError();
-                return false;
+        
+        // Real-time clock with enhanced formatting
+        function startRealTimeClock() {
+            function updateDateTime() {
+                const now = new Date();
+                const timeOptions = {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'Asia/Jakarta',
+                    hour12: false
+                };
+                const dateOptions = {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    timeZone: 'Asia/Jakarta'
+                };
+                
+                document.getElementById('current-time').textContent = now.toLocaleTimeString('en-US', timeOptions);
+                document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', dateOptions);
             }
-            updateDebugInfo('✅ HTTPS: Koneksi aman terdeteksi');
-            return true;
+            
+            updateDateTime(); // Initial update
+            timeUpdateInterval = setInterval(updateDateTime, 1000); // Update every second
         }
         
-        // 📍 Initialize simple location display
-        function initializeLocationDisplay() {
-            updateDebugInfo('📍 Location display initialized');
-            // Simple display is already rendered in HTML, no external dependencies needed
+        // Add touch feedback for enhanced mobile experience
+        function addTouchFeedback() {
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.95)';
+                });
+                
+                button.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+                
+                button.addEventListener('touchcancel', function() {
+                    this.style.transform = '';
+                });
+            });
         }
 
-        // 📱 Request location permission using 2024 best practices
-        async function requestLocationPermission() {
+        // ⏰ Real-time clock - English format like design
+        function startRealTimeClock() {
+            function updateDateTime() {
+                const now = new Date();
+                
+                // Format English date like design: "Tuesday, Apr 23, 2024"
+                const dateOptions = { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric',
+                    timeZone: 'Asia/Jakarta'
+                };
+                const dateStr = now.toLocaleDateString('en-US', dateOptions);
+                
+                // Format time: "09:41" 
+                const timeOptions = {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'Asia/Jakarta',
+                    hour12: false
+                };
+                const timeStr = now.toLocaleTimeString('en-US', timeOptions);
+                
+                document.getElementById('current-date').textContent = dateStr;
+                document.getElementById('current-time').textContent = timeStr;
+            }
+            
+            updateDateTime(); // Initial update
+            timeUpdateInterval = setInterval(updateDateTime, 1000); // Update every second
+        }
+        
+        // 📍 Simple location tracking
+        function startLocationTracking() {
             if (!navigator.geolocation) {
-                updateLocationStatus('error', 'Geolocation tidak didukung browser');
-                updateDebugInfo('❌ Navigator.geolocation tidak tersedia');
-                showLocationError();
+                console.log('GPS not available');
                 return;
             }
 
-            updateDebugInfo('🔍 Checking geolocation support...');
-            updateLocationStatus('loading', 'Memeriksa dukungan lokasi...');
-
-            // Check permission status first (2024 best practice)
-            if (navigator.permissions) {
-                try {
-                    const permission = await navigator.permissions.query({name: 'geolocation'});
-                    updateDebugInfo(`🔐 Permission state: ${permission.state}`);
-                    
-                    switch(permission.state) {
-                        case 'granted':
-                            updateDebugInfo('✅ Permission already granted');
-                            startLocationTracking();
-                            break;
-                        case 'denied':
-                            updateLocationStatus('error', 'Akses lokasi ditolak permanen');
-                            updateDebugInfo('❌ Permission permanently denied. Reset in browser settings.');
-                            showLocationError();
-                            break;
-                        case 'prompt':
-                            updateDebugInfo('❓ Permission will be requested');
-                            updateLocationStatus('loading', 'Meminta izin akses lokasi...');
-                            startLocationTracking();
-                            break;
-                    }
-                } catch (error) {
-                    updateDebugInfo('⚠️ Permission API error, trying direct geolocation');
-                    startLocationTracking();
-                }
-            } else {
-                updateDebugInfo('⚠️ Permission API not available, trying direct geolocation');
-                startLocationTracking();
-            }
-        }
-
-        // 🔍 Start location tracking with 2024 optimized settings
-        function startLocationTracking() {
-            updateLocationStatus('loading', 'Mengambil lokasi GPS...');
-            updateDebugInfo('📰 Starting GPS location tracking...');
-            
-            // 2024 best practice: Progressive accuracy approach
-            const geoOptions = {
+            const options = {
                 enableHighAccuracy: true,
-                timeout: 10000,           // 10 seconds for mobile
-                maximumAge: 60000         // Accept 1 minute old location
+                timeout: 10000,
+                maximumAge: 60000
             };
 
-            // Try high accuracy first
+            // Get position and update coordinates display
             navigator.geolocation.getCurrentPosition(
                 function(position) {
-                    updateDebugInfo('✅ High accuracy GPS successful');
-                    handleLocationSuccess(position);
-                    startLocationWatching(position);
-                },
-                function(error) {
-                    updateDebugInfo(`❌ High accuracy failed: ${getErrorMessage(error)}`);
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
                     
-                    // Fallback to medium accuracy
-                    const mediumOptions = {
-                        enableHighAccuracy: false,
-                        timeout: 15000,
-                        maximumAge: 300000  // Accept 5 min old location
+                    // Store for button clicks
+                    currentUserLocation = {
+                        latitude: lat,
+                        longitude: lng,
+                        accuracy: position.coords.accuracy
                     };
                     
-                    updateLocationStatus('loading', 'Mencoba akurasi standar...');
-                    updateDebugInfo('🔄 Trying medium accuracy...');
+                    // Update coordinates display to match design format
+                    document.getElementById('coordinates-value').textContent = 
+                        `${lat.toFixed(7)}, ${lng.toFixed(7)}`;
                     
-                    navigator.geolocation.getCurrentPosition(
-                        function(position) {
-                            updateDebugInfo('✅ Medium accuracy GPS successful');
-                            handleLocationSuccess(position);
-                            startLocationWatching(position);
-                        },
-                        function(finalError) {
-                            updateDebugInfo(`❌ All GPS strategies failed: ${getErrorMessage(finalError)}`);
-                            handleLocationError(finalError);
-                        },
-                        mediumOptions
-                    );
+                    // Enable buttons if location found
+                    enableButtons();
                 },
-                geoOptions
-            );
-        }
-        
-        // Start watching position (lighter approach)
-        function startLocationWatching(initialPosition) {
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-            }
-            
-            watchId = navigator.geolocation.watchPosition(
-                handleLocationSuccess,
                 function(error) {
-                    updateDebugInfo(`⚠️ Watch error: ${getErrorMessage(error)}`);
-                    // Don't stop on watch errors, keep using last known position
+                    console.log('Location error:', error.message);
+                    // Keep default coordinates in design
                 },
-                {
-                    enableHighAccuracy: false, // Use lower accuracy for watching
-                    timeout: 20000,
-                    maximumAge: 120000  // Accept 2min old positions for watching
-                }
+                options
             );
-            
-            updateDebugInfo(`👁️ Started position watching (ID: ${watchId})`);
         }
 
-        // 🎯 Handle successful location detection
-        function handleLocationSuccess(position) {
-            const userLat = position.coords.latitude;
-            const userLng = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
-            const timestamp = new Date(position.timestamp);
-
-            // Store current location globally
-            currentUserLocation = {
-                latitude: userLat,
-                longitude: userLng,
-                accuracy: accuracy,
-                timestamp: timestamp
-            };
-
-            updateDebugInfo(`🎯 Location: ${userLat.toFixed(6)}, ${userLng.toFixed(6)} (±${Math.round(accuracy)}m)`);
-
-            // Update coordinates display
-            updateCoordinatesDisplay(userLat, userLng, accuracy, timestamp);
-
-            // Update simple location display
-            updateLocationDisplay(userLat, userLng, accuracy);
-
-            // Calculate distance using Haversine formula
-            const distance = calculateDistance(
-                adminCoordinates.lat, adminCoordinates.lng,
-                userLat, userLng
-            );
-
-            updateDebugInfo(`📏 Distance: ${distance.toFixed(1)}m from clinic (max: ${geofenceRadius}m)`);
-
-            // Check if user is within geofence
-            const isWithinGeofence = distance <= geofenceRadius;
-            updateGeofenceStatus(isWithinGeofence, distance);
-
-            hideLocationError();
-        }
-        
-        // 📍 Update simple location display (no external maps)
-        function updateLocationDisplay(userLat, userLng, accuracy) {
-            const userCoordsElement = document.getElementById('user-coords-text');
-            const distanceElement = document.getElementById('distance-info');
+        // 🔘 Simple button setup with Livewire integration
+        function setupButtonListeners() {
+            const checkinBtn = document.getElementById('checkin-button');
+            const checkoutBtn = document.getElementById('checkout-button');
             
-            if (userCoordsElement) {
-                userCoordsElement.innerHTML = `📍 ${userLat.toFixed(6)}, ${userLng.toFixed(6)}<br><small>Akurasi: ±${Math.round(accuracy)}m</small>`;
+            if (checkinBtn) {
+                checkinBtn.addEventListener('click', function(e) {
+                    if (!currentUserLocation) {
+                        alert('Please wait for location detection...');
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    // Set location data to Livewire properties before action
+                    @this.set('userLatitude', currentUserLocation.latitude);
+                    @this.set('userLongitude', currentUserLocation.longitude);
+                    @this.set('userAccuracy', currentUserLocation.accuracy);
+                });
             }
             
-            const distance = calculateDistance(
-                adminCoordinates.lat, adminCoordinates.lng,
-                userLat, userLng
-            );
-            
-            if (distanceElement) {
-                const isWithin = distance <= geofenceRadius;
-                const status = isWithin ? '✅ Dalam radius' : '❌ Di luar radius';
-                const color = isWithin ? '#10b981' : '#ef4444';
-                
-                distanceElement.innerHTML = `<span style="color: ${color}">${status}</span><br><small>Jarak: ${distance.toFixed(1)}m</small>`;
-            }
-            
-            updateDebugInfo('📍 Location display updated');
-        }
-
-        // ❌ Handle location errors with helpful messaging
-        function handleLocationError(error) {
-            const errorMsg = getErrorMessage(error);
-            updateDebugInfo(`❌ Location error: ${errorMsg}`);
-            updateLocationStatus('error', errorMsg);
-            showLocationError();
-            disableButtons();
-        }
-        
-        // Get user-friendly error message
-        function getErrorMessage(error) {
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    return 'Akses lokasi ditolak. Izinkan di pengaturan browser.';
-                case error.POSITION_UNAVAILABLE:
-                    return 'Lokasi tidak tersedia. Aktifkan GPS dan coba lagi.';
-                case error.TIMEOUT:
-                    return 'Timeout lokasi. Coba di area dengan sinyal GPS lebih baik.';
-                default:
-                    return 'Error lokasi tidak dikenal. Coba refresh halaman.';
+            if (checkoutBtn) {
+                checkoutBtn.addEventListener('click', function(e) {
+                    if (!currentUserLocation) {
+                        alert('Please wait for location detection...');
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    // Set location data to Livewire properties before action
+                    @this.set('userLatitude', currentUserLocation.latitude);
+                    @this.set('userLongitude', currentUserLocation.longitude);
+                    @this.set('userAccuracy', currentUserLocation.accuracy);
+                });
             }
         }
 
-        // 📏 Calculate distance using optimized Haversine formula
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Earth's radius in meters
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        function updateCoordinatesDisplay(lat, lng, accuracy, timestamp) {
-            const coordElement = document.getElementById('user-coordinates');
-            if (coordElement) {
-                const timeStr = timestamp ? ` - ${timestamp.toLocaleTimeString()}` : '';
-                coordElement.innerHTML = `
-                    <strong>Koordinat:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}<br>
-                    <strong>Akurasi:</strong> ±${Math.round(accuracy)}m${timeStr}
-                `;
-            }
-        }
-
-        function updateLocationStatus(status, message) {
-            const statusElement = document.getElementById('location-status');
-            const statusText = statusElement.querySelector('.status-text');
-            const statusIcon = statusElement.querySelector('.status-icon');
-            
-            statusElement.className = `location-status ${status}`;
-            statusText.textContent = message;
-            
-            switch(status) {
-                case 'loading':
-                    statusIcon.textContent = '📍';
-                    break;
-                case 'inside':
-                    statusIcon.textContent = '🟢';
-                    break;
-                case 'outside':
-                    statusIcon.textContent = '🔴';
-                    break;
-                case 'error':
-                    statusIcon.textContent = '⚠️';
-                    break;
-            }
-        }
-
-        function updateGeofenceStatus(isWithin, distance) {
-            if (isWithin) {
-                updateLocationStatus('inside', `Anda berada di dalam area presensi (${distance.toFixed(1)}m)`);
-                enableButtons();
-            } else {
-                updateLocationStatus('outside', `Anda berada di luar area presensi (${distance.toFixed(1)}m)`);
-                disableButtons();
-                
-                // Show notification
-                if (window.Livewire) {
-                    window.Livewire.emit('showNotification', {
-                        type: 'warning',
-                        title: '⚠️ Di Luar Area Presensi',
-                        message: 'Presensi hanya dapat dilakukan di area yang telah ditentukan.'
-                    });
-                }
-            }
-        }
-
+        // 🔘 Simple enable/disable buttons
         function enableButtons() {
             const checkinBtn = document.getElementById('checkin-button');
             const checkoutBtn = document.getElementById('checkout-button');
             
             if (checkinBtn && checkinBtn.style.display !== 'none') {
                 checkinBtn.disabled = false;
-                checkinBtn.classList.remove('disabled');
             }
             
             if (checkoutBtn && checkoutBtn.style.display !== 'none') {
                 checkoutBtn.disabled = false;
-                checkoutBtn.classList.remove('disabled');
-            }
-        }
-
-        function disableButtons() {
-            const checkinBtn = document.getElementById('checkin-button');
-            const checkoutBtn = document.getElementById('checkout-button');
-            
-            if (checkinBtn) {
-                checkinBtn.disabled = true;
-                checkinBtn.classList.add('disabled');
-            }
-            
-            if (checkoutBtn) {
-                checkoutBtn.disabled = true;
-                checkoutBtn.classList.add('disabled');
-            }
-        }
-
-        function showLocationError() {
-            const errorElement = document.getElementById('location-error');
-            if (errorElement) {
-                errorElement.style.display = 'block';
-            }
-        }
-
-        function hideLocationError() {
-            const errorElement = document.getElementById('location-error');
-            if (errorElement) {
-                errorElement.style.display = 'none';
-            }
-        }
-
-        // Override Livewire actions to include location data
-        let currentUserLocation = null;
-
-        // Store current location for server validation
-        function storeCurrentLocation(lat, lng) {
-            currentUserLocation = { latitude: lat, longitude: lng };
-        }
-
-        // Override checkin button click
-        document.addEventListener('livewire:load', function () {
-            Livewire.hook('message.sent', (message, component) => {
-                if (message.updateQueue && message.updateQueue.some(update => 
-                    update.method === 'checkin' || update.method === 'checkout')) {
-                    
-                    if (currentUserLocation) {
-                        // Add location data to the request
-                        message.payload.serverMemo.data.latitude = currentUserLocation.latitude;
-                        message.payload.serverMemo.data.longitude = currentUserLocation.longitude;
-                    }
-                }
-            });
-        });
-
-        // 📡 Simplified location data transmission (2024 optimized)
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set up location data transmission for both buttons
-            setupLocationTransmission('checkin-button', 'checkin');
-            setupLocationTransmission('checkout-button', 'checkout');
-        });
-        
-        function setupLocationTransmission(buttonId, action) {
-            const button = document.getElementById(buttonId);
-            if (!button) return;
-            
-            button.addEventListener('click', function(e) {
-                e.preventDefault(); // Prevent default Livewire action
-                
-                if (!currentUserLocation) {
-                    updateDebugInfo(`❌ No location for ${action}. Try GPS refresh first.`);
-                    return;
-                }
-                
-                updateDebugInfo(`📡 Sending ${action} with location...`);
-                
-                // Send location data directly to Livewire method
-                if (action === 'checkin') {
-                    @this.call('checkinWithLocation', {
-                        latitude: currentUserLocation.latitude,
-                        longitude: currentUserLocation.longitude,
-                        accuracy: currentUserLocation.accuracy || 0
-                    });
-                } else if (action === 'checkout') {
-                    @this.call('checkoutWithLocation', {
-                        latitude: currentUserLocation.latitude,
-                        longitude: currentUserLocation.longitude,
-                        accuracy: currentUserLocation.accuracy || 0
-                    });
-                }
-            });
-        }
-
-
-        // 🧪 Manual location testing function (optimized)
-        function useManualLocation() {
-            const lat = parseFloat(document.getElementById('manual-lat').value);
-            const lng = parseFloat(document.getElementById('manual-lng').value);
-            
-            if (isNaN(lat) || isNaN(lng)) {
-                updateDebugInfo('❌ Koordinat tidak valid');
-                return;
-            }
-            
-            updateDebugInfo(`🧪 Testing manual coordinates: ${lat}, ${lng}`);
-            
-            // Create mock position object
-            const mockPosition = {
-                coords: {
-                    latitude: lat,
-                    longitude: lng,
-                    accuracy: 10
-                },
-                timestamp: Date.now()
-            };
-            
-            handleLocationSuccess(mockPosition);
-        }
-        
-        // 🔄 Enhanced GPS debugging function (2024 optimized)
-        function getCurrentLocationDebug() {
-            updateDebugInfo('🔄 Force GPS refresh...');
-            
-            if (!checkHTTPSRequirement()) {
-                return;
-            }
-            
-            if (!navigator.geolocation) {
-                updateDebugInfo('❌ Geolocation not supported');
-                return;
-            }
-            
-            // Clear any existing watch
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-            
-            updateLocationStatus('loading', 'Memaksa refresh GPS...');
-            
-            // Force fresh GPS reading
-            const forceOptions = {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0  // Force fresh reading
-            };
-            
-            navigator.geolocation.getCurrentPosition(
-                handleLocationSuccess,
-                handleLocationError,
-                forceOptions
-            );
-        }
-        
-        
-        // Update debug info display
-        function updateDebugInfo(message) {
-            const debugElement = document.getElementById('debug-info');
-            if (debugElement) {
-                const timestamp = new Date().toLocaleTimeString();
-                debugElement.innerHTML += `[${timestamp}] ${message}<br>`;
-                debugElement.scrollTop = debugElement.scrollHeight;
-                console.log(`[DEBUG] ${message}`);
             }
         }
         
-        // Cleanup on page unload
+        // 🧹 Cleanup
         window.addEventListener('beforeunload', function() {
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
+            if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
             }
         });
     </script>

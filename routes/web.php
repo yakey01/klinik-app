@@ -18,7 +18,9 @@ Route::get('/', function () {
 
 // Unified authentication routes
 Route::get('/login', [UnifiedAuthController::class, 'create'])->name('login');
-Route::post('/login', [UnifiedAuthController::class, 'store'])->name('unified.login');
+Route::post('/login', [UnifiedAuthController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('unified.login');
 Route::post('/logout', [UnifiedAuthController::class, 'destroy'])->name('logout');
 
 // Email verification routes
@@ -61,6 +63,36 @@ Route::middleware(['auth', 'role:admin'])->prefix('legacy-admin')->name('legacy-
     // User management routes
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
     Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class);
+});
+
+// Settings routes (Admin only)
+Route::middleware(['auth', 'role:admin'])->prefix('settings')->name('settings.')->group(function () {
+    // User Management
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Settings\UserManagementController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Settings\UserManagementController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Settings\UserManagementController::class, 'store'])->name('store');
+        Route::get('/{user}/edit', [\App\Http\Controllers\Settings\UserManagementController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [\App\Http\Controllers\Settings\UserManagementController::class, 'update'])->name('update');
+        Route::post('/{user}/reset-password', [\App\Http\Controllers\Settings\UserManagementController::class, 'resetPassword'])->name('reset-password');
+        Route::post('/{user}/toggle-status', [\App\Http\Controllers\Settings\UserManagementController::class, 'toggleStatus'])->name('toggle-status');
+    });
+    
+    // System Configuration
+    Route::prefix('config')->name('config.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Settings\SystemConfigController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\Settings\SystemConfigController::class, 'update'])->name('update');
+        Route::post('/security', [\App\Http\Controllers\Settings\SystemConfigController::class, 'updateSecurity'])->name('update-security');
+    });
+    
+    // Backup & Export
+    Route::prefix('backup')->name('backup.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Settings\BackupController::class, 'index'])->name('index');
+        Route::get('/export-excel', [\App\Http\Controllers\Settings\BackupController::class, 'exportMasterData'])->name('export-excel');
+        Route::get('/export-json', [\App\Http\Controllers\Settings\BackupController::class, 'exportJson'])->name('export-json');
+        Route::post('/import-json', [\App\Http\Controllers\Settings\BackupController::class, 'importJson'])->name('import-json');
+    });
+    
 });
 
 Route::middleware('auth')->group(function () {

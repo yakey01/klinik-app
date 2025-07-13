@@ -6,6 +6,7 @@ use App\Filament\Resources\PegawaiResource\Pages;
 use App\Models\Pegawai;
 use App\Models\EmployeeCard;
 use App\Models\User;
+use App\Models\Role;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -17,6 +18,8 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class PegawaiResource extends Resource
 {
@@ -31,7 +34,7 @@ class PegawaiResource extends Resource
     protected static ?string $pluralModelLabel = 'Pegawai';
 
     protected static ?string $navigationGroup = 'SDM';
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 10;
 
     public static function form(Form $form): Form
     {
@@ -170,6 +173,23 @@ class PegawaiResource extends Resource
                             })
                             ->size('sm'),
                     ]),
+                    
+                    // User Account Status Row
+                    Tables\Columns\Layout\Split::make([
+                        Tables\Columns\TextColumn::make('user_account_status')
+                            ->getStateUsing(fn ($record) => $record->user_id ? 'Akun User Aktif' : 'Belum Punya Akun User')
+                            ->badge()
+                            ->color(fn ($record) => $record->user_id ? 'success' : 'warning')
+                            ->size('xs'),
+                        
+                        Tables\Columns\TextColumn::make('user.username')
+                            ->icon('heroicon-m-identification')
+                            ->color('info')
+                            ->size('xs')
+                            ->limit(15)
+                            ->placeholder('—')
+                            ->tooltip(fn ($record) => $record->user?->username ? 'User Username: ' . $record->user->username : 'Belum punya User account'),
+                    ]),
                 ])->space(2),
             ])
             ->filters([
@@ -189,6 +209,16 @@ class PegawaiResource extends Resource
                     ])
                     ->placeholder('Semua Status'),
 
+                Tables\Filters\TernaryFilter::make('has_user_account')
+                    ->label('Akun User')
+                    ->placeholder('Semua')
+                    ->trueLabel('Punya Akun User')
+                    ->falseLabel('Belum Punya Akun User')
+                    ->queries(
+                        true: fn ($query) => $query->whereNotNull('user_id'),
+                        false: fn ($query) => $query->whereNull('user_id'),
+                    ),
+
                 Tables\Filters\Filter::make('jabatan')
                     ->form([
                         Forms\Components\TextInput::make('jabatan')
@@ -204,6 +234,199 @@ class PegawaiResource extends Resource
                     }),
             ])
             ->actions([
+                Action::make('create_user_account')
+                    ->label('Buat Akun User')
+                    ->icon('heroicon-m-identification')
+                    ->color('info')
+                    ->visible(fn ($record) => !$record->user_id)
+                    ->form([
+                        Forms\Components\Select::make('jenis_pegawai_for_role')
+                            ->label('Jenis Pegawai untuk Role')
+                            ->options([
+                                'Paramedis' => 'Paramedis (role: paramedis)',
+                                'Non-Paramedis' => 'Non-Paramedis (role: petugas)',
+                            ])
+                            ->default(fn ($record) => $record->jenis_pegawai)
+                            ->required()
+                            ->helperText('Pilih jenis pegawai untuk menentukan role User yang akan dibuat'),
+                    ])
+                    ->action(function ($record, array $data) {
+                        try {
+                            // Determine role based on selected employee type
+                            $roleName = $data['jenis_pegawai_for_role'] === 'Paramedis' ? 'paramedis' : 'petugas';
+                            
+                            $role = Role::where('name', $roleName)->first();
+                            
+                            if (!$role) {
+                                Notification::make()
+                                    ->title('Gagal Membuat Akun User')
+                                    ->body("Role '{$roleName}' tidak ditemukan dalam sistem.")
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            // Generate username from name
+                            $baseUsername = strtolower(str_replace([' ', '.', ','], '', $record->nama_lengkap));
+                            $baseUsername = Str::ascii($baseUsername);
+                            $baseUsername = preg_replace('/[^a-z0-9]/', '', $baseUsername);
+                            $baseUsername = substr($baseUsername, 0, 20);
+                            
+                            $username = $baseUsername;
+                            $counter = 1;
+                            
+                            // Ensure username uniqueness
+                            while (User::where('username', $username)->exists()) {
+                                $username = $baseUsername . $counter;
+                                $counter++;
+                            }
+
+                            // Generate random password
+                            $password = Str::random(8);
+
+                            // Create User account
+                            $user = User::create([
+                                'role_id' => $role->id,
+                                'name' => $record->nama_lengkap,
+                                'username' => $username,
+                                'password' => Hash::make($password),
+                                'nip' => $record->nik,
+                                'tanggal_bergabung' => now()->toDateString(),
+                                'is_active' => $record->aktif,
+                            ]);
+
+                            // Link the user to the pegawai record
+                            $record->update(['user_id' => $user->id]);
+
+                            Notification::make()
+                                ->title('Akun User Berhasil Dibuat')
+                                ->body("Username: {$username}<br>Password: {$password}<br>Role: {$roleName}")
+                                ->success()
+                                ->persistent()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Gagal Membuat Akun User')
+                                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Buat Akun User Pegawai')
+                    ->modalDescription('Akun User akan dibuat dan dihubungkan dengan record pegawai ini. Username dan password akan di-generate otomatis dengan role sesuai jenis pegawai.')
+                    ->modalSubmitActionLabel('Buat Akun User'),
+
+                Action::make('link_existing_user')
+                    ->label('Link User Existing')
+                    ->icon('heroicon-m-link')
+                    ->color('warning')
+                    ->visible(fn ($record) => !$record->user_id)
+                    ->form([
+                        Forms\Components\Select::make('user_id')
+                            ->label('Pilih User')
+                            ->options(function () {
+                                return User::whereHas('role', function ($query) {
+                                    $query->whereIn('name', ['paramedis', 'petugas']);
+                                })
+                                ->whereDoesntHave('pegawai')
+                                ->get()
+                                ->mapWithKeys(function ($user) {
+                                    $roleName = $user->role?->display_name ?: $user->role?->name;
+                                    return [$user->id => "{$user->name} ({$user->username}) - Role: {$roleName}"];
+                                });
+                            })
+                            ->searchable()
+                            ->required()
+                            ->helperText('Hanya menampilkan User dengan role "paramedis" atau "petugas" yang belum terhubung ke pegawai lain'),
+                    ])
+                    ->action(function ($record, array $data) {
+                        try {
+                            $user = User::find($data['user_id']);
+                            if (!$user) {
+                                throw new \Exception('User tidak ditemukan');
+                            }
+
+                            $record->update(['user_id' => $user->id]);
+
+                            Notification::make()
+                                ->title('User Berhasil Dihubungkan')
+                                ->body("User {$user->name} ({$user->username}) berhasil dihubungkan dengan pegawai {$record->nama_lengkap}")
+                                ->success()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Gagal Menghubungkan User')
+                                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->modalHeading('Hubungkan User Existing')
+                    ->modalDescription('Pilih User account yang sudah ada untuk dihubungkan dengan record pegawai ini.')
+                    ->modalSubmitActionLabel('Hubungkan User'),
+
+                Action::make('view_user_account')
+                    ->label('Lihat User')
+                    ->icon('heroicon-m-eye')
+                    ->color('info')
+                    ->visible(fn ($record) => $record->user_id)
+                    ->action(function ($record) {
+                        $user = $record->user;
+                        if ($user) {
+                            $userRole = optional($user->role)->display_name ?: optional($user->role)->name ?: 'Tidak ada role';
+                            $userStatus = $user->is_active ? 'Aktif' : 'Nonaktif';
+                            $joinDate = optional($user->tanggal_bergabung)->format('d/m/Y') ?: 'Tidak diketahui';
+                            
+                            Notification::make()
+                                ->title('Informasi Akun User')
+                                ->body("
+                                    <strong>Nama:</strong> {$user->name}<br>
+                                    <strong>Username:</strong> {$user->username}<br>
+                                    <strong>Email:</strong> {$user->email}<br>
+                                    <strong>Role:</strong> {$userRole}<br>
+                                    <strong>Status:</strong> {$userStatus}<br>
+                                    <strong>Bergabung:</strong> {$joinDate}
+                                ")
+                                ->info()
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
+
+                Action::make('unlink_user_account')
+                    ->label('Putus Link User')
+                    ->icon('heroicon-m-x-mark')
+                    ->color('danger')
+                    ->visible(fn ($record) => $record->user_id)
+                    ->action(function ($record) {
+                        try {
+                            $userName = $record->user?->name;
+                            
+                            // Only unlink, don't delete the User record
+                            $record->update(['user_id' => null]);
+
+                            Notification::make()
+                                ->title('Link User Berhasil Diputus')
+                                ->body("Pegawai {$record->nama_lengkap} tidak lagi terhubung dengan User {$userName}. User account tetap ada di sistem.")
+                                ->success()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Gagal Memutus Link User')
+                                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Putus Link User Account')
+                    ->modalDescription('Link antara record pegawai dan User account akan diputus. User account tidak akan dihapus dan tetap ada di sistem.')
+                    ->modalSubmitActionLabel('Putus Link'),
+
                 Action::make('create_card')
                     ->label('🆔 Buat Kartu')
                     ->icon('heroicon-o-identification')
@@ -222,7 +445,7 @@ class PegawaiResource extends Resource
                         }
                         
                         // Create new card
-                        $user = User::where('nip', $record->nik)->first();
+                        $user = $record->user;
                         
                         $card = EmployeeCard::create([
                             'pegawai_id' => $record->id,
@@ -309,6 +532,7 @@ class PegawaiResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with(['user'])
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);

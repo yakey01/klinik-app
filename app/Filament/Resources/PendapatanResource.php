@@ -30,7 +30,7 @@ class PendapatanResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-arrow-trending-up';
     
     protected static ?string $navigationGroup = 'Master Data';
-    protected static ?int $navigationSort = 12;
+    protected static ?int $navigationSort = 20;
     
     protected static ?string $modelLabel = 'Pendapatan';
     

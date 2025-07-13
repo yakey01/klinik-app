@@ -18,6 +18,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Pages\Auth\CustomLogin;
+use Hasnayeen\Themes\ThemesPlugin;
 
 class BendaharaPanelProvider extends PanelProvider
 {
@@ -26,7 +27,7 @@ class BendaharaPanelProvider extends PanelProvider
         return $panel
             ->id('bendahara')
             ->path('bendahara')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('Dokterku - Bendahara')
             ->favicon(asset('favicon.ico'))
             ->colors([
@@ -72,6 +73,10 @@ class BendaharaPanelProvider extends PanelProvider
             ])
             ->authGuard('web')
             ->databaseNotifications()
+            ->plugins([
+                ThemesPlugin::make()
+                    ->canViewThemesPage(fn () => auth()->user()?->hasRole('bendahara')),
+            ])
             ->tenant(null);
     }
 }

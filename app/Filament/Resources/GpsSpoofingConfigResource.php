@@ -31,7 +31,7 @@ class GpsSpoofingConfigResource extends Resource
     
     protected static ?string $navigationGroup = 'Presensi';
     
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 42;
 
     public static function form(Form $form): Form
     {

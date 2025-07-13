@@ -27,6 +27,7 @@ class User extends Authenticatable implements FilamentUser
         'role_id',
         'name',
         'email',
+        'username',
         'password',
         'nip',
         'no_telepon',
@@ -250,12 +251,12 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Find user by email or name for authentication
+     * Find user by email or username for authentication
      */
     public static function findForAuth(string $identifier): ?self
     {
         return static::where('email', $identifier)
-            ->orWhere('name', $identifier)
+            ->orWhere('username', $identifier)
             ->first();
     }
 

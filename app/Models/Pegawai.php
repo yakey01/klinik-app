@@ -22,6 +22,7 @@ class Pegawai extends Model
         'aktif',
         'foto',
         'input_by',
+        'user_id',
     ];
 
     protected $casts = [
@@ -39,9 +40,9 @@ class Pegawai extends Model
         return $this->hasOne(EmployeeCard::class, 'pegawai_id');
     }
 
-    public function user(): HasOne
+    public function user(): BelongsTo
     {
-        return $this->hasOne(User::class, 'nip', 'nik');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function getDefaultAvatarAttribute(): string

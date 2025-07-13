@@ -41,6 +41,47 @@
             animation: none !important;
         }
         
+        /* Force proper icon sizing */
+        .dokter-gigi-dashboard svg {
+            width: 1.25rem !important;  /* Force w-5 */
+            height: 1.25rem !important; /* Force h-5 */
+            transform: none !important;
+            scale: 1 !important;
+        }
+        
+        /* Force proper Tailwind utility classes */
+        .dokter-gigi-dashboard .w-5 {
+            width: 1.25rem !important;
+        }
+        
+        .dokter-gigi-dashboard .h-5 {
+            height: 1.25rem !important;
+        }
+        
+        .dokter-gigi-dashboard .w-8 {
+            width: 2rem !important;
+        }
+        
+        .dokter-gigi-dashboard .h-8 {
+            height: 2rem !important;
+        }
+        
+        .dokter-gigi-dashboard .w-10 {
+            width: 2.5rem !important;
+        }
+        
+        .dokter-gigi-dashboard .h-10 {
+            height: 2.5rem !important;
+        }
+        
+        .dokter-gigi-dashboard .w-12 {
+            width: 3rem !important;
+        }
+        
+        .dokter-gigi-dashboard .h-12 {
+            height: 3rem !important;
+        }
+        
         /* Override any potential external CSS conflicts */
         .dokter-gigi-dashboard .card {
             background: white !important;

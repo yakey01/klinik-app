@@ -20,6 +20,7 @@ class PegawaiManagementTest extends TestCase
             'aktif',
             'foto',
             'input_by',
+            'user_id',
         ];
 
         $this->assertEquals($expectedFillable, $pegawai->getFillable());

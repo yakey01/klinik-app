@@ -30,7 +30,7 @@ class WorkLocationResource extends Resource
     
     protected static ?string $navigationGroup = 'Presensi';
     
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 41;
 
     protected static ?string $recordTitleAttribute = 'name';
 

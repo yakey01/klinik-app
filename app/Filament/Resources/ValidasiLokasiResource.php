@@ -32,7 +32,7 @@ class ValidasiLokasiResource extends Resource
     
     protected static ?string $navigationGroup = 'Presensi';
     
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 40;
 
     public static function form(Form $form): Form
     {

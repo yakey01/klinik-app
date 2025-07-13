@@ -78,76 +78,97 @@ php artisan make:migration create_table_name
 
 # Create new seeder
 php artisan make:seeder TableSeeder
+
+# Seed specific data
+php artisan db:seed --class=WorkLocationSeeder
 ```
 
-## Architecture
+### Filament Maintenance
+```bash
+# Clear Filament caches after panel changes
+php artisan config:clear
+php artisan view:clear  
+php artisan filament:clear-cached-components
 
-### Directory Structure
-- `app/` - Core application code
-  - `Http/Controllers/` - HTTP controllers
-  - `Models/` - Eloquent models
-  - `Providers/` - Service providers
-- `database/` - Database migrations, factories, seeders
-- `resources/` - Views, CSS, JS, and other assets
-- `routes/` - Route definitions (web.php, api.php, console.php)
-- `tests/` - Test files organized by Feature and Unit
+# Upgrade Filament after updates
+php artisan filament:upgrade
+```
 
-### Key Files
-- `composer.json` - PHP dependencies and custom scripts
-- `package.json` - Node.js dependencies and build scripts
-- `vite.config.js` - Vite configuration with Laravel plugin
-- `phpunit.xml` - PHPUnit/Pest configuration
-- `database/database.sqlite` - SQLite database file
+## Architecture Overview
 
-### Clinic Financial System Models
+### Multi-Panel FilamentPHP Architecture
 
-#### Core Models
-- **Role** - User roles (admin, manajer, bendahara, petugas, paramedis, dokter, non_paramedis)
-- **User** - System users with role-based permissions
-- **Shift** - Work shifts (pagi, siang, malam)
-- **Pasien** - Patient records with medical record numbers
-- **JenisTindakan** - Medical procedure types with tariffs and fee structures
-- **Tindakan** - Medical procedures performed on patients
-- **Jaspel** - Service fees for medical staff
-- **UangDuduk** - Sitting allowance for staff
-- **Pendapatan** - Income transactions
-- **Pengeluaran** - Expense transactions
+This application uses **FilamentPHP v3.3** with role-based panel separation:
 
-#### Key Relationships
-- Users belong to roles and can perform multiple types of medical procedures
-- Tindakan (procedures) link patients to medical staff and generate service fees
-- Jaspel records are automatically created from tindakan based on fee structures
-- All financial transactions require validation workflow (pending → approved/rejected)
+#### Panel Structure
+- **Admin Panel** (`/admin`) - Complete system management, user management, geofencing
+- **Manajer Panel** (`/manajer`) - Management dashboard with analytics and reports
+- **Bendahara Panel** (`/bendahara`) - Financial validation, Chart.js dark theme reports
+- **Petugas Panel** (`/petugas`) - Patient registration, procedure entry
+- **Paramedis Panel** (`/paramedis`) - Mobile-first attendance with GPS integration
+- **Dokter Panel** (`/dokter`) - Medical staff interface
 
-#### Database Design Features
-- **Soft deletes** on critical tables (users, patients, procedures)
-- **Comprehensive indexing** for performance on date ranges, user lookups, and status filtering
-- **Audit trails** with input_by and validation_by fields
-- **Role-based permissions** stored as JSON arrays
-- **Financial precision** using decimal(15,2) for all monetary values
+#### Panel Provider Locations
+- `app/Providers/Filament/[Panel]PanelProvider.php`
+- Each panel has dedicated directories: `app/Filament/[Panel]/`
 
-### Testing Architecture
-- Uses **Pest** testing framework instead of PHPUnit
-- Test configuration in `tests/Pest.php`
-- Feature tests in `tests/Feature/`
-- Unit tests in `tests/Unit/`
-- SQLite in-memory database for testing
-- **Factories** available for Pasien and Tindakan models
+### Core Business Logic
 
-### Frontend Architecture
-- **Vite** for asset compilation and hot-reloading
-- **Tailwind CSS 4.0** for styling
-- Assets in `resources/css/` and `resources/js/`
-- Compiled assets served from `public/build/`
+#### Financial Workflow
+The system implements a **validation-based financial workflow**:
+1. **Data Entry** - Staff input transactions (Pendapatan/Pengeluaran)
+2. **Validation Queue** - Transactions require approval (pending → approved/rejected)
+3. **Jaspel Generation** - Service fees automatically calculated from validated procedures
+4. **Financial Reports** - Real-time dashboards with Chart.js integration
 
-## Development Workflow
+#### Medical Procedure Chain
+- **Pasien** (Patients) receive **Tindakan** (Medical Procedures)
+- **Tindakan** links **JenisTindakan** (Procedure Types) with **User** (Medical Staff)
+- **Jaspel** (Service Fees) automatically generated based on procedure tariffs
+- Each procedure can involve: Dokter, Paramedis, and Non-Paramedis staff
 
-1. **Setup**: Ensure `.env` file exists (auto-created from `.env.example`)
-2. **Dependencies**: Run `composer install` and `npm install`
-3. **Database**: SQLite database is auto-created at `database/database.sqlite`
-4. **Seeding**: Run `php artisan db:seed` to populate initial data
-5. **Development**: Use `composer dev` to start all services
-6. **Testing**: Use `composer test` or `php artisan test`
+### Location & Attendance Architecture
+
+#### WorkLocation Integration
+The system uses **admin geofencing** as the single source of truth:
+- **Admin Geofencing** (`WorkLocation` model) - Configure clinic locations with GPS coordinates
+- **Paramedis Attendance** - Integrates with WorkLocation instead of hardcoded coordinates
+- **Multiple Location Support** - Main office, branch office, project sites, mobile locations
+
+#### GPS-Based Attendance Flow
+1. **Load WorkLocation** - Get active locations from admin geofencing
+2. **Location Detection** - HTML5 Geolocation API with continuous tracking
+3. **Distance Validation** - Haversine formula calculation against clinic radius
+4. **Attendance Recording** - Store GPS coordinates, device info, accuracy data
+
+#### Map Implementation Strategy
+**Primary**: Google Maps JavaScript API (most popular, reliable)
+**Fallback**: Leaflet.js with OpenStreetMap (if Google Maps fails)
+
+```php
+// Map integration uses same plugin as admin geofencing
+FilamentGoogleMapsPlugin::make() // in ParamedisPanelProvider
+dotswan/filament-map-picker      // Interactive map fields
+```
+
+### Key Models & Relationships
+
+#### Core Financial Models
+- **Pendapatan/Pengeluaran** - Income/expense with validation workflow
+- **Tindakan** - Medical procedures linking patients to staff
+- **Jaspel** - Service fee calculations
+- **Role/User** - Role-based access control
+
+#### Location & Attendance Models
+- **WorkLocation** - Admin-configurable geofencing locations
+- **Attendance** - GPS-tracked check-in/out records
+- **LocationValidation** - Validation logs for location-based operations
+
+#### Data Precision Features
+- **Decimal(15,2)** for all monetary values
+- **Soft deletes** on critical tables
+- **Audit trails** with input_by/validation_by tracking
+- **Comprehensive indexing** for date ranges and lookups
 
 ## Default User Accounts
 
@@ -160,151 +181,69 @@ After seeding, these accounts are available:
 - **Paramedis**: perawat@dokterku.com / perawat123
 - **Non-Paramedis**: asisten@dokterku.com / asisten123
 
-## Important Notes
+## Critical Integration Points
 
-- This project uses **Pest** for testing, not PHPUnit directly
-- The `composer dev` script provides a full development environment
-- Database uses SQLite by default (no separate database server needed)
-- Frontend uses Vite with Laravel integration for hot-reloading
-- Laravel Pint is configured for code formatting
-- **Financial validation workflow** is central to the system design
-- **Role-based access control** should be implemented in controllers and middleware
-
-## FilamentPHP Multi-Panel Architecture
-
-This project uses **FilamentPHP v3.3** with multiple panels:
-
-### Admin Panel (`/admin`)
-- **Provider**: `app/Providers/Filament/AdminPanelProvider.php`
-- **Widgets**: `app/Filament/Widgets/`
-- **Resources**: `app/Filament/Resources/`
-- **Colors**: Primary Blue (`Color::Blue`)
-
-### Petugas Panel (`/petugas`)
-- **Provider**: `app/Providers/Filament/PetugasPanelProvider.php`
-- **Widgets**: `app/Filament/Petugas/Widgets/`
-- **Resources**: `app/Filament/Petugas/Resources/`
-- **Colors**: Primary Blue (`Color::Blue`)
-
-### Paramedis Panel (`/paramedis`)
-- **Provider**: `app/Providers/Filament/ParamedisPanelProvider.php`
-- **Widgets**: `app/Filament/Paramedis/Widgets/`
-- **Resources**: `app/Filament/Paramedis/Resources/`
-- **Colors**: Primary Green (`Color::Green`)
-- **Features**: Attendance tracking, Jaspel management, Location detection
-
-### Bendahara Panel (`/bendahara`)
-- **Provider**: `app/Providers/Filament/BendaharaPanelProvider.php`
-- **Widgets**: `app/Filament/Bendahara/Widgets/`
-- **Resources**: `app/Filament/Bendahara/Resources/`
-- **Features**: Financial validation, Revenue tracking
-
-### Filament Development Best Practices
-
-#### ✅ DO's:
-1. **Copy structure from working panels** - Use admin panel as template
-2. **Use standard Filament components** - `StatsOverviewWidget`, `ChartWidget`, etc.
-3. **Follow exact namespace patterns** - Match admin panel structure
-4. **Use standard Heroicons** - `heroicon-m-*` classes for consistent sizing
-5. **Clear caches after changes**:
-   ```bash
-   php artisan config:clear
-   php artisan view:clear  
-   php artisan filament:clear-cached-components
-   ```
-
-#### ❌ DON'Ts:
-1. **No custom CSS overrides** - Avoid custom theme files that override Filament styles
-2. **No custom view templates** - Use default Filament dashboard views
-3. **No transform/scale CSS** - Causes icon sizing issues
-4. **No custom asset compilation** - Stick to standard Vite configuration
-
-### Troubleshooting Large Icons/Layout Issues
-
-**Root Cause**: Custom CSS overrides in theme files, especially:
-```css
-.fi-stats-overview-stat:hover {
-    @apply transform scale-105;  /* ← CAUSES LARGE ICONS */
-}
+### Filament Plugin Dependencies
+```php
+"cheesegrits/filament-google-maps": "^3.0",     // Google Maps integration
+"dotswan/filament-map-picker": "^1.8",          // Interactive map fields
+"diogogpinto/filament-geolocate-me": "^0.1.1",  // Geolocation components
+"bezhansalleh/filament-shield": "^3.3",         // Role-based permissions
+"leandrocfe/filament-apex-charts": "^3.1",      // Chart widgets
+"saade/filament-fullcalendar": "^3.2"           // Calendar integration
 ```
 
-**Solution Process**:
-1. Remove any custom CSS files (e.g., `resources/css/petugas.css`)
-2. Update `vite.config.js` to remove custom CSS references
-3. Clear compiled assets: `rm -f public/build/assets/petugas-*.css`
-4. Rebuild assets: `npm run build`
-5. Clear Filament caches
-6. Use identical panel provider structure as working admin panel
-
-### Successful Petugas Dashboard Implementation
-
-**Files Created**:
-- `app/Filament/Petugas/Widgets/PetugasStatsWidget.php` - Stats overview with daily metrics
-- `app/Providers/Filament/PetugasPanelProvider.php` - Panel configuration
-
-**Key Features**:
-- ✅ Dynamic greeting based on time of day
-- ✅ 4 stats cards: Pasien, Pendapatan, Pengeluaran, Tindakan
-- ✅ Dummy data fallback for demonstration
-- ✅ Consistent styling with admin panel
-- ✅ Dark mode support
-- ✅ Auto-refresh every 15 seconds
-
-**Access**: `http://localhost:8000/petugas` (Login: petugas@dokterku.com / petugas123)
-
-## Attendance & Location System
-
-### Filament Plugins Integration
-- **diogogpinto/filament-geolocate-me** (v0.1.1) - Geolocation actions for Filament
-- **dotswan/filament-map-picker** (v1.8) - Interactive maps with OpenStreetMap
-- **bezhansalleh/filament-shield** (v3.3) - Role-based permissions
-- **spatie/laravel-permission** (v6.20) - Permission management backend
-
-### Location Detection Architecture
-The system uses a multi-widget approach for location-based attendance:
-
-#### LocationDetectionWidget
-- **File**: `app/Filament/Paramedis/Widgets/LocationDetectionWidget.php`
-- **Purpose**: Detects user location and validates distance to clinic
-- **Technology**: Livewire + JavaScript Geolocation API
-- **Features**: Device info detection, distance calculation, attendance radius validation
-
-#### ClinicMapWidget  
-- **File**: `app/Filament/Paramedis/Widgets/ClinicMapWidget.php`
-- **Purpose**: Interactive map showing clinic location and attendance radius
-- **Technology**: dotswan/filament-map-picker with OpenStreetMap
-- **Features**: Clinic marker, user location button, 100m attendance radius
-
-#### AttendanceButtonWidget
-- **File**: `app/Filament/Paramedis/Widgets/AttendanceButtonWidget.php`
-- **Purpose**: Real-time clock and check-in/out functionality
-- **Technology**: Server-side time management with Jakarta timezone
-- **Features**: Live clock, face recognition integration, attendance validation
-
-### Key Principles for Location Widgets
-1. **Use existing Filament plugins** - Avoid custom Alpine.js implementations
-2. **Server-side validation** - Distance calculation and attendance rules on backend  
-3. **No JavaScript polling** - Set `pollingInterval = null` to prevent clock destruction
-4. **Livewire event communication** - Use `dispatch()` for JS-to-PHP communication
-5. **Proper error handling** - Filament notifications for permission denied, timeout, etc.
-
-### User Model Panel Access
-The `User` model implements `FilamentUser` interface with `canAccessPanel()` method:
+### Panel Access Control
+The `User` model implements `FilamentUser` with panel-specific access:
 ```php
 public function canAccessPanel(Panel $panel): bool
 {
-    if ($panel->getId() === 'admin') return $this->hasRole('admin');
-    if ($panel->getId() === 'petugas') return $this->hasRole('petugas');
-    if ($panel->getId() === 'paramedis') return $this->hasRole('paramedis');
-    if ($panel->getId() === 'bendahara') return $this->hasRole('bendahara');
-    return false;
+    return $this->role && $this->role->name === $panel->getId();
 }
 ```
 
-## Project Memory
+### Mobile-First Considerations
+- **Paramedis panel** optimized for Android APK conversion
+- **Touch-friendly controls** (44px minimum button size)
+- **Progressive disclosure UI** (overview vs action separation)
+- **Continuous GPS tracking** with battery optimization
 
-- Project started as a solo project to streamline clinic financial management
-- Key motivation: simplify complex financial workflows for medical staff
-- Initial development began in February 2024
-- Using Laravel and FilamentPHP for rapid development
-- Focuses on role-based access and financial transparency
+## Development Best Practices
+
+### Filament Panel Development
+1. **Copy existing panel structure** - Use admin panel as template
+2. **Use standard Filament components** - Avoid custom CSS overrides
+3. **Follow namespace patterns** - `App\Filament\[Panel]\Resources`
+4. **Clear caches frequently** during development
+5. **Test panel access control** with different user roles
+
+### Location System Development
+1. **Never hardcode coordinates** - Always use WorkLocation model
+2. **Use Filament map plugins** - Don't implement custom JavaScript
+3. **Server-side validation** - Distance calculations on backend
+4. **Graceful fallback** - Handle GPS permission denied/timeout
+5. **Plugin consistency** - Use same maps across admin and attendance
+
+### Financial Workflow Development
+1. **Respect validation states** - pending → approved/rejected workflow
+2. **Automatic Jaspel generation** - Trigger from Tindakan validation
+3. **Audit trail requirements** - Track input_by and validation_by
+4. **Decimal precision** - Use decimal(15,2) for monetary values
+
+## Common Issues & Solutions
+
+### Map Display Problems
+**Issue**: Empty map areas, coordinate mismatch
+**Solution**: Ensure paramedis attendance uses WorkLocation from admin geofencing, not hardcoded coordinates
+
+### Panel Access Errors
+**Issue**: 403 Forbidden on panel access
+**Solution**: Check `canAccessPanel()` method in User model and ensure user has correct role
+
+### Large Icon Issues
+**Issue**: Oversized icons in Filament widgets
+**Solution**: Remove custom CSS files with transform/scale properties, use standard Filament components
+
+### Cache-Related Errors
+**Issue**: Changes not reflecting in Filament panels
+**Solution**: Run the full cache clearing sequence for Filament development

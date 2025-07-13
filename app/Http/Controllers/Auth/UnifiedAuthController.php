@@ -26,8 +26,14 @@ class UnifiedAuthController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Rate limiting check
+        $key = 'login_attempts:' . $request->ip();
+        $maxAttempts = 5;
+        $decayTime = 60; // 1 minute
+
         Log::info('Login attempt started', [
-            'email' => $request->input('email'),
+            'email_or_username' => $request->input('email_or_username'),
+            'ip' => $request->ip(),
             'has_token' => $request->has('_token'),
             'session_id' => $request->session()->getId(),
             'csrf_token' => $request->input('_token'),
@@ -36,21 +42,59 @@ class UnifiedAuthController extends Controller
 
         try {
             $request->validate([
-                'email' => ['required', 'string', 'email'],
-                'password' => ['required', 'string'],
+                'email_or_username' => ['required', 'string', 'max:255'],
+                'password' => ['required', 'string', 'min:6'],
             ]);
         } catch (ValidationException $e) {
             Log::error('Validation failed during login', [
                 'errors' => $e->errors(),
-                'email' => $request->input('email')
+                'email_or_username' => $request->input('email_or_username')
             ]);
             throw $e;
         }
 
-        $credentials = $request->only('email', 'password');
+        $identifier = $request->input('email_or_username');
+        $password = $request->input('password');
         $remember = $request->boolean('remember');
 
-        if (Auth::attempt($credentials, $remember)) {
+        // Find user by email or username
+        $user = \App\Models\User::findForAuth($identifier);
+        
+        $originalPassword = $request->input('password');
+        Log::info('Debug: User lookup', [
+            'identifier' => $identifier,
+            'user_found' => $user ? 'YES' : 'NO',
+            'user_id' => $user ? $user->id : null,
+            'user_email' => $user ? $user->email : null,
+            'user_active' => $user ? $user->is_active : null,
+            'password_provided' => !empty($password),
+            'original_password_length' => strlen($originalPassword),
+            'trimmed_password_length' => strlen($password),
+            'password_was_trimmed' => $originalPassword !== $password,
+            'password_raw' => $password,
+            'password_hex' => bin2hex($password),
+            'original_password_hex' => bin2hex($originalPassword),
+            'password_ord_last' => ord(substr($password, -1)),
+        ]);
+        
+        // Debug: test password manually before Auth::attempt
+        if ($user) {
+            $manualPasswordCheck = \Illuminate\Support\Facades\Hash::check($password, $user->password);
+            $trimmedPasswordCheck = \Illuminate\Support\Facades\Hash::check(trim($password), $user->password);
+            Log::info('Debug: Manual password check', [
+                'user_id' => $user->id,
+                'manual_check_result' => $manualPasswordCheck,
+                'trimmed_check_result' => $trimmedPasswordCheck,
+                'password_hash_exists' => !empty($user->password),
+                'password_hash_preview' => substr($user->password, 0, 20) . '...',
+                'password_needs_trim' => $password !== trim($password),
+            ]);
+        }
+
+        if ($user && Auth::attempt(['email' => $user->email, 'password' => $password], $remember)) {
+            // Clear failed attempts on successful login
+            \Illuminate\Support\Facades\RateLimiter::clear($key);
+            
             $request->session()->regenerate();
 
             $user = Auth::user();
@@ -58,7 +102,7 @@ class UnifiedAuthController extends Controller
             Log::info('User logged in', [
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'roles' => $user->getRoleNames()->toArray()
+                'role' => $user->role ? $user->role->name : 'no_role'
             ]);
             
             // Check if user is active
@@ -84,8 +128,8 @@ class UnifiedAuthController extends Controller
                 Log::info('Redirecting bendahara user to /treasurer/dashboard');
                 return redirect()->intended('/treasurer/dashboard');
             } elseif ($user->hasRole('dokter')) {
-                Log::info('Redirecting dokter user to /doctor/dashboard');
-                return redirect()->intended('/doctor/dashboard');
+                Log::info('Redirecting dokter user to /dokter');
+                return redirect()->intended('/dokter');
             } elseif ($user->hasRole('paramedis')) {
                 Log::info('Redirecting paramedis user to /paramedis');
                 return redirect()->intended('/paramedis');
@@ -99,9 +143,34 @@ class UnifiedAuthController extends Controller
             return redirect()->intended('/dashboard');
         }
 
-        Log::warning('Failed login attempt', ['email' => $request->input('email')]);
+        // Record failed attempt
+        \Illuminate\Support\Facades\RateLimiter::hit($key, $decayTime);
+        
+        // Additional debug info for failed login
+        if ($user) {
+            Log::warning('Failed login attempt - User found but auth failed', [
+                'email_or_username' => $request->input('email_or_username'),
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'is_active' => $user->is_active,
+                'has_password' => !empty($user->password),
+                'password_check' => \Illuminate\Support\Facades\Hash::check($password, $user->password),
+                'ip' => $request->ip(),
+                'attempts' => \Illuminate\Support\Facades\RateLimiter::attempts($key)
+            ]);
+        } else {
+            Log::warning('Failed login attempt - User not found', [
+                'email_or_username' => $request->input('email_or_username'),
+                'ip' => $request->ip(),
+                'attempts' => \Illuminate\Support\Facades\RateLimiter::attempts($key)
+            ]);
+        }
+        
+        // Add delay for failed attempts to prevent brute force
+        sleep(rand(1, 3));
+        
         throw ValidationException::withMessages([
-            'email' => 'Email atau password salah.',
+            'email_or_username' => 'Email/username atau password salah.',
         ]);
     }
 

@@ -24,7 +24,7 @@ class EmployeeCardResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-identification';
     protected static ?string $navigationGroup = 'SDM';
     protected static ?string $navigationLabel = '🆔 Kartu Pegawai';
-    protected static ?int $navigationSort = 22;
+    protected static ?int $navigationSort = 11;
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $modelLabel = 'Kartu Pegawai';
     protected static ?string $pluralModelLabel = 'Kartu Pegawai';

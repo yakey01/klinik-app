@@ -18,9 +18,9 @@ class DokterUmumJaspelResource extends Resource
     protected static ?string $model = DokterUmumJaspel::class;
     
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
-    protected static ?string $navigationGroup = 'Master Data';
+    protected static ?string $navigationGroup = 'Pengaturan';
     protected static ?string $navigationLabel = 'Manajemen JP Dokter Umum';
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 70;
     protected static ?string $modelLabel = 'JP Dokter Umum';
     protected static ?string $pluralModelLabel = 'JP Dokter Umum';
     protected static ?string $recordTitleAttribute = 'jenis_shift';

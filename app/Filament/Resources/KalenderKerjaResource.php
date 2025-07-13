@@ -20,7 +20,7 @@ class KalenderKerjaResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     
-    protected static ?string $navigationGroup = '📅 Kalender & Cuti';
+    protected static ?string $navigationGroup = 'Kalender & Jadwal';
     
     protected static ?string $navigationLabel = 'Kalender Kerja';
     
@@ -28,7 +28,7 @@ class KalenderKerjaResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Kalender Kerja';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 32;
 
     public static function form(Form $form): Form
     {

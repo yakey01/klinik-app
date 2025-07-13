@@ -19,15 +19,15 @@ class CutiPegawaiResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     
-    protected static ?string $navigationGroup = '📅 Kalender & Cuti';
+    protected static ?string $navigationGroup = 'Cuti & Absen';
     
-    protected static ?string $navigationLabel = 'Permohonan Cuti';
+    protected static ?string $navigationLabel = 'Cuti Pegawai';
     
     protected static ?string $modelLabel = 'Cuti Pegawai';
     
     protected static ?string $pluralModelLabel = 'Permohonan Cuti';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 51;
 
     public static function form(Form $form): Form
     {

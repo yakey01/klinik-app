@@ -21,7 +21,7 @@ class DokterResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-user-plus';
     protected static ?string $navigationGroup = 'SDM';
     protected static ?string $navigationLabel = 'Manajemen Dokter';
-    protected static ?int $navigationSort = 23;
+    protected static ?int $navigationSort = 12;
     protected static ?string $modelLabel = 'Dokter';
     protected static ?string $pluralModelLabel = 'Dokter';
     protected static ?string $recordTitleAttribute = 'nama_lengkap';
@@ -125,35 +125,72 @@ class DokterResource extends Resource
                 Forms\Components\Section::make('🔐 Manajemen Akun Login')
                     ->description('Pengaturan akun login dokter (khusus admin)')
                     ->schema([
-                        Forms\Components\TextInput::make('username')
-                            ->label('Username Login')
-                            ->unique(ignoreRecord: true)
-                            ->placeholder('Auto-generate jika kosong')
-                            ->helperText('Username untuk login ke sistem')
-                            ->columnSpan(1)
-                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('username')
+                                    ->label('Username Login')
+                                    ->unique(ignoreRecord: true)
+                                    ->placeholder('Auto-generate jika kosong')
+                                    ->helperText('Username untuk login ke sistem')
+                                    ->alphaNum()
+                                    ->minLength(3)
+                                    ->maxLength(20)
+                                    ->suffixIcon('heroicon-m-user')
+                                    ->columnSpan(3),
 
-                        Forms\Components\TextInput::make('password')
-                            ->label('Password')
-                            ->password()
-                            ->dehydrated(fn ($state) => filled($state))
-                            ->placeholder('Auto-generate jika kosong')
-                            ->helperText('Kosongkan jika tidak ingin mengubah password')
-                            ->columnSpan(1)
-                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                                Forms\Components\TextInput::make('password')
+                                    ->label('Password Baru')
+                                    ->password()
+                                    ->revealable()
+                                    ->dehydrated(fn ($state) => filled($state))
+                                    ->placeholder('Auto-generate jika kosong')
+                                    ->helperText('Kosongkan jika tidak ingin mengubah password')
+                                    ->minLength(6)
+                                    ->maxLength(50)
+                                    ->suffixIcon('heroicon-m-key')
+                                    ->columnSpan(1),
 
-                        Forms\Components\Select::make('status_akun')
-                            ->label('Status Akun')
-                            ->options([
-                                'Aktif' => 'Aktif',
-                                'Suspend' => 'Suspend',
-                            ])
-                            ->default('Aktif')
-                            ->helperText('Status akun login dokter')
-                            ->columnSpan(1)
-                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                                Forms\Components\TextInput::make('password_confirmation')
+                                    ->label('Konfirmasi Password')
+                                    ->password()
+                                    ->revealable()
+                                    ->dehydrated(false)
+                                    ->placeholder('Ketik ulang password baru')
+                                    ->helperText('Harus sama dengan password baru')
+                                    ->same('password')
+                                    ->requiredWith('password')
+                                    ->suffixIcon('heroicon-m-check-circle')
+                                    ->columnSpan(1),
+
+                                Forms\Components\Select::make('status_akun')
+                                    ->label('Status Akun Login')
+                                    ->options([
+                                        'Aktif' => '✅ Aktif - Dapat Login',
+                                        'Suspend' => '❌ Suspend - Tidak Dapat Login',
+                                    ])
+                                    ->default('Aktif')
+                                    ->helperText('Status akun login dokter')
+                                    ->suffixIcon('heroicon-m-shield-check')
+                                    ->columnSpan(1),
+                            ]),
+
+                        Forms\Components\Placeholder::make('password_info')
+                            ->label('ℹ️ Informasi Password')
+                            ->content(function () {
+                                return new \Illuminate\Support\HtmlString('
+                                    <div class="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                                        <ul class="space-y-1">
+                                            <li>• Password minimal 6 karakter, maksimal 50 karakter</li>
+                                            <li>• Gunakan kombinasi huruf, angka, dan simbol untuk keamanan</li>
+                                            <li>• Konfirmasi password harus sama dengan password baru</li>
+                                            <li>• Klik ikon mata untuk melihat/menyembunyikan password</li>
+                                            <li>• Jika kosong, sistem akan auto-generate password</li>
+                                        </ul>
+                                    </div>
+                                ');
+                            })
+                            ->columnSpan('full'),
                     ])
-                    ->columns(3)
                     ->visible(fn () => auth()->user()?->hasRole('admin')),
 
                 Forms\Components\Section::make('📝 Informasi Tambahan')
@@ -259,6 +296,25 @@ class DokterResource extends Resource
                             ->tooltip(fn ($record) => $record->username ? 'Username: ' . $record->username : 'Belum punya username')
                             ->visible(fn () => auth()->user()?->hasRole('admin')),
                     ])->visible(fn () => auth()->user()?->hasRole('admin')),
+                    
+                    // User Account Status Row
+                    Tables\Columns\Layout\Split::make([
+                        Tables\Columns\TextColumn::make('user_account_status')
+                            ->getStateUsing(fn ($record) => $record->user_id ? 'Akun User Aktif' : 'Belum Punya Akun User')
+                            ->badge()
+                            ->color(fn ($record) => $record->user_id ? 'success' : 'warning')
+                            ->size('xs')
+                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                        
+                        Tables\Columns\TextColumn::make('user.username')
+                            ->icon('heroicon-m-identification')
+                            ->color('info')
+                            ->size('xs')
+                            ->limit(15)
+                            ->placeholder('—')
+                            ->tooltip(fn ($record) => $record->user?->username ? 'User Username: ' . $record->user->username : 'Belum punya User account')
+                            ->visible(fn () => auth()->user()?->hasRole('admin')),
+                    ])->visible(fn () => auth()->user()?->hasRole('admin')),
                 ])->space(2),
             ])
             ->filters([
@@ -297,9 +353,197 @@ class DokterResource extends Resource
                     )
                     ->visible(fn () => auth()->user()?->hasRole('admin')),
 
+                Tables\Filters\TernaryFilter::make('has_user_account')
+                    ->label('Akun User')
+                    ->placeholder('Semua')
+                    ->trueLabel('Punya Akun User')
+                    ->falseLabel('Belum Punya Akun User')
+                    ->queries(
+                        true: fn ($query) => $query->whereNotNull('user_id'),
+                        false: fn ($query) => $query->whereNull('user_id'),
+                    )
+                    ->visible(fn () => auth()->user()?->hasRole('admin')),
+
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\Action::make('create_user_account')
+                    ->label('Buat Akun User')
+                    ->icon('heroicon-m-identification')
+                    ->color('info')
+                    ->visible(fn ($record) => !$record->user_id && auth()->user()?->hasRole('admin'))
+                    ->action(function ($record) {
+                        try {
+                            // Find the dokter role
+                            $dokterRole = \App\Models\Role::where('name', 'dokter')->first();
+                            
+                            if (!$dokterRole) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Gagal Membuat Akun User')
+                                    ->body('Role "dokter" tidak ditemukan dalam sistem.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            // Generate username from name if not provided
+                            $baseUsername = strtolower(str_replace([' ', '.', ','], '', $record->nama_lengkap));
+                            $baseUsername = \Illuminate\Support\Str::ascii($baseUsername);
+                            $baseUsername = preg_replace('/[^a-z0-9]/', '', $baseUsername);
+                            $baseUsername = substr($baseUsername, 0, 20);
+                            
+                            $username = $baseUsername;
+                            $counter = 1;
+                            
+                            // Ensure username uniqueness
+                            while (\App\Models\User::where('username', $username)->exists()) {
+                                $username = $baseUsername . $counter;
+                                $counter++;
+                            }
+
+                            // Generate random password
+                            $password = \Illuminate\Support\Str::random(8);
+
+                            // Create User account
+                            $user = \App\Models\User::create([
+                                'role_id' => $dokterRole->id,
+                                'name' => $record->nama_lengkap,
+                                'email' => $record->email,
+                                'username' => $username,
+                                'password' => \Illuminate\Support\Facades\Hash::make($password),
+                                'nip' => $record->nik,
+                                'tanggal_bergabung' => now()->toDateString(),
+                                'is_active' => $record->aktif,
+                            ]);
+
+                            // Link the user to the dokter record
+                            $record->update(['user_id' => $user->id]);
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Akun User Berhasil Dibuat')
+                                ->body("Username: {$username}<br>Password: {$password}<br>Role: dokter")
+                                ->success()
+                                ->persistent()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Membuat Akun User')
+                                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Buat Akun User Dokter')
+                    ->modalDescription('Akun User akan dibuat dan dihubungkan dengan record dokter ini. Username dan password akan di-generate otomatis dengan role "dokter".')
+                    ->modalSubmitActionLabel('Buat Akun User'),
+
+                Tables\Actions\Action::make('link_existing_user')
+                    ->label('Link User Existing')
+                    ->icon('heroicon-m-link')
+                    ->color('warning')
+                    ->visible(fn ($record) => !$record->user_id && auth()->user()?->hasRole('admin'))
+                    ->form([
+                        Forms\Components\Select::make('user_id')
+                            ->label('Pilih User')
+                            ->options(function () {
+                                return \App\Models\User::whereHas('role', function ($query) {
+                                    $query->where('name', 'dokter');
+                                })
+                                ->whereDoesntHave('dokter')
+                                ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->required()
+                            ->helperText('Hanya menampilkan User dengan role "dokter" yang belum terhubung ke dokter lain'),
+                    ])
+                    ->action(function ($record, array $data) {
+                        try {
+                            $user = \App\Models\User::find($data['user_id']);
+                            if (!$user) {
+                                throw new \Exception('User tidak ditemukan');
+                            }
+
+                            $record->update(['user_id' => $user->id]);
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('User Berhasil Dihubungkan')
+                                ->body("User {$user->name} ({$user->username}) berhasil dihubungkan dengan dokter {$record->nama_lengkap}")
+                                ->success()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Menghubungkan User')
+                                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->modalHeading('Hubungkan User Existing')
+                    ->modalDescription('Pilih User account yang sudah ada untuk dihubungkan dengan record dokter ini.')
+                    ->modalSubmitActionLabel('Hubungkan User'),
+
+                Tables\Actions\Action::make('view_user_account')
+                    ->label('Lihat User')
+                    ->icon('heroicon-m-eye')
+                    ->color('info')
+                    ->visible(fn ($record) => $record->user_id && auth()->user()?->hasRole('admin'))
+                    ->action(function ($record) {
+                        $user = $record->user;
+                        if ($user) {
+                            $userRole = optional($user->role)->display_name ?: optional($user->role)->name ?: 'Tidak ada role';
+                            $userStatus = $user->is_active ? 'Aktif' : 'Nonaktif';
+                            $joinDate = optional($user->tanggal_bergabung)->format('d/m/Y') ?: 'Tidak diketahui';
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Informasi Akun User')
+                                ->body("
+                                    <strong>Nama:</strong> {$user->name}<br>
+                                    <strong>Username:</strong> {$user->username}<br>
+                                    <strong>Email:</strong> {$user->email}<br>
+                                    <strong>Role:</strong> {$userRole}<br>
+                                    <strong>Status:</strong> {$userStatus}<br>
+                                    <strong>Bergabung:</strong> {$joinDate}
+                                ")
+                                ->info()
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
+
+                Tables\Actions\Action::make('unlink_user_account')
+                    ->label('Putus Link User')
+                    ->icon('heroicon-m-x-mark')
+                    ->color('danger')
+                    ->visible(fn ($record) => $record->user_id && auth()->user()?->hasRole('admin'))
+                    ->action(function ($record) {
+                        try {
+                            $userName = $record->user?->name;
+                            
+                            // Only unlink, don't delete the User record
+                            $record->update(['user_id' => null]);
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Link User Berhasil Diputus')
+                                ->body("Dokter {$record->nama_lengkap} tidak lagi terhubung dengan User {$userName}. User account tetap ada di sistem.")
+                                ->success()
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Memutus Link User')
+                                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Putus Link User Account')
+                    ->modalDescription('Link antara record dokter dan User account akan diputus. User account tidak akan dihapus dan tetap ada di sistem.')
+                    ->modalSubmitActionLabel('Putus Link'),
+
                 Tables\Actions\Action::make('create_account')
                     ->label('Buat Akun')
                     ->icon('heroicon-m-user-plus')
@@ -428,6 +672,7 @@ class DokterResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with(['user'])
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);

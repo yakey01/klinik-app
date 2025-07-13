@@ -17,8 +17,8 @@ class JenisTindakanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Master Data';
-    protected static ?int $navigationSort = 11;
+    protected static ?string $navigationGroup = 'Pengaturan';
+    protected static ?int $navigationSort = 71;
 
     protected static ?string $modelLabel = 'Jenis Tindakan';
 

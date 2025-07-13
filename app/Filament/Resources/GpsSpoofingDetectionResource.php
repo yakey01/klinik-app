@@ -28,7 +28,7 @@ class GpsSpoofingDetectionResource extends Resource
 
     protected static ?string $navigationGroup = 'Presensi';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 44;
 
     protected static ?string $recordTitleAttribute = 'user.name';
 

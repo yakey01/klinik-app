@@ -42,15 +42,26 @@ class CustomEloquentUserProvider extends EloquentUserProvider
             return null;
         }
 
-        // Handle email or name login
+        // Handle email or username login
         if (isset($credentials['email'])) {
             $identifier = $credentials['email'];
             
-            // Try to find user by email first, then by name
+            // Try to find user by email first, then by username
             $query = $this->newModelQuery();
-            $query->where('email', $identifier)->orWhere('name', $identifier);
+            $query->where('email', $identifier)->orWhere('username', $identifier);
             
-            return $query->first();
+            $user = $query->first();
+            
+            // Debug logging
+            \Illuminate\Support\Facades\Log::info('Debug: CustomEloquentUserProvider retrieveByCredentials', [
+                'identifier' => $identifier,
+                'found_user' => $user ? 'YES' : 'NO',
+                'user_id' => $user ? $user->id : null,
+                'user_email' => $user ? $user->email : null,
+                'user_username' => $user ? $user->username : null,
+            ]);
+            
+            return $user;
         }
 
         // For other credential types, use the default behavior

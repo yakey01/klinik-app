@@ -23,13 +23,15 @@ class JadwalJagaResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
     
+    protected static ?string $navigationGroup = 'Kalender & Jadwal';
+    
     protected static ?string $navigationLabel = 'Jadwal Jaga';
     
     protected static ?string $modelLabel = 'Jadwal Jaga';
     
     protected static ?string $pluralModelLabel = 'Jadwal Jaga';
-    
-    protected static ?string $navigationGroup = 'Kalender & Cuti';
+
+    protected static ?int $navigationSort = 30;
 
     public static function form(Form $form): Form
     {

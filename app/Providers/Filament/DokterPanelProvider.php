@@ -27,7 +27,7 @@ class DokterPanelProvider extends PanelProvider
         return $panel
             ->id('dokter')
             ->path('dokter')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('Dokterku - Dashboard Dokter')
             ->brandLogoHeight('2rem')
             ->favicon(asset('favicon.ico'))

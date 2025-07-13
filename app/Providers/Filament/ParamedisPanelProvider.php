@@ -27,7 +27,7 @@ class ParamedisPanelProvider extends PanelProvider
         return $panel
             ->id('paramedis')
             ->path('paramedis')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('Dokterku - Paramedis')
             ->favicon(asset('favicon.ico'))
             ->colors([

@@ -74,16 +74,16 @@ class ListJadwalJagas extends ListRecords
                                         return '✅ Belum ada pegawai yang terjadwal untuk shift ini.';
                                     }
                                     
-                                    $html = '<div class=\"space-y-2\">';
-                                    $html .= '<div class=\"text-sm font-medium text-gray-700 dark:text-gray-300 mb-3\">Pegawai yang sudah terjadwal (' . $existingSchedules->count() . ' orang):</div>';
+                                    $html = '<div class="space-y-2">';
+                                    $html .= '<div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Pegawai yang sudah terjadwal (' . $existingSchedules->count() . ' orang):</div>';
                                     
                                     foreach ($existingSchedules as $schedule) {
-                                        $html .= '<div class=\"flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border\">';
-                                        $html .= '<div class=\"flex items-center space-x-3\">';
-                                        $html .= '<div class=\"w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium\">' . substr($schedule->pegawai->name, 0, 2) . '</div>';
-                                        $html .= '<div class=\"font-medium text-gray-900 dark:text-gray-100\">' . $schedule->pegawai->name . '</div>';
+                                        $html .= '<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">';
+                                        $html .= '<div class="flex items-center space-x-3">';
+                                        $html .= '<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">' . substr($schedule->pegawai->name, 0, 2) . '</div>';
+                                        $html .= '<div class="font-medium text-gray-900 dark:text-gray-100">' . $schedule->pegawai->name . '</div>';
                                         $html .= '</div>';
-                                        $html .= '<span class=\"text-xs px-2 py-1 bg-green-100 text-green-800 rounded\">' . $schedule->status_jaga . '</span>';
+                                        $html .= '<span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">' . $schedule->status_jaga . '</span>';
                                         $html .= '</div>';
                                     }
                                     
@@ -229,80 +229,54 @@ class ListJadwalJagas extends ListRecords
 
                     $created = 0;
                     $skipped = 0;
+                    $missingUsers = [];
                     
+                    // First pass: Validate and collect missing user accounts
                     foreach ($data['pegawai_ids'] as $staffId) {
-                        // Parse the staff ID to get the actual staff record
-                        if (str_starts_with($staffId, 'dokter_')) {
-                            $actualId = str_replace('dokter_', '', $staffId);
-                            $dokter = \App\Models\Dokter::find($actualId);
-                            
-                            if (!$dokter) {
-                                $skipped++;
-                                continue;
-                            }
-                            
-                            // Try to get existing User, or create a temporary schedule entry
-                            $user = $dokter->user;
-                            if (!$user) {
-                                // For demo purposes, let's use a placeholder approach
-                                // In production, you'd want to create User accounts or handle this differently
-                                $skipped++;
-                                continue;
-                            }
-                            
-                            $pegawaiId = $user->id;
-                            $peran = 'Dokter';
-                            $staffName = $dokter->nama_lengkap;
-                            $unitKerja = 'Dokter Jaga';
-                            
-                        } elseif (str_starts_with($staffId, 'pegawai_')) {
-                            $actualId = str_replace('pegawai_', '', $staffId);
-                            $pegawai = \App\Models\Pegawai::find($actualId);
-                            
-                            if (!$pegawai) {
-                                $skipped++;
-                                continue;
-                            }
-                            
-                            // Try to get existing User, or create a temporary schedule entry
-                            $user = $pegawai->user;
-                            if (!$user) {
-                                // For demo purposes, let's use a placeholder approach
-                                $skipped++;
-                                continue;
-                            }
-                            
-                            $pegawaiId = $user->id;
-                            $peran = $pegawai->jenis_pegawai === 'Paramedis' ? 'Paramedis' : 'NonParamedis';
-                            $staffName = $pegawai->nama_lengkap;
-                            
-                            // Map jenis_tugas to unit_kerja for backward compatibility
-                            $unitKerja = match($data['jenis_tugas']) {
-                                'pendaftaran' => 'Pendaftaran',
-                                'pelayanan' => 'Pelayanan',
-                                default => 'Pelayanan'
-                            };
-                        } else {
+                        $staffInfo = $this->validateAndProcessStaff($staffId, $data['jenis_tugas']);
+                        
+                        if (!$staffInfo) {
                             $skipped++;
-                            continue; // Invalid format
+                            continue;
+                        }
+                        
+                        if (!$staffInfo['user']) {
+                            $missingUsers[] = $staffInfo;
+                            continue;
+                        }
+                    }
+                    
+                    // If there are missing users, show enhanced notification with action options
+                    if (!empty($missingUsers)) {
+                        $this->handleMissingUserAccounts($missingUsers);
+                        return; // Stop execution and let admin handle missing accounts
+                    }
+                    
+                    // Second pass: Create schedules (all staff have user accounts)
+                    foreach ($data['pegawai_ids'] as $staffId) {
+                        $staffInfo = $this->validateAndProcessStaff($staffId, $data['jenis_tugas']);
+                        
+                        if (!$staffInfo || !$staffInfo['user']) {
+                            $skipped++;
+                            continue;
                         }
 
                         // Check if already exists to prevent duplicates
                         $exists = \App\Models\JadwalJaga::where('tanggal_jaga', $data['tanggal_jaga'])
                             ->where('shift_template_id', $data['shift_template_id'])
-                            ->where('pegawai_id', $pegawaiId)
+                            ->where('pegawai_id', $staffInfo['user']->id)
                             ->exists();
 
                         if (!$exists) {
                             \App\Models\JadwalJaga::create([
                                 'tanggal_jaga' => $data['tanggal_jaga'],
                                 'shift_template_id' => $data['shift_template_id'],
-                                'pegawai_id' => $pegawaiId,
-                                'unit_kerja' => $unitKerja,
-                                'unit_instalasi' => $unitKerja, // Keep for backward compatibility
-                                'peran' => $peran,
+                                'pegawai_id' => $staffInfo['user']->id,
+                                'unit_kerja' => $staffInfo['unit_kerja'],
+                                'unit_instalasi' => $staffInfo['unit_kerja'], // Keep for backward compatibility
+                                'peran' => $staffInfo['peran'],
                                 'status_jaga' => 'Aktif',
-                                'keterangan' => 'Bulk schedule - ' . $staffName . ' (' . $data['jenis_tugas'] . ') - ' . now()->format('d/m/Y H:i'),
+                                'keterangan' => 'Bulk schedule - ' . $staffInfo['name'] . ' (' . $data['jenis_tugas'] . ') - ' . now()->format('d/m/Y H:i'),
                             ]);
                             $created++;
                         }
@@ -337,5 +311,218 @@ class ListJadwalJagas extends ListRecords
                 ->icon('heroicon-o-plus')
                 ->color('primary'),
         ];
+    }
+    
+    /**
+     * Validate and process staff information for scheduling
+     */
+    private function validateAndProcessStaff(string $staffId, string $jenistugas): ?array
+    {
+        if (str_starts_with($staffId, 'dokter_')) {
+            $actualId = str_replace('dokter_', '', $staffId);
+            $dokter = \App\Models\Dokter::find($actualId);
+            
+            if (!$dokter) {
+                return null;
+            }
+            
+            return [
+                'type' => 'dokter',
+                'id' => $actualId,
+                'model' => $dokter,
+                'user' => $dokter->user,
+                'name' => $dokter->nama_lengkap,
+                'peran' => 'Dokter',
+                'unit_kerja' => 'Dokter Jaga',
+                'email_base' => strtolower(str_replace(' ', '.', $dokter->nama_lengkap)),
+                'nip_nik' => $dokter->user_id ?? null
+            ];
+            
+        } elseif (str_starts_with($staffId, 'pegawai_')) {
+            $actualId = str_replace('pegawai_', '', $staffId);
+            $pegawai = \App\Models\Pegawai::find($actualId);
+            
+            if (!$pegawai) {
+                return null;
+            }
+            
+            $unitKerja = match($jenistugas) {
+                'pendaftaran' => 'Pendaftaran',
+                'pelayanan' => 'Pelayanan',
+                default => 'Pelayanan'
+            };
+            
+            return [
+                'type' => 'pegawai',
+                'id' => $actualId,
+                'model' => $pegawai,
+                'user' => $pegawai->user,
+                'name' => $pegawai->nama_lengkap,
+                'peran' => $pegawai->jenis_pegawai === 'Paramedis' ? 'Paramedis' : 'NonParamedis',
+                'unit_kerja' => $unitKerja,
+                'email_base' => strtolower(str_replace(' ', '.', $pegawai->nama_lengkap)),
+                'nip_nik' => $pegawai->nik
+            ];
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Handle missing user accounts with intelligent options
+     */
+    private function handleMissingUserAccounts(array $missingUsers): void
+    {
+        $count = count($missingUsers);
+        $names = collect($missingUsers)->pluck('name')->take(3)->implode(', ');
+        
+        if ($count > 3) {
+            $names .= ' dan ' . ($count - 3) . ' lainnya';
+        }
+        
+        // Enhanced notification with action buttons
+        \Filament\Notifications\Notification::make()
+            ->warning()
+            ->title('❌ Akun User Belum Tersedia')
+            ->body("**{$count} pegawai** belum memiliki akun User: **{$names}**\n\n🔧 **Solusi Tersedia:**\n📝 Buat akun otomatis\n✏️ Buat akun manual")
+            ->persistent()
+            ->actions([
+                \Filament\Notifications\Actions\Action::make('create_auto')
+                    ->label('🚀 Buat Akun Otomatis')
+                    ->color('success')
+                    ->action(function () use ($missingUsers) {
+                        $this->createMissingUserAccounts($missingUsers);
+                    }),
+                \Filament\Notifications\Actions\Action::make('create_manual')
+                    ->label('✏️ Buat Manual')
+                    ->color('primary')
+                    ->url(route('filament.admin.resources.users.create'))
+                    ->openUrlInNewTab(),
+                \Filament\Notifications\Actions\Action::make('view_details')
+                    ->label('📋 Lihat Detail')
+                    ->color('gray')
+                    ->action(function () use ($missingUsers) {
+                        $this->showMissingUsersDetail($missingUsers);
+                    })
+            ])
+            ->send();
+    }
+    
+    /**
+     * Create missing user accounts automatically
+     */
+    private function createMissingUserAccounts(array $missingUsers): void
+    {
+        $created = 0;
+        $failed = [];
+        
+        foreach ($missingUsers as $staff) {
+            try {
+                // Generate secure default credentials
+                $email = $this->generateUniqueEmail($staff['email_base']);
+                $password = 'Password123!'; // Should be changed on first login
+                
+                // Determine role based on staff type
+                $roleName = match($staff['type']) {
+                    'dokter' => 'dokter',
+                    'pegawai' => $staff['peran'] === 'Paramedis' ? 'paramedis' : 'petugas'
+                };
+                
+                $role = \App\Models\Role::where('name', $roleName)->first();
+                
+                if (!$role) {
+                    $failed[] = $staff['name'] . ' (Role tidak ditemukan)';
+                    continue;
+                }
+                
+                // Create User account
+                $user = \App\Models\User::create([
+                    'name' => $staff['name'],
+                    'email' => $email,
+                    'password' => \Hash::make($password),
+                    'role_id' => $role->id,
+                    'nip' => $staff['nip_nik'],
+                    'email_verified_at' => now()
+                ]);
+                
+                // Link to staff record
+                if ($staff['type'] === 'dokter') {
+                    $staff['model']->update(['user_id' => $user->id]);
+                }
+                // For pegawai, the relationship is via NIP matching
+                
+                $created++;
+                
+            } catch (\Exception $e) {
+                $failed[] = $staff['name'] . ' (' . $e->getMessage() . ')';
+            }
+        }
+        
+        // Success notification
+        if ($created > 0) {
+            \Filament\Notifications\Notification::make()
+                ->success()
+                ->title('✅ Akun User Berhasil Dibuat')
+                ->body("**{$created} akun** berhasil dibuat dengan password default: **Password123!**\n\n⚠️ **Penting:** Minta pegawai mengganti password saat login pertama.")
+                ->actions([
+                    \Filament\Notifications\Actions\Action::make('retry_schedule')
+                        ->label('🔄 Coba Jadwal Ulang')
+                        ->color('primary')
+                        ->action(function () {
+                            $this->refreshData();
+                        })
+                ])
+                ->send();
+        }
+        
+        // Failure notification
+        if (!empty($failed)) {
+            \Filament\Notifications\Notification::make()
+                ->danger()
+                ->title('❌ Beberapa Akun Gagal Dibuat')
+                ->body('Gagal: ' . implode(', ', $failed))
+                ->send();
+        }
+    }
+    
+    /**
+     * Show detailed information about missing users
+     */
+    private function showMissingUsersDetail(array $missingUsers): void
+    {
+        $details = collect($missingUsers)->map(function ($staff) {
+            return "• **{$staff['name']}** ({$staff['peran']}) - {$staff['unit_kerja']}";
+        })->implode("\n");
+        
+        \Filament\Notifications\Notification::make()
+            ->info()
+            ->title('📋 Detail Pegawai Tanpa Akun User')
+            ->body("**Total: " . count($missingUsers) . " pegawai**\n\n{$details}\n\n💡 **Rekomendasi:**\n1. Gunakan 'Buat Akun Otomatis' untuk kemudahan\n2. Atau buat manual di menu User Management")
+            ->persistent()
+            ->send();
+    }
+    
+    /**
+     * Generate unique email for staff
+     */
+    private function generateUniqueEmail(string $baseEmail): string
+    {
+        $email = $baseEmail . '@dokterku.local';
+        $counter = 1;
+        
+        while (\App\Models\User::where('email', $email)->exists()) {
+            $email = $baseEmail . $counter . '@dokterku.local';
+            $counter++;
+        }
+        
+        return $email;
+    }
+    
+    /**
+     * Refresh the current page data
+     */
+    private function refreshData(): void
+    {
+        $this->redirect(request()->header('Referer'));
     }
 }

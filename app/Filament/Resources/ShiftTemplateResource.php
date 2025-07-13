@@ -17,7 +17,17 @@ class ShiftTemplateResource extends Resource
 {
     protected static ?string $model = ShiftTemplate::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-clock';
+    
+    protected static ?string $navigationGroup = 'Kalender & Jadwal';
+    
+    protected static ?string $navigationLabel = 'Template Shift';
+    
+    protected static ?string $modelLabel = 'Template Shift';
+    
+    protected static ?string $pluralModelLabel = 'Template Shift';
+
+    protected static ?int $navigationSort = 31;
 
     public static function form(Form $form): Form
     {

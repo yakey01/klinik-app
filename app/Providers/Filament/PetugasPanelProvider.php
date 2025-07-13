@@ -26,7 +26,7 @@ class PetugasPanelProvider extends PanelProvider
         return $panel
             ->id('petugas')
             ->path('petugas')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('Dokterku - Petugas')
             ->favicon(asset('favicon.ico'))
             ->colors([

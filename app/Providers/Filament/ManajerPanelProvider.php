@@ -26,7 +26,7 @@ class ManajerPanelProvider extends PanelProvider
         return $panel
             ->id('manajer')
             ->path('manajer')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('Dokterku - Manajer')
             ->favicon(asset('favicon.ico'))
             ->colors([

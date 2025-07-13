@@ -12,6 +12,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Http\Request;
+use App\Models\Role;
 
 class UserResource extends Resource
 {
@@ -19,7 +21,9 @@ class UserResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
     
-    protected static ?string $navigationGroup = 'Pengguna';
+    protected static ?string $navigationGroup = 'Notifikasi';
+    
+    protected static ?int $navigationSort = 60;
     
     protected static ?string $modelLabel = 'Pengguna';
     
@@ -27,6 +31,8 @@ class UserResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $source = request()->get('source'); // Detect source from URL parameter
+        
         return $form
             ->schema([
                 Forms\Components\Section::make('Informasi Pribadi')
@@ -53,26 +59,118 @@ class UserResource extends Resource
                             ->default(now()),
                     ])->columns(2),
                     
-                Forms\Components\Section::make('Akun & Keamanan')
+                Forms\Components\Section::make('🔐 Akun & Keamanan')
+                    ->description('Pengaturan username, password, dan role user')
                     ->schema([
-                        Forms\Components\TextInput::make('password')
-                            ->label('Password')
-                            ->password()
-                            ->required(fn (string $operation): bool => $operation === 'create')
-                            ->dehydrateStateUsing(fn (string $state): string => bcrypt($state))
-                            ->dehydrated(fn (?string $state): bool => filled($state))
-                            ->revealable()
-                            ->minLength(8),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('username')
+                                    ->label('Username Login')
+                                    ->maxLength(20)
+                                    ->unique(ignoreRecord: true)
+                                    ->nullable()
+                                    ->placeholder('Opsional - dapat digunakan sebagai alternatif login')
+                                    ->helperText('Username untuk login alternatif selain email')
+                                    ->alphaNum()
+                                    ->minLength(3)
+                                    ->suffixIcon('heroicon-m-user')
+                                    ->columnSpan(2),
+
+                                Forms\Components\TextInput::make('password')
+                                    ->label('Password Baru')
+                                    ->password()
+                                    ->revealable()
+                                    ->required(fn (string $operation): bool => $operation === 'create')
+                                    ->dehydrateStateUsing(fn (string $state): string => bcrypt($state))
+                                    ->dehydrated(fn (?string $state): bool => filled($state))
+                                    ->minLength(6)
+                                    ->maxLength(50)
+                                    ->placeholder(fn (string $operation): string => 
+                                        $operation === 'create' ? 'Masukkan password' : 'Kosongkan jika tidak ingin mengubah')
+                                    ->helperText('Minimal 6 karakter')
+                                    ->suffixIcon('heroicon-m-key')
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('password_confirmation')
+                                    ->label('Konfirmasi Password')
+                                    ->password()
+                                    ->revealable()
+                                    ->dehydrated(false)
+                                    ->placeholder('Ketik ulang password')
+                                    ->helperText('Harus sama dengan password baru')
+                                    ->same('password')
+                                    ->requiredWith('password')
+                                    ->suffixIcon('heroicon-m-check-circle')
+                                    ->columnSpan(1),
+                            ]),
+
+                        Forms\Components\Placeholder::make('password_security_info')
+                            ->label('ℹ️ Informasi Keamanan Password')
+                            ->content(function () {
+                                return new \Illuminate\Support\HtmlString('
+                                    <div class="text-sm text-gray-600 dark:text-gray-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+                                        <ul class="space-y-1">
+                                            <li>• Password minimal 6 karakter, maksimal 50 karakter</li>
+                                            <li>• Gunakan kombinasi huruf besar, huruf kecil, angka, dan simbol</li>
+                                            <li>• Konfirmasi password harus sama persis dengan password baru</li>
+                                            <li>• Klik ikon mata (👁) untuk melihat/menyembunyikan password</li>
+                                            <li>• Untuk edit: kosongkan jika tidak ingin mengubah password</li>
+                                        </ul>
+                                    </div>
+                                ');
+                            })
+                            ->columnSpan('full'),
+                        
+                        // Dynamic role selection based on source
                         Forms\Components\Select::make('role_id')
                             ->label('Role')
                             ->relationship('role', 'display_name')
                             ->required()
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->visible(fn () => $source !== 'dokter' && $source !== 'pegawai')
+                            ->hint('Pilih role untuk user ini'),
+                            
+                        // Role information for dokter source
+                        Forms\Components\Placeholder::make('role_info_dokter')
+                            ->label('Role yang akan ditetapkan')
+                            ->content('Role: Dokter (otomatis)')
+                            ->visible(fn () => $source === 'dokter'),
+                            
+                        // Employee type selection for pegawai source
+                        Forms\Components\Select::make('employee_type')
+                            ->label('Jenis Pegawai')
+                            ->options([
+                                'paramedis' => 'Paramedis',
+                                'non_paramedis' => 'Non-Paramedis',
+                            ])
+                            ->required()
+                            ->default('non_paramedis')
+                            ->visible(fn () => $source === 'pegawai')
+                            ->live()
+                            ->hint('Pilih jenis pegawai untuk menentukan role'),
+                            
+                        // Show selected role for pegawai
+                        Forms\Components\Placeholder::make('role_preview')
+                            ->label('Role yang akan ditetapkan')
+                            ->content(function (Forms\Get $get) {
+                                $employeeType = $get('employee_type');
+                                return match($employeeType) {
+                                    'paramedis' => 'Role: Paramedis',
+                                    'non_paramedis' => 'Role: Petugas',
+                                    default => 'Role: (belum dipilih)'
+                                };
+                            })
+                            ->visible(fn () => $source === 'pegawai'),
+                            
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
                     ])->columns(2),
+                    
+                // Hidden field to store source information
+                Forms\Components\Hidden::make('source')
+                    ->default($source),
             ]);
     }
 
@@ -88,6 +186,11 @@ class UserResource extends Resource
                     ->label('Email')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('username')
+                    ->label('Username')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('(belum diset)'),
                 Tables\Columns\TextColumn::make('role.display_name')
                     ->label('Role')
                     ->badge()

@@ -23,11 +23,16 @@ class AbsenceRequestResource extends Resource
     protected static ?string $model = AbsenceRequest::class;
     
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
-    protected static ?string $navigationLabel = 'Absence Requests';
-    protected static ?string $modelLabel = 'Absence Request';
-    protected static ?string $pluralModelLabel = 'Absence Requests';
-    protected static ?string $navigationGroup = 'Presensi';
-    protected static ?int $navigationSort = 5;
+    
+    protected static ?string $navigationGroup = 'Cuti & Absen';
+    
+    protected static ?string $navigationLabel = 'Permintaan Izin';
+    
+    protected static ?string $modelLabel = 'Permintaan Izin';
+    
+    protected static ?string $pluralModelLabel = 'Permintaan Izin';
+
+    protected static ?int $navigationSort = 53;
 
     public static function form(Form $form): Form
     {

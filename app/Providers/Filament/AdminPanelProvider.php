@@ -22,6 +22,7 @@ use Filament\Support\Facades\FilamentView;
 use Cheesegrits\FilamentGoogleMaps\FilamentGoogleMapsPlugin;
 use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 use App\Filament\Pages\Auth\CustomLogin;
+use Hasnayeen\Themes\ThemesPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -31,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('Dokterku Admin')
             ->colors([
                 'primary' => Color::Blue,
@@ -71,6 +72,8 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->plugins([
                 FilamentFullCalendarPlugin::make(),
+                ThemesPlugin::make()
+                    ->canViewThemesPage(fn () => auth()->user()?->hasRole('admin')),
             ])
             ->tenant(null); // Disable multi-tenancy for now
     }

@@ -14,6 +14,15 @@ class EventServiceProvider extends ServiceProvider
      */
     protected $listen = [
         // Events are registered via the AuthenticationListener subscriber
+        \App\Events\IncomeCreated::class => [
+            \App\Listeners\SendTelegramNotification::class,
+        ],
+        \App\Events\PatientCreated::class => [
+            \App\Listeners\SendTelegramNotification::class,
+        ],
+        \App\Events\UserCreated::class => [
+            \App\Listeners\SendTelegramNotification::class,
+        ],
     ];
 
     /**

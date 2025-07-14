@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test GPS Detection - Paramedis</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test GPS Detection - Paramedis Presensi</h1>
+    
+    <button onclick="testGPS()">🔍 Test GPS Detection</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        // Simulate work location from database
+        const workLocation = {
+            name: 'Klinik Dokterku Jakarta',
+            latitude: -6.2088,
+            longitude: 106.8456,
+            radius: 100 // meters
+        };
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+            
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            return R * c;
+        }
+        
+        function testGPS() {
+            document.getElementById('results').innerHTML = '';
+            
+            addResult('🚀 Starting GPS detection test...');
+            addResult(`🏢 Target Location: ${workLocation.name} (${workLocation.latitude}, ${workLocation.longitude})`);
+            addResult(`🎯 Allowed Radius: ${workLocation.radius} meters`);
+            
+            if (!navigator.geolocation) {
+                addResult('❌ Geolocation is not supported by this browser', 'error');
+                return;
+            }
+            
+            addResult('✅ Geolocation API is supported');
+            addResult('📡 Requesting GPS coordinates...');
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
+            };
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    
+                    addResult(`📍 GPS Detected Successfully!`, 'success');
+                    addResult(`📌 Your Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+                    addResult(`🎯 GPS Accuracy: ±${Math.round(accuracy)} meters`);
+                    
+                    const distance = calculateDistance(lat, lng, workLocation.latitude, workLocation.longitude);
+                    addResult(`📏 Distance to clinic: ${Math.round(distance)} meters`);
+                    
+                    if (distance <= workLocation.radius) {
+                        addResult(`✅ VALID: You are within the clinic radius (${workLocation.radius}m)`, 'success');
+                        addResult(`🎉 Presensi can be performed!`, 'success');
+                    } else {
+                        addResult(`❌ INVALID: You are outside the clinic radius`, 'error');
+                        addResult(`❌ Move closer to the clinic to perform presensi`, 'error');
+                    }
+                },
+                function(error) {
+                    let errorMessage = '';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = '❌ GPS permission denied. Please allow location access.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = '📡 GPS position unavailable. Please check GPS settings.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = '⏱️ GPS request timeout. Please try again.';
+                            break;
+                        default:
+                            errorMessage = '❌ Unknown GPS error occurred.';
+                            break;
+                    }
+                    addResult(errorMessage, 'error');
+                },
+                options
+            );
+        }
+        
+        // Auto-test GPS on page load (like the real presensi page)
+        window.addEventListener('load', function() {
+            addResult('🔄 Auto-testing GPS (like real presensi page)...');
+            setTimeout(testGPS, 1000);
+        });
+    </script>
+</body>
+</html>

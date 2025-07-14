@@ -192,7 +192,7 @@
                     <span class="font-medium group-hover:text-blue-400">Dashboard</span>
                 </a>
                 
-                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-md hover:bg-gray-800 transition-all duration-200 group">
+                <a href="/paramedis/presensi" class="flex items-center space-x-3 px-4 py-3 rounded-md hover:bg-gray-800 transition-all duration-200 group">
                     <i data-lucide="clock" class="w-5 h-5 group-hover:text-blue-400"></i>
                     <span class="font-medium group-hover:text-blue-400">Presensi</span>
                 </a>

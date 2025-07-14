@@ -28,6 +28,7 @@ class AttendanceResource extends Resource
     protected static ?string $pluralModelLabel = 'Data Presensi';
     protected static ?string $navigationGroup = 'Presensi';
     protected static ?int $navigationSort = 1;
+    protected static bool $shouldRegisterNavigation = false;
 
     // Security: Only accessible by paramedis role
     public static function canAccess(): bool
@@ -175,6 +176,7 @@ class AttendanceResource extends Resource
                             'user_id' => auth()->id(),
                             'date' => $today,
                             'time_in' => $now->format('H:i:s'),
+                            'latlon_in' => '0,0',
                             'status' => $status,
                             'location_name_in' => 'Klinik Dokterku',
                             'notes' => 'Check-in melalui Dashboard Paramedis'
@@ -232,6 +234,7 @@ class AttendanceResource extends Resource
                             'user_id' => auth()->id(),
                             'date' => $today,
                             'time_in' => $now->format('H:i:s'),
+                            'latlon_in' => '0,0',
                             'status' => $status,
                             'location_name_in' => 'Klinik Dokterku',
                             'notes' => 'Check-in melalui Dashboard Paramedis'

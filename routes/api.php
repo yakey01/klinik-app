@@ -41,6 +41,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('paramedis')->middleware(['web', 'auth'])->group(function () {
         Route::post('/attendance/checkin', [AttendanceController::class, 'checkin']);
         Route::post('/attendance/checkout', [AttendanceController::class, 'checkout']);
+        Route::post('/attendance/quick-checkin', [AttendanceController::class, 'quickCheckin']);
+        Route::post('/attendance/quick-checkout', [AttendanceController::class, 'quickCheckout']);
         Route::get('/attendance/history', [AttendanceController::class, 'index']);
         Route::get('/attendance/today', [AttendanceController::class, 'today']);
         Route::get('/attendance/status', function (Request $request) {

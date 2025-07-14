@@ -4,27 +4,41 @@ import '../styles/ParamedisJaspelDashboard.css';
 
 const ParamedisJaspelDashboard = () => {
   const [dashboardData, setDashboardData] = useState({
-    jaspel_monthly: 20400000,
-    jaspel_weekly: 5530000,
+    jaspel_monthly: 0,
+    jaspel_weekly: 0,
     minutes_worked: 920,
-    doctor_name: 'dr. SARI',
-    doctor_specialty: 'Dokter Umum',
-    avatar_url: 'https://ui-avatars.com/api/?name=dr.SARI&background=3b82f6&color=fff&size=80&rounded=true'
+    doctor_name: 'Loading...',
+    doctor_specialty: 'Paramedis',
+    avatar_url: 'https://ui-avatars.com/api/?name=Loading&background=3b82f6&color=fff&size=80&rounded=true'
   });
 
+  const [dailyJaspel, setDailyJaspel] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize with demo data
-    setLoading(false);
-    
-    // Get user data from Laravel if available
-    if (window.laravelData?.user?.name) {
-      setDashboardData(prev => ({
-        ...prev,
-        doctor_name: `dr. ${window.laravelData.user.name.split(' ')[0]}`,
-        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(window.laravelData.user.name)}&background=3b82f6&color=fff&size=80&rounded=true`
-      }));
+    // Get data from Laravel
+    if (window.laravelJaspelData) {
+      const laravelData = window.laravelJaspelData;
+      
+      setDashboardData({
+        jaspel_monthly: laravelData.jaspel.monthly || 0,
+        jaspel_weekly: laravelData.jaspel.weekly || 0,
+        minutes_worked: 920, // Could be calculated from attendance data
+        doctor_name: laravelData.user.name || 'Paramedis',
+        doctor_specialty: 'Paramedis',
+        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(laravelData.user.name || 'Paramedis')}&background=3b82f6&color=fff&size=80&rounded=true`
+      });
+      
+      // Set recent jaspel data
+      if (laravelData.jaspel.recent) {
+        setDailyJaspel(laravelData.jaspel.recent);
+      }
+      
+      setLoading(false);
+    } else {
+      // Fallback to demo data if Laravel data not available
+      setLoading(false);
+      console.warn('Laravel jaspel data not found, using demo data');
     }
   }, []);
 

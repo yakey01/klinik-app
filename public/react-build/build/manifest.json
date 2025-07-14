@@ -1,6 +1,10 @@
 {
+  "_user-BlB7VMT_.js": {
+    "file": "assets/user-BlB7VMT_.js",
+    "name": "user"
+  },
   "resources/css/app.css": {
-    "file": "assets/css/app-BwVkE0gQ.css",
+    "file": "assets/css/app-8Ibr0-4s.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
@@ -18,6 +22,40 @@
     "file": "assets/app-DaBYqt0m.js",
     "name": "app",
     "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/react/paramedis-jaspel/main.jsx": {
+    "file": "assets/main-CD9mh8Rd.js",
+    "name": "main",
+    "src": "resources/react/paramedis-jaspel/main.jsx",
+    "isEntry": true,
+    "imports": [
+      "_user-BlB7VMT_.js"
+    ],
+    "css": [
+      "assets/css/ParamedisJaspelDashboard-pIMxggWM.css"
+    ]
+  },
+  "resources/react/paramedis-jaspel/styles/ParamedisJaspelDashboard.css": {
+    "file": "assets/css/ParamedisJaspelDashboard-pIMxggWM.css",
+    "src": "resources/react/paramedis-jaspel/styles/ParamedisJaspelDashboard.css",
+    "isEntry": true
+  },
+  "resources/react/premium-paramedis-dashboard/main.jsx": {
+    "file": "assets/main-DHSz2IOD.js",
+    "name": "main",
+    "src": "resources/react/premium-paramedis-dashboard/main.jsx",
+    "isEntry": true,
+    "imports": [
+      "_user-BlB7VMT_.js"
+    ],
+    "css": [
+      "assets/css/PremiumParamedisDashboard-C-qEcOhw.css"
+    ]
+  },
+  "resources/react/premium-paramedis-dashboard/styles/PremiumParamedisDashboard.css": {
+    "file": "assets/css/PremiumParamedisDashboard-C-qEcOhw.css",
+    "src": "resources/react/premium-paramedis-dashboard/styles/PremiumParamedisDashboard.css",
     "isEntry": true
   }
 }

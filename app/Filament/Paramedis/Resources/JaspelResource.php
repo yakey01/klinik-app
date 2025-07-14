@@ -27,6 +27,7 @@ class JaspelResource extends Resource
     protected static ?string $pluralModelLabel = 'Data Jaspel';
     protected static ?string $navigationGroup = 'Jaspel';
     protected static ?int $navigationSort = 1;
+    protected static bool $shouldRegisterNavigation = false;
 
     // Security: Only accessible by paramedis role
     public static function canAccess(): bool

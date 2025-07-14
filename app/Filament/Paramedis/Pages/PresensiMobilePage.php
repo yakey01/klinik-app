@@ -81,6 +81,8 @@ class PresensiMobilePage extends Page
                 'user_id' => Auth::id(),
                 'date' => $now->toDateString(),
                 'time_in' => $now->toTimeString(),
+                'latlon_in' => $this->userLatitude . ',' . $this->userLongitude,
+                'location_name_in' => 'GPS Mobile Check-in',
                 'status' => $now->hour < 8 ? 'present' : 'late',
                 'notes' => 'Check-in via Mobile GPS App',
                 'latitude' => $this->userLatitude,

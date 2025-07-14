@@ -76,13 +76,13 @@ function App() {
 
 // Initialize React App
 document.addEventListener('DOMContentLoaded', function() {
-  const container = document.getElementById('jaspel-dashboard-root');
+  const container = document.getElementById('paramedis-jaspel-root');
   
   if (container) {
     const root = createRoot(container);
     root.render(<App />);
   } else {
-    console.error('Root container #jaspel-dashboard-root not found');
+    console.error('Root container #paramedis-jaspel-root not found');
   }
 });
 

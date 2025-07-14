@@ -399,6 +399,119 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Quick check-in from dashboard (simplified, no GPS validation)
+     */
+    public function quickCheckin(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $today = Carbon::today();
+
+            // Check if user already checked in today
+            if (Attendance::hasCheckedInToday($user->id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda sudah melakukan check-in hari ini'
+                ], 400);
+            }
+
+            // Create new attendance record
+            $now = Carbon::now();
+            $workStartTime = Carbon::createFromTime(8, 0, 0);
+            $status = $now->gt($workStartTime) ? 'late' : 'present';
+
+            $attendance = Attendance::create([
+                'user_id' => $user->id,
+                'date' => $today,
+                'time_in' => $now->format('H:i:s'),
+                'latlon_in' => '0,0', // Default coordinates for quick check-in
+                'location_name_in' => 'Dashboard Check-in',
+                'status' => $status,
+                'notes' => 'Check-in melalui Dashboard Paramedis',
+                'latitude' => 0,
+                'longitude' => 0,
+                'accuracy' => null,
+                'location_validated' => false,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Check-in berhasil',
+                'data' => [
+                    'attendance_id' => $attendance->id,
+                    'time_in' => $attendance->time_in,
+                    'status' => $attendance->status,
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat check-in',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Quick check-out from dashboard (simplified, no GPS validation)
+     */
+    public function quickCheckout(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            
+            // Get today's attendance
+            $attendance = Attendance::getTodayAttendance($user->id);
+
+            if (!$attendance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda belum melakukan check-in hari ini'
+                ], 400);
+            }
+
+            if (!$attendance->canCheckOut()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda sudah melakukan check-out hari ini'
+                ], 400);
+            }
+
+            // Update attendance record
+            $now = Carbon::now();
+            $attendance->update([
+                'time_out' => $now->format('H:i:s'),
+                'location_name_out' => 'Dashboard Check-out',
+                'status' => 'present',
+                'notes' => $attendance->notes . "\nCheck-out melalui Dashboard Paramedis",
+                'latlon_out' => '0,0', // Default coordinates for quick check-out
+                'checkout_latitude' => 0,
+                'checkout_longitude' => 0,
+                'checkout_accuracy' => null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Check-out berhasil',
+                'data' => [
+                    'attendance_id' => $attendance->id,
+                    'time_in' => $attendance->time_in,
+                    'time_out' => $attendance->time_out,
+                    'work_duration' => $attendance->formatted_work_duration,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat check-out',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
      * Determine attendance status based on time
      */
     private function determineStatus(Carbon $checkInTime): string

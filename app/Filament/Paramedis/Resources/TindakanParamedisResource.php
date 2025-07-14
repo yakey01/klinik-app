@@ -27,6 +27,8 @@ class TindakanParamedisResource extends Resource
     protected static ?string $pluralModelLabel = 'Tindakan';
 
     protected static ?int $navigationSort = 2;
+    
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {

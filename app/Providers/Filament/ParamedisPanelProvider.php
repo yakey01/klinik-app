@@ -28,17 +28,22 @@ class ParamedisPanelProvider extends PanelProvider
             ->id('paramedis')
             ->path('paramedis')
             ->login()
-            ->default()
+            ->default(\App\Filament\Paramedis\Pages\UjiCobaDashboard::class)
             ->brandName('Dokterku - Paramedis')
             ->favicon(asset('favicon.ico'))
             ->colors([
                 'primary' => Color::Green,
             ])
             ->darkMode()
-            ->discoverResources(in: app_path('Filament/Paramedis/Resources'), for: 'App\\Filament\\Paramedis\\Resources')
+            ->resources([
+                // \App\Filament\Paramedis\Resources\JaspelResource::class, // Disabled - using React page instead
+            ])
             ->pages([
-                \App\Filament\Paramedis\Pages\PremiumDashboard::class,
-                \App\Filament\Paramedis\Pages\PresensiMobilePage::class,
+                // \App\Filament\Paramedis\Pages\PremiumDashboard::class, // Temporarily disabled - causing route conflicts
+                \App\Filament\Paramedis\Pages\UjiCobaDashboard::class,
+                \App\Filament\Paramedis\Pages\JaspelPremiumPage::class,
+                \App\Filament\Paramedis\Pages\JadwalJagaPage::class,
+                // \App\Filament\Paramedis\Pages\PresensiMobilePage::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Paramedis/Widgets'), for: 'App\\Filament\\Paramedis\\Widgets')
             ->widgets([
@@ -66,9 +71,33 @@ class ParamedisPanelProvider extends PanelProvider
                 'panels::head.end',
                 fn () => view('filament.paramedis.partials.mobile-meta')
             )
+            ->renderHook(
+                'panels::body.start',
+                fn () => '<style>
+                    .fi-sidebar, .fi-sidebar-backdrop, .fi-sidebar-overlay, .fi-topbar, 
+                    .fi-sidebar-nav, .fi-sidebar-group, .fi-sidebar-item, [data-sidebar],
+                    aside.fi-sidebar, nav.fi-sidebar-nav, [x-data*="sidebar"], 
+                    [x-data*="navigation"], .filament-sidebar, .filament-navigation,
+                    .fi-navigation, .fi-nav, body > div > aside, body > div > div > aside {
+                        display: none !important;
+                        visibility: hidden !important;
+                        opacity: 0 !important;
+                        width: 0 !important;
+                        height: 0 !important;
+                        position: absolute !important;
+                        left: -9999px !important;
+                    }
+                    .fi-main { margin-left: 0 !important; width: 100% !important; }
+                    .fi-main .fi-page { padding: 0 !important; margin: 0 !important; }
+                </style>'
+            )
             ->databaseNotifications()
             ->tenant(null)
-            ->homeUrl('/paramedis');
+            ->homeUrl('/paramedis')
+            ->sidebarCollapsibleOnDesktop()
+            ->collapsedSidebarWidth('0px')
+            ->sidebarFullyCollapsibleOnDesktop()
+            ->navigationGroups([]);
     }
 
     public function canAccessPanel(\Illuminate\Contracts\Auth\Authenticatable $user): bool

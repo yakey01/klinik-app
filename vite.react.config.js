@@ -9,6 +9,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'paramedis-dashboard': resolve(__dirname, 'resources/react/paramedis-dashboard/main.jsx'),
+        'paramedis-jaspel': resolve(__dirname, 'resources/react/paramedis-jaspel/main.jsx'),
       },
       output: {
         entryFileNames: '[name].js',

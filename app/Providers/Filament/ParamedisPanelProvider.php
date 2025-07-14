@@ -41,6 +41,7 @@ class ParamedisPanelProvider extends PanelProvider
             ->pages([
                 // \App\Filament\Paramedis\Pages\PremiumDashboard::class, // Temporarily disabled - causing route conflicts
                 \App\Filament\Paramedis\Pages\UjiCobaDashboard::class,
+                \App\Filament\Paramedis\Pages\PresensiPage::class,
                 \App\Filament\Paramedis\Pages\JaspelPremiumPage::class,
                 \App\Filament\Paramedis\Pages\JadwalJagaPage::class,
                 // \App\Filament\Paramedis\Pages\PresensiMobilePage::class,

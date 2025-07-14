@@ -161,7 +161,7 @@
                     <span class="font-medium">Dashboard</span>
                 </a>
                 
-                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-md hover:bg-gray-800 transition-all duration-200 group">
+                <a href="/paramedis/presensi" class="flex items-center space-x-3 px-4 py-3 rounded-md hover:bg-gray-800 transition-all duration-200 group">
                     <i data-lucide="clock" class="w-5 h-5 group-hover:text-blue-400"></i>
                     <span class="font-medium group-hover:text-blue-400">Presensi</span>
                 </a>
@@ -337,12 +337,12 @@
                 <div class="animate-bounce-in" style="animation-delay: 0.6s">
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Aksi Cepat</h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <button class="glass rounded-xl p-6 text-center hover:bg-opacity-10 hover:bg-blue-500 transition-all duration-300 group">
+                        <a href="/paramedis/presensi" class="glass rounded-xl p-6 text-center hover:bg-opacity-10 hover:bg-blue-500 transition-all duration-300 group block">
                             <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                                 <i data-lucide="clock-in" class="w-6 h-6 text-white"></i>
                             </div>
-                            <p class="font-semibold text-gray-900 dark:text-white">Check In</p>
-                        </button>
+                            <p class="font-semibold text-gray-900 dark:text-white">Presensi</p>
+                        </a>
                         
                         <a href="/paramedis/jaspel" class="glass rounded-xl p-6 text-center hover:bg-opacity-10 hover:bg-green-500 transition-all duration-300 group block">
                             <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">

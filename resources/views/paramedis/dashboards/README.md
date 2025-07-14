@@ -2,17 +2,38 @@
 
 ## 📁 Current Dashboard Structure
 
-### ✅ Active Dashboard:
+### ✅ Active Dashboards:
 - **UjiCoba Dashboard**: `paramedis/dashboards/ujicoba-dashboard.blade.php`
   - **Controller**: `App\Filament\Paramedis\Pages\UjiCobaDashboard`
   - **Route**: `/paramedis` (default homepage)
   - **Features**: Dark elegant sidebar, Tailwind CSS v4, Chart.js, Mobile-responsive
 
+- **Presensi Dashboard**: `paramedis/presensi/dashboard.blade.php`
+  - **Controller**: `App\Filament\Paramedis\Pages\PresensiPage`
+  - **Route**: `/paramedis/presensi`
+  - **Features**: World-class attendance UI, GPS integration, Real-time tracking
+
+- **Jaspel Dashboard**: `paramedis/jaspel.blade.php`
+  - **Controller**: `App\Filament\Paramedis\Pages\JaspelPremiumPage`
+  - **Route**: `/paramedis/jaspel`
+  - **Features**: Service fee management, Chart.js visualizations
+
+- **Jadwal Jaga Dashboard**: `paramedis/jadwal-jaga.blade.php`
+  - **Controller**: `App\Filament\Paramedis\Pages\JadwalJagaPage`
+  - **Route**: `/paramedis/jadwal-jaga`
+  - **Features**: Schedule management, Weekly/monthly views
+
 ### 🗂️ File Organization:
 ```
-resources/views/paramedis/dashboards/
-├── ujicoba-dashboard.blade.php    (Main Dashboard - Active)
-└── README.md                      (This documentation)
+resources/views/paramedis/
+├── dashboards/
+│   ├── ujicoba-dashboard.blade.php    (Main Dashboard - Active)
+│   └── README.md                      (This documentation)
+├── presensi/
+│   ├── dashboard.blade.php            (Presensi Dashboard - Active)
+│   └── README.md                      (Presensi documentation)
+├── jaspel.blade.php                   (Jaspel Dashboard - Active)
+└── jadwal-jaga.blade.php              (Schedule Dashboard - Active)
 ```
 
 ### 🔗 Access URLs:
@@ -37,6 +58,9 @@ resources/views/paramedis/dashboards/
 - ~~world-class-premium-dashboard.blade.php~~
 - ~~modern-mobile-dashboard.blade.php~~
 - ~~premium-paramedis-dashboard-simple.blade.php~~
+- ~~filament/paramedis/pages/presensi-page.blade.php~~ (Old presensi)
+- ~~filament/paramedis/pages/presensi-mobile.blade.php~~ (Old mobile presensi)
+- ~~app/Filament/Paramedis/Pages/PresensiMobilePage.php~~ (Disabled)
 
 ### 📝 Configuration:
 - **Panel Provider**: `ParamedisPanelProvider.php`

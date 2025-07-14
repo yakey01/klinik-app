@@ -80,15 +80,31 @@ class WorkLocationResource extends Resource
                 Forms\Components\Section::make('📍 Koordinat GPS & Geofencing')
                     ->description('Pilih lokasi pada peta atau gunakan tombol "Get Location" untuk deteksi GPS otomatis')
                     ->schema([
-                        Map::make('location')
+                        Map::make('map_coordinates')
                             ->label('📍 Pilih Lokasi pada Peta')
                             ->extraStyles(['height: 400px'])
+                            ->defaultLocation(latitude: -6.2088, longitude: 106.8456) // Jakarta default
                             ->zoom(15)
+                            ->draggable(true)
+                            ->clickable(true)
+                            ->showMarker(true)
                             ->showMyLocationButton()
                             ->reactive()
+                            ->live()
+                            ->dehydrated(false) // Don't save this field to database
+                            ->afterStateHydrated(function (callable $get, callable $set, $state): void {
+                                // Initialize map with existing coordinates
+                                $lat = $get('latitude');
+                                $lng = $get('longitude');
+                                if ($lat && $lng) {
+                                    $set('map_coordinates', ['lat' => (float) $lat, 'lng' => (float) $lng]);
+                                }
+                            })
                             ->afterStateUpdated(function (callable $get, callable $set, ?array $state): void {
-                                $set('latitude', $state['lat'] ?? null);
-                                $set('longitude', $state['lng'] ?? null);
+                                if (is_array($state) && isset($state['lat']) && isset($state['lng'])) {
+                                    $set('latitude', round($state['lat'], 6));
+                                    $set('longitude', round($state['lng'], 6));
+                                }
                             })
                             ->columnSpanFull(),
 
@@ -98,19 +114,35 @@ class WorkLocationResource extends Resource
                                     ->label('Latitude')
                                     ->required()
                                     ->numeric()
-                                    ->step(0.00000001)
+                                    ->step(0.000001)
                                     ->placeholder('Contoh: -6.2088200 (Jakarta)')
                                     ->helperText('Koordinat lintang - terisi otomatis dari peta')
-                                    ->reactive(),
+                                    ->reactive()
+                                    ->live()
+                                    ->afterStateUpdated(function (callable $get, callable $set, $state): void {
+                                        $lat = $get('latitude');
+                                        $lng = $get('longitude');
+                                        if ($lat && $lng) {
+                                            $set('map_coordinates', ['lat' => (float) $lat, 'lng' => (float) $lng]);
+                                        }
+                                    }),
 
                                 Forms\Components\TextInput::make('longitude')
                                     ->label('Longitude')
                                     ->required()
                                     ->numeric()
-                                    ->step(0.00000001)
+                                    ->step(0.000001)
                                     ->placeholder('Contoh: 106.8238800 (Jakarta)')
                                     ->helperText('Koordinat bujur - terisi otomatis dari peta')
                                     ->reactive()
+                                    ->live()
+                                    ->afterStateUpdated(function (callable $get, callable $set, $state): void {
+                                        $lat = $get('latitude');
+                                        $lng = $get('longitude');
+                                        if ($lat && $lng) {
+                                            $set('map_coordinates', ['lat' => (float) $lat, 'lng' => (float) $lng]);
+                                        }
+                                    })
                                     ->suffixAction(
                                         Forms\Components\Actions\Action::make('openMaps')
                                             ->label('🗺️ Lihat di Maps')
@@ -155,10 +187,11 @@ class WorkLocationResource extends Resource
                             ->label('💡 Tips Penggunaan Peta:')
                             ->content('
                                 • Klik tombol "🌐 Get Location" untuk deteksi GPS otomatis
-                                • Drag marker pada peta untuk mengubah posisi
-                                • Gunakan search box untuk mencari alamat
+                                • Klik pada peta untuk memindahkan marker ke lokasi yang diinginkan
+                                • Drag marker pada peta untuk mengubah posisi secara manual
                                 • Zoom in/out dengan scroll mouse atau kontrol peta
-                                • Koordinat akan terisi otomatis saat memilih lokasi
+                                • Koordinat latitude dan longitude akan terisi otomatis saat memilih lokasi
+                                • Setelah marker dipindahkan, koordinat akan langsung terupdate
                             ')
                             ->columnSpanFull(),
                     ]),
@@ -373,12 +406,12 @@ class WorkLocationResource extends Resource
                                     ->label('Test Latitude')
                                     ->required()
                                     ->numeric()
-                                    ->step(0.00000001),
+                                    ->step(0.000001),
                                 Forms\Components\TextInput::make('test_longitude')
                                     ->label('Test Longitude')
                                     ->required()
                                     ->numeric()
-                                    ->step(0.00000001),
+                                    ->step(0.000001),
                             ]),
                         Forms\Components\TextInput::make('test_accuracy')
                             ->label('GPS Accuracy (meter)')

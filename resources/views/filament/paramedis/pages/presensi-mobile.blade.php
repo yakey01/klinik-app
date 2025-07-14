@@ -165,6 +165,15 @@
             <div id="current-date" class="text-gray-500 text-lg font-medium">
                 Oct 26, 2022 - Wednesday
             </div>
+            
+            <!-- GPS Status Indicator -->
+            <div id="gps-status" class="mt-4 flex items-center justify-center space-x-2 text-sm">
+                <div id="gps-icon" class="w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
+                <span id="gps-text" class="text-gray-600">Detecting location...</span>
+                <button id="refresh-gps" onclick="refreshGPSLocation()" 
+                        class="ml-2 text-blue-500 hover:text-blue-700 text-xs underline" 
+                        style="display:none;">🔄 Refresh</button>
+            </div>
         </section>
         
         <!-- Central Check-in/Check-out Button -->
@@ -456,10 +465,12 @@
                     };
                     
                     console.log('📍 Location detected for attendance validation');
+                    updateGPSStatus('success', `GPS ready (${Math.round(position.coords.accuracy)}m accuracy)`);
                     enableAttendanceButtons();
                 },
                 function(error) {
                     console.log('⚠️ Location error:', error.message);
+                    updateGPSStatus('error', 'GPS unavailable - manual mode');
                     // Buttons remain enabled for testing
                     enableAttendanceButtons();
                 },
@@ -474,13 +485,60 @@
                 button.disabled = false;
                 button.addEventListener('click', function() {
                     if (currentUserLocation) {
-                        // Set location data for Livewire
+                        // Set location data for Livewire before making the call
                         @this.set('userLatitude', currentUserLocation.latitude);
                         @this.set('userLongitude', currentUserLocation.longitude);
                         @this.set('userAccuracy', currentUserLocation.accuracy);
+                        
+                        console.log('📍 GPS Data sent:', {
+                            lat: currentUserLocation.latitude,
+                            lng: currentUserLocation.longitude,
+                            accuracy: currentUserLocation.accuracy
+                        });
+                    } else {
+                        console.log('⚠️ No GPS location available');
                     }
                 });
             });
+        }
+        
+        // Update GPS status indicator
+        function updateGPSStatus(status, message) {
+            const gpsIcon = document.getElementById('gps-icon');
+            const gpsText = document.getElementById('gps-text');
+            const refreshBtn = document.getElementById('refresh-gps');
+            
+            if (!gpsIcon || !gpsText) return;
+            
+            // Remove existing status classes
+            gpsIcon.className = 'w-4 h-4 rounded-full';
+            
+            switch(status) {
+                case 'detecting':
+                    gpsIcon.className += ' bg-yellow-400 animate-pulse';
+                    gpsText.textContent = message || 'Detecting location...';
+                    gpsText.className = 'text-gray-600';
+                    if (refreshBtn) refreshBtn.style.display = 'none';
+                    break;
+                case 'success':
+                    gpsIcon.className += ' bg-green-500';
+                    gpsText.textContent = message || 'GPS ready';
+                    gpsText.className = 'text-green-600';
+                    if (refreshBtn) refreshBtn.style.display = 'inline';
+                    break;
+                case 'error':
+                    gpsIcon.className += ' bg-red-500';
+                    gpsText.textContent = message || 'GPS unavailable';
+                    gpsText.className = 'text-red-600';
+                    if (refreshBtn) refreshBtn.style.display = 'inline';
+                    break;
+            }
+        }
+        
+        // Refresh GPS location manually
+        function refreshGPSLocation() {
+            updateGPSStatus('detecting', 'Refreshing location...');
+            startLocationTracking();
         }
         
         // Cleanup on page unload

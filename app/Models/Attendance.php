@@ -28,12 +28,27 @@ class Attendance extends Model
         'photo_out',
         'notes',
         'status',
+        // Enhanced GPS fields
+        'latitude',
+        'longitude',
+        'accuracy',
+        'checkout_latitude',
+        'checkout_longitude', 
+        'checkout_accuracy',
+        'location_validated',
     ];
 
     protected $casts = [
         'date' => 'date',
         'time_in' => 'datetime:H:i:s',
         'time_out' => 'datetime:H:i:s',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
+        'checkout_latitude' => 'decimal:8',
+        'checkout_longitude' => 'decimal:8',
+        'accuracy' => 'float',
+        'checkout_accuracy' => 'float',
+        'location_validated' => 'boolean',
     ];
 
     /**

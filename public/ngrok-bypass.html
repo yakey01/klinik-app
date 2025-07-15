@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Klinik Dokterku API Bypass</title>
+    <meta name="robots" content="noindex">
+    <script>
+        // Automatic ngrok bypass for API calls
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUrl = urlParams.get('target');
+            
+            if (targetUrl) {
+                // Create a hidden iframe to bypass ngrok warning
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = targetUrl;
+                document.body.appendChild(iframe);
+                
+                // Redirect to target after 2 seconds
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 2000);
+            }
+        });
+    </script>
+</head>
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h1>🏥 Klinik Dokterku</h1>
+        <p>Menghubungkan ke server...</p>
+        <div style="margin: 20px;">
+            <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>

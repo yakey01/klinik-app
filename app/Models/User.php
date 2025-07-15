@@ -211,6 +211,18 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Check if user has any of the given roles
+     */
+    public function hasAnyRole($roles)
+    {
+        if (is_string($roles)) {
+            $roles = [$roles];
+        }
+        
+        return $this->role && in_array($this->role->name, $roles);
+    }
+
+    /**
      * Check if user has a specific role (custom implementation for legacy compatibility)
      */
     public function hasLegacyRole($roleName)

@@ -1,0 +1,52 @@
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": 7,
+      "name": "Perawat Suster",
+      "email": "perawat@dokterku.com",
+      "username": null,
+      "role": "paramedis",
+      "phone": "081234567896",
+      "is_active": true,
+      "last_login": "2025-07-15T04:22:20.098060Z"
+    },
+    "authentication": {
+      "access_token": "15|GGBLPNbO3P4qfAXq3B59jMIEjpPdK21nVaU2K40R2472e6d1",
+      "refresh_token": "OilWQg6n3tPiii4kkxWPisLE8DqxYoYco3wsoIJNTaczqeBCbs4xnDktL4au",
+      "token_type": "Bearer",
+      "expires_in": 2592000,
+      "expires_at": "2025-08-14T04:22:20.097804Z",
+      "refresh_expires_at": "2025-08-14T04:22:20.096516Z",
+      "scopes": [
+        "mobile:attendance",
+        "mobile:dashboard",
+        "mobile:notifications"
+      ],
+      "session_id": "88a25dba-4dbc-4057-8f69-2ec270dfaf5c",
+      "device_id": "test-paramedis-tablet-002"
+    },
+    "device": {
+      "device_id": "test-paramedis-tablet-002",
+      "device_name": "Paramedis iPad",
+      "is_primary": false,
+      "status": "active",
+      "biometric_enabled": null,
+      "security_score": null
+    },
+    "biometric_capabilities": {
+      "has_biometric_support": null,
+      "supported_types": [],
+      "enrolled_types": [],
+      "enrollment_date": null,
+      "verification_count": null,
+      "last_verification": null
+    }
+  },
+  "meta": {
+    "version": "2.0",
+    "timestamp": "2025-07-15T04:22:20.098110Z",
+    "request_id": "c7500f75-f66a-456f-9c97-fdfda63054ab"
+  }
+}

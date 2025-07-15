@@ -1,0 +1,52 @@
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": 7,
+      "name": "Perawat Suster",
+      "email": "perawat@dokterku.com",
+      "username": null,
+      "role": "paramedis",
+      "phone": "081234567896",
+      "is_active": true,
+      "last_login": "2025-07-15T04:22:11.348813Z"
+    },
+    "authentication": {
+      "access_token": "14|TX8iszjWb7mT3SDV64vr26Pb19pvJU6IptD3kgQt566a9724",
+      "refresh_token": "Si3nsbP9SePP8z6xehLO3IqJBKtw9JH9ZPDEVDdtCOBXWEy4ghHAHkvEVpwX",
+      "token_type": "Bearer",
+      "expires_in": 2592000,
+      "expires_at": "2025-08-14T04:22:11.348607Z",
+      "refresh_expires_at": "2025-08-14T04:22:11.347321Z",
+      "scopes": [
+        "mobile:attendance",
+        "mobile:dashboard",
+        "mobile:notifications"
+      ],
+      "session_id": "79d17bdb-0fd8-4d8b-82f6-167b245b8489",
+      "device_id": "test-paramedis-device-001"
+    },
+    "device": {
+      "device_id": "test-paramedis-device-001",
+      "device_name": "Paramedis Mobile Phone",
+      "is_primary": true,
+      "status": "active",
+      "biometric_enabled": null,
+      "security_score": null
+    },
+    "biometric_capabilities": {
+      "has_biometric_support": null,
+      "supported_types": [],
+      "enrolled_types": [],
+      "enrollment_date": null,
+      "verification_count": null,
+      "last_verification": null
+    }
+  },
+  "meta": {
+    "version": "2.0",
+    "timestamp": "2025-07-15T04:22:11.348859Z",
+    "request_id": "36d04b04-ee12-44fc-832f-0b7986457c55"
+  }
+}

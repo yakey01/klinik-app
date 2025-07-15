@@ -11,6 +11,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Traits\Auditable;
+use App\Traits\Cacheable;
+use App\Traits\LogsActivity;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Spatie\Permission\Traits\HasRoles;
@@ -18,7 +20,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes, Auditable, HasApiTokens, HasRoles;
+    use HasFactory, Notifiable, SoftDeletes, Auditable, HasApiTokens, HasRoles, Cacheable, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -27,6 +29,7 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $fillable = [
         'role_id',
+        'pegawai_id',
         'name',
         'email',
         'username',
@@ -93,6 +96,14 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Relationship to pegawai - multiple users can belong to one pegawai (different roles)
+     */
+    public function pegawai(): BelongsTo
+    {
+        return $this->belongsTo(Pegawai::class, 'pegawai_id');
+    }
+
+    /**
      * Legacy custom role relationship - kept for backward compatibility during migration
      */
     public function customRole(): BelongsTo
@@ -113,7 +124,16 @@ class User extends Authenticatable implements FilamentUser
      */
     public function hasRole($roles, string $guard = null): bool
     {
-        // Use Spatie's trait hasRole method directly
+        // Check direct role relationship first (for role_id field)
+        if (is_string($roles) && $this->role && $this->role->name === $roles) {
+            return true;
+        }
+        
+        if (is_array($roles) && $this->role && in_array($this->role->name, $roles)) {
+            return true;
+        }
+        
+        // Then check Spatie roles
         if (is_string($roles)) {
             return $this->roles()->where('name', $roles)->exists();
         }
@@ -207,11 +227,7 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasOne(Dokter::class, 'user_id');
     }
     
-    // Relationship to pegawai if user is a pegawai
-    public function pegawai()
-    {
-        return $this->hasOne(Pegawai::class, 'user_id');
-    }
+    // Legacy relationship - removed in favor of new pegawai() method above
 
     // Relationship to two factor authentication
     public function twoFactorAuth()
@@ -299,5 +315,82 @@ class User extends Authenticatable implements FilamentUser
         }
         
         return false;
+    }
+    
+    // Cache commonly used statistics
+    public static function getCachedStats(): array
+    {
+        return static::cacheStatistics('user_stats', function() {
+            return [
+                'total_count' => static::count(),
+                'active_count' => static::where('is_active', true)->count(),
+                'inactive_count' => static::where('is_active', false)->count(),
+                'with_roles_count' => static::whereHas('roles')->count(),
+                'recent_login_count' => static::where('last_login_at', '>=', now()->subDays(7))->count(),
+                'new_this_month_count' => static::whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->count(),
+                'dokter_count' => static::whereHas('dokter')->count(),
+                'pegawai_count' => static::whereHas('pegawai')->count(),
+            ];
+        });
+    }
+    
+    // Cache user's primary role
+    public function getCachedPrimaryRoleAttribute(): ?string
+    {
+        return $this->cacheAttribute('cached_primary_role', function() {
+            return $this->getPrimaryRoleName();
+        });
+    }
+    
+    // Cache user's permissions
+    public function getCachedPermissionsAttribute(): array
+    {
+        return $this->cacheAttribute('cached_permissions', function() {
+            return $this->getAllPermissions()->pluck('name')->toArray();
+        });
+    }
+    
+    // Cache user's roles
+    public function getCachedRolesAttribute(): array
+    {
+        return $this->cacheAttribute('cached_roles', function() {
+            return $this->roles()->pluck('name')->toArray();
+        });
+    }
+    
+    // Cache if user is active
+    public function getIsActiveFormattedAttribute(): string
+    {
+        return $this->cacheAttribute('is_active_formatted', function() {
+            return $this->is_active ? 'Aktif' : 'Tidak Aktif';
+        });
+    }
+    
+    // Cache tindakan count for this user
+    public function getTindakanCountAttribute(): int
+    {
+        return $this->cacheCount('tindakan_count', function() {
+            return $this->tindakanAsDokter()->count() +
+                   $this->tindakanAsParamedis()->count() +
+                   $this->tindakanAsNonParamedis()->count();
+        });
+    }
+    
+    // Cache jaspel total for this user
+    public function getTotalJaspelAttribute(): float
+    {
+        return $this->cacheAttribute('total_jaspel', function() {
+            return $this->jaspel()->sum('nominal') ?? 0;
+        });
+    }
+    
+    // Cache days since last login
+    public function getDaysSinceLastLoginAttribute(): ?int
+    {
+        return $this->cacheAttribute('days_since_last_login', function() {
+            return $this->last_login_at ? now()->diffInDays($this->last_login_at) : null;
+        });
     }
 }

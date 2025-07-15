@@ -35,7 +35,7 @@ class ListJadwalJagas extends ListRecords
                                 ->options(function () {
                                     return \App\Models\ShiftTemplate::all()
                                         ->mapWithKeys(fn ($shift) => [
-                                            $shift->id => $shift->nama_shift . ' (' . $shift->jam_masuk . ' - ' . $shift->jam_pulang . ')'
+                                            $shift->id => $shift->shift_display
                                         ]);
                                 })
                                 ->required()

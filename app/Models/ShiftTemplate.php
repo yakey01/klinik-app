@@ -36,4 +36,28 @@ class ShiftTemplate extends Model
         $durasi = $pulang->diff($masuk);
         return $durasi->format('%h jam %i menit');
     }
+
+    /**
+     * Get formatted time for display (HH:MM only)
+     */
+    public function getJamMasukFormatAttribute(): string
+    {
+        return \Carbon\Carbon::parse($this->jam_masuk)->format('H:i');
+    }
+
+    /**
+     * Get formatted time for display (HH:MM only)
+     */
+    public function getJamPulangFormatAttribute(): string
+    {
+        return \Carbon\Carbon::parse($this->jam_pulang)->format('H:i');
+    }
+
+    /**
+     * Get formatted shift display for dropdowns
+     */
+    public function getShiftDisplayAttribute(): string
+    {
+        return "{$this->nama_shift} ({$this->jam_masuk_format} - {$this->jam_pulang_format})";
+    }
 }

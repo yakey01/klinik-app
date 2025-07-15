@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
+use App\Services\TokenService;
+use App\Models\UserSession;
 
 class EnhancedRoleMiddleware
 {
@@ -88,8 +90,9 @@ class EnhancedRoleMiddleware
             }
         }
 
-        // Role validation passed - enhance session security
+        // Role validation passed - enhance session security and check for expiration
         $this->enhanceSessionSecurity($request, $user);
+        $this->checkAndRefreshSession($request, $user);
 
         Log::info('EnhancedRoleMiddleware: Access granted', [
             'user_id' => $user->id,
@@ -98,6 +101,61 @@ class EnhancedRoleMiddleware
         ]);
 
         return $next($request);
+    }
+
+    /**
+     * Check session expiration and refresh if needed
+     */
+    private function checkAndRefreshSession(Request $request, $user): void
+    {
+        try {
+            // Check if user has active session
+            $currentSession = UserSession::where('user_id', $user->id)
+                ->where('is_active', true)
+                ->latest()
+                ->first();
+
+            if ($currentSession) {
+                // Extend session if about to expire
+                if ($currentSession->isAboutToExpire()) {
+                    $currentSession->extendExpiration();
+                    
+                    Log::info('Session extended due to upcoming expiration', [
+                        'user_id' => $user->id,
+                        'session_id' => $currentSession->session_id,
+                        'new_expires_at' => $currentSession->expires_at,
+                    ]);
+                }
+
+                // Update activity timestamp
+                $currentSession->updateActivity();
+            }
+
+            // Check token expiration and auto-refresh if needed
+            $currentToken = $user->currentAccessToken();
+            if ($currentToken) {
+                $tokenService = app(TokenService::class);
+                
+                if ($tokenService->needsRefresh($currentToken)) {
+                    $refreshedToken = $tokenService->autoRefreshIfNeeded($currentToken);
+                    
+                    if ($refreshedToken) {
+                        Log::info('Token auto-refreshed', [
+                            'user_id' => $user->id,
+                            'new_expires_at' => $refreshedToken['expires_at'],
+                        ]);
+                        
+                        // Update request with new token info
+                        $request->headers->set('Authorization', 'Bearer ' . $refreshedToken['access_token']);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Session refresh check failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

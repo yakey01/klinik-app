@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateDokterUmumJaspel extends CreateRecord
 {
     protected static string $resource = DokterUmumJaspelResource::class;
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

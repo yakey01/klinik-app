@@ -13,6 +13,11 @@ class DokterSeeder extends Seeder
      */
     public function run(): void
     {
+        // Only run in development environment
+        if (!app()->environment(['local', 'development'])) {
+            $this->command->info('Dokter seeder skipped in production environment');
+            return;
+        }
         $dokters = [
             [
                 'nama_lengkap' => 'Dr. Ahmad Yusuf, Sp.PD',

@@ -11,6 +11,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
+use Filament\Navigation\NavigationGroup;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -28,10 +29,15 @@ class BendaharaPanelProvider extends PanelProvider
             ->id('bendahara')
             ->path('bendahara')
             ->login(false)
-            ->brandName('Dokterku - Bendahara')
+            ->brandName('💰 Dokterku - Bendahara')
             ->favicon(asset('favicon.ico'))
             ->colors([
-                'primary' => Color::Red,
+                'primary' => Color::rgb('rgb(251, 189, 35)'),
+                'secondary' => Color::rgb('rgb(118, 75, 162)'),
+                'success' => Color::rgb('rgb(16, 185, 129)'),
+                'warning' => Color::rgb('rgb(251, 189, 35)'),
+                'danger' => Color::rgb('rgb(239, 68, 68)'),
+                'info' => Color::rgb('rgb(58, 191, 248)'),
             ])
             ->darkMode()
             ->resources([
@@ -51,11 +57,21 @@ class BendaharaPanelProvider extends PanelProvider
                 \App\Filament\Bendahara\Widgets\PengeluaranMingguanWidget::class,
             ])
             ->navigationGroups([
-                '🏠 Dashboard',
-                '💵 Validasi Transaksi',
-                '💰 Manajemen Jaspel',
-                '🧾 Laporan Keuangan',
-                '🛠️ Pengaturan',
+                NavigationGroup::make('🏠 Dashboard')
+                    ->icon('heroicon-o-home')
+                    ->collapsible(),
+                NavigationGroup::make('💵 Validasi Transaksi')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->collapsible(),
+                NavigationGroup::make('💰 Manajemen Jaspel')
+                    ->icon('heroicon-o-currency-dollar')
+                    ->collapsible(),
+                NavigationGroup::make('🗄 Laporan Keuangan')
+                    ->icon('heroicon-o-document-chart-bar')
+                    ->collapsible(),
+                NavigationGroup::make('🔧 Pengaturan')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->collapsible(),
             ])
             ->middleware([
                 EncryptCookies::class,

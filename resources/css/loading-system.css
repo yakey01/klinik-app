@@ -1,0 +1,526 @@
+/* Dokterku Loading System - Progress Indicators & States */
+
+/* ==========================================================================
+   Loading Spinner Components
+   ========================================================================== */
+
+.loading-spinner {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--primary);
+  animation: spin 1s linear infinite;
+}
+
+.loading-spinner-sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 1px;
+}
+
+.loading-spinner-lg {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-width: 3px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Progress Bar Components
+   ========================================================================== */
+
+.progress-bar {
+  width: 100%;
+  height: 0.5rem;
+  background-color: var(--surface-dark);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--primary);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-bar-animated .progress-bar-fill {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+  animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+  0% { background-position: 0 0; }
+  100% { background-position: 1rem 0; }
+}
+
+/* Progress Bar Variants */
+.progress-bar-success .progress-bar-fill {
+  background-color: var(--success);
+}
+
+.progress-bar-warning .progress-bar-fill {
+  background-color: var(--warning);
+}
+
+.progress-bar-error .progress-bar-fill {
+  background-color: var(--error);
+}
+
+.progress-bar-info .progress-bar-fill {
+  background-color: var(--info);
+}
+
+/* ==========================================================================
+   Skeleton Loading Components
+   ========================================================================== */
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+  height: 1rem;
+  margin: 0.5rem 0;
+}
+
+.skeleton-text-sm {
+  height: 0.875rem;
+}
+
+.skeleton-text-lg {
+  height: 1.25rem;
+}
+
+.skeleton-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-full);
+}
+
+.skeleton-card {
+  height: 8rem;
+  width: 100%;
+}
+
+.skeleton-table-row {
+  height: 2.5rem;
+  width: 100%;
+  margin: 0.25rem 0;
+}
+
+/* ==========================================================================
+   Button Loading States
+   ========================================================================== */
+
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1rem;
+  height: 1rem;
+  margin: -0.5rem 0 0 -0.5rem;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.btn-loading-with-text {
+  color: inherit !important;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.btn-loading-with-text .loading-spinner {
+  margin-right: 0.5rem;
+}
+
+/* ==========================================================================
+   Page Loading Overlay
+   ========================================================================== */
+
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.page-loading-content {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.page-loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid rgba(102, 126, 234, 0.3);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.page-loading-text {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.page-loading-subtext {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+/* ==========================================================================
+   Form Loading States
+   ========================================================================== */
+
+.form-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.form-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(102, 126, 234, 0.1),
+    transparent
+  );
+  animation: form-loading-sweep 1.5s infinite;
+}
+
+@keyframes form-loading-sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.form-field-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.form-field-loading input,
+.form-field-loading textarea,
+.form-field-loading select {
+  background-color: var(--surface-light);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Table Loading States
+   ========================================================================== */
+
+.table-loading {
+  position: relative;
+}
+
+.table-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.table-row-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.table-row-loading td {
+  background-color: var(--surface-light);
+}
+
+/* ==========================================================================
+   Modal Loading States
+   ========================================================================== */
+
+.modal-loading {
+  position: relative;
+  min-height: 8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   Card Loading States
+   ========================================================================== */
+
+.card-loading {
+  position: relative;
+  background-color: var(--surface-light);
+  border: 1px solid var(--neutral-light);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.card-loading-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.card-loading-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-full);
+  margin-right: 1rem;
+}
+
+.card-loading-title {
+  height: 1.25rem;
+  width: 60%;
+  margin-bottom: 0.5rem;
+}
+
+.card-loading-subtitle {
+  height: 1rem;
+  width: 40%;
+}
+
+.card-loading-content {
+  height: 1rem;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+.card-loading-content:last-child {
+  width: 80%;
+}
+
+/* ==========================================================================
+   Pulse Animation (Alternative to Skeleton)
+   ========================================================================== */
+
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ==========================================================================
+   Loading States for Specific Components
+   ========================================================================== */
+
+/* Chart Loading */
+.chart-loading {
+  width: 100%;
+  height: 300px;
+  background-color: var(--surface-light);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(102, 126, 234, 0.1),
+    transparent
+  );
+  animation: chart-loading-sweep 2s infinite;
+}
+
+@keyframes chart-loading-sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Widget Loading */
+.widget-loading {
+  background-color: var(--surface);
+  border: 1px solid var(--neutral-light);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.widget-loading-icon {
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.widget-loading-text {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+/* ==========================================================================
+   Loading States for Mobile
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .page-loading-overlay {
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+  
+  .page-loading-spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .page-loading-text {
+    font-size: var(--font-size-base);
+  }
+  
+  .loading-spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  
+  .btn-loading::after {
+    width: 0.875rem;
+    height: 0.875rem;
+    margin: -0.4375rem 0 0 -0.4375rem;
+  }
+}
+
+/* ==========================================================================
+   Accessibility & Reduced Motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner,
+  .loading-spinner::before,
+  .loading-spinner::after,
+  .skeleton,
+  .progress-bar-animated .progress-bar-fill,
+  .btn-loading::after,
+  .page-loading-spinner,
+  .modal-loading-spinner,
+  .pulse,
+  .chart-loading::before,
+  .form-loading::before {
+    animation: none !important;
+  }
+  
+  .skeleton {
+    background: #f0f0f0;
+  }
+  
+  .progress-bar-animated .progress-bar-fill {
+    background-image: none;
+  }
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+.is-loading {
+  cursor: progress;
+}
+
+.loading-disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.loading-hidden {
+  visibility: hidden;
+}
+
+.loading-fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.loading-fade-out {
+  animation: fadeOut 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}

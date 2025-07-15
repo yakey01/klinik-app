@@ -11,6 +11,11 @@ class PegawaiSeeder extends Seeder
      */
     public function run(): void
     {
+        // Only run in development environment
+        if (!app()->environment(['local', 'development'])) {
+            $this->command->info('Pegawai seeder skipped in production environment');
+            return;
+        }
         \App\Models\Pegawai::factory(25)->create();
 
         \App\Models\Pegawai::create([

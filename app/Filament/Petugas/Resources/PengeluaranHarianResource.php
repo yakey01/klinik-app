@@ -13,6 +13,15 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use App\Services\BulkOperationService;
+use App\Services\ExportImportService;
+use App\Services\ValidationWorkflowService;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
+use Exception;
 
 class PengeluaranHarianResource extends Resource
 {
@@ -24,7 +33,7 @@ class PengeluaranHarianResource extends Resource
     
     protected static ?string $modelLabel = 'Pengeluaran Harian';
     
-    protected static ?string $navigationGroup = 'Input Data';
+    protected static ?string $navigationGroup = '📊 Transaksi Harian';
 
     protected static ?int $navigationSort = 2;
 
@@ -226,6 +235,7 @@ class PengeluaranHarianResource extends Resource
                         ->label('👁️ Lihat')
                         ->color('info')
                         ->icon('heroicon-o-eye'),
+                    
                     Tables\Actions\EditAction::make()
                         ->label('✏️ Edit')
                         ->color('warning')
@@ -237,6 +247,125 @@ class PengeluaranHarianResource extends Resource
                                 ->title('✅ Berhasil!')
                                 ->body('Pengeluaran harian berhasil diperbarui.')
                         ),
+                    
+                    // Submit for validation
+                    Tables\Actions\Action::make('submit_validation')
+                        ->label('📤 Ajukan Validasi')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('primary')
+                        ->visible(fn ($record): bool => $record->status_validasi === 'pending' && !$record->submitted_at)
+                        ->requiresConfirmation()
+                        ->modalHeading('📤 Ajukan Validasi Pengeluaran')
+                        ->modalDescription('Pastikan semua data sudah benar sebelum mengajukan validasi.')
+                        ->modalSubmitActionLabel('Ajukan')
+                        ->action(function ($record) {
+                            try {
+                                $validationService = new ValidationWorkflowService(new \App\Services\TelegramService());
+                                $result = $validationService->submitForValidation($record);
+                                
+                                if ($result['auto_approved']) {
+                                    Notification::make()
+                                        ->title('✅ Auto-Approved')
+                                        ->body('Pengeluaran berhasil disetujui otomatis')
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title('📤 Berhasil Diajukan')
+                                        ->body('Pengeluaran berhasil diajukan untuk validasi')
+                                        ->success()
+                                        ->send();
+                                }
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Approve action
+                    Tables\Actions\Action::make('approve')
+                        ->label('✅ Setujui')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn ($record): bool => 
+                            $record->status_validasi === 'pending' && 
+                            $record->submitted_at !== null &&
+                            auth()->user()->hasAnyRole(['supervisor', 'manager', 'admin'])
+                        )
+                        ->requiresConfirmation()
+                        ->modalHeading('✅ Setujui Pengeluaran')
+                        ->modalDescription('Apakah Anda yakin ingin menyetujui pengeluaran ini?')
+                        ->modalSubmitActionLabel('Setujui')
+                        ->form([
+                            Textarea::make('approval_reason')
+                                ->label('Alasan Persetujuan (Opsional)')
+                                ->placeholder('Masukkan alasan persetujuan...')
+                                ->rows(3),
+                        ])
+                        ->action(function ($record, array $data) {
+                            try {
+                                $validationService = new ValidationWorkflowService(new \App\Services\TelegramService());
+                                $result = $validationService->approve($record, [
+                                    'reason' => $data['approval_reason'] ?? 'Approved by ' . auth()->user()->name
+                                ]);
+                                
+                                Notification::make()
+                                    ->title('✅ Berhasil Disetujui')
+                                    ->body('Pengeluaran berhasil disetujui')
+                                    ->success()
+                                    ->send();
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Reject action
+                    Tables\Actions\Action::make('reject')
+                        ->label('❌ Tolak')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->visible(fn ($record): bool => 
+                            $record->status_validasi === 'pending' && 
+                            $record->submitted_at !== null &&
+                            auth()->user()->hasAnyRole(['supervisor', 'manager', 'admin'])
+                        )
+                        ->requiresConfirmation()
+                        ->modalHeading('❌ Tolak Pengeluaran')
+                        ->modalDescription('Berikan alasan penolakan yang jelas.')
+                        ->modalSubmitActionLabel('Tolak')
+                        ->form([
+                            Textarea::make('rejection_reason')
+                                ->label('Alasan Penolakan')
+                                ->placeholder('Masukkan alasan penolakan...')
+                                ->required()
+                                ->rows(3),
+                        ])
+                        ->action(function ($record, array $data) {
+                            try {
+                                $validationService = new ValidationWorkflowService(new \App\Services\TelegramService());
+                                $result = $validationService->reject($record, $data['rejection_reason']);
+                                
+                                Notification::make()
+                                    ->title('❌ Berhasil Ditolak')
+                                    ->body('Pengeluaran berhasil ditolak')
+                                    ->success()
+                                    ->send();
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
                     Tables\Actions\DeleteAction::make()
                         ->label('🗑️ Hapus')
                         ->color('danger')
@@ -255,6 +384,220 @@ class PengeluaranHarianResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    // Export selected records
+                    Tables\Actions\BulkAction::make('export_selected')
+                        ->label('📊 Export Terpilih')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Export Data Pengeluaran')
+                        ->modalDescription('Export data pengeluaran yang dipilih ke format file.')
+                        ->modalSubmitActionLabel('Export')
+                        ->form([
+                            Select::make('format')
+                                ->label('Format File')
+                                ->options([
+                                    'xlsx' => 'Excel (.xlsx)',
+                                    'csv' => 'CSV (.csv)',
+                                    'json' => 'JSON (.json)',
+                                ])
+                                ->default('xlsx')
+                                ->required(),
+                            Toggle::make('include_relations')
+                                ->label('Sertakan Data Terkait')
+                                ->helperText('Sertakan data pengeluaran master dan user')
+                                ->default(true),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            try {
+                                $exportService = new ExportImportService();
+                                $ids = $records->pluck('id')->toArray();
+                                
+                                // Create temporary filtered export
+                                $result = $exportService->exportData(
+                                    PengeluaranHarian::class,
+                                    [
+                                        'format' => $data['format'],
+                                        'include_relations' => $data['include_relations'],
+                                        'filters' => ['id' => $ids]
+                                    ]
+                                );
+                                
+                                // Trigger download
+                                return response()->download(
+                                    storage_path('app/' . $result['file_path']),
+                                    $result['file_name']
+                                );
+                                
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Export Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                    
+                    // Bulk update status
+                    Tables\Actions\BulkAction::make('bulk_update_status')
+                        ->label('🔄 Update Status')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Update Status Pengeluaran')
+                        ->modalDescription('Update status validasi untuk pengeluaran yang dipilih.')
+                        ->modalSubmitActionLabel('Update')
+                        ->form([
+                            Select::make('status_validasi')
+                                ->label('Status Validasi')
+                                ->options([
+                                    'pending' => 'Menunggu Validasi',
+                                    'disetujui' => 'Disetujui',
+                                    'ditolak' => 'Ditolak',
+                                ])
+                                ->required(),
+                            Select::make('shift')
+                                ->label('Shift')
+                                ->options([
+                                    'Pagi' => 'Pagi',
+                                    'Sore' => 'Sore',
+                                ])
+                                ->nullable(),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            try {
+                                $updateData = array_filter($data);
+                                if (empty($updateData)) {
+                                    Notification::make()
+                                        ->title('⚠️ Tidak Ada Data')
+                                        ->body('Pilih minimal satu field untuk diupdate.')
+                                        ->warning()
+                                        ->send();
+                                    return;
+                                }
+                                
+                                $bulkService = new BulkOperationService();
+                                $updates = $records->map(function ($record) use ($updateData) {
+                                    return array_merge(['id' => $record->id], $updateData);
+                                })->toArray();
+                                
+                                $result = $bulkService->bulkUpdate(
+                                    PengeluaranHarian::class,
+                                    $updates,
+                                    'id',
+                                    ['validate' => false]
+                                );
+                                
+                                Notification::make()
+                                    ->title('✅ Update Berhasil')
+                                    ->body("Berhasil update {$result['updated']} pengeluaran.")
+                                    ->success()
+                                    ->send();
+                                    
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Update Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Bulk assign to user
+                    Tables\Actions\BulkAction::make('bulk_assign')
+                        ->label('👤 Assign ke User')
+                        ->icon('heroicon-o-user-plus')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Assign Pengeluaran ke User')
+                        ->modalDescription('Assign pengeluaran yang dipilih ke user tertentu.')
+                        ->modalSubmitActionLabel('Assign')
+                        ->form([
+                            Select::make('user_id')
+                                ->label('User')
+                                ->options(function () {
+                                    return \App\Models\User::whereHas('roles', function ($query) {
+                                        $query->where('name', 'petugas');
+                                    })->pluck('name', 'id');
+                                })
+                                ->searchable()
+                                ->required(),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            try {
+                                $bulkService = new BulkOperationService();
+                                $updates = $records->map(function ($record) use ($data) {
+                                    return [
+                                        'id' => $record->id,
+                                        'user_id' => $data['user_id']
+                                    ];
+                                })->toArray();
+                                
+                                $result = $bulkService->bulkUpdate(
+                                    PengeluaranHarian::class,
+                                    $updates,
+                                    'id',
+                                    ['validate' => false]
+                                );
+                                
+                                Notification::make()
+                                    ->title('✅ Assign Berhasil')
+                                    ->body("Berhasil assign {$result['updated']} pengeluaran.")
+                                    ->success()
+                                    ->send();
+                                    
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Assign Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Bulk approve
+                    Tables\Actions\BulkAction::make('bulk_approve')
+                        ->label('✅ Approve Pengeluaran')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Approve Pengeluaran')
+                        ->modalDescription('Approve pengeluaran yang dipilih untuk validasi.')
+                        ->modalSubmitActionLabel('Approve')
+                        ->visible(fn (): bool => auth()->user()->can('approve_pengeluaran'))
+                        ->action(function (Collection $records) {
+                            try {
+                                $bulkService = new BulkOperationService();
+                                $updates = $records->map(function ($record) {
+                                    return [
+                                        'id' => $record->id,
+                                        'status_validasi' => 'disetujui'
+                                    ];
+                                })->toArray();
+                                
+                                $result = $bulkService->bulkUpdate(
+                                    PengeluaranHarian::class,
+                                    $updates,
+                                    'id',
+                                    ['validate' => false]
+                                );
+                                
+                                Notification::make()
+                                    ->title('✅ Approve Berhasil')
+                                    ->body("Berhasil approve {$result['updated']} pengeluaran.")
+                                    ->success()
+                                    ->send();
+                                    
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Approve Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
                     Tables\Actions\DeleteBulkAction::make()
                         ->label('🗑️ Hapus Terpilih')
                         ->successNotification(
@@ -264,6 +607,9 @@ class PengeluaranHarianResource extends Resource
                                 ->body('Semua data terpilih berhasil dihapus.')
                         ),
                 ])
+                ->label('🔧 Aksi Massal')
+                ->color('gray')
+                ->button()
             ])
             ->defaultSort('tanggal_input', 'desc')
             ->striped()
@@ -277,6 +623,15 @@ class PengeluaranHarianResource extends Resource
     public static function getRelations(): array
     {
         return [];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('user_id', auth()->id())
+            ->with(['pengeluaran', 'user'])
+            ->orderBy('tanggal_input', 'desc')
+            ->orderBy('created_at', 'desc');
     }
 
     public static function getPages(): array

@@ -48,6 +48,24 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/manager/dashboard', function () {
         return redirect('/manajer');
     })->name('manager.dashboard');
+    
+    // Filament notification action routes
+    Route::post('/filament/jadwal-jaga/create-missing-users', function () {
+        $missingUsers = session()->get('missing_users_data', []);
+        
+        if (empty($missingUsers)) {
+            return redirect()->back()->with('error', 'Data pegawai yang hilang tidak ditemukan.');
+        }
+        
+        // Create instance of the page to call the method
+        $page = new \App\Filament\Resources\JadwalJagaResource\Pages\ListJadwalJagas();
+        $page->createMissingUserAccounts($missingUsers);
+        
+        // Clear session data
+        session()->forget('missing_users_data');
+        
+        return redirect()->back()->with('success', 'Proses pembuatan akun telah dimulai.');
+    })->name('filament.jadwal-jaga.create-missing-users');
     Route::get('/treasurer/dashboard', function () {
         return redirect('/bendahara');
     })->name('treasurer.dashboard');

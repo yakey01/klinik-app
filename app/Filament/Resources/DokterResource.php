@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
@@ -234,10 +235,15 @@ class DokterResource extends Resource
                 'sm' => 1,
                 'md' => 2,
                 'lg' => 3,
-                'xl' => 4,
-                '2xl' => 5,
+                'xl' => 3,
+                '2xl' => 3,
             ])
             ->paginated([12, 24, 48, 96, 'all'])
+            ->toggleColumnsTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('📋 Tampilan Tabel')
+            )
             ->columns([
                 Tables\Columns\Layout\View::make('filament.components.dokter-card-simple')
                     ->components([
@@ -503,85 +509,82 @@ class DokterResource extends Resource
                                     ->body("Username: {$result['username']}<br>Password: {$result['password']}")
                                     ->success()
                                     ->persistent()
-                                ->send();
-                        } else {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Gagal Membuat Akun')
-                                ->body($result['message'])
-                                ->danger()
-                                ->send();
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Buat Akun Login')
-                    ->modalDescription('Akun login akan dibuat secara otomatis dengan username dan password yang di-generate sistem.')
-                    ->modalSubmitActionLabel('Buat Akun'),
+                                    ->send();
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Gagal Membuat Akun')
+                                    ->body($result['message'])
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Buat Akun Login')
+                        ->modalDescription('Akun login akan dibuat secara otomatis dengan username dan password yang di-generate sistem.')
+                        ->modalSubmitActionLabel('Buat Akun'),
 
-                Tables\Actions\Action::make('reset_password')
-                    ->label('Reset Password')
-                    ->icon('heroicon-m-key')
-                    ->color('warning')
-                    ->visible(fn ($record) => $record->has_login_account && auth()->user()?->hasRole('admin'))
-                    ->action(function ($record) {
-                        $result = $record->resetPassword();
-                        
-                        if ($result['success']) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Password Berhasil Direset')
-                                ->body("Password baru: {$result['password']}")
-                                ->success()
-                                ->persistent()
-                                ->send();
-                        } else {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Gagal Reset Password')
-                                ->body($result['message'])
-                                ->danger()
-                                ->send();
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Reset Password')
-                    ->modalDescription('Password akan direset dan password baru akan di-generate secara otomatis.')
-                    ->modalSubmitActionLabel('Reset Password'),
+                    Tables\Actions\Action::make('reset_password')
+                        ->label('Reset Password')
+                        ->icon('heroicon-m-key')
+                        ->color('warning')
+                        ->visible(fn ($record) => $record->has_login_account && auth()->user()?->hasRole('admin'))
+                        ->action(function ($record) {
+                            $result = $record->resetPassword();
+                            
+                            if ($result['success']) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Password Berhasil Direset')
+                                    ->body("Password baru: {$result['password']}")
+                                    ->success()
+                                    ->persistent()
+                                    ->send();
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Gagal Reset Password')
+                                    ->body($result['message'])
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Reset Password')
+                        ->modalDescription('Password akan direset dan password baru akan di-generate secara otomatis.')
+                        ->modalSubmitActionLabel('Reset Password'),
 
-                Tables\Actions\Action::make('toggle_account')
-                    ->label(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend' : 'Aktifkan')
-                    ->icon(fn ($record) => $record->status_akun === 'Aktif' ? 'heroicon-m-x-circle' : 'heroicon-m-check-circle')
-                    ->color(fn ($record) => $record->status_akun === 'Aktif' ? 'danger' : 'success')
-                    ->visible(fn ($record) => $record->has_login_account && auth()->user()?->hasRole('admin'))
-                    ->action(function ($record) {
-                        $result = $record->toggleAccountStatus();
-                        
-                        if ($result['success']) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Status Akun Berhasil Diubah')
-                                ->body($result['message'])
-                                ->success()
-                                ->send();
-                        } else {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Gagal Mengubah Status')
-                                ->body($result['message'])
-                                ->danger()
-                                ->send();
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend Akun' : 'Aktifkan Akun')
-                    ->modalDescription(fn ($record) => $record->status_akun === 'Aktif' 
-                        ? 'Akun login dokter akan di-suspend dan tidak dapat digunakan untuk login.' 
-                        : 'Akun login dokter akan diaktifkan kembali.'
-                    )
-                    ->modalSubmitActionLabel(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend' : 'Aktifkan'),
-
-                Tables\Actions\EditAction::make()
-                    ->iconButton()
-                    ->tooltip('Edit Dokter'),
-                    
-                Tables\Actions\DeleteAction::make()
-                    ->iconButton()
-                    ->tooltip('Hapus Dokter'),
+                    Tables\Actions\Action::make('toggle_account')
+                        ->label(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend' : 'Aktifkan')
+                        ->icon(fn ($record) => $record->status_akun === 'Aktif' ? 'heroicon-m-x-circle' : 'heroicon-m-check-circle')
+                        ->color(fn ($record) => $record->status_akun === 'Aktif' ? 'danger' : 'success')
+                        ->visible(fn ($record) => $record->has_login_account && auth()->user()?->hasRole('admin'))
+                        ->action(function ($record) {
+                            $result = $record->toggleAccountStatus();
+                            
+                            if ($result['success']) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Status Akun Berhasil Diubah')
+                                    ->body($result['message'])
+                                    ->success()
+                                    ->send();
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Gagal Mengubah Status')
+                                    ->body($result['message'])
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend Akun' : 'Aktifkan Akun')
+                        ->modalDescription(fn ($record) => $record->status_akun === 'Aktif' 
+                            ? 'Akun login dokter akan di-suspend dan tidak dapat digunakan untuk login.' 
+                            : 'Akun login dokter akan diaktifkan kembali.'
+                        )
+                        ->modalSubmitActionLabel(fn ($record) => $record->status_akun === 'Aktif' ? 'Suspend' : 'Aktifkan'),
+                ])
+                ->label('Kelola')
+                ->icon('heroicon-m-cog-6-tooth')
+                ->color('primary')
+                ->button(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

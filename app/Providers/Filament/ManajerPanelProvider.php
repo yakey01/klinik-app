@@ -11,6 +11,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
+use Filament\Navigation\NavigationGroup;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -27,10 +28,15 @@ class ManajerPanelProvider extends PanelProvider
             ->id('manajer')
             ->path('manajer')
             ->login(false)
-            ->brandName('Dokterku - Manajer')
+            ->brandName('📊 Dokterku - Manajer')
             ->favicon(asset('favicon.ico'))
             ->colors([
-                'primary' => Color::Indigo,
+                'primary' => Color::rgb('rgb(118, 75, 162)'),
+                'secondary' => Color::rgb('rgb(102, 126, 234)'),
+                'success' => Color::rgb('rgb(16, 185, 129)'),
+                'warning' => Color::rgb('rgb(251, 189, 35)'),
+                'danger' => Color::rgb('rgb(239, 68, 68)'),
+                'info' => Color::rgb('rgb(58, 191, 248)'),
             ])
             ->darkMode()
             ->resources([
@@ -51,11 +57,21 @@ class ManajerPanelProvider extends PanelProvider
                 \App\Filament\Manajer\Widgets\TopServiceFeeWidget::class,
             ])
             ->navigationGroups([
-                '📊 Dashboard Analytics',
-                '💰 Financial Reports',
-                '👥 Employee Management',
-                '📈 Performance Analytics',
-                '🛠️ Settings',
+                NavigationGroup::make('📊 Dashboard Analytics')
+                    ->icon('heroicon-o-chart-bar')
+                    ->collapsible(),
+                NavigationGroup::make('💰 Financial Reports')
+                    ->icon('heroicon-o-document-currency-dollar')
+                    ->collapsible(),
+                NavigationGroup::make('👥 Employee Management')
+                    ->icon('heroicon-o-users')
+                    ->collapsible(),
+                NavigationGroup::make('📈 Performance Analytics')
+                    ->icon('heroicon-o-chart-bar-square')
+                    ->collapsible(),
+                NavigationGroup::make('🔧 Settings')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->collapsible(),
             ])
             ->middleware([
                 EncryptCookies::class,

@@ -32,6 +32,13 @@ class CreateUser extends CreateRecord
         $employeeType = $data['employee_type'] ?? null;
         $relatedRecordId = request()->get('related_record_id');
         
+        // Email is now required and must be provided by user
+        if (empty($data['email'])) {
+            throw ValidationException::withMessages([
+                'email' => 'Email harus diisi - setiap pegawai hanya boleh memiliki 1 email yang unik.'
+            ]);
+        }
+        
         // Validate role consistency if role_id is already set and source is provided
         if (!empty($data['role_id']) && !empty($source)) {
             $validator = new ConsistentRoleAssignmentRule($source, $employeeType, $relatedRecordId);
@@ -118,6 +125,7 @@ class CreateUser extends CreateRecord
         return match($source) {
             'dokter' => $this->getResource()::getUrl('index') . '?source=dokter&created=1',
             'pegawai' => $this->getResource()::getUrl('index') . '?source=pegawai&created=1',
+            'staff_management' => '/admin/pegawais?user_created=1',
             default => $this->getResource()::getUrl('index')
         };
     }
@@ -132,6 +140,7 @@ class CreateUser extends CreateRecord
         return match($source) {
             'dokter' => 'Buat Akun Dokter',
             'pegawai' => 'Buat Akun Pegawai',
+            'staff_management' => 'Buat Akun User (Petugas/Bendahara/Pegawai)',
             default => 'Buat User Baru'
         };
     }
@@ -157,6 +166,7 @@ class CreateUser extends CreateRecord
         $message = match($source) {
             'dokter' => "Akun dokter '{$user->name}' berhasil dibuat dengan role 'Dokter'",
             'pegawai' => "Akun pegawai '{$user->name}' berhasil dibuat dengan role '{$user->role->display_name}'",
+            'staff_management' => "Akun user '{$user->name}' berhasil dibuat dengan role '{$user->role->display_name}' untuk manajemen pegawai",
             default => "User '{$user->name}' berhasil dibuat"
         };
         

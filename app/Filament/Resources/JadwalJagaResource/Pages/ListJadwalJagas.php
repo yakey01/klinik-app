@@ -9,6 +9,11 @@ use Filament\Resources\Pages\ListRecords;
 class ListJadwalJagas extends ListRecords
 {
     protected static string $resource = JadwalJagaResource::class;
+    
+    protected $listeners = [
+        'createMissingUsers' => 'handleCreateMissingUsers',
+        'showMissingUsersDetail' => 'handleShowMissingUsersDetail'
+    ];
 
     protected function getHeaderActions(): array
     {
@@ -35,7 +40,7 @@ class ListJadwalJagas extends ListRecords
                                 ->options(function () {
                                     return \App\Models\ShiftTemplate::all()
                                         ->mapWithKeys(fn ($shift) => [
-                                            $shift->id => $shift->nama_shift . ' (' . $shift->jam_masuk . ' - ' . $shift->jam_pulang . ')'
+                                            $shift->id => $shift->shift_display
                                         ]);
                                 })
                                 ->required()
@@ -306,10 +311,6 @@ class ListJadwalJagas extends ListRecords
                             ->send();
                     }
                 }),
-            Actions\CreateAction::make()
-                ->label('Tambah Individual')
-                ->icon('heroicon-o-plus')
-                ->color('primary'),
         ];
     }
     
@@ -380,7 +381,10 @@ class ListJadwalJagas extends ListRecords
             $names .= ' dan ' . ($count - 3) . ' lainnya';
         }
         
-        // Enhanced notification with action buttons
+        // Store missing users data in session for action handling
+        session()->put('missing_users_data', $missingUsers);
+        
+        // Enhanced notification with action buttons using dispatch events
         \Filament\Notifications\Notification::make()
             ->warning()
             ->title('❌ Akun User Belum Tersedia')
@@ -390,9 +394,13 @@ class ListJadwalJagas extends ListRecords
                 \Filament\Notifications\Actions\Action::make('create_auto')
                     ->label('🚀 Buat Akun Otomatis')
                     ->color('success')
-                    ->action(function () use ($missingUsers) {
-                        $this->createMissingUserAccounts($missingUsers);
-                    }),
+                    ->dispatch('createMissingUsers')
+                    ->close(),
+                \Filament\Notifications\Actions\Action::make('create_auto_url')
+                    ->label('🔗 Buat Akun (URL)')
+                    ->color('success')
+                    ->url(route('filament.jadwal-jaga.create-missing-users'))
+                    ->close(),
                 \Filament\Notifications\Actions\Action::make('create_manual')
                     ->label('✏️ Buat Manual')
                     ->color('primary')
@@ -401,9 +409,8 @@ class ListJadwalJagas extends ListRecords
                 \Filament\Notifications\Actions\Action::make('view_details')
                     ->label('📋 Lihat Detail')
                     ->color('gray')
-                    ->action(function () use ($missingUsers) {
-                        $this->showMissingUsersDetail($missingUsers);
-                    })
+                    ->dispatch('showMissingUsersDetail')
+                    ->close()
             ])
             ->send();
     }
@@ -411,13 +418,25 @@ class ListJadwalJagas extends ListRecords
     /**
      * Create missing user accounts automatically
      */
-    private function createMissingUserAccounts(array $missingUsers): void
+    public function createMissingUserAccounts(array $missingUsers): void
     {
+        // Log the start of account creation process
+        \Log::info('Starting automatic user account creation', [
+            'count' => count($missingUsers),
+            'users' => collect($missingUsers)->pluck('name')->toArray()
+        ]);
+        
         $created = 0;
         $failed = [];
         
         foreach ($missingUsers as $staff) {
             try {
+                \Log::info('Processing user account creation', [
+                    'staff_name' => $staff['name'],
+                    'staff_type' => $staff['type'],
+                    'staff_role' => $staff['peran'] ?? 'N/A'
+                ]);
+                
                 // Generate secure default credentials
                 $email = $this->generateUniqueEmail($staff['email_base']);
                 $password = 'Password123!'; // Should be changed on first login
@@ -431,29 +450,69 @@ class ListJadwalJagas extends ListRecords
                 $role = \App\Models\Role::where('name', $roleName)->first();
                 
                 if (!$role) {
+                    \Log::warning('Role not found for user creation', [
+                        'staff_name' => $staff['name'],
+                        'required_role' => $roleName,
+                        'available_roles' => \App\Models\Role::pluck('name')->toArray()
+                    ]);
                     $failed[] = $staff['name'] . ' (Role tidak ditemukan)';
                     continue;
                 }
                 
-                // Create User account
-                $user = \App\Models\User::create([
-                    'name' => $staff['name'],
-                    'email' => $email,
-                    'password' => \Hash::make($password),
-                    'role_id' => $role->id,
-                    'nip' => $staff['nip_nik'],
-                    'email_verified_at' => now()
-                ]);
+                // Check if user already exists with this NIP (including soft deleted)
+                $existingUser = \App\Models\User::withTrashed()->where('nip', $staff['nip_nik'])->first();
+                
+                if ($existingUser) {
+                    // If user is soft deleted, restore it
+                    if ($existingUser->trashed()) {
+                        $existingUser->restore();
+                        \Log::info('Restored soft deleted user', ['user_id' => $existingUser->id, 'nip' => $staff['nip_nik']]);
+                    }
+                    
+                    // Update existing user data if needed
+                    $existingUser->update([
+                        'name' => $staff['name'],
+                        'email' => $email,
+                    ]);
+                    
+                    $user = $existingUser;
+                    \Log::info('Using existing user account', ['user_id' => $user->id, 'nip' => $staff['nip_nik']]);
+                } else {
+                    // Create new User account
+                    $user = \App\Models\User::create([
+                        'name' => $staff['name'],
+                        'email' => $email,
+                        'password' => \Hash::make($password),
+                        'role_id' => $role->id,
+                        'nip' => $staff['nip_nik'],
+                        'email_verified_at' => now()
+                    ]);
+                    
+                    \Log::info('Created new user account', ['user_id' => $user->id, 'nip' => $staff['nip_nik']]);
+                }
                 
                 // Link to staff record
                 if ($staff['type'] === 'dokter') {
                     $staff['model']->update(['user_id' => $user->id]);
+                } elseif ($staff['type'] === 'pegawai') {
+                    $staff['model']->update(['user_id' => $user->id]);
                 }
-                // For pegawai, the relationship is via NIP matching
+                
+                \Log::info('User account created successfully', [
+                    'staff_name' => $staff['name'],
+                    'user_id' => $user->id,
+                    'email' => $email,
+                    'role' => $roleName
+                ]);
                 
                 $created++;
                 
             } catch (\Exception $e) {
+                \Log::error('Failed to create user account', [
+                    'staff_name' => $staff['name'],
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
                 $failed[] = $staff['name'] . ' (' . $e->getMessage() . ')';
             }
         }
@@ -524,5 +583,55 @@ class ListJadwalJagas extends ListRecords
     private function refreshData(): void
     {
         $this->redirect(request()->header('Referer'));
+    }
+    
+    /**
+     * Handle create missing users event from notification action
+     */
+    public function handleCreateMissingUsers(): void
+    {
+        \Log::info('Handling create missing users event via dispatch');
+        
+        $missingUsers = session()->get('missing_users_data', []);
+        
+        if (empty($missingUsers)) {
+            \Log::warning('No missing users data found in session');
+            \Filament\Notifications\Notification::make()
+                ->danger()
+                ->title('❌ Data Tidak Tersedia')
+                ->body('Data pegawai yang hilang tidak ditemukan. Silakan coba lagi.')
+                ->send();
+            return;
+        }
+        
+        \Log::info('Found missing users data in session', [
+            'count' => count($missingUsers)
+        ]);
+        
+        $this->createMissingUserAccounts($missingUsers);
+        
+        // Clear session data after processing
+        session()->forget('missing_users_data');
+        
+        \Log::info('Missing users data cleared from session');
+    }
+    
+    /**
+     * Handle show missing users detail event from notification action
+     */
+    public function handleShowMissingUsersDetail(): void
+    {
+        $missingUsers = session()->get('missing_users_data', []);
+        
+        if (empty($missingUsers)) {
+            \Filament\Notifications\Notification::make()
+                ->danger()
+                ->title('❌ Data Tidak Tersedia')
+                ->body('Data pegawai yang hilang tidak ditemukan. Silakan coba lagi.')
+                ->send();
+            return;
+        }
+        
+        $this->showMissingUsersDetail($missingUsers);
     }
 }

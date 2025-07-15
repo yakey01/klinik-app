@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateJaspel extends CreateRecord
 {
     protected static string $resource = JaspelResource::class;
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

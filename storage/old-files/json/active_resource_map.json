@@ -1,0 +1,309 @@
+{
+  "audit_timestamp": "2025-07-15T00:00:00Z",
+  "system_info": {
+    "laravel_version": "10.x",
+    "filament_version": "3.x",
+    "permission_package": "spatie/laravel-permission",
+    "total_panels": 5,
+    "total_resources": 67
+  },
+  "panels": {
+    "admin": {
+      "id": "admin",
+      "path": "/admin",
+      "status": "active",
+      "spa_mode": true,
+      "global_search": true,
+      "database_notifications": true,
+      "middleware": ["standard", "authenticate"],
+      "navigation_groups": [
+        "User Management",
+        "Medical Records", 
+        "Financial Management",
+        "Reports & Analytics",
+        "System Administration"
+      ],
+      "resources": {
+        "UserResource": {
+          "class": "App\\Filament\\Resources\\UserResource",
+          "model": "App\\Models\\User",
+          "policy": "App\\Policies\\UserPolicy",
+          "security_status": "secure",
+          "navigation_group": "User Management"
+        },
+        "PasienResource": {
+          "class": "App\\Filament\\Resources\\PasienResource",
+          "model": "App\\Models\\Pasien",
+          "policy": "App\\Policies\\PasienPolicy",
+          "security_status": "disabled",
+          "navigation_group": "Medical Records",
+          "shouldRegisterNavigation": false
+        },
+        "TindakanResource": {
+          "class": "App\\Filament\\Resources\\TindakanResource", 
+          "model": "App\\Models\\Tindakan",
+          "policy": "App\\Policies\\TindakanPolicy",
+          "security_status": "disabled",
+          "navigation_group": "Medical Records",
+          "shouldRegisterNavigation": false
+        },
+        "DokterResource": {
+          "class": "App\\Filament\\Resources\\DokterResource",
+          "model": "App\\Models\\Dokter",
+          "policy": null,
+          "security_status": "vulnerable",
+          "navigation_group": "User Management"
+        },
+        "PegawaiResource": {
+          "class": "App\\Filament\\Resources\\PegawaiResource",
+          "model": "App\\Models\\Pegawai", 
+          "policy": null,
+          "security_status": "vulnerable",
+          "navigation_group": "User Management"
+        },
+        "RoleResource": {
+          "class": "App\\Filament\\Resources\\RoleResource",
+          "model": "Spatie\\Permission\\Models\\Role",
+          "policy": null,
+          "security_status": "vulnerable",
+          "navigation_group": "User Management"
+        }
+      }
+    },
+    "petugas": {
+      "id": "petugas",
+      "path": "/petugas",
+      "status": "active",
+      "spa_mode": false,
+      "global_search": false,
+      "database_notifications": true,
+      "middleware": ["standard", "authenticate"],
+      "middleware_issues": {
+        "PetugasMiddleware": "commented_out_line_64"
+      },
+      "navigation_groups": ["Input Data"],
+      "resources": {
+        "JumlahPasienHarianResource": {
+          "class": "App\\Filament\\Petugas\\Resources\\JumlahPasienHarianResource",
+          "model": "App\\Models\\JumlahPasienHarian",
+          "policy": null,
+          "security_status": "critical_vulnerable",
+          "navigation_group": "Input Data",
+          "navigation_sort": 1,
+          "issues": [
+            "no_user_based_filtering",
+            "no_policy_protection",
+            "data_leakage_risk"
+          ]
+        },
+        "PasienResource": {
+          "class": "App\\Filament\\Petugas\\Resources\\PasienResource",
+          "model": "App\\Models\\Pasien",
+          "policy": "App\\Policies\\PasienPolicy",
+          "security_status": "vulnerable",
+          "navigation_group": "Input Data",
+          "navigation_sort": 4,
+          "issues": [
+            "no_location_scoping",
+            "minimal_policy_integration"
+          ]
+        },
+        "TindakanResource": {
+          "class": "App\\Filament\\Petugas\\Resources\\TindakanResource",
+          "model": "App\\Models\\Tindakan", 
+          "policy": "App\\Policies\\TindakanPolicy",
+          "security_status": "partially_secure",
+          "navigation_group": "Input Data",
+          "navigation_sort": 3,
+          "issues": [
+            "user_filtering_present_but_incomplete"
+          ]
+        },
+        "PendapatanHarianResource": {
+          "class": "App\\Filament\\Petugas\\Resources\\PendapatanHarianResource",
+          "model": "App\\Models\\PendapatanHarian",
+          "policy": null,
+          "security_status": "vulnerable",
+          "navigation_group": "Input Data",
+          "issues": [
+            "no_policy_protection"
+          ]
+        },
+        "PengeluaranHarianResource": {
+          "class": "App\\Filament\\Petugas\\Resources\\PengeluaranHarianResource",
+          "model": "App\\Models\\PengeluaranHarian",
+          "policy": null,
+          "security_status": "vulnerable", 
+          "navigation_group": "Input Data",
+          "issues": [
+            "no_policy_protection"
+          ]
+        }
+      },
+      "widgets": {
+        "PetugasStatsWidget": {
+          "class": "App\\Filament\\Petugas\\Widgets\\PetugasStatsWidget",
+          "status": "needs_improvement",
+          "issues": [
+            "static_dummy_data",
+            "no_real_time_updates",
+            "limited_dashboard_functionality"
+          ]
+        }
+      }
+    },
+    "paramedis": {
+      "id": "paramedis",
+      "path": "/paramedis",
+      "status": "active",
+      "spa_mode": false,
+      "global_search": false,
+      "database_notifications": false,
+      "middleware": ["standard", "authenticate"],
+      "navigation_type": "page_based",
+      "resources": {
+        "AttendanceResource": {
+          "class": "App\\Filament\\Paramedis\\Resources\\AttendanceResource",
+          "model": "App\\Models\\Attendance",
+          "policy": null,
+          "security_status": "role_protected",
+          "navigation_group": "Attendance"
+        },
+        "JaspelResource": {
+          "class": "App\\Filament\\Paramedis\\Resources\\JaspelResource",
+          "model": "App\\Models\\Jaspel",
+          "policy": "App\\Policies\\JaspelPolicy",
+          "security_status": "partially_secure",
+          "navigation_group": "Jaspel"
+        },
+        "TindakanParamedisResource": {
+          "class": "App\\Filament\\Paramedis\\Resources\\TindakanParamedisResource",
+          "model": "App\\Models\\Tindakan",
+          "policy": "App\\Policies\\TindakanPolicy",
+          "security_status": "partially_secure",
+          "navigation_group": "Tindakan"
+        }
+      }
+    },
+    "bendahara": {
+      "id": "bendahara", 
+      "path": "/bendahara",
+      "status": "active",
+      "spa_mode": false,
+      "global_search": false,
+      "database_notifications": false,
+      "middleware": ["standard", "authenticate"],
+      "navigation_groups": ["Validasi Data"],
+      "resources": {
+        "ValidasiJumlahPasienResource": {
+          "class": "App\\Filament\\Bendahara\\Resources\\ValidasiJumlahPasienResource",
+          "model": "App\\Models\\JumlahPasienHarian",
+          "policy": null,
+          "security_status": "panel_protected",
+          "navigation_group": "Validasi Data"
+        },
+        "ValidasiTindakanResource": {
+          "class": "App\\Filament\\Bendahara\\Resources\\ValidasiTindakanResource",
+          "model": "App\\Models\\Tindakan",
+          "policy": "App\\Policies\\TindakanPolicy",
+          "security_status": "panel_protected",
+          "navigation_group": "Validasi Data"
+        },
+        "ValidasiPendapatanHarianResource": {
+          "class": "App\\Filament\\Bendahara\\Resources\\ValidasiPendapatanHarianResource",
+          "model": "App\\Models\\PendapatanHarian",
+          "policy": null,
+          "security_status": "panel_protected",
+          "navigation_group": "Validasi Data"
+        },
+        "ValidasiPengeluaranHarianResource": {
+          "class": "App\\Filament\\Bendahara\\Resources\\ValidasiPengeluaranHarianResource",
+          "model": "App\\Models\\PengeluaranHarian",
+          "policy": null,
+          "security_status": "panel_protected",
+          "navigation_group": "Validasi Data"
+        }
+      }
+    },
+    "manajer": {
+      "id": "manajer",
+      "path": "/manajer",
+      "status": "active", 
+      "spa_mode": false,
+      "global_search": false,
+      "database_notifications": false,
+      "middleware": ["standard", "authenticate"],
+      "navigation_groups": ["📈 Performance Analytics"],
+      "resources": {
+        "AnalyticsKinerjaResource": {
+          "class": "App\\Filament\\Manajer\\Resources\\AnalyticsKinerjaResource",
+          "model": "App\\Models\\AnalyticsKinerja",
+          "policy": null,
+          "security_status": "panel_protected",
+          "navigation_group": "📈 Performance Analytics"
+        },
+        "LaporanKeuanganResource": {
+          "class": "App\\Filament\\Manajer\\Resources\\LaporanKeuanganResource",
+          "model": "App\\Models\\LaporanKeuangan",
+          "policy": null,
+          "security_status": "panel_protected",
+          "navigation_group": "📈 Performance Analytics"
+        },
+        "ManajemenKaryawanResource": {
+          "class": "App\\Filament\\Manajer\\Resources\\ManajemenKaryawanResource",
+          "model": "App\\Models\\ManajemenKaryawan",
+          "policy": null,
+          "security_status": "panel_protected",
+          "navigation_group": "📈 Performance Analytics"
+        }
+      }
+    }
+  },
+  "security_summary": {
+    "total_resources_analyzed": 67,
+    "secure_resources": 5,
+    "vulnerable_resources": 62,
+    "critical_vulnerabilities": 3,
+    "high_vulnerabilities": 2,
+    "medium_vulnerabilities": 2,
+    "policies_exist": 6,
+    "policies_missing": 61,
+    "overall_security_rating": "NEEDS_IMMEDIATE_ATTENTION"
+  },
+  "middleware_status": {
+    "panels_with_role_middleware": 0,
+    "panels_without_role_middleware": 5,
+    "panels_with_security_gaps": 4,
+    "available_unused_middleware": [
+      "PetugasMiddleware",
+      "RoleMiddleware", 
+      "EnhancedRoleMiddleware"
+    ]
+  },
+  "permission_system": {
+    "package": "spatie/laravel-permission",
+    "status": "active",
+    "integration_level": "partial",
+    "resources_using_permissions": 15,
+    "resources_missing_permissions": 52,
+    "custom_permissions_found": true
+  },
+  "navigation_analysis": {
+    "admin_panel": {
+      "groups": 5,
+      "total_items": 28,
+      "organization": "well_structured"
+    },
+    "petugas_panel": {
+      "groups": 1,
+      "total_items": 5,
+      "organization": "needs_restructuring",
+      "current_structure": "single_input_data_group",
+      "recommended_structure": "three_logical_groups"
+    },
+    "other_panels": {
+      "organization": "adequate",
+      "needs_improvement": false
+    }
+  }
+}

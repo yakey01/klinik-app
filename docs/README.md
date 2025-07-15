@@ -128,6 +128,11 @@ app/
     ├── Controllers/Api/   # Mobile API endpoints
     └── Middleware/        # Custom middleware
 
+docs/
+├── reports/               # System reports & assessments
+├── analysis/              # Technical analysis & fixes
+└── README.md             # Documentation overview
+
 resources/
 ├── views/filament/        # Custom Filament views
 └── css/                   # Tailwind CSS
@@ -135,7 +140,30 @@ resources/
 database/
 ├── migrations/            # Database schema
 └── seeders/              # Sample data
+
+storage/old-files/
+├── json/                 # Archived JSON files (audit/mapping)
+└── yaml/                 # Archived YAML files (analysis)
 ```
+
+### 📁 Documentation Organization
+
+#### `/docs/reports/` - System Reports
+- `comprehensive_audit_report.md` - Complete system audit
+- `QA_ASSESSMENT_REPORT.md` - Quality assurance assessment  
+- `PRODUCTION_SECURITY_CHECKLIST.md` - Security checklist
+- `NONPARAMEDIS_TEST_REPORT.md` - Non-paramedis testing report
+
+#### `/docs/analysis/` - Technical Analysis
+- `GPS_LOCATION_ANALYSIS_AND_FIXES.md` - GPS implementation analysis
+- `GPS_TIMEOUT_FIXED.md` - GPS timeout issue resolution
+- `GPS_LOCATION_FIXED.md` - GPS location fixes
+- `explore_audit.md` - System exploration audit
+- `explore_report.md` - Exploration findings
+
+#### `/storage/old-files/` - Archived Files
+- **JSON files**: Resource mappings, audit data, test results
+- **YAML files**: Navigation structure, audit summaries
 
 ## 🧪 Testing
 

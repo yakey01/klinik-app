@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateJadwalJaga extends CreateRecord
 {
     protected static string $resource = JadwalJagaResource::class;
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

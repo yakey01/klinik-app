@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateValidasiJumlahPasien extends CreateRecord
 {
     protected static string $resource = ValidasiJumlahPasienResource::class;
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

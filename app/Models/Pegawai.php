@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pegawai extends Model
@@ -50,9 +51,44 @@ class Pegawai extends Model
         return $this->hasOne(EmployeeCard::class, 'pegawai_id');
     }
 
+    /**
+     * Legacy relationship - single user per pegawai (being phased out)
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * New relationship - multiple users per pegawai (different roles)
+     */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class, 'pegawai_id');
+    }
+
+    /**
+     * Get all user accounts for this pegawai with their roles
+     */
+    public function getUserAccountsAttribute()
+    {
+        return $this->users()->with('role')->get();
+    }
+
+    /**
+     * Check if pegawai has any user accounts
+     */
+    public function getHasUserAccountsAttribute(): bool
+    {
+        return $this->users()->count() > 0;
+    }
+
+    /**
+     * Get roles this pegawai has
+     */
+    public function getRolesAttribute()
+    {
+        return $this->users()->with('role')->get()->pluck('role.display_name')->unique();
     }
 
     public function getDefaultAvatarAttribute(): string

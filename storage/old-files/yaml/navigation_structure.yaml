@@ -1,0 +1,372 @@
+---
+# Dokterku Application Navigation Structure Analysis
+# Generated: 2025-07-15
+# Scope: Multi-panel navigation audit and restructuring plan
+
+metadata:
+  app_name: "Dokterku"
+  framework: "Laravel + Filament"
+  total_panels: 5
+  analysis_date: "2025-07-15"
+  
+current_structure:
+  admin_panel:
+    panel_id: "admin"
+    path: "/admin"
+    spa_mode: true
+    global_search: true
+    navigation_groups:
+      - name: "User Management"
+        icon: "heroicon-o-users"
+        collapsible: true
+        sort_order: 1
+        resources:
+          - UserResource
+          - PegawaiResource
+          - DokterResource
+          - RoleResource
+        
+      - name: "Medical Records"
+        icon: "heroicon-o-heart"
+        collapsible: true
+        sort_order: 2
+        resources:
+          - PasienResource # (disabled)
+          - TindakanResource # (disabled)
+          - JenisTindakanResource
+        
+      - name: "Financial Management"
+        icon: "heroicon-o-currency-dollar"
+        collapsible: true
+        sort_order: 3
+        resources:
+          - PendapatanResource
+          - PengeluaranResource
+          - DokterUmumJaspelResource
+        
+      - name: "Reports & Analytics"
+        icon: "heroicon-o-chart-bar"
+        collapsible: true
+        sort_order: 4
+        resources:
+          - ReportResource
+          - BulkOperationResource
+          - AuditLogResource
+        
+      - name: "System Administration"
+        icon: "heroicon-o-cog"
+        collapsible: true
+        sort_order: 5
+        resources:
+          - SystemSettingResource
+          - FeatureFlagResource
+          - SecurityLogResource
+          - WorkLocationResource
+          - ValidasiLokasiResource
+    
+    status: "well_organized"
+    issues: []
+    
+  petugas_panel:
+    panel_id: "petugas"
+    path: "/petugas"
+    spa_mode: false
+    global_search: false
+    navigation_groups:
+      - name: "Input Data"
+        icon: "heroicon-o-pencil"
+        collapsible: false
+        sort_order: 1
+        resources:
+          - name: "JumlahPasienHarianResource"
+            label: "Jumlah Pasien Harian"
+            icon: "heroicon-o-user-group"
+            sort_order: 1
+            security_status: "critical_vulnerable"
+            
+          - name: "PengeluaranHarianResource"
+            label: "Pengeluaran Harian"
+            icon: "heroicon-o-minus-circle"
+            sort_order: 2
+            security_status: "vulnerable"
+            
+          - name: "TindakanResource"
+            label: "Input Tindakan"
+            icon: "heroicon-o-heart"
+            sort_order: 3
+            security_status: "partially_secure"
+            
+          - name: "PasienResource"
+            label: "Input Pasien"
+            icon: "heroicon-o-users"
+            sort_order: 4
+            security_status: "vulnerable"
+            
+          - name: "PendapatanHarianResource"
+            label: "Pendapatan Harian"
+            icon: "heroicon-o-currency-dollar"
+            sort_order: null
+            security_status: "vulnerable"
+    
+    status: "needs_restructuring"
+    issues:
+      - "single_group_overcrowding"
+      - "no_logical_separation"
+      - "inconsistent_sorting"
+      - "missing_spa_mode"
+      - "no_global_search"
+      - "security_vulnerabilities"
+      
+  paramedis_panel:
+    panel_id: "paramedis"
+    path: "/paramedis"
+    spa_mode: false
+    global_search: false
+    navigation_type: "page_based"
+    custom_pages:
+      - "UjiCobaDashboard"
+      - "PresensiPage"
+      - "JaspelPremiumPage"
+      - "JadwalJagaPage"
+      - "DashboardParamedis"
+      - "ReactDashboardPage"
+    
+    resources:
+      - "AttendanceResource"
+      - "JaspelResource"
+      - "TindakanParamedisResource"
+    
+    status: "page_focused"
+    issues:
+      - "mixed_navigation_pattern"
+      - "no_spa_mode"
+      - "no_global_search"
+      
+  bendahara_panel:
+    panel_id: "bendahara"
+    path: "/bendahara"
+    spa_mode: false
+    global_search: false
+    navigation_groups:
+      - name: "Validasi Data"
+        icon: "heroicon-o-check-circle"
+        collapsible: false
+        sort_order: 1
+        resources:
+          - "ValidasiJumlahPasienResource"
+          - "ValidasiTindakanResource"
+          - "ValidasiPendapatanHarianResource"
+          - "ValidasiPengeluaranHarianResource"
+    
+    status: "functional"
+    issues:
+      - "no_spa_mode"
+      - "no_global_search"
+      
+  manajer_panel:
+    panel_id: "manajer"
+    path: "/manajer"
+    spa_mode: false
+    global_search: false
+    navigation_groups:
+      - name: "📈 Performance Analytics"
+        icon: "heroicon-o-chart-bar"
+        collapsible: false
+        sort_order: 1
+        resources:
+          - "AnalyticsKinerjaResource"
+          - "LaporanKeuanganResource"
+          - "ManajemenKaryawanResource"
+    
+    status: "functional"
+    issues:
+      - "no_spa_mode"
+      - "no_global_search"
+
+recommended_structure:
+  petugas_panel_restructure:
+    panel_id: "petugas"
+    path: "/petugas"
+    spa_mode: true # Enable for better UX
+    global_search: true # Enable for better UX
+    database_notifications: true # Keep existing
+    
+    new_navigation_groups:
+      - name: "Data Pasien"
+        icon: "heroicon-o-user-group"
+        collapsible: true
+        sort_order: 1
+        color: "primary"
+        resources:
+          - name: "PasienResource"
+            label: "Registrasi Pasien"
+            icon: "heroicon-o-user-plus"
+            sort_order: 1
+            description: "Input data pasien baru"
+            
+          - name: "JumlahPasienHarianResource"
+            label: "Jumlah Pasien Harian"
+            icon: "heroicon-o-calendar-days"
+            sort_order: 2
+            description: "Laporan jumlah pasien harian"
+            
+      - name: "Transaksi Harian"
+        icon: "heroicon-o-currency-dollar"
+        collapsible: true
+        sort_order: 2
+        color: "success"
+        resources:
+          - name: "PendapatanHarianResource"
+            label: "Pendapatan Harian"
+            icon: "heroicon-o-arrow-trending-up"
+            sort_order: 1
+            description: "Input pendapatan harian"
+            
+          - name: "PengeluaranHarianResource"
+            label: "Pengeluaran Harian"
+            icon: "heroicon-o-arrow-trending-down"
+            sort_order: 2
+            description: "Input pengeluaran harian"
+            
+      - name: "Tindakan Medis"
+        icon: "heroicon-o-heart"
+        collapsible: true
+        sort_order: 3
+        color: "warning"
+        resources:
+          - name: "TindakanResource"
+            label: "Input Tindakan"
+            icon: "heroicon-o-hand-raised"
+            sort_order: 1
+            description: "Input tindakan medis"
+            
+          - name: "JenisTindakanResource"
+            label: "Jenis Tindakan"
+            icon: "heroicon-o-list-bullet"
+            sort_order: 2
+            description: "Referensi jenis tindakan"
+            include_from_admin: true
+            
+    benefits:
+      - "Logical grouping improves workflow"
+      - "Reduced cognitive load"
+      - "Better visual hierarchy"
+      - "Consistent iconography"
+      - "Improved accessibility"
+      
+    enhanced_features:
+      - name: "Quick Actions Widget"
+        description: "Dashboard widget for common actions"
+        position: "dashboard"
+        actions:
+          - "Tambah Pasien Baru"
+          - "Input Tindakan"
+          - "Laporan Harian"
+          
+      - name: "Workflow Guidance"
+        description: "Step-by-step guidance for new users"
+        position: "all_pages"
+        features:
+          - "Interactive tooltips"
+          - "Progress indicators"
+          - "Help documentation"
+          
+      - name: "Real-time Dashboard"
+        description: "Live statistics and metrics"
+        position: "dashboard"
+        widgets:
+          - "Pasien Hari Ini"
+          - "Pendapatan/Pengeluaran"
+          - "Target Harian"
+          - "Performance Metrics"
+
+enhancement_priorities:
+  critical:
+    - "Implement user-based filtering for all resources"
+    - "Reactivate PetugasMiddleware"
+    - "Add policies for all resources"
+    
+  high:
+    - "Reorganize navigation structure"
+    - "Enable SPA mode for Petugas panel"
+    - "Add global search functionality"
+    
+  medium:
+    - "Implement quick actions widget"
+    - "Add workflow guidance"
+    - "Enhance dashboard with real-time data"
+    
+  low:
+    - "Improve iconography consistency"
+    - "Add breadcrumb navigation"
+    - "Implement advanced search filters"
+
+migration_plan:
+  phase_1:
+    name: "Security Hardening"
+    duration: "2-3 days"
+    tasks:
+      - "Implement user-based query scoping"
+      - "Reactivate and configure middleware"
+      - "Add critical policies"
+      
+  phase_2:
+    name: "Navigation Restructure"
+    duration: "1-2 days"
+    tasks:
+      - "Split Input Data group"
+      - "Update navigation icons"
+      - "Implement new sorting"
+      
+  phase_3:
+    name: "UX Enhancements"
+    duration: "3-4 days"
+    tasks:
+      - "Enable SPA mode"
+      - "Add global search"
+      - "Implement dashboard widgets"
+      
+  phase_4:
+    name: "Advanced Features"
+    duration: "5-7 days"
+    tasks:
+      - "Add workflow guidance"
+      - "Implement quick actions"
+      - "Add performance metrics"
+
+testing_requirements:
+  security_tests:
+    - "Access control validation"
+    - "User-based filtering verification"
+    - "Role-based navigation testing"
+    
+  functional_tests:
+    - "Navigation flow testing"
+    - "Search functionality testing"
+    - "Widget functionality testing"
+    
+  performance_tests:
+    - "SPA mode performance"
+    - "Search response time"
+    - "Dashboard loading time"
+    
+  user_acceptance_tests:
+    - "Navigation usability"
+    - "Workflow efficiency"
+    - "Feature accessibility"
+
+success_metrics:
+  security:
+    - "100% resources with policies"
+    - "Zero unauthorized access attempts"
+    - "All data properly scoped"
+    
+  usability:
+    - "50% reduction in navigation time"
+    - "90% user satisfaction score"
+    - "Reduced support tickets"
+    
+  performance:
+    - "< 2s page load time"
+    - "< 500ms search response"
+    - "95% uptime"

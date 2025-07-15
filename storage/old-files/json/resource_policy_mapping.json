@@ -1,0 +1,373 @@
+{
+  "audit_metadata": {
+    "generated_on": "2025-07-15",
+    "total_resources": 42,
+    "total_policies": 9,
+    "policy_coverage": "21%",
+    "missing_policies": 33
+  },
+  "filament_panels": {
+    "admin": {
+      "path": "/admin",
+      "role": "admin",
+      "resources": [
+        "AbsenceRequestResource",
+        "AuditLogResource",
+        "BulkOperationResource",
+        "CutiPegawaiResource",
+        "DokterResource",
+        "DokterUmumJaspelResource",
+        "EmployeeCardResource",
+        "FaceRecognitionResource",
+        "FeatureFlagResource",
+        "GpsSpoofingConfigResource",
+        "GpsSpoofingDetectionResource",
+        "JadwalJagaResource",
+        "JenisTindakanResource",
+        "KalenderKerjaResource",
+        "LeaveTypeResource",
+        "PasienResource",
+        "PegawaiResource",
+        "PendapatanResource",
+        "PengeluaranResource",
+        "PermohonanCutiResource",
+        "ReportResource",
+        "RoleResource",
+        "SecurityLogResource",
+        "ShiftTemplateResource",
+        "SystemSettingResource",
+        "TelegramSettingResource",
+        "TindakanResource",
+        "UserDeviceResource",
+        "UserResource",
+        "ValidasiLokasiResource",
+        "WorkLocationResource"
+      ]
+    },
+    "bendahara": {
+      "path": "/bendahara",
+      "role": "bendahara",
+      "resources": [
+        "ValidasiJumlahPasienResource",
+        "ValidasiPendapatanHarianResource",
+        "ValidasiPendapatanResource",
+        "ValidasiPengeluaranHarianResource",
+        "ValidasiTindakanResource"
+      ]
+    },
+    "manajer": {
+      "path": "/manajer",
+      "role": "manajer",
+      "resources": [
+        "AnalyticsKinerjaResource",
+        "LaporanKeuanganResource",
+        "ManajemenKaryawanResource"
+      ]
+    },
+    "paramedis": {
+      "path": "/paramedis",
+      "role": "paramedis",
+      "resources": [
+        "AttendanceResource",
+        "JaspelResource",
+        "TindakanParamedisResource"
+      ]
+    },
+    "petugas": {
+      "path": "/petugas",
+      "role": "petugas",
+      "resources": [
+        "JumlahPasienHarianResource",
+        "PasienResource",
+        "PendapatanHarianResource",
+        "PengeluaranHarianResource",
+        "TindakanResource"
+      ]
+    }
+  },
+  "resource_policy_mapping": {
+    "mapped_resources": {
+      "JaspelResource": {
+        "model": "App\\Models\\Jaspel",
+        "policy": "App\\Policies\\JaspelPolicy",
+        "status": "implemented",
+        "panels": ["paramedis"]
+      },
+      "JumlahPasienHarianResource": {
+        "model": "App\\Models\\JumlahPasienHarian",
+        "policy": "App\\Policies\\JumlahPasienHarianPolicy",
+        "status": "implemented",
+        "panels": ["petugas", "bendahara"]
+      },
+      "PasienResource": {
+        "model": "App\\Models\\Pasien",
+        "policy": "App\\Policies\\PasienPolicy",
+        "status": "implemented",
+        "panels": ["admin", "petugas"]
+      },
+      "PendapatanHarianResource": {
+        "model": "App\\Models\\PendapatanHarian",
+        "policy": "App\\Policies\\PendapatanHarianPolicy",
+        "status": "implemented",
+        "panels": ["petugas", "bendahara"]
+      },
+      "PendapatanResource": {
+        "model": "App\\Models\\Pendapatan",
+        "policy": "App\\Policies\\PendapatanPolicy",
+        "status": "implemented",
+        "panels": ["admin", "bendahara"]
+      },
+      "PengeluaranHarianResource": {
+        "model": "App\\Models\\PengeluaranHarian",
+        "policy": "App\\Policies\\PengeluaranHarianPolicy",
+        "status": "implemented",
+        "panels": ["petugas", "bendahara"]
+      },
+      "PermohonanCutiResource": {
+        "model": "App\\Models\\PermohonanCuti",
+        "policy": "App\\Policies\\PermohonanCutiPolicy",
+        "status": "implemented",
+        "panels": ["admin"]
+      },
+      "TindakanResource": {
+        "model": "App\\Models\\Tindakan",
+        "policy": "App\\Policies\\TindakanPolicy",
+        "status": "implemented",
+        "panels": ["admin", "petugas", "bendahara"]
+      },
+      "UserResource": {
+        "model": "App\\Models\\User",
+        "policy": "App\\Policies\\UserPolicy",
+        "status": "implemented",
+        "panels": ["admin"]
+      }
+    },
+    "missing_policies": {
+      "AbsenceRequestResource": {
+        "model": "App\\Models\\AbsenceRequest",
+        "policy": "App\\Policies\\AbsenceRequestPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "AttendanceResource": {
+        "model": "App\\Models\\Attendance",
+        "policy": "App\\Policies\\AttendancePolicy",
+        "status": "missing",
+        "panels": ["paramedis"],
+        "priority": "high"
+      },
+      "AuditLogResource": {
+        "model": "App\\Models\\AuditLog",
+        "policy": "App\\Policies\\AuditLogPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "BulkOperationResource": {
+        "model": "App\\Models\\BulkOperation",
+        "policy": "App\\Policies\\BulkOperationPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "low"
+      },
+      "CutiPegawaiResource": {
+        "model": "App\\Models\\CutiPegawai",
+        "policy": "App\\Policies\\CutiPegawaiPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "DokterResource": {
+        "model": "App\\Models\\Dokter",
+        "policy": "App\\Policies\\DokterPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "high"
+      },
+      "DokterUmumJaspelResource": {
+        "model": "App\\Models\\DokterUmumJaspel",
+        "policy": "App\\Policies\\DokterUmumJaspelPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "EmployeeCardResource": {
+        "model": "App\\Models\\EmployeeCard",
+        "policy": "App\\Policies\\EmployeeCardPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "low"
+      },
+      "FaceRecognitionResource": {
+        "model": "App\\Models\\FaceRecognition",
+        "policy": "App\\Policies\\FaceRecognitionPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "low"
+      },
+      "FeatureFlagResource": {
+        "model": "App\\Models\\FeatureFlag",
+        "policy": "App\\Policies\\FeatureFlagPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "low"
+      },
+      "GpsSpoofingConfigResource": {
+        "model": "App\\Models\\GpsSpoofingConfig",
+        "policy": "App\\Policies\\GpsSpoofingConfigPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "GpsSpoofingDetectionResource": {
+        "model": "App\\Models\\GpsSpoofingDetection",
+        "policy": "App\\Policies\\GpsSpoofingDetectionPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "JadwalJagaResource": {
+        "model": "App\\Models\\JadwalJaga",
+        "policy": "App\\Policies\\JadwalJagaPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "high"
+      },
+      "JenisTindakanResource": {
+        "model": "App\\Models\\JenisTindakan",
+        "policy": "App\\Policies\\JenisTindakanPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "KalenderKerjaResource": {
+        "model": "App\\Models\\KalenderKerja",
+        "policy": "App\\Policies\\KalenderKerjaPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "LeaveTypeResource": {
+        "model": "App\\Models\\LeaveType",
+        "policy": "App\\Policies\\LeaveTypePolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "low"
+      },
+      "PegawaiResource": {
+        "model": "App\\Models\\Pegawai",
+        "policy": "App\\Policies\\PegawaiPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "high"
+      },
+      "ReportResource": {
+        "model": "App\\Models\\Report",
+        "policy": "App\\Policies\\ReportPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "RoleResource": {
+        "model": "App\\Models\\Role",
+        "policy": "App\\Policies\\RolePolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "high"
+      },
+      "SecurityLogResource": {
+        "model": "App\\Models\\SecurityLog",
+        "policy": "App\\Policies\\SecurityLogPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "ShiftTemplateResource": {
+        "model": "App\\Models\\ShiftTemplate",
+        "policy": "App\\Policies\\ShiftTemplatePolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "SystemSettingResource": {
+        "model": "App\\Models\\SystemSetting",
+        "policy": "App\\Policies\\SystemSettingPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "high"
+      },
+      "TelegramSettingResource": {
+        "model": "App\\Models\\TelegramSetting",
+        "policy": "App\\Policies\\TelegramSettingPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "low"
+      },
+      "TindakanParamedisResource": {
+        "model": "App\\Models\\Tindakan",
+        "policy": "App\\Policies\\TindakanParamedisPolicy",
+        "status": "missing",
+        "panels": ["paramedis"],
+        "priority": "medium"
+      },
+      "UserDeviceResource": {
+        "model": "App\\Models\\UserDevice",
+        "policy": "App\\Policies\\UserDevicePolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "low"
+      },
+      "ValidasiLokasiResource": {
+        "model": "App\\Models\\LocationValidation",
+        "policy": "App\\Policies\\ValidasiLokasiPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "medium"
+      },
+      "WorkLocationResource": {
+        "model": "App\\Models\\WorkLocation",
+        "policy": "App\\Policies\\WorkLocationPolicy",
+        "status": "missing",
+        "panels": ["admin"],
+        "priority": "high"
+      }
+    }
+  },
+  "models_overview": {
+    "total_models": 43,
+    "core_models": {
+      "user_management": ["User", "Role", "Pegawai", "Dokter"],
+      "medical_records": ["Pasien", "Tindakan", "JenisTindakan", "Jaspel"],
+      "financial": ["Pendapatan", "PendapatanHarian", "Pengeluaran", "PengeluaranHarian", "JumlahPasienHarian"],
+      "system_operations": ["Attendance", "WorkLocation", "Schedule", "Shift", "Notification"]
+    }
+  },
+  "api_endpoints": {
+    "v1_legacy": {
+      "base_path": "/api",
+      "features": ["authentication", "attendance", "face_recognition", "paramedis_dashboard"]
+    },
+    "v2_enhanced": {
+      "base_path": "/api/v2",
+      "features": ["standardized_responses", "rate_limiting", "role_based_access", "offline_sync", "biometric_auth"]
+    }
+  },
+  "security_analysis": {
+    "implemented_security": [
+      "CSRF protection",
+      "SQL injection prevention",
+      "XSS protection",
+      "Rate limiting",
+      "GPS spoofing detection",
+      "Device binding",
+      "Session management",
+      "Audit logging"
+    ],
+    "security_concerns": [
+      "Incomplete policy coverage (79% missing)",
+      "Debug routes in production code",
+      "Limited API input validation"
+    ]
+  }
+}

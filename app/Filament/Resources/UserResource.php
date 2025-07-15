@@ -257,9 +257,59 @@ class UserResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat User')
+                        ->icon('heroicon-o-eye')
+                        ->color('info'),
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit User')
+                        ->icon('heroicon-o-pencil')
+                        ->color('warning'),
+                    Tables\Actions\Action::make('reset_password')
+                        ->label('Reset Password')
+                        ->icon('heroicon-o-key')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Reset Password User')
+                        ->modalDescription('Apakah Anda yakin ingin mereset password user ini? Password akan direset menjadi "password".')
+                        ->action(function ($record) {
+                            $record->update([
+                                'password' => bcrypt('password'),
+                            ]);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Password berhasil direset')
+                                ->body('Password user telah direset menjadi "password"')
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\Action::make('toggle_status')
+                        ->label(fn ($record) => $record->is_active ? 'Nonaktifkan' : 'Aktifkan')
+                        ->icon(fn ($record) => $record->is_active ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
+                        ->color(fn ($record) => $record->is_active ? 'danger' : 'success')
+                        ->requiresConfirmation()
+                        ->modalHeading(fn ($record) => $record->is_active ? 'Nonaktifkan User' : 'Aktifkan User')
+                        ->modalDescription(fn ($record) => $record->is_active ? 'Apakah Anda yakin ingin menonaktifkan user ini?' : 'Apakah Anda yakin ingin mengaktifkan user ini?')
+                        ->action(function ($record) {
+                            $record->update(['is_active' => !$record->is_active]);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Status berhasil diubah')
+                                ->body($record->is_active ? 'User telah diaktifkan' : 'User telah dinonaktifkan')
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus User')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger'),
+                ])
+                ->label('Kelola Akun')
+                ->icon('heroicon-m-cog-6-tooth')
+                ->size('sm')
+                ->color('primary')
+                ->button(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

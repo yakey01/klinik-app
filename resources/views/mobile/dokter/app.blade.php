@@ -556,29 +556,53 @@
                     <div style="background: white; border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); border: 1px solid var(--neutral-200);">
                         <h3 class="section-title">Status Lokasi GPS</h3>
                         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                            <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--success-green); display: flex; align-items: center; justify-content: center;">
+                            <div id="gpsStatusIcon" style="width: 48px; height: 48px; border-radius: 50%; background: var(--neutral-300); display: flex; align-items: center; justify-content: center;">
                                 <div style="color: white; font-size: 20px;">📍</div>
                             </div>
                             <div style="flex: 1;">
-                                <div style="font-size: 16px; font-weight: 600; color: var(--neutral-900);">Lokasi Terdeteksi</div>
-                                <div style="font-size: 14px; color: var(--neutral-600);">Klinik Dokterku - Area Valid</div>
+                                <div id="gpsStatusTitle" style="font-size: 16px; font-weight: 600; color: var(--neutral-900);">Mendapatkan Lokasi...</div>
+                                <div id="gpsStatusMessage" style="font-size: 14px; color: var(--neutral-600);">Silakan tunggu...</div>
                             </div>
-                            <div style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">VALID</div>
+                            <div id="gpsStatusBadge" style="background: #f3f4f6; color: #374151; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">LOADING</div>
                         </div>
                         
                         <div style="display: grid; gap: 12px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--neutral-50); border-radius: 8px;">
                                 <div style="font-size: 14px; color: var(--neutral-600);">Akurasi GPS</div>
-                                <div style="font-size: 14px; font-weight: 600; color: var(--success-green);">±5 meter</div>
+                                <div id="gpsAccuracyValue" class="gps-status" style="font-size: 14px; font-weight: 600; color: var(--neutral-400);">Memuat...</div>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--neutral-50); border-radius: 8px;">
                                 <div style="font-size: 14px; color: var(--neutral-600);">Jarak dari Klinik</div>
-                                <div style="font-size: 14px; font-weight: 600; color: var(--success-green);">12 meter</div>
+                                <div id="gpsDistanceValue" style="font-size: 14px; font-weight: 600; color: var(--neutral-400);">Memuat...</div>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--neutral-50); border-radius: 8px;">
                                 <div style="font-size: 14px; color: var(--neutral-600);">Zona Presensi</div>
-                                <div style="font-size: 14px; font-weight: 600; color: var(--success-green);">Dalam Area</div>
+                                <div id="gpsZoneValue" class="geofence-status" style="font-size: 14px; font-weight: 600; color: var(--neutral-400);">Memuat...</div>
                             </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--neutral-50); border-radius: 8px;">
+                                <div style="font-size: 14px; color: var(--neutral-600);">Terakhir Update</div>
+                                <div id="gpsLastUpdateValue" style="font-size: 14px; font-weight: 600; color: var(--neutral-400);">Memuat...</div>
+                            </div>
+                        </div>
+                        
+                        <!-- GPS Actions -->
+                        <div style="display: flex; gap: 12px; margin-top: 16px;">
+                            <button onclick="refreshGpsLocation()" style="flex: 1; padding: 12px; background: var(--secondary-blue); color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;">
+                                🔄 Refresh GPS
+                            </button>
+                            <button onclick="testGpsLocation()" style="flex: 1; padding: 12px; background: var(--neutral-200); color: var(--neutral-900); border: none; border-radius: 8px; font-size: 14px; cursor: pointer;">
+                                🧪 Test GPS
+                            </button>
+                        </div>
+                        
+                        <!-- Debug Actions -->
+                        <div style="display: flex; gap: 12px; margin-top: 8px;">
+                            <button onclick="debugGpsSystem()" style="flex: 1; padding: 8px; background: var(--warning-orange); color: white; border: none; border-radius: 8px; font-size: 12px; cursor: pointer;">
+                                🔍 Debug GPS
+                            </button>
+                            <button onclick="runGpsTests()" style="flex: 1; padding: 8px; background: var(--accent-green); color: white; border: none; border-radius: 8px; font-size: 12px; cursor: pointer;">
+                                🚀 Run Tests
+                            </button>
                         </div>
                     </div>
 
@@ -1167,32 +1191,54 @@
         }
         
         function validateGeofence(latitude, longitude) {
-            // Get clinic coordinates from environment or use default (Malang - main office)
-            const clinicLat = {{ config('app.clinic_latitude', -7.9666) }};
-            const clinicLng = {{ config('app.clinic_longitude', 112.6326) }};
+            // Get clinic coordinates from environment or use correct default (Malang - main office)
+            const clinicLat = {{ config('app.clinic_latitude', -7.89946200) }};
+            const clinicLng = {{ config('app.clinic_longitude', 111.96239900) }};
             const validRadius = {{ config('app.clinic_radius', 100) }}; // meters
             
+            // Validate input coordinates
+            if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
+                console.error('Invalid coordinates provided:', { latitude, longitude });
+                return {
+                    isValid: false,
+                    distance: 0,
+                    message: 'Koordinat GPS tidak valid'
+                };
+            }
+            
             // Debug logging
-            console.log('Geofence Validation:', {
-                userLat: latitude,
-                userLng: longitude,
-                clinicLat: clinicLat,
-                clinicLng: clinicLng,
-                validRadius: validRadius
-            });
+            console.log('=== GEOFENCE VALIDATION ===');
+            console.log('User Location:', { latitude, longitude });
+            console.log('Clinic Location:', { clinicLat, clinicLng });
+            console.log('Valid Radius:', validRadius, 'meters');
             
             // Calculate distance using Haversine formula
             const distance = calculateDistance(latitude, longitude, clinicLat, clinicLng);
             
             console.log('Distance calculated:', distance, 'meters');
+            console.log('Is Valid:', distance <= validRadius);
+            console.log('==========================');
             
-            return {
-                isValid: distance <= validRadius,
-                distance: Math.round(distance),
-                message: distance <= validRadius 
-                    ? `Lokasi valid (${Math.round(distance)}m dari klinik)`
-                    : `Anda berada ${Math.round(distance)}m dari klinik (maksimal ${validRadius}m)`
+            const isValid = distance <= validRadius;
+            const roundedDistance = Math.round(distance);
+            
+            // Create detailed validation result
+            const result = {
+                isValid: isValid,
+                distance: roundedDistance,
+                message: isValid 
+                    ? `Lokasi valid (${roundedDistance}m dari klinik)`
+                    : `Anda berada ${roundedDistance}m dari klinik (maksimal ${validRadius}m)`,
+                userLocation: { latitude, longitude },
+                clinicLocation: { latitude: clinicLat, longitude: clinicLng },
+                validRadius: validRadius,
+                timestamp: new Date().toISOString()
             };
+            
+            // Store validation result for debugging
+            localStorage.setItem('last_geofence_validation', JSON.stringify(result));
+            
+            return result;
         }
         
         function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -1209,13 +1255,8 @@
         // Enhanced GPS Location with timeout and error handling
         function getCurrentLocationWithTimeout(timeout = 15000) {
             return new Promise((resolve, reject) => {
-                // First try to get cached location
-                const cachedLocation = getCachedLocation();
-                if (cachedLocation) {
-                    console.log('Using cached location:', cachedLocation);
-                    resolve(cachedLocation);
-                    return;
-                }
+                // Don't use cached location for active requests - always get fresh location
+                console.log('Getting fresh GPS location...');
                 
                 const timeoutId = setTimeout(() => {
                     reject(new Error('GPS_TIMEOUT'));
@@ -1225,34 +1266,37 @@
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         clearTimeout(timeoutId);
+                        console.log('High accuracy GPS successful:', position);
                         cacheLocation(position);
                         resolve(position);
                     },
                     (error) => {
-                        console.log('High accuracy failed, trying lower accuracy...');
+                        console.log('High accuracy failed, trying lower accuracy...', error);
                         
                         // Fallback to lower accuracy
                         navigator.geolocation.getCurrentPosition(
                             (position) => {
                                 clearTimeout(timeoutId);
+                                console.log('Low accuracy GPS successful:', position);
                                 cacheLocation(position);
                                 resolve(position);
                             },
                             (fallbackError) => {
                                 clearTimeout(timeoutId);
+                                console.error('Both GPS attempts failed:', fallbackError);
                                 reject(fallbackError);
                             },
                             {
                                 enableHighAccuracy: false,
                                 timeout: timeout / 2,
-                                maximumAge: 300000 // 5 minutes cache for fallback
+                                maximumAge: 60000 // 1 minute cache for fallback
                             }
                         );
                     },
                     {
                         enableHighAccuracy: true,
                         timeout: timeout / 2,
-                        maximumAge: 60000 // 1 minute cache
+                        maximumAge: 10000 // 10 seconds cache for high accuracy
                     }
                 );
             });
@@ -1290,13 +1334,15 @@
                 const now = Date.now();
                 const cacheAge = now - locationData.timestamp;
                 
-                // Use cached location if less than 2 minutes old
-                if (cacheAge < 120000) {
+                // Use cached location if less than 5 minutes old (extended cache)
+                if (cacheAge < 300000) {
+                    console.log('Using cached location (age:', Math.round(cacheAge / 1000), 'seconds)');
                     return locationData;
                 }
                 
                 // Remove expired cache
                 localStorage.removeItem('cached_gps_location');
+                console.log('Cache expired, removed');
                 return null;
             } catch (error) {
                 console.error('Error getting cached location:', error);
@@ -1309,28 +1355,38 @@
             let message;
             let action = null;
             
+            console.error('GPS Error Details:', {
+                code: error.code,
+                message: error.message,
+                timestamp: new Date().toISOString()
+            });
+            
             switch (error.code || error.message) {
                 case 1:
                 case 'PERMISSION_DENIED':
                     message = 'Izin GPS ditolak. Silakan aktifkan GPS dan berikan izin lokasi.';
                     action = 'Buka Pengaturan';
+                    updateGpsStatusToPermissionDenied();
                     break;
                 case 2:
                 case 'POSITION_UNAVAILABLE':
                     message = 'Lokasi tidak tersedia. Pastikan GPS aktif dan Anda berada di area terbuka.';
                     action = 'Coba Lagi';
+                    updateGpsStatusToUnavailable();
                     break;
                 case 3:
                 case 'TIMEOUT':
                 case 'GPS_TIMEOUT':
                     message = 'GPS timeout. Mencoba menggunakan mode offline...';
                     action = 'Coba Lagi';
+                    updateGpsStatusToTimeout();
                     // Try offline mode
                     tryOfflineMode();
                     return;
                 default:
                     message = 'Gagal mendapatkan lokasi GPS. Silakan coba lagi.';
                     action = 'Coba Lagi';
+                    updateGpsStatusToError();
                     break;
             }
             
@@ -1650,26 +1706,73 @@
         
         function updateLocationStatus(locationData) {
             try {
-                // Update GPS status in UI
-                const gpsStatusElement = document.querySelector('.gps-status');
-                if (gpsStatusElement) {
-                    const accuracy = Math.round(locationData.accuracy);
-                    gpsStatusElement.textContent = `GPS: ±${accuracy}m`;
+                console.log('Updating GPS status with location:', locationData);
+                
+                const accuracy = Math.round(locationData.accuracy);
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                
+                // Update GPS status icon and title
+                const gpsStatusIcon = document.getElementById('gpsStatusIcon');
+                const gpsStatusTitle = document.getElementById('gpsStatusTitle');
+                const gpsStatusMessage = document.getElementById('gpsStatusMessage');
+                const gpsStatusBadge = document.getElementById('gpsStatusBadge');
+                
+                if (gpsStatusIcon) {
+                    gpsStatusIcon.style.background = 'var(--success-green)';
+                }
+                if (gpsStatusTitle) {
+                    gpsStatusTitle.textContent = 'Lokasi GPS Aktif';
+                }
+                if (gpsStatusMessage) {
+                    gpsStatusMessage.textContent = 'GPS berhasil mendapatkan lokasi';
+                }
+                if (gpsStatusBadge) {
+                    gpsStatusBadge.textContent = 'AKTIF';
+                    gpsStatusBadge.style.background = '#dcfce7';
+                    gpsStatusBadge.style.color = '#166534';
+                }
+                
+                // Update accuracy value
+                const gpsAccuracyValue = document.getElementById('gpsAccuracyValue');
+                if (gpsAccuracyValue) {
+                    gpsAccuracyValue.textContent = `±${accuracy}m`;
                     
                     // Update accuracy indicator color
                     if (accuracy <= 10) {
-                        gpsStatusElement.style.color = 'var(--success-green)';
+                        gpsAccuracyValue.style.color = 'var(--success-green)';
                     } else if (accuracy <= 50) {
-                        gpsStatusElement.style.color = 'var(--warning-orange)';
+                        gpsAccuracyValue.style.color = 'var(--warning-orange)';
                     } else {
-                        gpsStatusElement.style.color = 'var(--error-red)';
+                        gpsAccuracyValue.style.color = 'var(--error-red)';
                     }
                 }
                 
                 // Validate current location
                 const validation = validateGeofence(locationData.latitude, locationData.longitude);
                 
-                // Update geofence status
+                // Update distance value
+                const gpsDistanceValue = document.getElementById('gpsDistanceValue');
+                if (gpsDistanceValue) {
+                    gpsDistanceValue.textContent = `${validation.distance}m`;
+                    gpsDistanceValue.style.color = validation.isValid ? 'var(--success-green)' : 'var(--error-red)';
+                }
+                
+                // Update zone status
+                const gpsZoneValue = document.getElementById('gpsZoneValue');
+                if (gpsZoneValue) {
+                    gpsZoneValue.textContent = validation.isValid ? 'Dalam Area' : 'Luar Area';
+                    gpsZoneValue.style.color = validation.isValid ? 'var(--success-green)' : 'var(--error-red)';
+                }
+                
+                // Update last update time
+                const gpsLastUpdateValue = document.getElementById('gpsLastUpdateValue');
+                if (gpsLastUpdateValue) {
+                    gpsLastUpdateValue.textContent = timeString;
+                    gpsLastUpdateValue.style.color = 'var(--neutral-900)';
+                }
+                
+                // Update geofence status (legacy support)
                 const geofenceStatusElement = document.querySelector('.geofence-status');
                 if (geofenceStatusElement) {
                     geofenceStatusElement.textContent = validation.message;
@@ -1678,6 +1781,8 @@
                 
                 // Store location for offline use
                 localStorage.setItem('last_known_location', JSON.stringify(locationData));
+                
+                console.log('GPS status updated successfully');
                 
             } catch (error) {
                 console.error('Error updating location status:', error);
@@ -1700,6 +1805,114 @@
             stopLocationMonitoring();
         });
         
+        // Initialize GPS Services
+        function initializeGpsServices() {
+            console.log('Initializing GPS services...');
+            
+            // Check if geolocation is supported
+            if (!navigator.geolocation) {
+                console.error('Geolocation is not supported by this browser.');
+                showToast('GPS tidak didukung oleh browser ini', 'error');
+                return;
+            }
+            
+            // Check if we're on HTTPS (required for geolocation in production)
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                console.warn('Geolocation requires HTTPS in production');
+                showToast('GPS memerlukan koneksi HTTPS', 'warning');
+            }
+            
+            // Request permission and get initial location
+            requestLocationPermission();
+        }
+        
+        // Request location permission and get initial location
+        function requestLocationPermission() {
+            console.log('Requesting location permission...');
+            
+            // Check if Permissions API is available
+            if (navigator.permissions) {
+                navigator.permissions.query({ name: 'geolocation' })
+                    .then(permissionStatus => {
+                        console.log('Geolocation permission:', permissionStatus.state);
+                        
+                        if (permissionStatus.state === 'granted') {
+                            getInitialLocation();
+                        } else if (permissionStatus.state === 'prompt') {
+                            // User will be prompted, try to get location
+                            getInitialLocation();
+                        } else {
+                            showToast('Izin GPS diperlukan untuk presensi', 'warning');
+                        }
+                        
+                        // Listen for permission changes
+                        permissionStatus.addEventListener('change', () => {
+                            console.log('Geolocation permission changed:', permissionStatus.state);
+                            if (permissionStatus.state === 'granted') {
+                                getInitialLocation();
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error checking geolocation permission:', error);
+                        // Fallback: try to get location anyway
+                        getInitialLocation();
+                    });
+            } else {
+                // Fallback for browsers without Permissions API
+                getInitialLocation();
+            }
+        }
+        
+        // Get initial location on app start
+        function getInitialLocation() {
+            console.log('Getting initial location...');
+            showToast('Mendapatkan lokasi GPS...', 'info');
+            
+            getCurrentLocationWithTimeout(30000) // Extended timeout for initial request
+                .then(position => {
+                    console.log('Initial location obtained:', position);
+                    
+                    const locationData = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    // Update location status
+                    updateLocationStatus(locationData);
+                    
+                    // Validate geofence
+                    const validation = validateGeofence(locationData.latitude, locationData.longitude);
+                    
+                    if (validation.isValid) {
+                        showToast(`Lokasi terdeteksi: ${validation.message}`, 'success');
+                        updateConnectionStatus('live');
+                    } else {
+                        showToast(`Lokasi di luar area: ${validation.message}`, 'warning');
+                        updateConnectionStatus('offline');
+                    }
+                    
+                    // Store as last known location
+                    localStorage.setItem('last_known_location', JSON.stringify(locationData));
+                })
+                .catch(error => {
+                    console.error('Failed to get initial location:', error);
+                    handleGpsError(error);
+                    
+                    // Try to use cached location
+                    const cachedLocation = getCachedLocation();
+                    if (cachedLocation) {
+                        showToast('Menggunakan lokasi tersimpan', 'info');
+                        updateLocationStatus(cachedLocation);
+                    } else {
+                        showToast('Tidak dapat mendapatkan lokasi GPS', 'error');
+                        updateConnectionStatus('offline');
+                    }
+                });
+        }
+        
         // Show clinic location info for debugging
         function showClinicLocationInfo() {
             const clinicLat = {{ config('app.clinic_latitude', -7.89946200) }};
@@ -1718,6 +1931,117 @@
             // Show user-friendly location info
             if (typeof showToast === 'function') {
                 showToast(`Lokasi klinik: Mojo, Malang (Radius: ${validRadius}m)`, 'info');
+            }
+        }
+        
+        // Comprehensive GPS Debugging System
+        function debugGpsSystem() {
+            console.log('=== GPS SYSTEM DEBUG ===');
+            
+            // 1. Browser support check
+            console.log('1. Browser Support:');
+            console.log('   - Geolocation API:', !!navigator.geolocation);
+            console.log('   - Permissions API:', !!navigator.permissions);
+            console.log('   - HTTPS:', location.protocol === 'https:');
+            console.log('   - User Agent:', navigator.userAgent);
+            
+            // 2. Current location data
+            console.log('2. Current Location Data:');
+            const cachedLocation = getCachedLocation();
+            const lastKnownLocation = localStorage.getItem('last_known_location');
+            console.log('   - Cached Location:', cachedLocation);
+            console.log('   - Last Known Location:', lastKnownLocation ? JSON.parse(lastKnownLocation) : null);
+            
+            // 3. Clinic configuration
+            console.log('3. Clinic Configuration:');
+            const clinicLat = {{ config('app.clinic_latitude', -7.89946200) }};
+            const clinicLng = {{ config('app.clinic_longitude', 111.96239900) }};
+            const validRadius = {{ config('app.clinic_radius', 100) }};
+            console.log('   - Clinic Latitude:', clinicLat);
+            console.log('   - Clinic Longitude:', clinicLng);
+            console.log('   - Valid Radius:', validRadius, 'meters');
+            
+            // 4. Recent errors
+            console.log('4. Recent GPS Errors:');
+            const gpsErrors = getGpsErrors();
+            console.log('   - Error Count:', gpsErrors.length);
+            if (gpsErrors.length > 0) {
+                console.log('   - Latest Error:', gpsErrors[gpsErrors.length - 1]);
+            }
+            
+            // 5. Validation history
+            console.log('5. Last Validation:');
+            const lastValidation = localStorage.getItem('last_geofence_validation');
+            console.log('   - Last Validation:', lastValidation ? JSON.parse(lastValidation) : null);
+            
+            console.log('========================');
+            
+            // Show summary toast
+            const supportLevel = navigator.geolocation ? 
+                (location.protocol === 'https:' ? 'Penuh' : 'Terbatas') : 'Tidak Didukung';
+            showToast(`GPS Debug: Support ${supportLevel}, Errors: ${gpsErrors.length}`, 'info');
+        }
+        
+        // Test all GPS scenarios
+        function runGpsTests() {
+            console.log('=== RUNNING GPS TESTS ===');
+            showToast('Menjalankan tes GPS komprehensif...', 'info');
+            
+            const tests = [
+                {
+                    name: 'High Accuracy Test',
+                    options: { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                },
+                {
+                    name: 'Low Accuracy Test',
+                    options: { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+                },
+                {
+                    name: 'Cached Location Test',
+                    options: { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+                }
+            ];
+            
+            let completedTests = 0;
+            let successfulTests = 0;
+            
+            tests.forEach((test, index) => {
+                setTimeout(() => {
+                    console.log(`Running ${test.name}...`);
+                    
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            completedTests++;
+                            successfulTests++;
+                            console.log(`✅ ${test.name} SUCCESS:`, {
+                                accuracy: position.coords.accuracy,
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            });
+                            
+                            // Test geofencing
+                            const validation = validateGeofence(position.coords.latitude, position.coords.longitude);
+                            console.log(`   Geofence: ${validation.isValid ? 'VALID' : 'INVALID'} (${validation.distance}m)`);
+                            
+                            checkTestCompletion();
+                        },
+                        (error) => {
+                            completedTests++;
+                            console.log(`❌ ${test.name} FAILED:`, error);
+                            checkTestCompletion();
+                        },
+                        test.options
+                    );
+                }, index * 2000); // Stagger tests
+            });
+            
+            function checkTestCompletion() {
+                if (completedTests === tests.length) {
+                    console.log('=== GPS TESTS COMPLETED ===');
+                    console.log(`Results: ${successfulTests}/${tests.length} tests passed`);
+                    showToast(`GPS Tests: ${successfulTests}/${tests.length} berhasil`, 
+                        successfulTests > 0 ? 'success' : 'error');
+                }
             }
         }
         
@@ -1794,6 +2118,198 @@
             showToast('Sedang dalam mode demo. Fitur lengkap akan segera tersedia.', 'info');
         }
         
+        // GPS Action Functions
+        function refreshGpsLocation() {
+            console.log('Refreshing GPS location...');
+            showToast('Memperbarui lokasi GPS...', 'info');
+            
+            // Clear cache to force fresh GPS request
+            localStorage.removeItem('cached_gps_location');
+            
+            // Update UI to show loading
+            updateGpsStatusToLoading();
+            
+            // Get fresh location
+            getCurrentLocationWithTimeout(20000)
+                .then(position => {
+                    console.log('GPS refresh successful:', position);
+                    
+                    const locationData = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    updateLocationStatus(locationData);
+                    
+                    const validation = validateGeofence(locationData.latitude, locationData.longitude);
+                    showToast(`GPS diperbarui: ${validation.message}`, validation.isValid ? 'success' : 'warning');
+                })
+                .catch(error => {
+                    console.error('GPS refresh failed:', error);
+                    handleGpsError(error);
+                    updateGpsStatusToError();
+                });
+        }
+        
+        function testGpsLocation() {
+            console.log('Testing GPS location...');
+            showToast('Menguji koneksi GPS...', 'info');
+            
+            // Test GPS with different configurations
+            const testConfigs = [
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+                { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 },
+                { enableHighAccuracy: false, timeout: 30000, maximumAge: 300000 }
+            ];
+            
+            function testWithConfig(configIndex) {
+                if (configIndex >= testConfigs.length) {
+                    showToast('Semua test GPS gagal', 'error');
+                    return;
+                }
+                
+                const config = testConfigs[configIndex];
+                console.log(`Testing GPS with config ${configIndex + 1}:`, config);
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        console.log(`GPS test ${configIndex + 1} berhasil:`, position);
+                        showToast(`GPS Test ${configIndex + 1} berhasil (akurasi: ±${Math.round(position.coords.accuracy)}m)`, 'success');
+                        
+                        // Update with successful location
+                        const locationData = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        updateLocationStatus(locationData);
+                    },
+                    (error) => {
+                        console.log(`GPS test ${configIndex + 1} gagal:`, error);
+                        // Try next config
+                        testWithConfig(configIndex + 1);
+                    },
+                    config
+                );
+            }
+            
+            testWithConfig(0);
+        }
+        
+        function updateGpsStatusToLoading() {
+            const gpsStatusIcon = document.getElementById('gpsStatusIcon');
+            const gpsStatusTitle = document.getElementById('gpsStatusTitle');
+            const gpsStatusMessage = document.getElementById('gpsStatusMessage');
+            const gpsStatusBadge = document.getElementById('gpsStatusBadge');
+            
+            if (gpsStatusIcon) {
+                gpsStatusIcon.style.background = 'var(--warning-orange)';
+            }
+            if (gpsStatusTitle) {
+                gpsStatusTitle.textContent = 'Mendapatkan Lokasi...';
+            }
+            if (gpsStatusMessage) {
+                gpsStatusMessage.textContent = 'GPS sedang mencari lokasi';
+            }
+            if (gpsStatusBadge) {
+                gpsStatusBadge.textContent = 'LOADING';
+                gpsStatusBadge.style.background = '#fbbf24';
+                gpsStatusBadge.style.color = '#78350f';
+            }
+        }
+        
+        function updateGpsStatusToError() {
+            const gpsStatusIcon = document.getElementById('gpsStatusIcon');
+            const gpsStatusTitle = document.getElementById('gpsStatusTitle');
+            const gpsStatusMessage = document.getElementById('gpsStatusMessage');
+            const gpsStatusBadge = document.getElementById('gpsStatusBadge');
+            
+            if (gpsStatusIcon) {
+                gpsStatusIcon.style.background = 'var(--error-red)';
+            }
+            if (gpsStatusTitle) {
+                gpsStatusTitle.textContent = 'GPS Error';
+            }
+            if (gpsStatusMessage) {
+                gpsStatusMessage.textContent = 'Tidak dapat mendapatkan lokasi';
+            }
+            if (gpsStatusBadge) {
+                gpsStatusBadge.textContent = 'ERROR';
+                gpsStatusBadge.style.background = '#fecaca';
+                gpsStatusBadge.style.color = '#dc2626';
+            }
+        }
+        
+        function updateGpsStatusToPermissionDenied() {
+            const gpsStatusIcon = document.getElementById('gpsStatusIcon');
+            const gpsStatusTitle = document.getElementById('gpsStatusTitle');
+            const gpsStatusMessage = document.getElementById('gpsStatusMessage');
+            const gpsStatusBadge = document.getElementById('gpsStatusBadge');
+            
+            if (gpsStatusIcon) {
+                gpsStatusIcon.style.background = 'var(--error-red)';
+            }
+            if (gpsStatusTitle) {
+                gpsStatusTitle.textContent = 'Izin GPS Ditolak';
+            }
+            if (gpsStatusMessage) {
+                gpsStatusMessage.textContent = 'Berikan izin lokasi untuk melanjutkan';
+            }
+            if (gpsStatusBadge) {
+                gpsStatusBadge.textContent = 'DENIED';
+                gpsStatusBadge.style.background = '#fecaca';
+                gpsStatusBadge.style.color = '#dc2626';
+            }
+        }
+        
+        function updateGpsStatusToUnavailable() {
+            const gpsStatusIcon = document.getElementById('gpsStatusIcon');
+            const gpsStatusTitle = document.getElementById('gpsStatusTitle');
+            const gpsStatusMessage = document.getElementById('gpsStatusMessage');
+            const gpsStatusBadge = document.getElementById('gpsStatusBadge');
+            
+            if (gpsStatusIcon) {
+                gpsStatusIcon.style.background = 'var(--warning-orange)';
+            }
+            if (gpsStatusTitle) {
+                gpsStatusTitle.textContent = 'GPS Tidak Tersedia';
+            }
+            if (gpsStatusMessage) {
+                gpsStatusMessage.textContent = 'Pindah ke area terbuka atau aktifkan GPS';
+            }
+            if (gpsStatusBadge) {
+                gpsStatusBadge.textContent = 'UNAVAILABLE';
+                gpsStatusBadge.style.background = '#fed7aa';
+                gpsStatusBadge.style.color = '#c2410c';
+            }
+        }
+        
+        function updateGpsStatusToTimeout() {
+            const gpsStatusIcon = document.getElementById('gpsStatusIcon');
+            const gpsStatusTitle = document.getElementById('gpsStatusTitle');
+            const gpsStatusMessage = document.getElementById('gpsStatusMessage');
+            const gpsStatusBadge = document.getElementById('gpsStatusBadge');
+            
+            if (gpsStatusIcon) {
+                gpsStatusIcon.style.background = 'var(--warning-orange)';
+            }
+            if (gpsStatusTitle) {
+                gpsStatusTitle.textContent = 'GPS Timeout';
+            }
+            if (gpsStatusMessage) {
+                gpsStatusMessage.textContent = 'Mencoba mode offline...';
+            }
+            if (gpsStatusBadge) {
+                gpsStatusBadge.textContent = 'TIMEOUT';
+                gpsStatusBadge.style.background = '#fed7aa';
+                gpsStatusBadge.style.color = '#c2410c';
+            }
+        }
+        
         // Initialize app
         function initializeApp() {
             try {
@@ -1811,6 +2327,9 @@
                 
                 // Load dashboard data
                 loadDashboardData();
+                
+                // Initialize GPS services
+                initializeGpsServices();
                 
                 // Start location monitoring for real-time GPS tracking
                 startLocationMonitoring();

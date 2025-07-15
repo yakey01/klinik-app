@@ -197,7 +197,7 @@ class PegawaiResource extends Resource
                     ->label('📋 Tampilan Tabel')
             )
             ->columns([
-                Tables\Columns\Layout\View::make('filament.components.pegawai-card')
+                Tables\Columns\Layout\View::make('filament.components.pegawai-card-simple')
                     ->components([
                         // Hidden columns for search functionality
                         Tables\Columns\TextColumn::make('nama_lengkap')

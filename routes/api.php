@@ -236,11 +236,219 @@ Route::prefix('v2')->group(function () {
                 Route::get('/performance', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'performance']);
             });
 
-            // Dokter dashboard
-            Route::middleware(['role:dokter'])->prefix('dokter')->group(function () {
-                Route::get('/', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'index']);
-                Route::get('/patients', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'patients']);
-                Route::get('/procedures', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'procedures']);
+            // Dokter dashboard - Mobile app API endpoints
+            Route::prefix('dokter')->middleware(['enhanced.role:dokter'])->group(function () {
+                // Test endpoint for authentication verification
+                Route::get('/test', function () {
+                    $user = auth()->user();
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Dokter API endpoint is working - Authentication verified',
+                        'data' => [
+                            'timestamp' => now()->toISOString(),
+                            'user' => [
+                                'id' => $user->id,
+                                'name' => $user->name,
+                                'role' => $user->role?->name,
+                                'authenticated' => true,
+                                'role_validated' => true,
+                            ],
+                            'session' => [
+                                'token_name' => $user->currentAccessToken()?->name,
+                                'ip_address' => request()->ip(),
+                                'user_agent' => request()->userAgent(),
+                            ],
+                        ],
+                        'meta' => [
+                            'version' => '2.0',
+                            'timestamp' => now()->toISOString(),
+                            'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                        ]
+                    ]);
+                });
+                
+                // Dashboard endpoints
+                Route::get('/', function () {
+                    $user = auth()->user();
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Dokter dashboard data retrieved',
+                        'data' => [
+                            'user' => [
+                                'id' => $user->id,
+                                'name' => $user->name,
+                                'initials' => strtoupper(substr($user->name, 0, 2)),
+                                'role' => 'Dokter Umum'
+                            ],
+                            'stats' => [
+                                'patients_today' => 12,
+                                'tindakan_today' => 8,
+                                'jaspel_month' => 25000000,
+                                'shifts_week' => 5
+                            ],
+                            'current_status' => 'active',
+                            'quick_actions' => [
+                                [
+                                    'id' => 'presensi',
+                                    'title' => 'Presensi',
+                                    'subtitle' => 'Kelola kehadiran dan absensi',
+                                    'icon' => '📋',
+                                    'action' => 'presensi',
+                                    'enabled' => true
+                                ],
+                                [
+                                    'id' => 'pasien',
+                                    'title' => 'Data Pasien',
+                                    'subtitle' => 'Kelola data dan riwayat pasien',
+                                    'icon' => '👥',
+                                    'action' => 'pasien',
+                                    'enabled' => true
+                                ],
+                                [
+                                    'id' => 'tindakan',
+                                    'title' => 'Tindakan Medis',
+                                    'subtitle' => 'Input dan kelola tindakan medis',
+                                    'icon' => '🏥',
+                                    'action' => 'tindakan',
+                                    'enabled' => true
+                                ],
+                                [
+                                    'id' => 'jaspel',
+                                    'title' => 'Jaspel',
+                                    'subtitle' => 'Lihat jasa pelayanan dan penghasilan',
+                                    'icon' => '💰',
+                                    'action' => 'jaspel',
+                                    'enabled' => true
+                                ]
+                            ]
+                        ],
+                        'meta' => [
+                            'version' => '2.0',
+                            'timestamp' => now()->toISOString(),
+                            'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                        ]
+                    ]);
+                });
+                
+                // Attendance endpoints
+                Route::get('/attendance/status', function () {
+                    $user = auth()->user();
+                    $today = \Carbon\Carbon::today();
+                    $attendance = \App\Models\Attendance::where('user_id', $user->id)
+                        ->where('date', $today)
+                        ->first();
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Attendance status retrieved',
+                        'data' => [
+                            'status' => $attendance ? 
+                                ($attendance->time_out ? 'checked_out' : 'checked_in') : 
+                                'not_checked_in',
+                            'check_in_time' => $attendance?->time_in?->format('H:i'),
+                            'check_out_time' => $attendance?->time_out?->format('H:i'),
+                            'work_duration' => $attendance?->formatted_work_duration,
+                        ],
+                        'meta' => [
+                            'version' => '2.0',
+                            'timestamp' => now()->toISOString(),
+                            'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                        ]
+                    ]);
+                });
+                
+                Route::get('/attendance/today-history', function () {
+                    $user = auth()->user();
+                    $today = \Carbon\Carbon::today();
+                    $attendance = \App\Models\Attendance::where('user_id', $user->id)
+                        ->where('date', $today)
+                        ->first();
+                    
+                    $history = [];
+                    if ($attendance) {
+                        if ($attendance->time_in) {
+                            $history[] = [
+                                'time' => $attendance->time_in->format('H:i'),
+                                'action' => 'Check In',
+                                'subtitle' => 'Masuk kerja'
+                            ];
+                        }
+                        if ($attendance->time_out) {
+                            $history[] = [
+                                'time' => $attendance->time_out->format('H:i'),
+                                'action' => 'Check Out',
+                                'subtitle' => 'Selesai kerja'
+                            ];
+                        }
+                    }
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Today attendance history retrieved',
+                        'data' => [
+                            'has_activity' => !empty($history),
+                            'history' => $history
+                        ],
+                        'meta' => [
+                            'version' => '2.0',
+                            'timestamp' => now()->toISOString(),
+                            'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                        ]
+                    ]);
+                });
+                
+                // Patient endpoints (placeholder)
+                Route::get('/patients', function () {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Patient data will be available soon',
+                        'data' => [
+                            'patients_today' => 12,
+                            'upcoming_appointments' => []
+                        ],
+                        'meta' => [
+                            'version' => '2.0',
+                            'timestamp' => now()->toISOString(),
+                            'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                        ]
+                    ]);
+                });
+                
+                // Tindakan endpoints (placeholder)
+                Route::get('/tindakan', function () {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Tindakan data will be available soon',
+                        'data' => [
+                            'tindakan_today' => 8,
+                            'recent_tindakan' => []
+                        ],
+                        'meta' => [
+                            'version' => '2.0',
+                            'timestamp' => now()->toISOString(),
+                            'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                        ]
+                    ]);
+                });
+                
+                // Jaspel endpoints (placeholder)
+                Route::get('/jaspel', function () {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Jaspel data will be available soon',
+                        'data' => [
+                            'jaspel_month' => 25000000,
+                            'jaspel_week' => 6250000,
+                            'approved_jaspel' => 20000000,
+                            'pending_jaspel' => 5000000
+                        ],
+                        'meta' => [
+                            'version' => '2.0',
+                            'timestamp' => now()->toISOString(),
+                            'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                        ]
+                    ]);
+                });
             });
 
             // Non-Paramedis dashboard - Enhanced with proper authentication and role validation
@@ -288,11 +496,89 @@ Route::prefix('v2')->group(function () {
                 Route::get('/schedule', [App\Http\Controllers\Api\V2\NonParamedisDashboardController::class, 'getSchedule']);
                 Route::get('/reports', [App\Http\Controllers\Api\V2\NonParamedisDashboardController::class, 'getReports']);
                 Route::get('/profile', [App\Http\Controllers\Api\V2\NonParamedisDashboardController::class, 'getProfile']);
+                
+                // Profile management endpoints
+                Route::put('/profile/update', [App\Http\Controllers\Api\V2\NonParamedisDashboardController::class, 'updateProfile']);
+                Route::put('/profile/password', [App\Http\Controllers\Api\V2\NonParamedisDashboardController::class, 'changePassword']);
+                Route::post('/profile/photo', [App\Http\Controllers\Api\V2\NonParamedisDashboardController::class, 'uploadPhoto']);
+                
+                // Settings endpoints
+                Route::get('/settings', [App\Http\Controllers\Api\V2\NonParamedisDashboardController::class, 'getSettings']);
+                Route::put('/settings', [App\Http\Controllers\Api\V2\NonParamedisDashboardController::class, 'updateSettings']);
             });
 
             // TODO: Add other role dashboards (admin, manajer, bendahara, petugas)
         });
 
+        // Admin panel routes
+        Route::prefix('admin')->middleware(['enhanced.role:admin'])->group(function () {
+            // NonParamedis management
+            Route::prefix('nonparamedis')->group(function () {
+                Route::get('/', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'index']);
+                Route::post('/', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'store']);
+                Route::get('/dashboard-stats', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'getDashboardStats']);
+                Route::get('/available-shifts', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'getAvailableShifts']);
+                
+                Route::prefix('{user}')->group(function () {
+                    Route::get('/', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'show']);
+                    Route::put('/', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'update']);
+                    Route::patch('/toggle-status', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'toggleStatus']);
+                    Route::post('/reset-password', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'resetPassword']);
+                    Route::get('/attendance-history', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'getAttendanceHistory']);
+                    Route::get('/schedule', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'getSchedule']);
+                    Route::post('/assign-schedule', [App\Http\Controllers\Admin\NonParamedisManagementController::class, 'assignSchedule']);
+                });
+            });
+            
+            // Attendance approval routes
+            Route::prefix('attendance-approvals')->group(function () {
+                Route::get('/pending', [App\Http\Controllers\Admin\AttendanceApprovalController::class, 'getPendingApprovals']);
+                Route::get('/history', [App\Http\Controllers\Admin\AttendanceApprovalController::class, 'getAttendanceHistory']);
+                Route::get('/stats', [App\Http\Controllers\Admin\AttendanceApprovalController::class, 'getApprovalStats']);
+                Route::post('/bulk-approve', [App\Http\Controllers\Admin\AttendanceApprovalController::class, 'bulkApprove']);
+                Route::post('/bulk-reject', [App\Http\Controllers\Admin\AttendanceApprovalController::class, 'bulkReject']);
+                
+                Route::prefix('{attendance}')->group(function () {
+                    Route::post('/approve', [App\Http\Controllers\Admin\AttendanceApprovalController::class, 'approveAttendance']);
+                    Route::post('/reject', [App\Http\Controllers\Admin\AttendanceApprovalController::class, 'rejectAttendance']);
+                });
+            });
+            
+            // Reporting routes
+            Route::prefix('reports')->group(function () {
+                Route::get('/attendance-summary', [App\Http\Controllers\Admin\NonParamedisReportController::class, 'getAttendanceSummary']);
+                Route::get('/detailed-report', [App\Http\Controllers\Admin\NonParamedisReportController::class, 'getDetailedReport']);
+                Route::get('/performance-analytics', [App\Http\Controllers\Admin\NonParamedisReportController::class, 'getPerformanceAnalytics']);
+                Route::get('/trend-analysis', [App\Http\Controllers\Admin\NonParamedisReportController::class, 'getTrendAnalysis']);
+                Route::post('/export-csv', [App\Http\Controllers\Admin\NonParamedisReportController::class, 'exportAttendanceCSV']);
+                Route::get('/download/{filename}', [App\Http\Controllers\Admin\NonParamedisReportController::class, 'downloadExport'])->name('admin.reports.download');
+            });
+        });
+
+        // Notification endpoints
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\V2\NotificationController::class, 'index']);
+            Route::get('/unread-count', [App\Http\Controllers\Api\V2\NotificationController::class, 'getUnreadCount']);
+            Route::get('/recent', [App\Http\Controllers\Api\V2\NotificationController::class, 'getRecent']);
+            Route::post('/mark-all-read', [App\Http\Controllers\Api\V2\NotificationController::class, 'markAllAsRead']);
+            Route::get('/settings', [App\Http\Controllers\Api\V2\NotificationController::class, 'getSettings']);
+            Route::put('/settings', [App\Http\Controllers\Api\V2\NotificationController::class, 'updateSettings']);
+            
+            Route::prefix('{notification}')->group(function () {
+                Route::post('/mark-read', [App\Http\Controllers\Api\V2\NotificationController::class, 'markAsRead']);
+                Route::delete('/', [App\Http\Controllers\Api\V2\NotificationController::class, 'destroy']);
+            });
+        });
+        
+        // Offline support endpoints
+        Route::prefix('offline')->group(function () {
+            Route::get('/data', [App\Http\Controllers\Api\V2\OfflineController::class, 'getOfflineData']);
+            Route::post('/sync-attendance', [App\Http\Controllers\Api\V2\OfflineController::class, 'syncOfflineAttendance']);
+            Route::get('/status', [App\Http\Controllers\Api\V2\OfflineController::class, 'getOfflineStatus']);
+            Route::get('/device-info', [App\Http\Controllers\Api\V2\OfflineController::class, 'getDeviceInfo']);
+            Route::post('/test', [App\Http\Controllers\Api\V2\OfflineController::class, 'testOffline']);
+        });
+        
         // Face Recognition endpoints
         Route::prefix('face-recognition')->middleware([App\Http\Middleware\Api\ApiRateLimitMiddleware::class . ':face_recognition'])->group(function () {
             Route::post('/register', [\App\Http\Controllers\Paramedis\FaceRecognitionController::class, 'register']);

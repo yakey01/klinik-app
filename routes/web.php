@@ -52,10 +52,43 @@ Route::middleware(['auth'])->group(function () {
         return redirect('/bendahara');
     })->name('treasurer.dashboard');
     Route::get('/staff/dashboard', [StaffDashboardController::class, 'index'])->name('staff.dashboard');
-    // Keep legacy route for backward compatibility
+    // Redirect DOKTER to Flutter mobile app
     Route::get('/doctor/dashboard', function () {
-        return redirect('/dokter');
+        return redirect('/dokter/mobile-app');
     })->middleware('role:dokter');
+    
+    // DOKTER Mobile App Routes (Replaces Filament dashboard)
+    Route::middleware(['auth', 'role:dokter'])->prefix('dokter')->name('dokter.')->group(function () {
+        // Base dokter route - redirect to mobile app
+        Route::get('/', function () {
+            return redirect()->route('dokter.mobile-app');
+        })->name('index');
+        
+        Route::get('/mobile-app', function () {
+            $user = auth()->user();
+            $token = $user->createToken('mobile-app-dokter-' . now()->timestamp)->plainTextToken;
+            return view('mobile.dokter.app', compact('token'));
+        })->name('mobile-app');
+        
+        // Legacy routes - redirect to new mobile app
+        Route::get('/dashboard', function () {
+            return redirect()->route('dokter.mobile-app');
+        })->name('dashboard');
+        Route::get('/presensi', function () {
+            return redirect()->route('dokter.mobile-app');
+        })->name('presensi');
+        Route::get('/jaspel', function () {
+            return redirect()->route('dokter.mobile-app');
+        })->name('jaspel');
+        Route::get('/tindakan', function () {
+            return redirect()->route('dokter.mobile-app');
+        })->name('tindakan');
+        
+        // Any other dokter routes should redirect to mobile app
+        Route::fallback(function () {
+            return redirect()->route('dokter.mobile-app');
+        });
+    });
     // Non-Paramedis Mobile App Routes (Replaces old dashboard)
     Route::middleware(['auth', 'role:non_paramedis'])->prefix('nonparamedis')->name('nonparamedis.')->group(function () {
         Route::get('/app', function () {
@@ -238,6 +271,53 @@ Route::get('/debug-gps', function () {
     return response()->file(public_path('debug-gps.html'));
 })->name('debug.gps');
 
+// DOKTER DEBUG ROUTE - TEMPORARY
+Route::get('/debug-dokter', function () {
+    $user = auth()->user();
+    if (!$user) {
+        return response()->json([
+            'error' => 'Not authenticated',
+            'message' => 'Please login first',
+            'redirect' => route('login')
+        ]);
+    }
+    
+    return response()->json([
+        'user' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role?->name ?? 'no_role',
+            'role_id' => $user->role_id,
+            'has_dokter_role' => $user->hasRole('dokter'),
+            'all_roles' => $user->roles->pluck('name')->toArray(),
+        ],
+        'routes' => [
+            'dokter_index' => route('dokter.index'),
+            'dokter_mobile_app' => route('dokter.mobile-app'),
+            'dokter_dashboard' => route('dokter.dashboard'),
+        ],
+        'auth_check' => auth()->check(),
+        'middleware_test' => 'If you see this, basic auth is working'
+    ]);
+})->middleware(['auth']);
+
+// DOKTER MOBILE APP TEST - TEMPORARY (NO AUTH)
+Route::get('/debug-dokter-mobile', function () {
+    try {
+        $user = auth()->user();
+        $token = $user ? $user->createToken('mobile-app-dokter-debug-' . now()->timestamp)->plainTextToken : 'no-token';
+        
+        return view('mobile.dokter.app', compact('token'));
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Failed to load mobile app',
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
 // Employee Card Download Route
 Route::middleware(['auth'])->group(function () {
     Route::get('/employee-card/{card}/download', function (\App\Models\EmployeeCard $card) {
@@ -253,32 +333,8 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-// Dokter Dashboard Routes - DISABLED (Using Filament Panel instead at /dokter)
-// Route::middleware(['auth', 'role:dokter'])->prefix('dokter')->name('dokter.')->group(function () {
-//     Route::get('/dashboard', [\App\Http\Controllers\Dokter\DashboardController::class, 'index'])->name('dashboard');
-//     
-//     // Presensi Routes
-//     Route::get('/presensi', [\App\Http\Controllers\Dokter\PresensiController::class, 'index'])->name('presensi.index');
-//     Route::post('/presensi/masuk', [\App\Http\Controllers\Dokter\PresensiController::class, 'masuk'])->name('presensi.masuk');
-//     Route::post('/presensi/pulang', [\App\Http\Controllers\Dokter\PresensiController::class, 'pulang'])->name('presensi.pulang');
-//     
-//     // Jaspel Routes
-//     Route::get('/jaspel', [\App\Http\Controllers\Dokter\JaspelController::class, 'index'])->name('jaspel.index');
-//     Route::get('/jaspel/export', [\App\Http\Controllers\Dokter\JaspelController::class, 'export'])->name('jaspel.export');
-// });
-
-// Redirect legacy dokter routes to Filament panel
-Route::middleware(['auth'])->group(function () {
-    Route::get('/dokter/dashboard', function () {
-        return redirect('/dokter');
-    });
-    Route::get('/dokter/presensi', function () {
-        return redirect('/dokter/dokter-presensis');
-    });
-    Route::get('/dokter/jaspel', function () {
-        return redirect('/dokter/jaspel-dokters');
-    });
-});
+// OLD DOKTER DASHBOARD ROUTES COMPLETELY REMOVED
+// System now uses Filament Panel at /dokter route exclusively
 
 // Dokter Gigi Dashboard Routes (Isolated from Filament)
 Route::middleware(['auth', 'role:dokter_gigi'])->prefix('dokter-gigi')->name('dokter-gigi.')->group(function () {

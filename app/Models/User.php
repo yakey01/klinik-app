@@ -13,11 +13,12 @@ use Laravel\Sanctum\HasApiTokens;
 use App\Traits\Auditable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes, Auditable, HasApiTokens;
+    use HasFactory, Notifiable, SoftDeletes, Auditable, HasApiTokens, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -34,6 +35,33 @@ class User extends Authenticatable implements FilamentUser
         'no_telepon',
         'tanggal_bergabung',
         'is_active',
+        'last_login_at',
+        // Profile fields
+        'phone',
+        'address',
+        'bio',
+        'date_of_birth',
+        'gender',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'profile_photo_path',
+        // Work settings
+        'default_work_location_id',
+        'auto_check_out',
+        'overtime_alerts',
+        // Notification settings
+        'email_notifications',
+        'push_notifications',
+        'attendance_reminders',
+        'schedule_updates',
+        // Privacy settings
+        'profile_visibility',
+        'location_sharing',
+        'activity_status',
+        // App settings
+        'language',
+        'timezone',
+        'theme',
     ];
 
     /**
@@ -56,6 +84,7 @@ class User extends Authenticatable implements FilamentUser
         'password' => 'hashed',
         'tanggal_bergabung' => 'date',
         'is_active' => 'boolean',
+        'last_login_at' => 'datetime',
     ];
 
     public function role(): BelongsTo
@@ -64,63 +93,52 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Compatibility method for Spatie Permission - creates a HasMany relationship
-     * that returns the user's single role as if it were multiple roles
+     * Legacy custom role relationship - kept for backward compatibility during migration
      */
-    public function roles()
+    public function customRole(): BelongsTo
     {
-        // Use a HasMany relationship to the Role model, but constrain it to only return
-        // the role that matches this user's role_id
-        return $this->hasMany(Role::class, 'id', 'role_id');
+        return $this->belongsTo(Role::class, 'role_id');
     }
 
     /**
-     * Get role names (Spatie compatibility)
+     * Get the primary role name (first role if multiple)
      */
-    public function getRoleNames()
+    public function getPrimaryRoleName(): ?string
     {
-        return $this->roles()->pluck('name');
+        return $this->roles()->first()?->name;
     }
 
     /**
-     * Assign role (Spatie compatibility) - limited to single role
+     * Check if user has a specific role (supports both single string and array)
      */
-    public function assignRole($role)
+    public function hasRole($roles, string $guard = null): bool
     {
-        if (is_string($role)) {
-            $roleModel = Role::where('name', $role)->first();
-            if ($roleModel) {
-                $this->role_id = $roleModel->id;
-                $this->save();
-            }
-        } elseif ($role instanceof Role) {
-            $this->role_id = $role->id;
-            $this->save();
+        // Use Spatie's trait hasRole method directly
+        if (is_string($roles)) {
+            return $this->roles()->where('name', $roles)->exists();
         }
-        return $this;
-    }
-
-    /**
-     * Sync roles (Spatie compatibility) - only takes first role
-     */
-    public function syncRoles($roles)
-    {
-        if (is_array($roles) && count($roles) > 0) {
-            return $this->assignRole($roles[0]);
-        } elseif (is_string($roles)) {
-            return $this->assignRole($roles);
+        
+        if (is_array($roles)) {
+            return $this->roles()->whereIn('name', $roles)->exists();
         }
-        return $this;
+        
+        return false;
     }
 
     /**
-     * Remove role (Spatie compatibility)
+     * Legacy compatibility - check if user has any of the given roles
      */
-    public function removeRole($role = null)
+    public function hasAnyLegacyRole($roles)
     {
-        $this->role_id = null;
-        $this->save();
-        return $this;
+        return $this->hasAnyRole($roles);
+    }
+
+    /**
+     * Legacy compatibility - check if user has a specific role
+     */
+    public function hasLegacyRole($roleName)
+    {
+        return $this->hasRole($roleName);
     }
 
     public function tindakanAsDokter(): HasMany
@@ -172,6 +190,16 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(NonParamedisAttendance::class);
     }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(Schedule::class);
+    }
     
     // Relationship to dokter if user is a dokter
     public function dokter()
@@ -183,6 +211,18 @@ class User extends Authenticatable implements FilamentUser
     public function pegawai()
     {
         return $this->hasOne(Pegawai::class, 'user_id');
+    }
+
+    // Relationship to two factor authentication
+    public function twoFactorAuth()
+    {
+        return $this->hasOne(TwoFactorAuth::class);
+    }
+
+    // Relationship to user sessions
+    public function userSessions()
+    {
+        return $this->hasMany(UserSession::class);
     }
 
     public function scopeActive($query)
@@ -197,70 +237,15 @@ class User extends Authenticatable implements FilamentUser
         });
     }
 
-    /**
-     * Check if user has a specific role (Spatie compatibility)
-     */
-    public function hasRole($roleName)
-    {
-        // Support both single role string and array of roles
-        if (is_array($roleName)) {
-            return $this->role && in_array($this->role->name, $roleName);
-        }
-        
-        return $this->role && $this->role->name === $roleName;
-    }
+
 
     /**
-     * Check if user has any of the given roles
-     */
-    public function hasAnyRole($roles)
-    {
-        if (is_string($roles)) {
-            $roles = [$roles];
-        }
-        
-        return $this->role && in_array($this->role->name, $roles);
-    }
-
-    /**
-     * Check if user has a specific role (custom implementation for legacy compatibility)
-     */
-    public function hasLegacyRole($roleName)
-    {
-        return $this->hasRole($roleName);
-    }
-
-    /**
-     * Check if user has any of the given roles (legacy compatibility)
-     */
-    public function hasAnyLegacyRole($roles)
-    {
-        if (is_string($roles)) {
-            $roles = [$roles];
-        }
-        
-        return $this->hasLegacyRole($roles);
-    }
-
-    /**
-     * Check if user has a specific permission through their role
-     */
-    public function hasPermission(string $permission): bool
-    {
-        if (!$this->role || !$this->role->permissions) {
-            return false;
-        }
-        
-        return in_array($permission, $this->role->permissions);
-    }
-
-    /**
-     * Check if user can perform an ability based on role permissions
+     * Enhanced can method that integrates with Spatie Permission
      */
     public function can($abilities, $arguments = []): bool
     {
-        // First check custom role permissions
-        if (is_string($abilities) && $this->hasPermission($abilities)) {
+        // First check Spatie permissions
+        if (is_string($abilities) && $this->hasPermissionTo($abilities)) {
             return true;
         }
         
@@ -291,79 +276,26 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        // Check panel ID and user role using custom role relationship
+        // Admin panel - requires admin role OR admin panel permission
         if ($panel->getId() === 'admin') {
-            return $this->role && $this->role->name === 'admin';
+            return $this->hasRole('admin') || $this->hasPermissionTo('view_admin_panel');
         }
         
-        if ($panel->getId() === 'bendahara') {
-            return $this->role && $this->role->name === 'bendahara';
-        }
+        // Role-based panel access using Spatie Permission
+        $panelRoleMapping = [
+            'bendahara' => 'bendahara',
+            'petugas' => 'petugas', 
+            'paramedis' => 'paramedis',
+            'dokter' => 'dokter',
+            'manajer' => 'manajer',
+            'nonparamedis' => 'non_paramedis',
+            'non-paramedis' => 'non_paramedis'
+        ];
         
-        if ($panel->getId() === 'petugas') {
-            return $this->role && $this->role->name === 'petugas';
-        }
+        $requiredRole = $panelRoleMapping[$panel->getId()] ?? null;
         
-        if ($panel->getId() === 'paramedis') {
-            return $this->role && $this->role->name === 'paramedis';
-        }
-        
-        if ($panel->getId() === 'dokter') {
-            \Log::info('User model: canAccessPanel for dokter panel', [
-                'user_id' => $this->id,
-                'user_email' => $this->email,
-                'role_id' => $this->role_id,
-                'has_role_relation' => $this->role ? 'YES' : 'NO',
-                'role_name' => $this->role?->name ?: 'NULL',
-                'relationLoaded' => $this->relationLoaded('role') ? 'YES' : 'NO'
-            ]);
-            
-            // Ensure role relationship is loaded
-            if (!$this->relationLoaded('role')) {
-                $this->load('role');
-                \Log::info('User model: role relationship loaded', [
-                    'user_id' => $this->id,
-                    'role_name_after_load' => $this->role?->name ?: 'NULL'
-                ]);
-            }
-            
-            $hasAccess = $this->role && $this->role->name === 'dokter';
-            \Log::info('User model: dokter panel access decision', [
-                'user_id' => $this->id,
-                'has_access' => $hasAccess ? 'GRANTED' : 'DENIED'
-            ]);
-            
-            return $hasAccess;
-        }
-        
-        if ($panel->getId() === 'manajer') {
-            return $this->role && $this->role->name === 'manajer';
-        }
-        
-        // Non-Paramedis panel (route uses 'nonparamedis' but role is 'non_paramedis')
-        if ($panel->getId() === 'nonparamedis' || $panel->getId() === 'non-paramedis') {
-            \Log::info('User model: canAccessPanel for non-paramedis panel', [
-                'user_id' => $this->id,
-                'user_email' => $this->email,
-                'panel_id' => $panel->getId(),
-                'role_id' => $this->role_id,
-                'has_role_relation' => $this->role ? 'YES' : 'NO',
-                'role_name' => $this->role?->name ?: 'NULL',
-            ]);
-            
-            // Ensure role relationship is loaded
-            if (!$this->relationLoaded('role')) {
-                $this->load('role');
-            }
-            
-            $hasAccess = $this->role && $this->role->name === 'non_paramedis';
-            \Log::info('User model: non-paramedis panel access decision', [
-                'user_id' => $this->id,
-                'has_access' => $hasAccess ? 'GRANTED' : 'DENIED',
-                'role_name_checked' => 'non_paramedis'
-            ]);
-            
-            return $hasAccess;
+        if ($requiredRole) {
+            return $this->hasRole($requiredRole);
         }
         
         return false;

@@ -8,6 +8,8 @@ class SettingsPage extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     
+    protected static ?string $navigationGroup = 'System Administration';
+    
     protected static ?string $navigationLabel = 'Pengaturan';
     
     protected static ?string $title = 'Pengaturan Sistem';

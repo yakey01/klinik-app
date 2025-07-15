@@ -1,0 +1,134 @@
+name: medicare_pro_dokter
+description: MediCare Pro - Professional Doctor Management System
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Professional UI Components
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.9
+  google_fonts: ^6.1.0
+  flutter_animate: ^4.3.0
+  shimmer: ^3.0.0
+  
+  # Professional State Management
+  provider: ^6.1.1
+  riverpod: ^2.4.9
+  flutter_riverpod: ^2.4.9
+  
+  # Professional Networking
+  http: ^1.1.0
+  dio: ^5.4.0
+  pretty_dio_logger: ^1.3.1
+  
+  # Professional Storage
+  shared_preferences: ^2.2.2
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
+  # Professional Utils
+  intl: ^0.18.1
+  path_provider: ^2.1.1
+  permission_handler: ^11.0.1
+  device_info_plus: ^9.1.1
+  package_info_plus: ^4.2.0
+  
+  # Professional Location & GPS
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
+  
+  # Professional Security
+  crypto: ^3.0.3
+  flutter_secure_storage: ^9.0.0
+  
+  # Professional Charts & Graphs
+  fl_chart: ^0.66.0
+  syncfusion_flutter_charts: ^23.2.7
+  
+  # Professional Notifications
+  flutter_local_notifications: ^16.3.0
+  awesome_notifications: ^0.7.4+1
+  
+  # Professional DateTime
+  table_calendar: ^3.0.9
+  
+  # Professional Image & Media
+  cached_network_image: ^3.3.0
+  image_picker: ^1.0.4
+  
+  # Professional Animations
+  lottie: ^2.7.0
+  rive: ^0.12.4
+  
+  # Professional Quality
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.3.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.7
+  hive_generator: ^2.0.1
+  json_annotation: ^4.8.1
+  json_serializable: ^6.7.1
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    - assets/fonts/
+  
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Inter-Black.ttf
+          weight: 900
+
+# Professional Build Configuration
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+    background_color: "#0066CC"
+    theme_color: "#0066CC"
+  windows:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+    icon_size: 48
+
+flutter_native_splash:
+  color: "#0066CC"
+  image: assets/images/splash_logo.png
+  branding: assets/images/splash_branding.png
+  android_12:
+    image: assets/images/splash_logo.png
+    icon_background_color: "#0066CC"
+    image_dark: assets/images/splash_logo_dark.png
+    icon_background_color_dark: "#004D99"
+  web: true

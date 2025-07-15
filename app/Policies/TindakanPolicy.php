@@ -14,9 +14,9 @@ class TindakanPolicy
     public function viewAny(User $user): bool
     {
         // Allow users with input_transactions, view-procedures, or validate_transactions permission to view procedures
-        return $user->hasPermission('input_transactions') || 
-               $user->hasPermission('view-procedures') || 
-               $user->hasPermission('validate_transactions');
+        return $user->hasPermissionTo('input_transactions') || 
+               $user->hasPermissionTo('view-procedures') || 
+               $user->hasPermissionTo('validate_transactions');
     }
 
     /**
@@ -25,9 +25,9 @@ class TindakanPolicy
     public function view(User $user, Tindakan $tindakan): bool
     {
         // Allow users with input_transactions, view-procedures, or validate_transactions permission to view procedures
-        return $user->hasPermission('input_transactions') || 
-               $user->hasPermission('view-procedures') || 
-               $user->hasPermission('validate_transactions');
+        return $user->hasPermissionTo('input_transactions') || 
+               $user->hasPermissionTo('view-procedures') || 
+               $user->hasPermissionTo('validate_transactions');
     }
 
     /**
@@ -45,12 +45,12 @@ class TindakanPolicy
     public function update(User $user, Tindakan $tindakan): bool
     {
         // Allow bendahara to validate transactions, allow others if they have permission AND are involved
-        if ($user->hasPermission('validate_transactions')) {
+        if ($user->hasPermissionTo('validate_transactions')) {
             return true; // Bendahara can update validation status
         }
         
         // User can edit if they have permission AND (they created it OR they're involved in it)
-        return ($user->hasPermission('input_transactions') || $user->hasPermission('edit-procedures')) && (
+        return ($user->hasPermissionTo('input_transactions') || $user->hasPermissionTo('edit-procedures')) && (
             $tindakan->input_by === $user->id ||
             $tindakan->dokter_id === $user->id ||
             $tindakan->paramedis_id === $user->id ||

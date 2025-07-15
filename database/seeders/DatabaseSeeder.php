@@ -14,13 +14,21 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            // Core master data
             Master\RoleSeeder::class,
             Master\ShiftSeeder::class,
             Master\JenisTindakanSeeder::class,
             RolePermissionSeeder::class,
             UserSeeder::class,
+            
+            // Location and GPS validation
             LocationValidationSeeder::class,
             GpsSpoofingDetectionSeeder::class,
+            
+            // NonParamedis system seeders
+            WorkLocationSeeder::class,
+            NonParamedisUserSeeder::class,
+            NonParamedisAttendanceSeeder::class,
         ]);
     }
 }

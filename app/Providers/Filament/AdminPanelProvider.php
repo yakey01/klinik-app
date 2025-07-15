@@ -12,6 +12,7 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Filament\Support\Enums\ThemeMode;
+use Filament\Navigation\NavigationGroup;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -32,12 +33,15 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(false)
+            ->login(CustomLogin::class)
             ->brandName('Dokterku Admin')
             ->colors([
                 'primary' => Color::Blue,
             ])
             ->darkMode()
+            ->spa()
+            ->globalSearch()
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -46,12 +50,9 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
+                \App\Filament\Widgets\AdminOverviewWidget::class,
+                \App\Filament\Widgets\SystemHealthWidget::class,
                 \App\Filament\Widgets\ClinicStatsWidget::class,
-                \App\Filament\Widgets\EmployeeCardStatsWidget::class,
-                \App\Filament\Widgets\AttendanceLabOverview::class,
-                \App\Filament\Widgets\FinancialSummaryWidget::class,
-                \App\Filament\Widgets\FinancialChartWidget::class,
-                \App\Filament\Widgets\CalendarWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -66,15 +67,24 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-                // \App\Http\Middleware\AdminMiddleware::class, // Removed - handled by canAccessPanel
             ])
             ->authGuard('web')
             ->databaseNotifications()
             ->plugins([
                 FilamentFullCalendarPlugin::make(),
-                ThemesPlugin::make()
-                    ->canViewThemesPage(fn () => auth()->user()?->hasRole('admin')),
             ])
-            ->tenant(null); // Disable multi-tenancy for now
+            ->tenant(null) // Disable multi-tenancy for now
+            ->navigationGroups([
+                NavigationGroup::make('User Management')
+                    ->collapsible(),
+                NavigationGroup::make('Medical Records')
+                    ->collapsible(),
+                NavigationGroup::make('Financial Management')
+                    ->collapsible(),
+                NavigationGroup::make('Reports & Analytics')
+                    ->collapsible(),
+                NavigationGroup::make('System Administration')
+                    ->collapsible(),
+            ]);
     }
 }

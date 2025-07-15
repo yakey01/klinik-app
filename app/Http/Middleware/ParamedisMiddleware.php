@@ -18,7 +18,7 @@ class ParamedisMiddleware
     {
         // Check if user is authenticated
         if (!Auth::check()) {
-            return redirect()->route('filament.paramedis.auth.login');
+            return redirect()->route('login');
         }
 
         $user = Auth::user();

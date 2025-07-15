@@ -27,7 +27,7 @@ class ParamedisPanelProvider extends PanelProvider
         return $panel
             ->id('paramedis')
             ->path('paramedis')
-            ->login()
+            ->login(false)
             ->default(\App\Filament\Paramedis\Pages\UjiCobaDashboard::class)
             ->brandName('Dokterku - Paramedis')
             ->favicon(asset('favicon.ico'))

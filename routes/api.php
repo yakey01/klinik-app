@@ -2,7 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Paramedis\AttendanceController;
+use App\Models\WorkLocation;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,10 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Face Recognition Routes
     Route::prefix('face-recognition')->group(function () {
-        Route::post('/register', [\App\Http\Controllers\Api\FaceRecognitionController::class, 'register']);
-        Route::post('/verify', [\App\Http\Controllers\Api\FaceRecognitionController::class, 'verify']);
-        Route::get('/status', [\App\Http\Controllers\Api\FaceRecognitionController::class, 'status']);
-        Route::put('/update', [\App\Http\Controllers\Api\FaceRecognitionController::class, 'update']);
+        Route::post('/register', [\App\Http\Controllers\Paramedis\FaceRecognitionController::class, 'register']);
+        Route::post('/verify', [\App\Http\Controllers\Paramedis\FaceRecognitionController::class, 'verify']);
+        Route::get('/status', [\App\Http\Controllers\Paramedis\FaceRecognitionController::class, 'status']);
+        Route::put('/update', [\App\Http\Controllers\Paramedis\FaceRecognitionController::class, 'update']);
     });
 
     // Paramedis Attendance Routes (Role-specific)
@@ -90,9 +91,18 @@ Route::middleware('auth:sanctum')->group(function () {
                 'recent_jaspel' => []
             ]);
         });
-        Route::get('/schedule', [\App\Http\Controllers\Api\ParamedisDashboardController::class, 'schedule']);
-        Route::get('/performance', [\App\Http\Controllers\Api\ParamedisDashboardController::class, 'performance']);
-        Route::get('/notifications', [\App\Http\Controllers\Api\ParamedisDashboardController::class, 'notifications']);
-        Route::put('/notifications/{id}/read', [\App\Http\Controllers\Api\ParamedisDashboardController::class, 'markNotificationRead']);
+        Route::get('/schedule', [\App\Http\Controllers\Paramedis\ParamedisDashboardController::class, 'schedule']);
+        Route::get('/performance', [\App\Http\Controllers\Paramedis\ParamedisDashboardController::class, 'performance']);
+        Route::get('/notifications', [\App\Http\Controllers\Paramedis\ParamedisDashboardController::class, 'notifications']);
+        Route::put('/notifications/{id}/read', [\App\Http\Controllers\Paramedis\ParamedisDashboardController::class, 'markNotificationRead']);
     });
 });
+
+// Public WorkLocation endpoint for attendance systems
+Route::get('/work-locations/active', function () {
+    $locations = WorkLocation::active()->get(['id', 'name', 'latitude', 'longitude', 'radius_meters', 'location_type', 'address']);
+    
+    return response()->json($locations);
+});
+
+// Non-Paramedis endpoints - REMOVED FOR REBUILD

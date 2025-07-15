@@ -3,8 +3,9 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Treasurer\TreasurerDashboardController;
-use App\Http\Controllers\Staff\StaffDashboardController;
+use App\Http\Controllers\Bendahara\TreasurerDashboardController;
+use App\Http\Controllers\Petugas\StaffDashboardController;
+use App\Http\Controllers\NonParamedis\DashboardController as NonParamedisDashboardController;
 use App\Http\Controllers\Auth\UnifiedAuthController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -55,9 +56,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/doctor/dashboard', function () {
         return redirect('/dokter');
     })->middleware('role:dokter');
-    Route::get('/non-paramedic/dashboard', function () {
-        return view('non-paramedic.dashboard');
-    })->middleware('role:non_paramedis')->name('non-paramedic.dashboard');
+    // Non-Paramedis Dashboard Routes (New Modern Design)
+    Route::middleware(['auth', 'role:non_paramedis'])->prefix('nonparamedis')->name('nonparamedis.')->group(function () {
+        Route::get('/dashboard', [NonParamedisDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/presensi', [NonParamedisDashboardController::class, 'presensi'])->name('presensi');
+        Route::get('/jadwal', [NonParamedisDashboardController::class, 'jadwal'])->name('jadwal');
+    });
     
     // React Dashboard Test Route (untuk semua role)
     Route::get('/react-dashboard-demo', function () {
@@ -265,8 +269,8 @@ Route::middleware(['auth'])->group(function () {
 
 // Dokter Gigi Dashboard Routes (Isolated from Filament)
 Route::middleware(['auth', 'role:dokter_gigi'])->prefix('dokter-gigi')->name('dokter-gigi.')->group(function () {
-    Route::get('/dashboard', [\App\Http\Controllers\DokterGigi\DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/jaspel', [\App\Http\Controllers\DokterGigi\DashboardController::class, 'jaspel'])->name('jaspel');
+    Route::get('/dashboard', [\App\Http\Controllers\Dokter\DokterGigiDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/jaspel', [\App\Http\Controllers\Dokter\DokterGigiDashboardController::class, 'jaspel'])->name('jaspel');
 });
 
 

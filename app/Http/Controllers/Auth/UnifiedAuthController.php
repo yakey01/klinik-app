@@ -85,7 +85,7 @@ class UnifiedAuthController extends Controller
                         // Create temporary User object for pegawai login
                         $roleName = match($pegawai->jenis_pegawai) {
                             'Paramedis' => 'paramedis',
-                            'Non-Paramedis' => 'petugas', // Use petugas for non-paramedis for now
+                            'Non-Paramedis' => 'non_paramedis', // Fixed: Use proper non_paramedis role
                             default => 'petugas'
                         };
                         $role = \App\Models\Role::where('name', $roleName)->first();
@@ -216,6 +216,17 @@ class UnifiedAuthController extends Controller
                 Log::info('Redirecting admin user to /admin');
                 return redirect('/admin');
             } elseif ($user->hasRole('petugas')) {
+                // Check if this petugas user should be redirected to non-paramedis interface
+                // This handles legacy users who were mapped to 'petugas' but are actually non-paramedis
+                if ($user->username && str_contains($user->email, '@pegawai.local')) {
+                    // This is likely a pegawai-created user that should go to non-paramedis
+                    Log::info('Redirecting pegawai petugas user to non-paramedis interface', [
+                        'user_id' => $user->id,
+                        'username' => $user->username,
+                        'email' => $user->email
+                    ]);
+                    return redirect()->route('nonparamedis.dashboard');
+                }
                 Log::info('Redirecting petugas user to /petugas');
                 return redirect('/petugas');
             } elseif ($user->hasRole('manajer')) {
@@ -231,8 +242,12 @@ class UnifiedAuthController extends Controller
                 Log::info('Redirecting paramedis user to /paramedis');
                 return redirect('/paramedis');
             } elseif ($user->hasRole('non_paramedis')) {
-                Log::info('Redirecting non_paramedis user to /non-paramedic/dashboard');
-                return redirect('/non-paramedic/dashboard');
+                Log::info('Redirecting non_paramedis user to /nonparamedis/dashboard', [
+                    'user_id' => $user->id,
+                    'route_exists' => \Route::has('nonparamedis.dashboard'),
+                    'route_url' => route('nonparamedis.dashboard')
+                ]);
+                return redirect()->route('nonparamedis.dashboard');
             }
 
             // Default fallback

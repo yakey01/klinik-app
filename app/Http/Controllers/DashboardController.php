@@ -28,7 +28,7 @@ class DashboardController extends Controller
         } elseif ($user->hasRole('paramedis')) {
             return redirect('/paramedis'); // Redirect to Filament paramedis panel
         } elseif ($user->hasRole('non_paramedis')) {
-            return redirect()->route('nonparamedis.dashboard');
+            return redirect()->route('nonparamedis.app');
         } elseif ($user->hasRole('dokter_gigi')) {
             return redirect()->route('dokter-gigi.dashboard');
         }

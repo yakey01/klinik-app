@@ -41,8 +41,13 @@ class WorkLocation extends Model
         'tolerance_settings' => 'array',
     ];
 
-    // Note: Relationship dengan Attendance akan ditambahkan nanti
-    // jika diperlukan dengan menambah kolom work_location_id ke tabel attendances
+    /**
+     * Relationship with NonParamedisAttendance
+     */
+    public function nonParamedisAttendances(): HasMany
+    {
+        return $this->hasMany(NonParamedisAttendance::class);
+    }
 
     /**
      * Get location type label

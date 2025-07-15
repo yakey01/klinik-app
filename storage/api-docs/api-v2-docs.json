@@ -1,0 +1,934 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Dokterku API v2",
+        "description": "Medical Clinic Management System API v2",
+        "contact": {
+            "email": "admin@dokterku.com"
+        },
+        "version": "2.0.0"
+    },
+    "servers": [
+        {
+            "url": "/api/v2",
+            "description": "API v2 Server"
+        }
+    ],
+    "paths": {
+        "/api/v2/attendance/checkin": {
+            "post": {
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "GPS-based attendance check-in",
+                "operationId": "17ab45bd02887613c7adb57aed2f9c07",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "latitude",
+                                    "longitude"
+                                ],
+                                "properties": {
+                                    "latitude": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": "-6.2088"
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": "106.8456"
+                                    },
+                                    "accuracy": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 10.5
+                                    },
+                                    "face_image": {
+                                        "description": "Base64 encoded face image",
+                                        "type": "string",
+                                        "format": "base64"
+                                    },
+                                    "location_name": {
+                                        "type": "string",
+                                        "example": "Klinik Utama"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Check-in normal"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Check-in successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Check-in berhasil"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "attendance_id": {
+                                                    "type": "integer",
+                                                    "example": 123
+                                                },
+                                                "time_in": {
+                                                    "type": "string",
+                                                    "format": "time",
+                                                    "example": "08:15:30"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "present"
+                                                },
+                                                "coordinates": {
+                                                    "properties": {
+                                                        "latitude": {
+                                                            "type": "number",
+                                                            "format": "float"
+                                                        },
+                                                        "longitude": {
+                                                            "type": "number",
+                                                            "format": "float"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Already checked in or validation error"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation errors"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/attendance/checkout": {
+            "post": {
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "GPS-based attendance check-out",
+                "operationId": "c122a3f68fd7246baac4184d2d2178ec",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "latitude",
+                                    "longitude"
+                                ],
+                                "properties": {
+                                    "latitude": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": "-6.2088"
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": "106.8456"
+                                    },
+                                    "accuracy": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 10.5
+                                    },
+                                    "face_image": {
+                                        "description": "Base64 encoded face image",
+                                        "type": "string",
+                                        "format": "base64"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Check-out normal"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Check-out successful"
+                    },
+                    "400": {
+                        "description": "Not checked in or validation error"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation errors"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/attendance/today": {
+            "get": {
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "Get today's attendance status",
+                "operationId": "86fbf13db42ee8ad7af296ea16e3555a",
+                "responses": {
+                    "200": {
+                        "description": "Today's attendance status"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/attendance/history": {
+            "get": {
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "Get attendance history",
+                "operationId": "9d424144d04f710d2b2afa4ac286c69d",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 15
+                        }
+                    },
+                    {
+                        "name": "month",
+                        "in": "query",
+                        "description": "Filter by month (YYYY-MM)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025-07"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attendance history retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/attendance/statistics": {
+            "get": {
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "Get attendance statistics",
+                "operationId": "9de8d647b8fdc6bfad9bf37e9dbed33c",
+                "parameters": [
+                    {
+                        "name": "month",
+                        "in": "query",
+                        "description": "Month for statistics (YYYY-MM)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025-07"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attendance statistics retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "User login with email/username",
+                "operationId": "2210c5f09d96c3aec187226dda8e2c54",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "login",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "login": {
+                                        "description": "Email or username",
+                                        "type": "string",
+                                        "example": "user@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    },
+                                    "device_name": {
+                                        "description": "Device name for token",
+                                        "type": "string",
+                                        "example": "iPhone 13"
+                                    },
+                                    "device_fingerprint": {
+                                        "description": "Unique device identifier",
+                                        "type": "string"
+                                    },
+                                    "fcm_token": {
+                                        "description": "Firebase Cloud Messaging token",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Login berhasil"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user": {
+                                                    "$ref": "#/components/schemas/User"
+                                                },
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "1|abc123..."
+                                                },
+                                                "token_type": {
+                                                    "type": "string",
+                                                    "example": "Bearer"
+                                                },
+                                                "expires_in": {
+                                                    "type": "integer",
+                                                    "example": 43200
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials"
+                    },
+                    "422": {
+                        "description": "Validation errors"
+                    }
+                }
+            }
+        },
+        "/api/v2/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "User logout",
+                "operationId": "304eb734f9991d3d568677334fe322f7",
+                "responses": {
+                    "200": {
+                        "description": "Logout successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logout berhasil"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/auth/logout-all": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout from all devices",
+                "operationId": "d8abc0f8658bac53dc0171c27dc85a0d",
+                "responses": {
+                    "200": {
+                        "description": "Logout from all devices successful"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/auth/me": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Get current user profile",
+                "operationId": "78acfa9a5e3e97211be1b33e99b95647",
+                "responses": {
+                    "200": {
+                        "description": "User profile retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User profile retrieved"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user": {
+                                                    "$ref": "#/components/schemas/User"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/auth/profile": {
+            "put": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Update user profile",
+                "operationId": "515e1f294883531e3be3ad8197ef3e03",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "John Doe"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+628123456789"
+                                    },
+                                    "avatar": {
+                                        "description": "Base64 encoded avatar image",
+                                        "type": "string",
+                                        "format": "base64"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation errors"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/auth/change-password": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Change user password",
+                "operationId": "d6f95ccdee27d6630bb83c99f5810972",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password",
+                                    "new_password"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "new_password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "minLength": 8
+                                    },
+                                    "new_password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password changed successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation errors"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/dashboards/dokter": {
+            "get": {
+                "tags": [
+                    "Dokter Dashboard"
+                ],
+                "summary": "Get Dokter dashboard data",
+                "operationId": "5753f7d63d04149d81101165a2d81916",
+                "responses": {
+                    "200": {
+                        "description": "Dokter dashboard data retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied - not a dokter"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/dashboards/dokter/patients": {
+            "get": {
+                "tags": [
+                    "Dokter Dashboard"
+                ],
+                "summary": "Get today's patient list for doctor",
+                "operationId": "ef0cfbb47d53f6aa31d092deeed86964",
+                "responses": {
+                    "200": {
+                        "description": "Patient list retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/dashboards/dokter/procedures": {
+            "get": {
+                "tags": [
+                    "Dokter Dashboard"
+                ],
+                "summary": "Get today's procedures for doctor",
+                "operationId": "e1a665411bf12b34d8e86ff79d62f41c",
+                "responses": {
+                    "200": {
+                        "description": "Procedures list retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/dashboards/paramedis": {
+            "get": {
+                "tags": [
+                    "Paramedis Dashboard"
+                ],
+                "summary": "Get Paramedis dashboard data",
+                "operationId": "85842fa5f5e1169ad9d4fdbddb49e7e9",
+                "responses": {
+                    "200": {
+                        "description": "Paramedis dashboard data retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dashboard data retrieved"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user_info": {
+                                                    "properties": {
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "Dr. John Doe"
+                                                        },
+                                                        "role": {
+                                                            "type": "string",
+                                                            "example": "paramedis"
+                                                        },
+                                                        "specialty": {
+                                                            "type": "string",
+                                                            "example": "Perawat Umum"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "attendance": {
+                                                    "properties": {
+                                                        "this_month": {
+                                                            "type": "integer",
+                                                            "example": 22
+                                                        },
+                                                        "present_days": {
+                                                            "type": "integer",
+                                                            "example": 20
+                                                        },
+                                                        "late_days": {
+                                                            "type": "integer",
+                                                            "example": 2
+                                                        },
+                                                        "attendance_rate": {
+                                                            "type": "number",
+                                                            "example": 90.9
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "jaspel": {
+                                                    "properties": {
+                                                        "this_month": {
+                                                            "type": "integer",
+                                                            "example": 12500000
+                                                        },
+                                                        "pending": {
+                                                            "type": "integer",
+                                                            "example": 2400000
+                                                        },
+                                                        "approved": {
+                                                            "type": "integer",
+                                                            "example": 10100000
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "today_attendance": {
+                                                    "type": "object",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied - not a paramedis"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/dashboards/paramedis/schedule": {
+            "get": {
+                "tags": [
+                    "Paramedis Dashboard"
+                ],
+                "summary": "Get Paramedis schedule",
+                "operationId": "9b0c154a27b71dbfa9de8082e0f0692a",
+                "responses": {
+                    "200": {
+                        "description": "Schedule data retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v2/dashboards/paramedis/performance": {
+            "get": {
+                "tags": [
+                    "Paramedis Dashboard"
+                ],
+                "summary": "Get Paramedis performance metrics",
+                "operationId": "2ced2e6d7ce4139db045e445fb9acd34",
+                "responses": {
+                    "200": {
+                        "description": "Performance metrics retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Access denied"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "User": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
+                    },
+                    "username": {
+                        "type": "string",
+                        "example": "johndoe"
+                    },
+                    "role": {
+                        "type": "string",
+                        "example": "paramedis"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "+628123456789"
+                    },
+                    "avatar": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "https://example.com/avatar.jpg"
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "email_verified_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "description": "Laravel Sanctum token authentication",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Attendance",
+            "description": "GPS-based attendance management system"
+        },
+        {
+            "name": "Authentication",
+            "description": "Authentication endpoints for login, logout, and user management"
+        },
+        {
+            "name": "Dokter Dashboard",
+            "description": "Dashboard endpoints for Dokter role"
+        },
+        {
+            "name": "Paramedis Dashboard",
+            "description": "Dashboard endpoints for Paramedis role"
+        }
+    ]
+}

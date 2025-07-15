@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'enhanced.role' => \App\Http\Middleware\EnhancedRoleMiddleware::class,
             'permission' => \App\Http\Middleware\PermissionMiddleware::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'petugas' => \App\Http\Middleware\PetugasMiddleware::class,
@@ -21,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'dokter' => \App\Http\Middleware\EnsureDokterRole::class,
             'device.binding' => \App\Http\Middleware\DeviceBindingMiddleware::class,
             'anti.gps.spoofing' => \App\Http\Middleware\AntiGpsSpoofingMiddleware::class,
+            // API v2 middleware
+            'api.rate.limit' => \App\Http\Middleware\Api\ApiRateLimitMiddleware::class,
+            'api.response.headers' => \App\Http\Middleware\Api\ApiResponseHeadersMiddleware::class,
         ]);
         
         // Add security headers to all responses

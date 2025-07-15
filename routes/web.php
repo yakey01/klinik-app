@@ -56,11 +56,24 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/doctor/dashboard', function () {
         return redirect('/dokter');
     })->middleware('role:dokter');
-    // Non-Paramedis Dashboard Routes (New Modern Design)
+    // Non-Paramedis Mobile App Routes (Replaces old dashboard)
     Route::middleware(['auth', 'role:non_paramedis'])->prefix('nonparamedis')->name('nonparamedis.')->group(function () {
-        Route::get('/dashboard', [NonParamedisDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/presensi', [NonParamedisDashboardController::class, 'presensi'])->name('presensi');
-        Route::get('/jadwal', [NonParamedisDashboardController::class, 'jadwal'])->name('jadwal');
+        Route::get('/app', function () {
+            $user = auth()->user();
+            $token = $user->createToken('mobile-app-' . now()->timestamp)->plainTextToken;
+            return view('mobile.nonparamedis.app', compact('token'));
+        })->name('app');
+        
+        // Legacy routes - redirect to new mobile app
+        Route::get('/dashboard', function () {
+            return redirect()->route('nonparamedis.app');
+        })->name('dashboard');
+        Route::get('/presensi', function () {
+            return redirect()->route('nonparamedis.app');
+        })->name('presensi');
+        Route::get('/jadwal', function () {
+            return redirect()->route('nonparamedis.app');
+        })->name('jadwal');
     });
     
     // React Dashboard Test Route (untuk semua role)

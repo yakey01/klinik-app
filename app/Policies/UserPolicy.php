@@ -12,7 +12,7 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('manage_users') || $user->hasRole(['admin', 'manajer']);
+        return $user->hasPermissionTo('manage_users') || $user->hasRole(['admin', 'manajer']);
     }
 
     /**
@@ -20,7 +20,7 @@ class UserPolicy
      */
     public function view(User $user, User $model): bool
     {
-        return $user->hasPermission('manage_users') || $user->hasRole(['admin', 'manajer']) || $user->id === $model->id;
+        return $user->hasPermissionTo('manage_users') || $user->hasRole(['admin', 'manajer']) || $user->id === $model->id;
     }
 
     /**
@@ -28,7 +28,7 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermission('manage_users') || $user->hasRole('admin');
+        return $user->hasPermissionTo('manage_users') || $user->hasRole('admin');
     }
 
     /**
@@ -38,7 +38,7 @@ class UserPolicy
     {
         // Users can edit themselves, or if they have permission and appropriate role
         return $user->id === $model->id || (
-            $user->hasPermission('manage_users') && 
+            $user->hasPermissionTo('manage_users') && 
             $user->hasRole(['admin', 'manajer'])
         );
     }
@@ -50,7 +50,7 @@ class UserPolicy
     {
         // Cannot delete yourself, must have permission and be admin
         return $user->id !== $model->id && 
-               $user->hasPermission('manage_users') && 
+               $user->hasPermissionTo('manage_users') && 
                $user->hasRole('admin');
     }
 
@@ -59,7 +59,7 @@ class UserPolicy
      */
     public function manageRoles(User $user): bool
     {
-        return $user->hasPermission('manage_roles') || $user->hasRole('admin');
+        return $user->hasPermissionTo('manage_roles') || $user->hasRole('admin');
     }
 
     /**
@@ -67,7 +67,7 @@ class UserPolicy
      */
     public function restore(User $user, User $model): bool
     {
-        return $user->hasPermission('manage_users');
+        return $user->hasPermissionTo('manage_users');
     }
 
     /**

@@ -831,8 +831,8 @@
                                 continue;
                             } else {
                                 // Last attempt, try to handle gracefully
-                                console.error('ngrok warning page detected after all retries, falling back to mock data');
-                                return getMockData(endpoint);
+                                console.error('ngrok warning page detected after all retries, falling back to offline mode');
+                                return getFallbackData(endpoint);
                             }
                         }
                         
@@ -870,10 +870,10 @@
                     
                     // Final attempt or non-retryable error
                     if (attempt === MAX_RETRIES) {
-                        console.error('All API attempts failed, falling back to mock data');
-                        updateConnectionStatus('demo');
-                        showToast('Koneksi bermasalah, menggunakan data demo', 'warning');
-                        return getMockData(endpoint);
+                        console.error('All API attempts failed, falling back to offline mode');
+                        updateConnectionStatus('offline');
+                        showToast('Koneksi bermasalah, beberapa fitur tidak tersedia', 'warning');
+                        return getFallbackData(endpoint);
                     }
                     
                     throw error;
@@ -881,114 +881,46 @@
             }
         }
         
-        // Mock data fallback for when API is not accessible
-        function getMockData(endpoint) {
-            console.log('Providing mock data for endpoint:', endpoint);
+        // Fallback data for when API is temporarily unavailable
+        function getFallbackData(endpoint) {
+            console.warn('API temporarily unavailable, using fallback data for:', endpoint);
             
-            if (endpoint.includes('/test')) {
-                return {
-                    success: true,
-                    message: 'Mock API endpoint working',
-                    data: {
-                        timestamp: new Date().toISOString(),
-                        user: 'Demo User (Mock Data)'
-                    }
-                };
-            }
-            
+            // Return minimal fallback data to keep app functional
             if (endpoint.includes('/dashboards/nonparamedis/')) {
                 return {
                     success: true,
                     data: {
                         user: {
                             id: {{ auth()->user()->id ?? 1 }},
-                            name: '{{ auth()->user()->name ?? "Ahmad Santoso" }}',
-                            initials: '{{ substr(auth()->user()->name ?? "Ahmad Santoso", 0, 1) . substr(explode(" ", auth()->user()->name ?? "Ahmad Santoso")[1] ?? "S", 0, 1) }}',
+                            name: '{{ auth()->user()->name ?? "User" }}',
+                            initials: '{{ substr(auth()->user()->name ?? "User", 0, 1) }}{{ substr(explode(" ", auth()->user()->name ?? "User")[1] ?? "S", 0, 1) }}',
                             role: 'Administrator Non-Medis'
                         },
                         stats: {
-                            hours_today: 8,
-                            work_days_this_month: 22,
-                            attendance_rate: 95,
-                            shifts_this_week: 3
+                            hours_today: 0,
+                            work_days_this_month: 0,
+                            attendance_rate: 0,
+                            shifts_this_week: 0
                         },
                         current_status: 'not_checked_in',
                         quick_actions: [
                             {
                                 id: 'attendance',
-                                title: 'Presensi Masuk',
-                                subtitle: 'Belum check-in hari ini',
+                                title: 'Presensi',
+                                subtitle: 'Koneksi bermasalah',
                                 icon: '📋',
-                                action: 'presensi'
-                            },
-                            {
-                                id: 'schedule',
-                                title: 'Jadwal Minggu Ini',
-                                subtitle: '3 shift terjadwal',
-                                icon: '📅',
-                                action: 'jadwal'
+                                action: 'presensi',
+                                enabled: false
                             }
                         ]
                     }
                 };
             }
             
-            if (endpoint.includes('/attendance/status')) {
-                return {
-                    success: true,
-                    data: {
-                        status: 'not_checked_in',
-                        check_in_time: null,
-                        check_out_time: null,
-                        location: {
-                            name: 'Klinik Dokterku',
-                            address: 'Jl. Merdeka No. 123, Malang',
-                            is_in_range: true,
-                            distance: 25
-                        }
-                    }
-                };
-            }
-            
-            if (endpoint.includes('/today-history')) {
-                return {
-                    success: true,
-                    data: {
-                        history: [],
-                        has_activity: false
-                    }
-                };
-            }
-            
-            if (endpoint.includes('/checkin')) {
-                return {
-                    success: true,
-                    message: 'Check-in berhasil! (Demo Mode)',
-                    data: {
-                        attendance_id: 999,
-                        check_in_time: new Date().toTimeString().substr(0, 5),
-                        status: 'checked_in'
-                    }
-                };
-            }
-            
-            if (endpoint.includes('/checkout')) {
-                return {
-                    success: true,
-                    message: 'Check-out berhasil! (Demo Mode)',
-                    data: {
-                        attendance_id: 999,
-                        check_out_time: new Date().toTimeString().substr(0, 5),
-                        work_duration_hours: 8.5,
-                        status: 'checked_out'
-                    }
-                };
-            }
-            
-            // Default fallback
+            // Default error response
             return {
                 success: false,
-                message: 'Endpoint not available in demo mode',
+                message: 'Layanan sementara tidak tersedia. Silakan coba lagi.',
                 data: null
             };
         }
@@ -1137,32 +1069,50 @@
             actions.forEach(action => {
                 const actionDiv = document.createElement('div');
                 actionDiv.className = 'quick-action-item';
-                actionDiv.onclick = () => showPage(action.action);
+                
+                // Check if action is enabled
+                const isEnabled = action.enabled !== false;
+                const bgColor = isEnabled ? 'var(--neutral-50)' : 'var(--neutral-100)';
+                const textColor = isEnabled ? 'var(--neutral-900)' : 'var(--neutral-400)';
+                const cursor = isEnabled ? 'pointer' : 'not-allowed';
+                
+                if (isEnabled) {
+                    actionDiv.onclick = () => showPage(action.action);
+                } else {
+                    actionDiv.onclick = () => showToast('Fitur tidak tersedia saat offline', 'warning');
+                }
+                
                 actionDiv.style.cssText = `
                     display: flex; align-items: center; gap: 16px; padding: 16px; 
-                    background: var(--neutral-50); border-radius: 16px; cursor: pointer; 
-                    transition: all 0.3s ease;
+                    background: ${bgColor}; border-radius: 16px; cursor: ${cursor}; 
+                    transition: all 0.3s ease; opacity: ${isEnabled ? '1' : '0.6'};
                 `;
+                
+                const iconBg = isEnabled 
+                    ? 'linear-gradient(135deg, var(--secondary-blue), var(--accent-yellow))' 
+                    : 'var(--neutral-300)';
                 
                 actionDiv.innerHTML = `
-                    <div style="width: 48px; height: 48px; border-radius: 16px; background: linear-gradient(135deg, var(--secondary-blue), var(--accent-yellow)); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">${action.icon}</div>
+                    <div style="width: 48px; height: 48px; border-radius: 16px; background: ${iconBg}; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">${action.icon}</div>
                     <div style="flex: 1;">
-                        <div style="font-size: 16px; font-weight: 600; color: var(--neutral-900); margin-bottom: 4px;">${action.title}</div>
+                        <div style="font-size: 16px; font-weight: 600; color: ${textColor}; margin-bottom: 4px;">${action.title}</div>
                         <div style="font-size: 12px; color: var(--neutral-600);">${action.subtitle}</div>
                     </div>
-                    <div style="color: var(--neutral-300); font-size: 18px;">→</div>
+                    <div style="color: var(--neutral-300); font-size: 18px;">${isEnabled ? '→' : '⚠️'}</div>
                 `;
                 
-                // Add hover effects
-                actionDiv.addEventListener('mouseenter', () => {
-                    actionDiv.style.background = 'white';
-                    actionDiv.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)';
-                });
-                
-                actionDiv.addEventListener('mouseleave', () => {
-                    actionDiv.style.background = 'var(--neutral-50)';
-                    actionDiv.style.boxShadow = 'none';
-                });
+                // Add hover effects only for enabled actions
+                if (isEnabled) {
+                    actionDiv.addEventListener('mouseenter', () => {
+                        actionDiv.style.background = 'white';
+                        actionDiv.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)';
+                    });
+                    
+                    actionDiv.addEventListener('mouseleave', () => {
+                        actionDiv.style.background = 'var(--neutral-50)';
+                        actionDiv.style.boxShadow = 'none';
+                    });
+                }
                 
                 container.appendChild(actionDiv);
             });
@@ -1421,17 +1371,17 @@
                         dot.style.background = '#10b981'; // Green
                         text.textContent = 'LIVE';
                         break;
-                    case 'demo':
-                        dot.style.background = '#f59e0b'; // Orange
-                        text.textContent = 'DEMO';
-                        break;
                     case 'offline':
                         dot.style.background = '#ef4444'; // Red
                         text.textContent = 'OFFLINE';
                         break;
                     case 'connecting':
                         dot.style.background = '#6b7280'; // Gray
-                        text.textContent = 'CONNECTING';
+                        text.textContent = 'LOADING';
+                        break;
+                    case 'error':
+                        dot.style.background = '#f59e0b'; // Orange
+                        text.textContent = 'ERROR';
                         break;
                 }
             } catch (e) {
@@ -1558,8 +1508,8 @@
                     await loadAttendanceStatus();
                 }
             } catch (error) {
-                updateConnectionStatus('demo');
-                showToast('Koneksi gagal, tetap menggunakan mode demo', 'warning');
+                updateConnectionStatus('error');
+                showToast('Koneksi gagal, coba lagi atau hubungi administrator', 'error');
             }
         }
         

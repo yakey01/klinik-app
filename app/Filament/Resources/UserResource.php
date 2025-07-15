@@ -21,9 +21,9 @@ class UserResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
     
-    protected static ?string $navigationGroup = 'Notifikasi';
+    protected static ?string $navigationGroup = 'User Management';
     
-    protected static ?int $navigationSort = 60;
+    protected static ?int $navigationSort = 1;
     
     protected static ?string $modelLabel = 'Pengguna';
     
@@ -31,12 +31,27 @@ class UserResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole(['admin', 'manajer']) ?? false;
+        return auth()->user()?->hasPermissionTo('view_any_user') ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole(['admin', 'manajer']) ?? false;
+        return auth()->user()?->hasPermissionTo('create_user') ?? false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->hasPermissionTo('update_user') ?? false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->hasPermissionTo('delete_user') ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->hasPermissionTo('delete_any_user') ?? false;
     }
 
     public static function form(Form $form): Form

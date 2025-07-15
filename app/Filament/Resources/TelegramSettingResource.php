@@ -24,7 +24,7 @@ class TelegramSettingResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Pengaturan Telegram';
 
-    protected static ?string $navigationGroup = 'Pengaturan';
+    protected static ?string $navigationGroup = 'System Administration';
 
     protected static ?int $navigationSort = 72;
 

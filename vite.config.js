@@ -11,8 +11,8 @@ export default defineConfig({
             input: [
                 'resources/css/app.css', 
                 'resources/js/app.js',
+                'resources/css/filament/admin/theme.css',
                 'resources/css/filament/paramedis-mobile.css',
-                'resources/css/filament/dokter-mobile.css',
                 'resources/react/paramedis-jaspel/main.jsx',
                 'resources/react/paramedis-jaspel/styles/ParamedisJaspelDashboard.css',
                 'resources/react/premium-paramedis-dashboard/main.jsx',

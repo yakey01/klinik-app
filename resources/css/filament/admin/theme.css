@@ -1,0 +1,71 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom component styles */
+.fi-sidebar {
+    transition: all 0.3s ease;
+}
+
+.fi-widget-stats-card {
+    transition: all 0.2s ease;
+}
+
+.fi-widget-stats-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.fi-sidebar-nav-item {
+    transition: colors 0.2s ease;
+}
+
+.fi-sidebar-nav-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Real-time notification styles */
+.realtime-notification {
+    border-left: 4px solid #3b82f6;
+    background-color: #eff6ff;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.realtime-notification.success {
+    border-left-color: #10b981;
+    background-color: #f0fdf4;
+}
+
+.realtime-notification.warning {
+    border-left-color: #f59e0b;
+    background-color: #fffbeb;
+}
+
+.realtime-notification.error {
+    border-left-color: #ef4444;
+    background-color: #fef2f2;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .realtime-notification {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+    
+    .realtime-notification.success {
+        background-color: rgba(16, 185, 129, 0.1);
+    }
+    
+    .realtime-notification.warning {
+        background-color: rgba(245, 158, 11, 0.1);
+    }
+    
+    .realtime-notification.error {
+        background-color: rgba(239, 68, 68, 0.1);
+    }
+    
+    .fi-sidebar-nav-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}

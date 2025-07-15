@@ -135,4 +135,18 @@ return [
 
     'default_jaspel_percentage' => env('DEFAULT_JASPEL_PERCENTAGE', 40),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Clinic Geolocation Settings
+    |--------------------------------------------------------------------------
+    |
+    | These values are used for GPS-based attendance validation and geofencing.
+    | The coordinates should match the main office location in the database.
+    |
+    */
+
+    'clinic_latitude' => env('APP_CLINIC_LATITUDE', -7.89946200),
+    'clinic_longitude' => env('APP_CLINIC_LONGITUDE', 111.96239900),
+    'clinic_radius' => env('APP_CLINIC_RADIUS', 100),
+
 ];

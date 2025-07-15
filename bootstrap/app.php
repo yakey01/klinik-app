@@ -19,7 +19,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'petugas' => \App\Http\Middleware\PetugasMiddleware::class,
             'paramedis' => \App\Http\Middleware\ParamedisMiddleware::class,
-            'dokter' => \App\Http\Middleware\EnsureDokterRole::class,
             'device.binding' => \App\Http\Middleware\DeviceBindingMiddleware::class,
             'anti.gps.spoofing' => \App\Http\Middleware\AntiGpsSpoofingMiddleware::class,
             // API v2 middleware

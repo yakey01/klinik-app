@@ -19,7 +19,7 @@ class PengeluaranResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-trending-down';
     
-    protected static ?string $navigationGroup = 'Master Data';
+    protected static ?string $navigationGroup = 'Financial Management';
     
     protected static ?string $modelLabel = 'Pengeluaran';
     

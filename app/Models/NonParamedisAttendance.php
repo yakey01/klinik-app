@@ -41,6 +41,7 @@ class NonParamedisAttendance extends Model
         'approved_by',
         'approved_at',
         'approval_notes',
+        'admin_override',
     ];
 
     protected $casts = [
@@ -59,7 +60,9 @@ class NonParamedisAttendance extends Model
         'check_in_valid_location' => 'boolean',
         'check_out_valid_location' => 'boolean',
         'suspected_spoofing' => 'boolean',
+        'admin_override' => 'boolean',
         'gps_metadata' => 'array',
+        'device_info' => 'array',
     ];
 
     /**
@@ -81,7 +84,7 @@ class NonParamedisAttendance extends Model
     /**
      * Relationship with approver
      */
-    public function approver(): BelongsTo
+    public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
 use App\Models\NonParamedisAttendance;
+use App\Models\Schedule;
+use App\Models\Shift;
 use App\Models\User;
 use App\Models\WorkLocation;
 use App\Services\GpsValidationService;
@@ -11,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -513,7 +516,7 @@ class NonParamedisDashboardController extends Controller
     }
     
     /**
-     * Get schedule for current month
+     * Get work schedule for current month with admin-assigned shifts
      */
     public function getSchedule(Request $request)
     {
@@ -525,58 +528,139 @@ class NonParamedisDashboardController extends Controller
             $startOfMonth = Carbon::create($year, $month, 1)->startOfMonth();
             $endOfMonth = Carbon::create($year, $month, 1)->endOfMonth();
             
-            // Get scheduled attendance for the month
+            // Get assigned schedules from admin
+            $schedules = Schedule::where('user_id', $user->id)
+                ->whereBetween('date', [$startOfMonth, $endOfMonth])
+                ->with(['shift', 'user'])
+                ->orderBy('date')
+                ->get();
+            
+            // Get actual attendance records for comparison
             $attendances = NonParamedisAttendance::where('user_id', $user->id)
                 ->whereBetween('attendance_date', [$startOfMonth, $endOfMonth])
                 ->with('workLocation')
-                ->orderBy('attendance_date')
-                ->get();
+                ->get()
+                ->keyBy(function($item) {
+                    return $item->attendance_date->format('Y-m-d');
+                });
             
-            // Format monthly calendar data
+            // Format monthly calendar data with schedule and attendance comparison
             $monthlyCalendar = [];
-            foreach ($attendances as $attendance) {
-                $monthlyCalendar[] = [
-                    'date' => $attendance->attendance_date->format('Y-m-d'),
-                    'status' => $attendance->status,
-                    'approval_status' => $attendance->approval_status,
-                    'work_duration' => $attendance->formatted_work_duration,
-                    'location' => $attendance->workLocation?->name
+            foreach ($schedules as $schedule) {
+                $dateKey = $schedule->date->format('Y-m-d');
+                $attendance = $attendances->get($dateKey);
+                
+                $calendarEntry = [
+                    'date' => $dateKey,
+                    'day_name' => $schedule->date->locale('id')->dayName,
+                    'is_day_off' => $schedule->is_day_off,
+                    'scheduled_shift' => $schedule->shift ? [
+                        'name' => $schedule->shift->name,
+                        'start_time' => $schedule->shift->start_time,
+                        'end_time' => $schedule->shift->end_time,
+                        'description' => $schedule->shift->description
+                    ] : null,
+                    'notes' => $schedule->notes,
+                    'attendance_status' => $attendance ? [
+                        'present' => true,
+                        'check_in' => $attendance->check_in_time?->format('H:i'),
+                        'check_out' => $attendance->check_out_time?->format('H:i'),
+                        'work_duration' => $attendance->formatted_work_duration,
+                        'status' => $attendance->status,
+                        'approval_status' => $attendance->approval_status,
+                        'on_time' => $this->isOnTime($attendance, $schedule->shift)
+                    ] : [
+                        'present' => false,
+                        'status' => $schedule->date->isPast() ? 'absent' : 'upcoming'
+                    ]
                 ];
+                
+                $monthlyCalendar[] = $calendarEntry;
             }
             
-            // Get current week schedule
+            // Get current week detailed schedule
             $currentWeek = Carbon::now()->startOfWeek();
-            $weeklySchedule = NonParamedisAttendance::where('user_id', $user->id)
-                ->where('attendance_date', '>=', $currentWeek)
-                ->where('attendance_date', '<=', Carbon::now()->endOfWeek())
-                ->with('workLocation')
-                ->orderBy('attendance_date')
+            $endOfWeek = Carbon::now()->endOfWeek();
+            
+            $weeklySchedules = Schedule::where('user_id', $user->id)
+                ->whereBetween('date', [$currentWeek, $endOfWeek])
+                ->with(['shift'])
+                ->orderBy('date')
                 ->get();
             
             $weeklyShifts = [];
-            foreach ($weeklySchedule as $shift) {
+            foreach ($weeklySchedules as $schedule) {
+                $dateKey = $schedule->date->format('Y-m-d');
+                $attendance = $attendances->get($dateKey);
+                
                 $weeklyShifts[] = [
-                    'date' => $shift->attendance_date->format('Y-m-d'),
-                    'day_name' => $shift->attendance_date->locale('id')->dayName,
-                    'check_in' => $shift->check_in_time?->format('H:i'),
-                    'check_out' => $shift->check_out_time?->format('H:i'),
-                    'duration' => $shift->formatted_work_duration,
-                    'location' => $shift->workLocation?->name ?? 'Klinik Dokterku',
-                    'status' => $shift->status,
-                    'approval_status' => $shift->approval_status
+                    'date' => $dateKey,
+                    'day_name' => $schedule->date->locale('id')->dayName,
+                    'is_today' => $schedule->date->isToday(),
+                    'is_day_off' => $schedule->is_day_off,
+                    'shift' => $schedule->shift ? [
+                        'name' => $schedule->shift->name,
+                        'start_time' => $schedule->shift->start_time,
+                        'end_time' => $schedule->shift->end_time,
+                        'duration_hours' => $this->calculateShiftDuration($schedule->shift)
+                    ] : null,
+                    'attendance' => $attendance ? [
+                        'check_in' => $attendance->check_in_time?->format('H:i'),
+                        'check_out' => $attendance->check_out_time?->format('H:i'),
+                        'actual_duration' => $attendance->formatted_work_duration,
+                        'status' => $attendance->status
+                    ] : null,
+                    'notes' => $schedule->notes
                 ];
             }
             
-            return $this->successResponse('Schedule retrieved successfully', [
+            // Upcoming shifts (next 7 days)
+            $nextWeek = Carbon::now()->addDay();
+            $nextWeekEnd = Carbon::now()->addDays(7);
+            
+            $upcomingShifts = Schedule::where('user_id', $user->id)
+                ->whereBetween('date', [$nextWeek, $nextWeekEnd])
+                ->where('is_day_off', false)
+                ->with(['shift'])
+                ->orderBy('date')
+                ->take(5)
+                ->get()
+                ->map(function($schedule) {
+                    return [
+                        'date' => $schedule->date->format('Y-m-d'),
+                        'day_name' => $schedule->date->locale('id')->dayName,
+                        'relative_date' => $schedule->date->locale('id')->diffForHumans(),
+                        'shift_name' => $schedule->shift?->name,
+                        'start_time' => $schedule->shift?->start_time,
+                        'end_time' => $schedule->shift?->end_time,
+                        'notes' => $schedule->notes
+                    ];
+                });
+            
+            // Schedule statistics
+            $totalScheduledDays = $schedules->where('is_day_off', false)->count();
+            $totalPresentDays = $attendances->where('status', 'checked_out')->count();
+            $attendanceRate = $totalScheduledDays > 0 ? round(($totalPresentDays / $totalScheduledDays) * 100, 1) : 0;
+            
+            return $this->successResponse('Work schedule retrieved successfully', [
                 'month' => [
                     'name' => $startOfMonth->locale('id')->monthName . ' ' . $year,
-                    'total_days' => $attendances->count(),
-                    'work_days' => $attendances->where('status', 'checked_out')->count(),
+                    'year' => $year,
+                    'total_days' => $schedules->count(),
+                    'work_days_scheduled' => $totalScheduledDays,
+                    'days_off' => $schedules->where('is_day_off', true)->count(),
                     'calendar' => $monthlyCalendar
                 ],
-                'weekly_shifts' => $weeklyShifts,
-                'summary' => [
-                    'total_work_hours' => round($attendances->sum('total_work_minutes') / 60, 1),
+                'current_week' => [
+                    'week_start' => $currentWeek->format('Y-m-d'),
+                    'week_end' => $endOfWeek->format('Y-m-d'),
+                    'shifts' => $weeklyShifts
+                ],
+                'upcoming_shifts' => $upcomingShifts,
+                'statistics' => [
+                    'attendance_rate' => $attendanceRate,
+                    'total_scheduled_hours' => $this->calculateTotalScheduledHours($schedules),
+                    'total_worked_hours' => round($attendances->sum('total_work_minutes') / 60, 1),
                     'average_daily_hours' => $attendances->where('total_work_minutes', '>', 0)->count() > 0 
                         ? round($attendances->sum('total_work_minutes') / $attendances->where('total_work_minutes', '>', 0)->count() / 60, 1)
                         : 0
@@ -585,8 +669,58 @@ class NonParamedisDashboardController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Schedule error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to get schedule', 500);
+            return $this->errorResponse('Failed to get work schedule', 500);
         }
+    }
+    
+    /**
+     * Check if attendance was on time based on scheduled shift
+     */
+    private function isOnTime($attendance, $shift): bool
+    {
+        if (!$attendance->check_in_time || !$shift) {
+            return false;
+        }
+        
+        $scheduledStart = Carbon::parse($shift->start_time);
+        $actualStart = $attendance->check_in_time;
+        
+        // Allow 15 minutes grace period
+        return $actualStart->diffInMinutes($scheduledStart, false) <= 15;
+    }
+    
+    /**
+     * Calculate shift duration in hours
+     */
+    private function calculateShiftDuration($shift): float
+    {
+        if (!$shift) return 0;
+        
+        $start = Carbon::parse($shift->start_time);
+        $end = Carbon::parse($shift->end_time);
+        
+        // Handle overnight shifts
+        if ($end->lessThan($start)) {
+            $end->addDay();
+        }
+        
+        return round($start->diffInHours($end), 1);
+    }
+    
+    /**
+     * Calculate total scheduled hours for the period
+     */
+    private function calculateTotalScheduledHours($schedules): float
+    {
+        $totalHours = 0;
+        
+        foreach ($schedules as $schedule) {
+            if (!$schedule->is_day_off && $schedule->shift) {
+                $totalHours += $this->calculateShiftDuration($schedule->shift);
+            }
+        }
+        
+        return $totalHours;
     }
     
     /**
@@ -827,5 +961,313 @@ class NonParamedisDashboardController extends Controller
         $totalCount = $attendances->where('check_in_time', '!=', null)->count();
         
         return $totalCount > 0 ? round(($validLocationCount / $totalCount) * 100, 1) : 100.0;
+    }
+    
+    /**
+     * Update user profile information
+     */
+    public function updateProfile(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            $validator = Validator::make($request->all(), [
+                'name' => 'sometimes|required|string|max:255',
+                'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
+                'phone' => 'sometimes|nullable|string|max:20',
+                'address' => 'sometimes|nullable|string|max:500',
+                'bio' => 'sometimes|nullable|string|max:1000',
+                'date_of_birth' => 'sometimes|nullable|date',
+                'gender' => 'sometimes|nullable|in:male,female',
+                'emergency_contact_name' => 'sometimes|nullable|string|max:255',
+                'emergency_contact_phone' => 'sometimes|nullable|string|max:20',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', 422, $validator->errors());
+            }
+            
+            $updateData = $request->only([
+                'name', 'email', 'phone', 'address', 'bio', 
+                'date_of_birth', 'gender', 'emergency_contact_name', 'emergency_contact_phone'
+            ]);
+            
+            $user->update($updateData);
+            
+            // Log profile update
+            Log::info('Profile updated', [
+                'user_id' => $user->id,
+                'updated_fields' => array_keys($updateData),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->header('User-Agent')
+            ]);
+            
+            return $this->successResponse('Profile updated successfully', [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'address' => $user->address,
+                    'bio' => $user->bio,
+                    'date_of_birth' => $user->date_of_birth,
+                    'gender' => $user->gender,
+                    'emergency_contact_name' => $user->emergency_contact_name,
+                    'emergency_contact_phone' => $user->emergency_contact_phone,
+                    'updated_at' => $user->updated_at->format('Y-m-d H:i:s')
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Profile update error: ' . $e->getMessage());
+            return $this->errorResponse('Failed to update profile', 500);
+        }
+    }
+    
+    /**
+     * Change user password
+     */
+    public function changePassword(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            $validator = Validator::make($request->all(), [
+                'current_password' => 'required|string',
+                'new_password' => 'required|string|min:8|confirmed',
+                'new_password_confirmation' => 'required|string'
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', 422, $validator->errors());
+            }
+            
+            // Verify current password
+            if (!Hash::check($request->current_password, $user->password)) {
+                return $this->errorResponse('Current password is incorrect', 422, [
+                    'current_password' => ['Current password is incorrect']
+                ]);
+            }
+            
+            // Update password
+            $user->update([
+                'password' => Hash::make($request->new_password)
+            ]);
+            
+            // Revoke all other tokens for security
+            $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+            
+            // Log password change
+            Log::info('Password changed', [
+                'user_id' => $user->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->header('User-Agent')
+            ]);
+            
+            return $this->successResponse('Password changed successfully', [
+                'message' => 'Password updated successfully. Other sessions have been logged out for security.',
+                'tokens_revoked' => true
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Password change error: ' . $e->getMessage());
+            return $this->errorResponse('Failed to change password', 500);
+        }
+    }
+    
+    /**
+     * Upload profile photo
+     */
+    public function uploadPhoto(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            $validator = Validator::make($request->all(), [
+                'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048' // 2MB max
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', 422, $validator->errors());
+            }
+            
+            $photo = $request->file('photo');
+            
+            // Create storage directory if it doesn't exist
+            $uploadPath = storage_path('app/public/profile-photos');
+            if (!file_exists($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+            
+            // Generate unique filename
+            $filename = 'profile_' . $user->id . '_' . time() . '.' . $photo->getClientOriginalExtension();
+            
+            // Store the photo
+            $photo->storeAs('public/profile-photos', $filename);
+            
+            // Delete old photo if exists
+            if ($user->profile_photo_path) {
+                $oldPhotoPath = storage_path('app/public/' . $user->profile_photo_path);
+                if (file_exists($oldPhotoPath)) {
+                    unlink($oldPhotoPath);
+                }
+            }
+            
+            // Update user record
+            $user->update([
+                'profile_photo_path' => 'profile-photos/' . $filename
+            ]);
+            
+            // Log photo upload
+            Log::info('Profile photo uploaded', [
+                'user_id' => $user->id,
+                'filename' => $filename,
+                'ip_address' => $request->ip()
+            ]);
+            
+            return $this->successResponse('Profile photo uploaded successfully', [
+                'photo_url' => asset('storage/profile-photos/' . $filename),
+                'filename' => $filename,
+                'uploaded_at' => now()->format('Y-m-d H:i:s')
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Photo upload error: ' . $e->getMessage());
+            return $this->errorResponse('Failed to upload photo', 500);
+        }
+    }
+    
+    /**
+     * Get user settings
+     */
+    public function getSettings(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Get user preferences (you can extend this)
+            $settings = [
+                'notifications' => [
+                    'email_notifications' => $user->email_notifications ?? true,
+                    'push_notifications' => $user->push_notifications ?? true,
+                    'attendance_reminders' => $user->attendance_reminders ?? true,
+                    'schedule_updates' => $user->schedule_updates ?? true,
+                ],
+                'privacy' => [
+                    'profile_visibility' => $user->profile_visibility ?? 'colleagues',
+                    'location_sharing' => $user->location_sharing ?? true,
+                    'activity_status' => $user->activity_status ?? true,
+                ],
+                'work' => [
+                    'default_work_location' => $user->default_work_location_id,
+                    'auto_check_out' => $user->auto_check_out ?? false,
+                    'overtime_alerts' => $user->overtime_alerts ?? true,
+                ],
+                'app' => [
+                    'language' => $user->language ?? 'id',
+                    'timezone' => $user->timezone ?? 'Asia/Jakarta',
+                    'theme' => $user->theme ?? 'light',
+                ]
+            ];
+            
+            return $this->successResponse('Settings retrieved successfully', [
+                'settings' => $settings,
+                'available_work_locations' => WorkLocation::active()->get(['id', 'name', 'address']),
+                'available_languages' => [
+                    ['code' => 'id', 'name' => 'Bahasa Indonesia'],
+                    ['code' => 'en', 'name' => 'English']
+                ],
+                'available_themes' => ['light', 'dark', 'auto']
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Settings retrieval error: ' . $e->getMessage());
+            return $this->errorResponse('Failed to get settings', 500);
+        }
+    }
+    
+    /**
+     * Update user settings
+     */
+    public function updateSettings(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            $validator = Validator::make($request->all(), [
+                'notifications.email_notifications' => 'sometimes|boolean',
+                'notifications.push_notifications' => 'sometimes|boolean',
+                'notifications.attendance_reminders' => 'sometimes|boolean',
+                'notifications.schedule_updates' => 'sometimes|boolean',
+                'privacy.profile_visibility' => 'sometimes|in:public,colleagues,private',
+                'privacy.location_sharing' => 'sometimes|boolean',
+                'privacy.activity_status' => 'sometimes|boolean',
+                'work.default_work_location' => 'sometimes|nullable|exists:work_locations,id',
+                'work.auto_check_out' => 'sometimes|boolean',
+                'work.overtime_alerts' => 'sometimes|boolean',
+                'app.language' => 'sometimes|in:id,en',
+                'app.timezone' => 'sometimes|string',
+                'app.theme' => 'sometimes|in:light,dark,auto',
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation failed', 422, $validator->errors());
+            }
+            
+            $settings = $request->all();
+            $updateData = [];
+            
+            // Map settings to user fields
+            if (isset($settings['notifications'])) {
+                $updateData = array_merge($updateData, [
+                    'email_notifications' => $settings['notifications']['email_notifications'] ?? $user->email_notifications,
+                    'push_notifications' => $settings['notifications']['push_notifications'] ?? $user->push_notifications,
+                    'attendance_reminders' => $settings['notifications']['attendance_reminders'] ?? $user->attendance_reminders,
+                    'schedule_updates' => $settings['notifications']['schedule_updates'] ?? $user->schedule_updates,
+                ]);
+            }
+            
+            if (isset($settings['privacy'])) {
+                $updateData = array_merge($updateData, [
+                    'profile_visibility' => $settings['privacy']['profile_visibility'] ?? $user->profile_visibility,
+                    'location_sharing' => $settings['privacy']['location_sharing'] ?? $user->location_sharing,
+                    'activity_status' => $settings['privacy']['activity_status'] ?? $user->activity_status,
+                ]);
+            }
+            
+            if (isset($settings['work'])) {
+                $updateData = array_merge($updateData, [
+                    'default_work_location_id' => $settings['work']['default_work_location'] ?? $user->default_work_location_id,
+                    'auto_check_out' => $settings['work']['auto_check_out'] ?? $user->auto_check_out,
+                    'overtime_alerts' => $settings['work']['overtime_alerts'] ?? $user->overtime_alerts,
+                ]);
+            }
+            
+            if (isset($settings['app'])) {
+                $updateData = array_merge($updateData, [
+                    'language' => $settings['app']['language'] ?? $user->language,
+                    'timezone' => $settings['app']['timezone'] ?? $user->timezone,
+                    'theme' => $settings['app']['theme'] ?? $user->theme,
+                ]);
+            }
+            
+            $user->update($updateData);
+            
+            // Log settings update
+            Log::info('Settings updated', [
+                'user_id' => $user->id,
+                'updated_settings' => array_keys($updateData),
+                'ip_address' => $request->ip()
+            ]);
+            
+            return $this->successResponse('Settings updated successfully', [
+                'updated_fields' => array_keys($updateData),
+                'updated_at' => now()->format('Y-m-d H:i:s')
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Settings update error: ' . $e->getMessage());
+            return $this->errorResponse('Failed to update settings', 500);
+        }
     }
 }

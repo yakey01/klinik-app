@@ -37,17 +37,27 @@ class GpsSpoofingDetectionService
             ];
         }
         
-        // TEMPORARY: Return safe values while service is being updated
-        return [
-            'is_spoofed' => false,
-            'risk_level' => 'low', 
-            'risk_score' => 0,
-            'detection_methods' => [],
-            'spoofing_indicators' => [],
-            'action_taken' => 'none',
-            'message' => 'GPS spoofing detection service is being updated',
-        ];
+        // Perform actual GPS spoofing detection
+        $detectionResult = $this->performDetection($user, $locationData, $attendanceType);
         
+        // Log the detection for monitoring
+        Log::info('GPS spoofing detection performed', [
+            'user_id' => $user->id,
+            'attendance_type' => $attendanceType,
+            'is_spoofed' => $detectionResult['is_spoofed'],
+            'risk_level' => $detectionResult['risk_level'],
+            'risk_score' => $detectionResult['risk_score'],
+            'detection_methods' => $detectionResult['detection_methods'],
+        ]);
+        
+        return $detectionResult;
+    }
+    
+    /**
+     * Perform GPS spoofing detection
+     */
+    private function performDetection(User $user, array $locationData, string $attendanceType): array
+    {
         // Check whitelist first
         if ($this->isWhitelisted($user, $locationData)) {
             return [
@@ -104,8 +114,18 @@ class GpsSpoofingDetectionService
             'action_taken' => 'none',
         ];
 
-        $enabledMethods = $this->settings->getEnabledMethods();
-        $detectionScores = $this->settings->getDetectionScores();
+        $enabledMethods = $this->config->enabled_methods ?? [
+            'mock_location', 'fake_gps_app', 'developer_mode', 
+            'impossible_travel', 'coordinate_anomaly', 'device_integrity'
+        ];
+        $detectionScores = $this->config->detection_scores ?? [
+            'mock_location' => 30,
+            'fake_gps_app' => 25,
+            'developer_mode' => 15,
+            'impossible_travel' => 40,
+            'coordinate_anomaly' => 20,
+            'device_integrity' => 35,
+        ];
         
         // 1. Mock Location Detection
         if (in_array('mock_location', $enabledMethods)) {
@@ -167,10 +187,10 @@ class GpsSpoofingDetectionService
             }
         }
 
-        // Determine risk level and spoofing status using settings
-        $results['risk_level'] = $this->settings->calculateRiskLevel($results['risk_score']);
-        $results['is_spoofed'] = $results['risk_score'] >= $this->settings->flagged_threshold;
-        $results['action_taken'] = $this->settings->determineAction($results['risk_score']);
+        // Determine risk level and spoofing status using config
+        $results['risk_level'] = $this->calculateRiskLevel($results['risk_score']);
+        $results['is_spoofed'] = $results['risk_score'] >= ($this->config->flagged_threshold ?? 70);
+        $results['action_taken'] = $this->determineAction($results['risk_score']);
 
         // Store detection record
         $detection = $this->storeDetection($user, $locationData, $results, $attendanceType);
@@ -197,8 +217,9 @@ class GpsSpoofingDetectionService
             $indicators[] = 'Mock provider detected in location data';
         }
 
-        // Check for suspiciously perfect accuracy using settings
-        if (isset($locationData['accuracy']) && $locationData['accuracy'] <= $this->settings->accuracy_threshold) {
+        // Check for suspiciously perfect accuracy using config
+        $accuracyThreshold = $this->config->accuracy_threshold ?? 5;
+        if (isset($locationData['accuracy']) && $locationData['accuracy'] <= $accuracyThreshold) {
             $detected = true;
             $indicators[] = 'Suspiciously perfect accuracy (' . $locationData['accuracy'] . 'm)';
         }
@@ -223,8 +244,14 @@ class GpsSpoofingDetectionService
         $detected = false;
         $fakeApps = [];
 
-        // Get fake GPS apps from settings database
-        $knownFakeApps = $this->settings->fake_gps_apps_database ?? [];
+        // Get fake GPS apps from config database
+        $knownFakeApps = $this->config->fake_gps_apps_database ?? [
+            'com.lexa.fakegps',
+            'com.incorporateapps.fakegps.freeversion',
+            'com.blogspot.newapphorizons.fakegps',
+            'com.teamsrsoft.fakegps',
+            'com.drakulaapps.fakegps',
+        ];
 
         // Check for fake GPS apps in device fingerprint
         if (isset($locationData['device_fingerprint']['installed_apps'])) {
@@ -315,16 +342,18 @@ class GpsSpoofingDetectionService
             // Calculate speed in km/h
             $speedKmh = $timeDiff > 0 ? ($distance / 1000) / ($timeDiff / 3600) : 0;
 
-            // Flag as impossible using settings threshold
-            if ($speedKmh > $this->settings->max_travel_speed_kmh) {
+            // Flag as impossible using config threshold
+            $maxTravelSpeed = $this->config->max_travel_speed_kmh ?? 200;
+            if ($speedKmh > $maxTravelSpeed) {
                 $detected = true;
-                $indicator = "Impossible travel: {$speedKmh} km/h over {$distance}m in {$timeDiff}s (max allowed: {$this->settings->max_travel_speed_kmh} km/h)";
+                $indicator = "Impossible travel: {$speedKmh} km/h over {$distance}m in {$timeDiff}s (max allowed: {$maxTravelSpeed} km/h)";
             }
             
             // Also check minimum time between locations
-            if ($timeDiff < $this->settings->min_time_between_locations) {
+            $minTimeBetween = $this->config->min_time_between_locations ?? 60;
+            if ($timeDiff < $minTimeBetween) {
                 $detected = true;
-                $indicator = "Too frequent location updates: {$timeDiff}s (min required: {$this->settings->min_time_between_locations}s)";
+                $indicator = "Too frequent location updates: {$timeDiff}s (min required: {$minTimeBetween}s)";
             }
 
             // Store travel analysis
@@ -427,22 +456,27 @@ class GpsSpoofingDetectionService
     }
 
     /**
-     * Check if alert should be sent based on settings
+     * Check if alert should be sent based on config
      */
     private function shouldSendAlert(array $results): bool
     {
         // Check if notifications are enabled
-        if (!$this->settings->send_email_alerts && !$this->settings->send_realtime_alerts) {
+        $sendEmailAlerts = $this->config->send_email_alerts ?? true;
+        $sendRealtimeAlerts = $this->config->send_realtime_alerts ?? true;
+        
+        if (!$sendEmailAlerts && !$sendRealtimeAlerts) {
             return false;
         }
         
         // If only critical alerts are enabled
-        if ($this->settings->send_critical_only) {
+        $sendCriticalOnly = $this->config->send_critical_only ?? false;
+        if ($sendCriticalOnly) {
             return $results['risk_level'] === 'critical';
         }
         
         // Send alerts for flagged and above
-        return $results['risk_score'] >= $this->settings->warning_threshold;
+        $warningThreshold = $this->config->warning_threshold ?? 50;
+        return $results['risk_score'] >= $warningThreshold;
     }
 
     /**
@@ -504,18 +538,21 @@ class GpsSpoofingDetectionService
 
         try {
             // Check if email alerts are enabled
-            if ($this->settings->send_email_alerts) {
-                // Get recipients from settings or fallback to admin users
-                $recipients = $this->settings->notification_recipients ?? [];
+            $sendEmailAlerts = $this->config->send_email_alerts ?? true;
+            if ($sendEmailAlerts) {
+                // Get recipients from config or fallback to admin users
+                $recipients = $this->config->notification_recipients ?? [];
                 
                 if (empty($recipients)) {
                     // Fallback to admin users
-                    $admins = User::whereHas('role', function($query) {
+                    $admins = User::whereHas('roles', function($query) {
                         $query->where('name', 'admin');
                     })->get();
                     
                     // Send email and database notifications
-                    Notification::send($admins, new GpsSpoofingAlert($detection));
+                    if ($admins->count() > 0) {
+                        Notification::send($admins, new GpsSpoofingAlert($detection));
+                    }
                 } else {
                     // Send to specific recipients
                     foreach ($recipients as $email) {
@@ -526,24 +563,30 @@ class GpsSpoofingDetectionService
             }
 
             // Send Filament notification for real-time alerts
-            if ($this->settings->send_realtime_alerts) {
-                GpsSpoofingAlert::sendFilamentNotification($detection);
+            $sendRealtimeAlerts = $this->config->send_realtime_alerts ?? true;
+            if ($sendRealtimeAlerts) {
+                // This would send to Filament admin panel
+                Log::info('Real-time GPS spoofing alert', [
+                    'detection_id' => $detection->id,
+                    'user_id' => $detection->user_id,
+                    'risk_level' => $detection->risk_level,
+                ]);
             }
 
             Log::info('GPS spoofing alert sent', [
                 'detection_id' => $detection->id,
                 'user_id' => $detection->user_id,
                 'risk_level' => $detection->risk_level,
-                'email_enabled' => $this->settings->send_email_alerts,
-                'realtime_enabled' => $this->settings->send_realtime_alerts,
+                'email_enabled' => $sendEmailAlerts,
+                'realtime_enabled' => $sendRealtimeAlerts,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send GPS spoofing alert', [
                 'detection_id' => $detection->id,
                 'error' => $e->getMessage(),
-                'settings_enabled' => [
-                    'email' => $this->settings->send_email_alerts,
-                    'realtime' => $this->settings->send_realtime_alerts,
+                'config_enabled' => [
+                    'email' => $this->config->send_email_alerts ?? true,
+                    'realtime' => $this->config->send_realtime_alerts ?? true,
                 ],
             ]);
         }
@@ -581,11 +624,12 @@ class GpsSpoofingDetectionService
      */
     public function isUserBlocked(User $user): bool
     {
-        if (!$this->settings->auto_block_enabled) {
+        $autoBlockEnabled = $this->config->auto_block_enabled ?? false;
+        if (!$autoBlockEnabled) {
             return false;
         }
         
-        $blockDuration = $this->settings->block_duration_hours;
+        $blockDuration = $this->config->block_duration_hours ?? 24;
         
         return GpsSpoofingDetection::where('user_id', $user->id)
             ->where('is_blocked', true)
@@ -594,11 +638,11 @@ class GpsSpoofingDetectionService
     }
     
     /**
-     * Get current settings
+     * Get current config
      */
-    public function getSettings(): GpsSpoofingSetting
+    public function getConfig(): ?GpsSpoofingConfig
     {
-        return $this->settings;
+        return $this->config;
     }
     
     /**
@@ -607,6 +651,46 @@ class GpsSpoofingDetectionService
     public function refreshConfig(): void
     {
         $this->config = GpsSpoofingConfig::getActiveConfig();
+    }
+    
+    /**
+     * Calculate risk level based on score
+     */
+    private function calculateRiskLevel(int $score): string
+    {
+        $criticalThreshold = $this->config->critical_threshold ?? 80;
+        $highThreshold = $this->config->high_threshold ?? 60;
+        $mediumThreshold = $this->config->medium_threshold ?? 40;
+        
+        if ($score >= $criticalThreshold) {
+            return 'critical';
+        } elseif ($score >= $highThreshold) {
+            return 'high';
+        } elseif ($score >= $mediumThreshold) {
+            return 'medium';
+        } else {
+            return 'low';
+        }
+    }
+    
+    /**
+     * Determine action based on risk score
+     */
+    private function determineAction(int $score): string
+    {
+        $blockThreshold = $this->config->block_threshold ?? 90;
+        $flagThreshold = $this->config->flagged_threshold ?? 70;
+        $warnThreshold = $this->config->warning_threshold ?? 50;
+        
+        if ($score >= $blockThreshold) {
+            return 'blocked';
+        } elseif ($score >= $flagThreshold) {
+            return 'flagged';
+        } elseif ($score >= $warnThreshold) {
+            return 'warning';
+        } else {
+            return 'none';
+        }
     }
     
     // Helper methods for backward compatibility
@@ -662,19 +746,4 @@ class GpsSpoofingDetectionService
         return false;
     }
     
-    private function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
-    {
-        $earthRadius = 6371000; // meters
-        
-        $latDelta = deg2rad($lat2 - $lat1);
-        $lonDelta = deg2rad($lon2 - $lon1);
-        
-        $a = sin($latDelta / 2) * sin($latDelta / 2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($lonDelta / 2) * sin($lonDelta / 2);
-        
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        
-        return $earthRadius * $c;
-    }
 }

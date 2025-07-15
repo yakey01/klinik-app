@@ -12,6 +12,13 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class ClinicStatsWidget extends BaseWidget
 {
+    protected static ?int $sort = 3;
+    
+    public static function canView(): bool
+    {
+        return auth()->user()?->hasRole(['super-admin', 'admin']) ?? false;
+    }
+    
     protected function getStats(): array
     {
         $totalPatients = Pasien::count();
@@ -57,5 +64,10 @@ class ClinicStatsWidget extends BaseWidget
                 ->descriptionIcon($netIncome >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->color($netIncome >= 0 ? 'success' : 'danger'),
         ];
+    }
+    
+    protected function getColumns(): int
+    {
+        return 3;
     }
 }

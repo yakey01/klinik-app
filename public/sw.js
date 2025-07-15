@@ -1,10 +1,13 @@
-// Service Worker for Dokterku Paramedis PWA
-const CACHE_NAME = 'dokterku-paramedis-v1.0.0';
+// Service Worker for Dokterku PWA (All Roles)
+const CACHE_NAME = 'dokterku-v2.0.0';
 const STATIC_CACHE_URLS = [
     '/paramedis',
+    '/nonparamedis',
     '/manifest.json',
     '/images/icon-192x192.svg',
-    '/css/app.css'
+    '/css/app.css',
+    '/api/v2/system/health',
+    '/api/v2/locations/work-locations'
 ];
 
 // Install event - cache static assets
@@ -77,6 +80,10 @@ self.addEventListener('fetch', event => {
                         
                         // Return offline page for navigation requests
                         if (event.request.mode === 'navigate') {
+                            // Return appropriate offline page based on URL
+                            if (event.request.url.includes('/nonparamedis')) {
+                                return caches.match('/nonparamedis');
+                            }
                             return caches.match('/paramedis');
                         }
                         
@@ -116,7 +123,72 @@ self.addEventListener('notificationclick', event => {
 
     if (event.action === 'view') {
         event.waitUntil(
-            clients.openWindow('/paramedis')
+            clients.openWindow(event.notification.data.url || '/paramedis')
         );
     }
 });
+
+// Background sync for offline attendance
+self.addEventListener('sync', event => {
+    if (event.tag === 'attendance-sync') {
+        event.waitUntil(syncOfflineAttendance());
+    }
+});
+
+// Sync offline attendance data
+async function syncOfflineAttendance() {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(['pendingAttendance'], 'readonly');
+        const store = tx.objectStore('pendingAttendance');
+        const pendingItems = await store.getAll();
+        
+        for (const item of pendingItems) {
+            try {
+                const response = await fetch(item.url, {
+                    method: item.method,
+                    headers: item.headers,
+                    body: JSON.stringify(item.data)
+                });
+                
+                if (response.ok) {
+                    // Remove from pending items
+                    const deleteTx = db.transaction(['pendingAttendance'], 'readwrite');
+                    const deleteStore = deleteTx.objectStore('pendingAttendance');
+                    await deleteStore.delete(item.id);
+                    console.log('Synced offline attendance:', item.id);
+                }
+            } catch (error) {
+                console.error('Failed to sync attendance:', error);
+            }
+        }
+    } catch (error) {
+        console.error('Background sync failed:', error);
+    }
+}
+
+// Open IndexedDB
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open('DokterKuDB', 1);
+        
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        
+        request.onupgradeneeded = event => {
+            const db = event.target.result;
+            
+            // Create object stores
+            if (!db.objectStoreNames.contains('pendingAttendance')) {
+                const store = db.createObjectStore('pendingAttendance', { keyPath: 'id' });
+                store.createIndex('timestamp', 'timestamp');
+                store.createIndex('userId', 'userId');
+            }
+            
+            if (!db.objectStoreNames.contains('cachedData')) {
+                const store = db.createObjectStore('cachedData', { keyPath: 'key' });
+                store.createIndex('timestamp', 'timestamp');
+            }
+        };
+    });
+}

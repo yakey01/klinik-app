@@ -440,3 +440,51 @@
         background-color: #6b7280;
     }
 }
+
+/* Doctor & Employee Card Management Button Positioning */
+.fi-ta-content-grid .fi-ta-grid-item {
+    position: relative;
+    overflow: hidden;
+}
+
+.fi-ta-content-grid .fi-ta-grid-item .fi-ta-actions {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    width: auto;
+}
+
+.fi-ta-content-grid .fi-ta-grid-item .fi-ta-actions .fi-dropdown-trigger {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.15s ease-in-out;
+    white-space: nowrap;
+}
+
+.fi-ta-content-grid .fi-ta-grid-item .fi-ta-actions .fi-dropdown-trigger:hover {
+    background: #2563eb;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Management button container spacing */
+.management-button-container {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure card content respects fixed height */
+.fi-ta-content-grid .fi-ta-grid-item > div {
+    height: 288px !important;
+    overflow: hidden;
+}
+

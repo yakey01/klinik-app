@@ -184,6 +184,34 @@ class UserSession extends Model
     }
 
     /**
+     * Extend session expiration
+     */
+    public function extendExpiration(int $minutes = null): void
+    {
+        if (!$minutes) {
+            $config = config("api.token_types.{$this->client_type}", config('api.token_types.web_app'));
+            $minutes = $config['expires_in'];
+        }
+
+        $this->update([
+            'expires_at' => Carbon::now()->addMinutes($minutes),
+            'last_activity_at' => now(),
+        ]);
+    }
+
+    /**
+     * Check if session is about to expire
+     */
+    public function isAboutToExpire(int $thresholdMinutes = 60): bool
+    {
+        if (!$this->expires_at) {
+            return false;
+        }
+
+        return $this->expires_at->diffInMinutes(now()) <= $thresholdMinutes;
+    }
+
+    /**
      * Check if session is expired
      */
     public function isExpired(): bool

@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateShiftTemplate extends CreateRecord
 {
     protected static string $resource = ShiftTemplateResource::class;
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

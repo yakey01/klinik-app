@@ -55,20 +55,25 @@ class AdminUserSeeder extends Seeder
         // Assign all permissions to admin role
         $spatieAdmin->givePermissionTo($adminPermissions);
 
-        // Create admin user
-        $admin = \App\Models\User::firstOrCreate([
-            'email' => 'admin@dokterku.com'
-        ], [
-            'name' => 'Admin User',
-            'password' => bcrypt('password'),
-            'is_active' => true,
-            'role_id' => $adminRole->id
-        ]);
+        // Create admin user - only run in development
+        if (app()->environment(['local', 'development'])) {
+            $admin = \App\Models\User::firstOrCreate([
+                'email' => 'admin@dokterku.com'
+            ], [
+                'name' => 'Admin User',
+                'password' => bcrypt(env('DEFAULT_ADMIN_PASSWORD', 'dokterku_admin_2024')),
+                'is_active' => true,
+                'role_id' => $adminRole->id
+            ]);
 
-        // Assign Spatie role to admin user
-        $admin->assignRole('admin');
+            // Assign Spatie role to admin user
+            $admin->assignRole('admin');
 
-        $this->command->info('Admin user created: ' . $admin->email);
-        $this->command->info('Admin can access admin panel: ' . ($admin->canAccessPanel(filament('admin')->getPanel()) ? 'YES' : 'NO'));
+            $this->command->info('Admin user created: ' . $admin->email);
+            $this->command->info('Admin can access admin panel: ' . ($admin->canAccessPanel(filament('admin')->getPanel()) ? 'YES' : 'NO'));
+        } else {
+            $this->command->info('Admin user creation skipped in production environment');
+            $this->command->info('Please create admin user manually with: php artisan make:admin-user');
+        }
     }
 }

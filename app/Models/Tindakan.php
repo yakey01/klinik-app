@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\Cacheable;
+use App\Traits\LogsActivity;
 
 class Tindakan extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, Cacheable, LogsActivity;
 
     protected $table = 'tindakan';
 
@@ -45,17 +47,23 @@ class Tindakan extends Model
 
     public function pasien(): BelongsTo
     {
-        return $this->belongsTo(Pasien::class);
+        return $this->cacheRelation('pasien', function() {
+            return $this->belongsTo(Pasien::class);
+        });
     }
 
     public function jenisTindakan(): BelongsTo
     {
-        return $this->belongsTo(JenisTindakan::class);
+        return $this->cacheRelation('jenisTindakan', function() {
+            return $this->belongsTo(JenisTindakan::class);
+        });
     }
 
     public function dokter(): BelongsTo
     {
-        return $this->belongsTo(Dokter::class, 'dokter_id');
+        return $this->cacheRelation('dokter', function() {
+            return $this->belongsTo(Dokter::class, 'dokter_id');
+        });
     }
 
     public function paramedis(): BelongsTo
@@ -122,5 +130,65 @@ class Tindakan extends Model
     public function scopeDitolak($query)
     {
         return $query->where('status_validasi', 'ditolak');
+    }
+    
+    // Cache commonly used statistics
+    public static function getCachedStats(): array
+    {
+        return static::cacheStatistics('tindakan_stats', function() {
+            return [
+                'total_count' => static::count(),
+                'pending_count' => static::where('status_validasi', 'pending')->count(),
+                'approved_count' => static::where('status_validasi', 'disetujui')->count(),
+                'rejected_count' => static::where('status_validasi', 'ditolak')->count(),
+                'today_count' => static::whereDate('tanggal_tindakan', today())->count(),
+                'this_month_count' => static::whereMonth('tanggal_tindakan', now()->month)
+                    ->whereYear('tanggal_tindakan', now()->year)
+                    ->count(),
+                'total_revenue' => static::where('status_validasi', 'disetujui')
+                    ->sum('tarif') ?? 0,
+                'avg_tarif' => static::where('status_validasi', 'disetujui')
+                    ->avg('tarif') ?? 0,
+            ];
+        });
+    }
+    
+    // Cache total jasa for this tindakan
+    public function getTotalJasaAttribute(): float
+    {
+        return $this->cacheAttribute('total_jasa', function() {
+            return ($this->jasa_dokter ?? 0) + 
+                   ($this->jasa_paramedis ?? 0) + 
+                   ($this->jasa_non_paramedis ?? 0);
+        });
+    }
+    
+    // Cache formatted status
+    public function getStatusFormattedAttribute(): string
+    {
+        return $this->cacheAttribute('status_formatted', function() {
+            return match($this->status_validasi) {
+                'pending' => 'Menunggu Validasi',
+                'disetujui' => 'Disetujui',
+                'ditolak' => 'Ditolak',
+                default => ucfirst($this->status_validasi)
+            };
+        });
+    }
+    
+    // Cache jaspel count for this tindakan
+    public function getJaspelCountAttribute(): int
+    {
+        return $this->cacheCount('jaspel_count', function() {
+            return $this->jaspel()->count();
+        });
+    }
+    
+    // Cache pendapatan count for this tindakan
+    public function getPendapatanCountAttribute(): int
+    {
+        return $this->cacheCount('pendapatan_count', function() {
+            return $this->pendapatan()->count();
+        });
     }
 }

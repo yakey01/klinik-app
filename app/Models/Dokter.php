@@ -5,12 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use App\Traits\Cacheable;
+use App\Traits\LogsActivity;
 
 class Dokter extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Cacheable, LogsActivity;
 
     protected $fillable = [
         'user_id',
@@ -59,6 +62,33 @@ class Dokter extends Model
     public function passwordResetBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'password_reset_by');
+    }
+    
+    // Add tindakan relationship
+    public function tindakan(): HasMany
+    {
+        return $this->hasMany(Tindakan::class);
+    }
+
+    // Cached relationship accessors
+    public function getCachedUserAttribute()
+    {
+        return $this->cacheRelation('user');
+    }
+
+    public function getCachedInputByAttribute()
+    {
+        return $this->cacheRelation('inputBy');
+    }
+
+    public function getCachedPasswordResetByAttribute()
+    {
+        return $this->cacheRelation('passwordResetBy');
+    }
+
+    public function getCachedTindakanAttribute()
+    {
+        return $this->cacheRelation('tindakan');
     }
 
     // Scopes
@@ -152,7 +182,9 @@ class Dokter extends Model
 
     public function getAgeAttribute(): ?int
     {
-        return $this->tanggal_lahir ? $this->tanggal_lahir->age : null;
+        return $this->cacheAttribute('age', function() {
+            return $this->tanggal_lahir ? $this->tanggal_lahir->age : null;
+        });
     }
 
     /**
@@ -283,6 +315,74 @@ class Dokter extends Model
             if (empty($model->nik)) {
                 $model->nik = static::generateNik();
             }
+        });
+    }
+    
+    // Cache commonly used statistics
+    public static function getCachedStats(): array
+    {
+        return static::cacheStatistics('dokter_stats', function() {
+            return [
+                'total_count' => static::count(),
+                'active_count' => static::where('aktif', true)->count(),
+                'inactive_count' => static::where('aktif', false)->count(),
+                'with_account_count' => static::whereNotNull('username')
+                    ->whereNotNull('password')
+                    ->count(),
+                'umum_count' => static::where('jabatan', 'dokter_umum')->count(),
+                'gigi_count' => static::where('jabatan', 'dokter_gigi')->count(),
+                'spesialis_count' => static::where('jabatan', 'dokter_spesialis')->count(),
+                'active_account_count' => static::where('status_akun', 'Aktif')
+                    ->whereNotNull('username')
+                    ->count(),
+            ];
+        });
+    }
+    
+    // Cache tindakan count for this dokter
+    public function getTindakanCountAttribute(): int
+    {
+        return $this->cacheCount('tindakan_count', function() {
+            return $this->tindakan()->count();
+        });
+    }
+    
+    // Cache approved tindakan count
+    public function getApprovedTindakanCountAttribute(): int
+    {
+        return $this->cacheCount('approved_tindakan_count', function() {
+            return $this->tindakan()->where('status_validasi', 'disetujui')->count();
+        });
+    }
+    
+    // Cache total revenue from tindakan
+    public function getTotalRevenueAttribute(): float
+    {
+        return $this->cacheAttribute('total_revenue', function() {
+            return $this->tindakan()
+                ->where('status_validasi', 'disetujui')
+                ->sum('jasa_dokter') ?? 0;
+        });
+    }
+    
+    // Cache this month's tindakan count
+    public function getThisMonthTindakanCountAttribute(): int
+    {
+        return $this->cacheCount('this_month_tindakan_count', function() {
+            return $this->tindakan()
+                ->whereMonth('tanggal_tindakan', now()->month)
+                ->whereYear('tanggal_tindakan', now()->year)
+                ->count();
+        });
+    }
+    
+    // Cache average jasa dokter
+    public function getAvgJasaDokterAttribute(): float
+    {
+        return $this->cacheAttribute('avg_jasa_dokter', function() {
+            return $this->tindakan()
+                ->where('status_validasi', 'disetujui')
+                ->avg('jasa_dokter') ?? 0;
         });
     }
 }

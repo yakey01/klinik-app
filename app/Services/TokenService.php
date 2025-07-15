@@ -415,13 +415,44 @@ class TokenService
     /**
      * Check if token needs refresh
      */
-    public function needsRefresh(PersonalAccessToken $accessToken, int $refreshThresholdMinutes = 30): bool
+    public function needsRefresh(PersonalAccessToken $accessToken, int $refreshThresholdMinutes = 60): bool
     {
         if (!$accessToken->expires_at) {
             return false;
         }
 
         return $accessToken->expires_at->diffInMinutes(now()) <= $refreshThresholdMinutes;
+    }
+
+    /**
+     * Auto-refresh token if needed
+     */
+    public function autoRefreshIfNeeded(PersonalAccessToken $accessToken, ?UserDevice $device = null): ?array
+    {
+        if (!$this->needsRefresh($accessToken)) {
+            return null;
+        }
+
+        // Find associated refresh token
+        $refreshToken = RefreshToken::where('user_id', $accessToken->tokenable_id)
+            ->where('user_device_id', $device?->id)
+            ->where('is_revoked', false)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$refreshToken) {
+            return null;
+        }
+
+        try {
+            return $this->refreshAccessToken($refreshToken->token, $device);
+        } catch (\Exception $e) {
+            Log::warning('Auto-refresh failed', [
+                'user_id' => $accessToken->tokenable_id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**

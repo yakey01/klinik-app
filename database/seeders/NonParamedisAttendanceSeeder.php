@@ -16,6 +16,11 @@ class NonParamedisAttendanceSeeder extends Seeder
      */
     public function run(): void
     {
+        // Only run in development environment
+        if (!app()->environment(['local', 'development'])) {
+            $this->command->info('NonParamedisAttendance seeder skipped in production environment');
+            return;
+        }
         // Get all active non-paramedis users
         $nonParamedisUsers = User::whereHas('role', function ($query) {
             $query->where('name', 'non_paramedis');

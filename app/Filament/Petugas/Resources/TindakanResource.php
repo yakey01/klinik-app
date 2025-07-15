@@ -13,20 +13,32 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use App\Services\BulkOperationService;
+use App\Services\ExportImportService;
+use App\Services\ValidationWorkflowService;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
+use Exception;
 
 class TindakanResource extends Resource
 {
     protected static ?string $model = Tindakan::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-heart';
+    protected static ?string $navigationIcon = 'heroicon-o-hand-raised';
 
-    protected static ?string $navigationGroup = 'Input Data';
+    protected static ?string $navigationGroup = '🏥 Tindakan Medis';
 
     protected static ?string $modelLabel = 'Tindakan';
 
     protected static ?string $pluralModelLabel = 'Input Tindakan';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -37,9 +49,18 @@ class TindakanResource extends Resource
                         Forms\Components\Select::make('jenis_tindakan_id')
                             ->label('Jenis Tindakan')
                             ->required()
-                            ->options(JenisTindakan::where('is_active', true)->orderBy('nama')->pluck('nama', 'id'))
+                            ->relationship('jenisTindakan', 'nama', fn (Builder $query) => $query->where('is_active', true)->orderBy('nama'))
                             ->searchable()
+                            ->preload(false)
                             ->placeholder('Pilih jenis tindakan')
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return JenisTindakan::where('nama', 'like', "%{$search}%")
+                                    ->where('is_active', true)
+                                    ->orderBy('nama')
+                                    ->limit(50)
+                                    ->pluck('nama', 'id')
+                                    ->toArray();
+                            })
                             ->reactive()
                             ->afterStateUpdated(function ($state, callable $set) {
                                 if ($state) {
@@ -70,9 +91,24 @@ class TindakanResource extends Resource
                         Forms\Components\Select::make('pasien_id')
                             ->label('Pasien')
                             ->required()
-                            ->options(Pasien::orderBy('nama')->get()->mapWithKeys(fn (Pasien $pasien) => [$pasien->id => "{$pasien->no_rekam_medis} - {$pasien->nama}"]))
+                            ->relationship('pasien', 'nama')
                             ->searchable()
-                            ->placeholder('Pilih pasien'),
+                            ->preload(false)
+                            ->placeholder('Pilih pasien')
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return Pasien::where('nama', 'like', "%{$search}%")
+                                    ->orWhere('no_rekam_medis', 'like', "%{$search}%")
+                                    ->where('input_by', auth()->id())
+                                    ->orderBy('nama')
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(fn (Pasien $pasien) => [$pasien->id => "{$pasien->no_rekam_medis} - {$pasien->nama}"])
+                                    ->toArray();
+                            })
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $pasien = Pasien::find($value);
+                                return $pasien ? "{$pasien->no_rekam_medis} - {$pasien->nama}" : null;
+                            }),
 
                         Forms\Components\DateTimePicker::make('tanggal_tindakan')
                             ->label('Tanggal Tindakan')
@@ -82,25 +118,34 @@ class TindakanResource extends Resource
 
                         Forms\Components\Select::make('shift_id')
                             ->label('Shift')
-                            ->options(\App\Models\Shift::where('is_active', true)
-                                ->whereIn('name', ['Pagi', 'Sore'])
-                                ->orderBy('start_time')
-                                ->pluck('name', 'id'))
+                            ->relationship('shift', 'name', fn (Builder $query) => $query->where('is_active', true)->whereIn('name', ['Pagi', 'Sore'])->orderBy('start_time'))
                             ->required()
                             ->native(false)
+                            ->preload()
                             ->placeholder('Pilih shift (Pagi/Sore)'),
 
                         Forms\Components\Select::make('dokter_id')
                             ->label('Dokter Pelaksana')
-                            ->options(\App\Models\Dokter::where('aktif', true)
-                                ->orderBy('nama_lengkap')
-                                ->get()
-                                ->mapWithKeys(fn ($dokter) => [
-                                    $dokter->id => $dokter->nama_lengkap.
-                                    ($dokter->spesialisasi ? ' ('.$dokter->spesialisasi.')' : ''),
-                                ]))
+                            ->relationship('dokter', 'nama_lengkap')
                             ->searchable()
+                            ->preload(false)
                             ->placeholder('Pilih dokter (opsional)')
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return \App\Models\Dokter::where('nama_lengkap', 'like', "%{$search}%")
+                                    ->where('aktif', true)
+                                    ->orderBy('nama_lengkap')
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(fn ($dokter) => [
+                                        $dokter->id => $dokter->nama_lengkap.
+                                        ($dokter->spesialisasi ? ' ('.$dokter->spesialisasi.')' : ''),
+                                    ])
+                                    ->toArray();
+                            })
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $dokter = \App\Models\Dokter::find($value);
+                                return $dokter ? $dokter->nama_lengkap . ($dokter->spesialisasi ? ' ('.$dokter->spesialisasi.')' : '') : null;
+                            })
                             ->reactive()
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 $calculatedJaspel = $get('calculated_jaspel') ?? 0;
@@ -122,16 +167,27 @@ class TindakanResource extends Resource
 
                         Forms\Components\Select::make('paramedis_id')
                             ->label('Paramedis Pelaksana')
-                            ->options(\App\Models\Pegawai::where('jenis_pegawai', 'Paramedis')
-                                ->where('aktif', true)
-                                ->orderBy('nama_lengkap')
-                                ->get()
-                                ->mapWithKeys(fn ($pegawai) => [
-                                    $pegawai->id => $pegawai->nama_lengkap.
-                                    ($pegawai->jabatan ? ' ('.$pegawai->jabatan.')' : ''),
-                                ]))
+                            ->relationship('paramedis', 'nama_lengkap')
                             ->searchable()
+                            ->preload(false)
                             ->placeholder('Pilih paramedis (opsional)')
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return \App\Models\Pegawai::where('nama_lengkap', 'like', "%{$search}%")
+                                    ->where('jenis_pegawai', 'Paramedis')
+                                    ->where('aktif', true)
+                                    ->orderBy('nama_lengkap')
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(fn ($pegawai) => [
+                                        $pegawai->id => $pegawai->nama_lengkap.
+                                        ($pegawai->jabatan ? ' ('.$pegawai->jabatan.')' : ''),
+                                    ])
+                                    ->toArray();
+                            })
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $pegawai = \App\Models\Pegawai::find($value);
+                                return $pegawai ? $pegawai->nama_lengkap . ($pegawai->jabatan ? ' ('.$pegawai->jabatan.')' : '') : null;
+                            })
                             ->reactive()
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 $calculatedJaspel = $get('calculated_jaspel') ?? 0;
@@ -150,16 +206,27 @@ class TindakanResource extends Resource
 
                         Forms\Components\Select::make('non_paramedis_id')
                             ->label('Non-Paramedis Pelaksana')
-                            ->options(\App\Models\Pegawai::where('jenis_pegawai', 'Non-Paramedis')
-                                ->where('aktif', true)
-                                ->orderBy('nama_lengkap')
-                                ->get()
-                                ->mapWithKeys(fn ($pegawai) => [
-                                    $pegawai->id => $pegawai->nama_lengkap.
-                                    ($pegawai->jabatan ? ' ('.$pegawai->jabatan.')' : ''),
-                                ]))
+                            ->relationship('nonParamedis', 'nama_lengkap')
                             ->searchable()
-                            ->placeholder('Pilih non-paramedis (opsional)'),
+                            ->preload(false)
+                            ->placeholder('Pilih non-paramedis (opsional)')
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return \App\Models\Pegawai::where('nama_lengkap', 'like', "%{$search}%")
+                                    ->where('jenis_pegawai', 'Non-Paramedis')
+                                    ->where('aktif', true)
+                                    ->orderBy('nama_lengkap')
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(fn ($pegawai) => [
+                                        $pegawai->id => $pegawai->nama_lengkap.
+                                        ($pegawai->jabatan ? ' ('.$pegawai->jabatan.')' : ''),
+                                    ])
+                                    ->toArray();
+                            })
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $pegawai = \App\Models\Pegawai::find($value);
+                                return $pegawai ? $pegawai->nama_lengkap . ($pegawai->jabatan ? ' ('.$pegawai->jabatan.')' : '') : null;
+                            }),
 
                         Forms\Components\TextInput::make('tarif')
                             ->label('Tarif (Rp)')
@@ -336,16 +403,404 @@ class TindakanResource extends Resource
                     ->options(\App\Models\Dokter::where('aktif', true)->orderBy('nama_lengkap')->pluck('nama_lengkap', 'id')),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn (Tindakan $record): bool => $record->status === 'pending'),
-                Tables\Actions\DeleteAction::make()
-                    ->visible(fn (Tindakan $record): bool => $record->status === 'pending'),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('👁️ Lihat')
+                        ->color('info'),
+                    
+                    Tables\Actions\EditAction::make()
+                        ->label('✏️ Edit')
+                        ->color('warning')
+                        ->visible(fn (Tindakan $record): bool => $record->status === 'pending' && $record->status_validasi !== 'approved'),
+                    
+                    Tables\Actions\DeleteAction::make()
+                        ->label('🗑️ Hapus')
+                        ->color('danger')
+                        ->visible(fn (Tindakan $record): bool => $record->status === 'pending' && $record->status_validasi !== 'approved'),
+                    
+                    // Submit for validation
+                    Tables\Actions\Action::make('submit_validation')
+                        ->label('📤 Ajukan Validasi')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('primary')
+                        ->visible(fn (Tindakan $record): bool => $record->status_validasi === 'pending' && $record->submitted_at === null)
+                        ->requiresConfirmation()
+                        ->modalHeading('📤 Ajukan Validasi Tindakan')
+                        ->modalDescription('Pastikan semua data sudah benar sebelum mengajukan validasi.')
+                        ->modalSubmitActionLabel('Ajukan')
+                        ->action(function (Tindakan $record) {
+                            try {
+                                $validationService = new ValidationWorkflowService(new \App\Services\TelegramService());
+                                $result = $validationService->submitForValidation($record);
+                                
+                                if ($result['auto_approved']) {
+                                    Notification::make()
+                                        ->title('✅ Auto-Approved')
+                                        ->body('Tindakan berhasil disetujui otomatis')
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title('📤 Berhasil Diajukan')
+                                        ->body('Tindakan berhasil diajukan untuk validasi')
+                                        ->success()
+                                        ->send();
+                                }
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Approve action (for supervisors/managers)
+                    Tables\Actions\Action::make('approve')
+                        ->label('✅ Setujui')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn (Tindakan $record): bool => 
+                            $record->status_validasi === 'pending' && 
+                            $record->submitted_at !== null &&
+                            Auth::user()->hasAnyRole(['supervisor', 'manager', 'admin'])
+                        )
+                        ->requiresConfirmation()
+                        ->modalHeading('✅ Setujui Tindakan')
+                        ->modalDescription('Apakah Anda yakin ingin menyetujui tindakan ini?')
+                        ->modalSubmitActionLabel('Setujui')
+                        ->form([
+                            Textarea::make('approval_reason')
+                                ->label('Alasan Persetujuan (Opsional)')
+                                ->placeholder('Masukkan alasan persetujuan...')
+                                ->rows(3),
+                        ])
+                        ->action(function (Tindakan $record, array $data) {
+                            try {
+                                $validationService = new ValidationWorkflowService(new \App\Services\TelegramService());
+                                $result = $validationService->approve($record, [
+                                    'reason' => $data['approval_reason'] ?? 'Approved by ' . Auth::user()->name
+                                ]);
+                                
+                                Notification::make()
+                                    ->title('✅ Berhasil Disetujui')
+                                    ->body('Tindakan berhasil disetujui')
+                                    ->success()
+                                    ->send();
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Reject action (for supervisors/managers)
+                    Tables\Actions\Action::make('reject')
+                        ->label('❌ Tolak')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->visible(fn (Tindakan $record): bool => 
+                            $record->status_validasi === 'pending' && 
+                            $record->submitted_at !== null &&
+                            Auth::user()->hasAnyRole(['supervisor', 'manager', 'admin'])
+                        )
+                        ->requiresConfirmation()
+                        ->modalHeading('❌ Tolak Tindakan')
+                        ->modalDescription('Berikan alasan penolakan yang jelas.')
+                        ->modalSubmitActionLabel('Tolak')
+                        ->form([
+                            Textarea::make('rejection_reason')
+                                ->label('Alasan Penolakan')
+                                ->placeholder('Masukkan alasan penolakan...')
+                                ->required()
+                                ->rows(3),
+                        ])
+                        ->action(function (Tindakan $record, array $data) {
+                            try {
+                                $validationService = new ValidationWorkflowService(new \App\Services\TelegramService());
+                                $result = $validationService->reject($record, $data['rejection_reason']);
+                                
+                                Notification::make()
+                                    ->title('❌ Berhasil Ditolak')
+                                    ->body('Tindakan berhasil ditolak')
+                                    ->success()
+                                    ->send();
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Request revision action (for supervisors/managers)
+                    Tables\Actions\Action::make('request_revision')
+                        ->label('🔄 Minta Revisi')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->visible(fn (Tindakan $record): bool => 
+                            $record->status_validasi === 'pending' && 
+                            $record->submitted_at !== null &&
+                            Auth::user()->hasAnyRole(['supervisor', 'manager', 'admin'])
+                        )
+                        ->requiresConfirmation()
+                        ->modalHeading('🔄 Minta Revisi Tindakan')
+                        ->modalDescription('Berikan catatan revisi yang jelas.')
+                        ->modalSubmitActionLabel('Minta Revisi')
+                        ->form([
+                            Textarea::make('revision_reason')
+                                ->label('Catatan Revisi')
+                                ->placeholder('Masukkan catatan revisi...')
+                                ->required()
+                                ->rows(3),
+                        ])
+                        ->action(function (Tindakan $record, array $data) {
+                            try {
+                                $validationService = new ValidationWorkflowService(new \App\Services\TelegramService());
+                                $result = $validationService->requestRevision($record, $data['revision_reason']);
+                                
+                                Notification::make()
+                                    ->title('🔄 Revisi Diminta')
+                                    ->body('Permintaan revisi berhasil dikirim')
+                                    ->success()
+                                    ->send();
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                ])
+                ->label('⚙️ Aksi')
+                ->icon('heroicon-o-ellipsis-vertical')
+                ->size('sm')
+                ->color('gray')
+                ->button(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn (): bool => Auth::user()->can('delete_any_tindakan')),
+                    
+                    // Export selected treatments
+                    Tables\Actions\BulkAction::make('export_selected')
+                        ->label('📤 Export Terpilih')
+                        ->icon('heroicon-o-arrow-up-tray')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Export Data Tindakan')
+                        ->modalDescription('Export data tindakan yang dipilih ke format file.')
+                        ->modalSubmitActionLabel('Export')
+                        ->form([
+                            Select::make('format')
+                                ->label('Format File')
+                                ->options([
+                                    'xlsx' => 'Excel (.xlsx)',
+                                    'csv' => 'CSV (.csv)',
+                                    'json' => 'JSON (.json)',
+                                ])
+                                ->default('xlsx')
+                                ->required(),
+                            Toggle::make('include_relations')
+                                ->label('Sertakan Data Terkait')
+                                ->helperText('Sertakan data pasien, dokter, dan relasi lainnya')
+                                ->default(true),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            try {
+                                $exportService = new ExportImportService();
+                                $ids = $records->pluck('id')->toArray();
+                                
+                                // Create temporary filtered export
+                                $result = $exportService->exportData(
+                                    Tindakan::class,
+                                    [
+                                        'format' => $data['format'],
+                                        'include_relations' => $data['include_relations'],
+                                        'filters' => ['id' => $ids]
+                                    ]
+                                );
+                                
+                                // Trigger download
+                                return response()->download(
+                                    storage_path('app/' . $result['file_path']),
+                                    $result['file_name']
+                                );
+                                
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Export Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Bulk update status
+                    Tables\Actions\BulkAction::make('bulk_update_status')
+                        ->label('🔄 Update Status')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Update Status Tindakan')
+                        ->modalDescription('Update status untuk tindakan yang dipilih.')
+                        ->modalSubmitActionLabel('Update')
+                        ->form([
+                            Select::make('status')
+                                ->label('Status Tindakan')
+                                ->options([
+                                    'pending' => 'Menunggu',
+                                    'selesai' => 'Selesai',
+                                    'batal' => 'Batal',
+                                ])
+                                ->nullable(),
+                            Select::make('status_validasi')
+                                ->label('Status Validasi')
+                                ->options([
+                                    'pending' => 'Menunggu Validasi',
+                                    'approved' => 'Disetujui',
+                                    'rejected' => 'Ditolak',
+                                ])
+                                ->nullable(),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            try {
+                                $updateData = array_filter($data);
+                                if (empty($updateData)) {
+                                    Notification::make()
+                                        ->title('⚠️ Tidak Ada Data')
+                                        ->body('Pilih minimal satu field untuk diupdate.')
+                                        ->warning()
+                                        ->send();
+                                    return;
+                                }
+                                
+                                $bulkService = new BulkOperationService();
+                                $updates = $records->map(function ($record) use ($updateData) {
+                                    return array_merge(['id' => $record->id], $updateData);
+                                })->toArray();
+                                
+                                $result = $bulkService->bulkUpdate(
+                                    Tindakan::class,
+                                    $updates,
+                                    'id',
+                                    ['validate' => false]
+                                );
+                                
+                                Notification::make()
+                                    ->title('✅ Update Berhasil')
+                                    ->body("Berhasil update {$result['updated']} tindakan.")
+                                    ->success()
+                                    ->send();
+                                    
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Update Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Bulk assign to user
+                    Tables\Actions\BulkAction::make('bulk_assign')
+                        ->label('👤 Assign ke User')
+                        ->icon('heroicon-o-user-plus')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Assign Tindakan ke User')
+                        ->modalDescription('Assign tindakan yang dipilih ke user tertentu.')
+                        ->modalSubmitActionLabel('Assign')
+                        ->form([
+                            Select::make('user_id')
+                                ->label('User')
+                                ->options(function () {
+                                    return \App\Models\User::whereHas('roles', function ($query) {
+                                        $query->where('name', 'petugas');
+                                    })->pluck('name', 'id');
+                                })
+                                ->searchable()
+                                ->required(),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            try {
+                                $bulkService = new BulkOperationService();
+                                $updates = $records->map(function ($record) use ($data) {
+                                    return [
+                                        'id' => $record->id,
+                                        'input_by' => $data['user_id']
+                                    ];
+                                })->toArray();
+                                
+                                $result = $bulkService->bulkUpdate(
+                                    Tindakan::class,
+                                    $updates,
+                                    'id',
+                                    ['validate' => false]
+                                );
+                                
+                                Notification::make()
+                                    ->title('✅ Assign Berhasil')
+                                    ->body("Berhasil assign {$result['updated']} tindakan.")
+                                    ->success()
+                                    ->send();
+                                    
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Assign Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    
+                    // Bulk approve treatments
+                    Tables\Actions\BulkAction::make('bulk_approve')
+                        ->label('✅ Approve Tindakan')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Approve Tindakan')
+                        ->modalDescription('Approve tindakan yang dipilih untuk validasi.')
+                        ->modalSubmitActionLabel('Approve')
+                        ->visible(fn (): bool => Auth::user()->can('approve_tindakan'))
+                        ->action(function (Collection $records) {
+                            try {
+                                $bulkService = new BulkOperationService();
+                                $updates = $records->map(function ($record) {
+                                    return [
+                                        'id' => $record->id,
+                                        'status_validasi' => 'approved',
+                                        'status' => 'selesai'
+                                    ];
+                                })->toArray();
+                                
+                                $result = $bulkService->bulkUpdate(
+                                    Tindakan::class,
+                                    $updates,
+                                    'id',
+                                    ['validate' => false]
+                                );
+                                
+                                Notification::make()
+                                    ->title('✅ Approve Berhasil')
+                                    ->body("Berhasil approve {$result['updated']} tindakan.")
+                                    ->success()
+                                    ->send();
+                                    
+                            } catch (Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Approve Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
                 ]),
             ])
             ->defaultSort('tanggal_tindakan', 'desc')

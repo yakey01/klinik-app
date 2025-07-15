@@ -20,15 +20,17 @@ class JumlahPasienHarianResource extends Resource
 {
     protected static ?string $model = JumlahPasienHarian::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     
     protected static ?string $navigationLabel = 'Jumlah Pasien Harian';
+    
+    protected static ?string $navigationGroup = 'Data Pasien';
     
     protected static ?string $modelLabel = 'Jumlah Pasien Harian';
     
     protected static ?string $pluralModelLabel = 'Data Jumlah Pasien Harian';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {
@@ -213,6 +215,7 @@ class JumlahPasienHarianResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->where('input_by', auth()->id())
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);

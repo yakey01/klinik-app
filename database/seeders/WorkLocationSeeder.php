@@ -13,6 +13,11 @@ class WorkLocationSeeder extends Seeder
      */
     public function run(): void
     {
+        // Only run in development environment
+        if (!app()->environment(['local', 'development'])) {
+            $this->command->info('WorkLocation seeder skipped in production environment');
+            return;
+        }
         // Create main office (Klinik Dokterku headquarters)
         WorkLocation::create([
             'name' => 'Kantor Pusat Klinik Dokterku',

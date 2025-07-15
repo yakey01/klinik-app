@@ -15,6 +15,11 @@ class StaffSeeder extends Seeder
      */
     public function run(): void
     {
+        // Only run in development environment
+        if (!app()->environment(['local', 'development'])) {
+            $this->command->info('Staff seeder skipped in production environment');
+            return;
+        }
         // Get roles
         $dokterRole = Role::where('name', 'dokter')->first();
         $paramedisRole = Role::where('name', 'paramedis')->first();
@@ -67,7 +72,7 @@ class StaffSeeder extends Seeder
             $user = User::create([
                 'name' => $dokterData['nama_lengkap'],
                 'email' => $dokterData['email'],
-                'password' => bcrypt('dokter123'),
+                'password' => bcrypt(env('STAFF_DEFAULT_PASSWORD', 'dokter123')),
                 'role_id' => $dokterRole->id,
                 'nip' => $dokterData['nik'],
                 'is_active' => true,
@@ -123,7 +128,7 @@ class StaffSeeder extends Seeder
             $user = User::create([
                 'name' => $pegawaiData['nama_lengkap'],
                 'email' => strtolower(str_replace([' ', '.', ','], ['', '', ''], $pegawaiData['nama_lengkap'])) . '@dokterku.com',
-                'password' => bcrypt('paramedis123'),
+                'password' => bcrypt(env('STAFF_DEFAULT_PASSWORD', 'paramedis123')),
                 'role_id' => $paramedisRole->id,
                 'nip' => $pegawaiData['nik'],
                 'is_active' => true,
@@ -179,7 +184,7 @@ class StaffSeeder extends Seeder
             $user = User::create([
                 'name' => $pegawaiData['nama_lengkap'],
                 'email' => strtolower(str_replace([' ', '.', ','], ['', '', ''], $pegawaiData['nama_lengkap'])) . '@dokterku.com',
-                'password' => bcrypt('petugas123'),
+                'password' => bcrypt(env('STAFF_DEFAULT_PASSWORD', 'petugas123')),
                 'role_id' => $petugasRole->id,
                 'nip' => $pegawaiData['nik'],
                 'is_active' => true,

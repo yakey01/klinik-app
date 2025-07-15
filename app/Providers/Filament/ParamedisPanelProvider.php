@@ -29,10 +29,15 @@ class ParamedisPanelProvider extends PanelProvider
             ->path('paramedis')
             ->login(false)
             ->default(\App\Filament\Paramedis\Pages\UjiCobaDashboard::class)
-            ->brandName('Dokterku - Paramedis')
+            ->brandName('👨‍⚕️ Dokterku - Paramedis')
             ->favicon(asset('favicon.ico'))
             ->colors([
-                'primary' => Color::Green,
+                'primary' => Color::rgb('rgb(16, 185, 129)'),
+                'secondary' => Color::rgb('rgb(118, 75, 162)'),
+                'success' => Color::rgb('rgb(16, 185, 129)'),
+                'warning' => Color::rgb('rgb(251, 189, 35)'),
+                'danger' => Color::rgb('rgb(239, 68, 68)'),
+                'info' => Color::rgb('rgb(58, 191, 248)'),
             ])
             ->darkMode()
             ->resources([
@@ -98,7 +103,9 @@ class ParamedisPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->collapsedSidebarWidth('0px')
             ->sidebarFullyCollapsibleOnDesktop()
-            ->navigationGroups([]);
+            ->navigationGroups([
+                // Mobile-first panel - minimal navigation groups
+            ]);
     }
 
     public function canAccessPanel(\Illuminate\Contracts\Auth\Authenticatable $user): bool

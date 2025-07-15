@@ -52,7 +52,7 @@ class JadwalJagaResource extends Resource
                         Forms\Components\Select::make('shift_template_id')
                             ->label('Template Shift')
                             ->relationship('shiftTemplate', 'nama_shift')
-                            ->getOptionLabelFromRecordUsing(fn (ShiftTemplate $record): string => "{$record->nama_shift} ({$record->jam_masuk} - {$record->jam_pulang})")
+                            ->getOptionLabelFromRecordUsing(fn (ShiftTemplate $record): string => $record->shift_display)
                             ->required()
                             ->searchable()
                             ->preload()

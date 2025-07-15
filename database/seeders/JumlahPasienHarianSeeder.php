@@ -16,6 +16,11 @@ class JumlahPasienHarianSeeder extends Seeder
      */
     public function run(): void
     {
+        // Only run in development environment
+        if (!app()->environment(['local', 'development'])) {
+            $this->command->info('JumlahPasienHarian seeder skipped in production environment');
+            return;
+        }
         // Get existing dokters
         $dokters = Dokter::all();
         $petugasUser = User::where('role_id', 4)->first(); // Role petugas

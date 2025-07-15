@@ -71,7 +71,16 @@ class UserResource extends Resource
                             ->email()
                             ->required()
                             ->maxLength(255)
-                            ->unique(ignoreRecord: true),
+                            ->unique(ignoreRecord: true)
+                            ->rules([
+                                function () {
+                                    return new \App\Rules\PreventDuplicateAccounts(
+                                        request()->route('record')
+                                    );
+                                }
+                            ])
+                            ->helperText('Email harus unik - setiap pegawai hanya boleh memiliki 1 email')
+                            ->placeholder('Masukkan alamat email pegawai'),
                         Forms\Components\TextInput::make('nip')
                             ->label('NIP')
                             ->maxLength(255),
@@ -92,13 +101,48 @@ class UserResource extends Resource
                                 Forms\Components\TextInput::make('username')
                                     ->label('Username Login')
                                     ->maxLength(50)
-                                    ->unique(ignoreRecord: true)
                                     ->nullable()
-                                    ->placeholder('Opsional - dapat digunakan sebagai alternatif login')
-                                    ->helperText('Username untuk login (huruf, angka, spasi, titik, koma diizinkan)')
-                                    ->rules(['regex:/^[a-zA-Z0-9\s.,-]+$/'])
+                                    ->placeholder('Masukkan username unik untuk login')
+                                    ->helperText('Username harus unik - tidak boleh sama dengan username lain dalam sistem')
+                                    ->rules([
+                                        'regex:/^[a-zA-Z0-9\s.,-]+$/',
+                                        function () {
+                                            return new \App\Rules\UniqueUsernamePerRole(
+                                                request()->get('role_id'),
+                                                request()->route('record')
+                                            );
+                                        }
+                                    ])
                                     ->minLength(3)
                                     ->suffixIcon('heroicon-m-user')
+                                    ->required(function (Forms\Get $get) {
+                                        $roleId = $get('role_id') ?? request()->get('role_id');
+                                        if ($roleId) {
+                                            $role = \App\Models\Role::find($roleId);
+                                            return $role && in_array($role->name, ['petugas', 'bendahara', 'pegawai']);
+                                        }
+                                        return false;
+                                    })
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, ?string $state) {
+                                        if (empty($state)) return;
+                                        
+                                        // Check if username already exists
+                                        $existing = \App\Models\User::where('username', $state)
+                                            ->when(request()->route('record'), function ($query) {
+                                                return $query->where('id', '!=', request()->route('record'));
+                                            })
+                                            ->first();
+                                            
+                                        if ($existing) {
+                                            $set('username', '');
+                                            \Filament\Notifications\Notification::make()
+                                                ->title('Username Sudah Digunakan')
+                                                ->body("Username '{$state}' sudah digunakan oleh user lain. Silakan pilih username yang berbeda.")
+                                                ->danger()
+                                                ->send();
+                                        }
+                                    })
                                     ->columnSpan(2),
 
                                 Forms\Components\TextInput::make('password')
@@ -146,15 +190,38 @@ class UserResource extends Resource
                             })
                             ->columnSpan('full'),
                         
-                        // Dynamic role selection based on source
+                        // Role selection for user management
                         Forms\Components\Select::make('role_id')
-                            ->label('Role')
-                            ->relationship('role', 'display_name')
+                            ->label('Menentukan role pengguna sebagai:')
+                            ->options(function () use ($source) {
+                                // For user management and staff management, focus on the three main roles
+                                if (!$source || $source === 'user_management' || $source === 'staff_management') {
+                                    return \App\Models\Role::whereIn('name', ['petugas', 'bendahara', 'pegawai'])
+                                        ->where('is_active', true)
+                                        ->pluck('display_name', 'id');
+                                }
+                                
+                                // For other sources, show all roles
+                                return \App\Models\Role::where('is_active', true)
+                                    ->pluck('display_name', 'id');
+                            })
                             ->required()
                             ->searchable()
                             ->preload()
+                            ->live()
+                            ->placeholder('Pilih role untuk user ini')
                             ->visible(fn () => $source !== 'dokter' && $source !== 'pegawai')
-                            ->hint('Pilih role untuk user ini'),
+                            ->hint(function () use ($source) {
+                                if (!$source || $source === 'user_management' || $source === 'staff_management') {
+                                    return 'Admin bisa membuat satu pegawai memiliki role sebagai Bendahara, Pegawai atau Petugas';
+                                }
+                                return 'Pilih role untuk user ini';
+                            })
+                            ->helperText('Role akan menentukan akses dan permissions user dalam sistem')
+                            ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                // Clear username when role changes to force revalidation
+                                $set('username', '');
+                            }),
                             
                         // Role information for dokter source
                         Forms\Components\Placeholder::make('role_info_dokter')
@@ -192,6 +259,38 @@ class UserResource extends Resource
                             ->label('Aktif')
                             ->default(true),
                     ])->columns(2),
+                    
+                Forms\Components\Section::make('ℹ️ Panduan User Management')
+                    ->description('Informasi penting untuk manajemen pengguna')
+                    ->schema([
+                        Forms\Components\Placeholder::make('user_management_info')
+                            ->label('Persyaratan Username dan Validasi Akun')
+                            ->content(function () {
+                                return new \Illuminate\Support\HtmlString('
+                                    <div class="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                        <h4 class="font-semibold mb-2 text-blue-800 dark:text-blue-200">📋 Aturan Username:</h4>
+                                        <ul class="space-y-1 mb-3">
+                                            <li>• <strong>Username WAJIB</strong> untuk role: Petugas, Bendahara, Pegawai</li>
+                                            <li>• Username harus <strong>unik per role</strong></li>
+                                            <li>• Username <strong>tidak boleh sama</strong> antar Petugas, Bendahara, dan Pegawai</li>
+                                            <li>• Minimal 3 karakter, maksimal 50 karakter</li>
+                                            <li>• Boleh menggunakan huruf, angka, spasi, titik, dan koma</li>
+                                        </ul>
+                                        
+                                        <h4 class="font-semibold mb-2 text-blue-800 dark:text-blue-200">🔒 Validasi Anti-Duplikasi:</h4>
+                                        <ul class="space-y-1">
+                                            <li>• Sistem akan <strong>mencegah akun duplikat</strong> berdasarkan nama dan email</li>
+                                            <li>• Peringatan akan muncul jika terdeteksi kemungkinan duplikasi</li>
+                                            <li>• Admin dapat melihat semua akun yang dibuat</li>
+                                            <li>• Password default dapat direset oleh admin</li>
+                                        </ul>
+                                    </div>
+                                ');
+                            })
+                            ->columnSpan('full'),
+                    ])
+                    ->collapsible()
+                    ->collapsed(true),
                     
                 // Hidden field to store source information
                 Forms\Components\Hidden::make('source')
@@ -251,9 +350,22 @@ class UserResource extends Resource
                     ->relationship('role', 'display_name')
                     ->searchable()
                     ->preload(),
+                Tables\Filters\Filter::make('user_management_roles')
+                    ->label('Role Management (Petugas/Bendahara/Pegawai)')
+                    ->query(fn (Builder $query): Builder => 
+                        $query->whereHas('role', fn ($q) => 
+                            $q->whereIn('name', ['petugas', 'bendahara', 'pegawai'])
+                        )
+                    )
+                    ->toggle(),
                 Tables\Filters\Filter::make('is_active')
                     ->label('Status Aktif')
-                    ->query(fn (Builder $query): Builder => $query->where('is_active', true)),
+                    ->query(fn (Builder $query): Builder => $query->where('is_active', true))
+                    ->toggle(),
+                Tables\Filters\Filter::make('has_username')
+                    ->label('Memiliki Username')
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('username'))
+                    ->toggle(),
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([

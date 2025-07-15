@@ -34,11 +34,16 @@ class ShiftTemplateResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('nama_shift')
+                    ->label('Nama Shift')
                     ->required(),
-                Forms\Components\TextInput::make('jam_masuk')
-                    ->required(),
-                Forms\Components\TextInput::make('jam_pulang')
-                    ->required(),
+                Forms\Components\TimePicker::make('jam_masuk')
+                    ->label('Jam Masuk')
+                    ->required()
+                    ->seconds(false),
+                Forms\Components\TimePicker::make('jam_pulang')
+                    ->label('Jam Pulang')
+                    ->required()
+                    ->seconds(false),
             ]);
     }
 
@@ -48,8 +53,12 @@ class ShiftTemplateResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('nama_shift')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('jam_masuk'),
-                Tables\Columns\TextColumn::make('jam_pulang'),
+                Tables\Columns\TextColumn::make('jam_masuk')
+                    ->label('Jam Masuk')
+                    ->time('H:i'),
+                Tables\Columns\TextColumn::make('jam_pulang')
+                    ->label('Jam Pulang')
+                    ->time('H:i'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

@@ -28,10 +28,14 @@ class TelegramService
         ]);
 
         if (! $token || $this->isDemoToken($token)) {
-            // Demo mode - simulate successful send
-            Log::info("Demo Telegram Message to {$chatId}: {$message}");
-
-            return true;
+            // Demo mode - log but don't send in production
+            if (app()->environment(['local', 'development'])) {
+                Log::info("Demo Telegram Message to {$chatId}: {$message}");
+                return true;
+            } else {
+                Log::warning("Telegram token not configured properly in production");
+                return false;
+            }
         }
 
         try {

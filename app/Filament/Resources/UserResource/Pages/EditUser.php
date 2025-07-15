@@ -51,4 +51,9 @@ class EditUser extends EditRecord
         
         return parent::getSavedNotification();
     }
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

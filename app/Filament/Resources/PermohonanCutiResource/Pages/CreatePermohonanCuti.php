@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePermohonanCuti extends CreateRecord
 {
     protected static string $resource = PermohonanCutiResource::class;
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

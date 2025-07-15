@@ -131,4 +131,8 @@ class EditDokter extends EditRecord
         
         \Log::info('EditDokter: Form refreshed with latest data');
     }
-}
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }}

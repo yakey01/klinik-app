@@ -19,6 +19,16 @@ class ListPegawais extends ListRecords
                 ->label('Tambah Karyawan')
                 ->icon('heroicon-m-plus')
                 ->color('primary'),
+                
+            // Action to create user account for staff management
+            Actions\Action::make('create_user_account')
+                ->label('Buat Akun User')
+                ->icon('heroicon-m-user-plus')
+                ->color('success')
+                ->url(fn() => url('/admin/users/create?source=staff_management'))
+                ->tooltip('Buat akun login untuk Petugas, Bendahara, atau Pegawai')
+                ->openUrlInNewTab(false)
+                ->visible(fn() => auth()->user()?->hasPermissionTo('create_user')),
         ];
     }
 

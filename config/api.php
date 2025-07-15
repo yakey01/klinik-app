@@ -64,7 +64,7 @@ return [
             'can_refresh' => true,
         ],
         'web_app' => [
-            'expires_in' => 24 * 60, // 24 hours in minutes
+            'expires_in' => 7 * 24 * 60, // 7 days in minutes (increased from 24 hours)
             'scopes' => ['web:full'],
             'can_refresh' => true,
         ],

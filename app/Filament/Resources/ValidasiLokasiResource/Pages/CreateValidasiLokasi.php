@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateValidasiLokasi extends CreateRecord
 {
     protected static string $resource = ValidasiLokasiResource::class;
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

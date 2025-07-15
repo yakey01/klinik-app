@@ -75,17 +75,27 @@ class FaceRecognition extends Model
      */
     public static function compareFaces(string $encoding1, string $encoding2, float $threshold = 0.6): bool
     {
-        // Simple comparison - in production, use proper face recognition library
+        // Production: implement proper face recognition library integration
+        if (config('app.env') === 'production') {
+            throw new \Exception('Face recognition service not configured for production');
+        }
+        
+        // Development: basic similarity check
         $similarity = 1 - (levenshtein($encoding1, $encoding2) / max(strlen($encoding1), strlen($encoding2)));
         return $similarity >= $threshold;
     }
 
     /**
-     * Generate face encoding (placeholder)
+     * Generate face encoding
      */
     public static function generateEncoding(string $imagePath): array
     {
-        // In production, integrate with face recognition service
+        // Production: integrate with face recognition service
+        if (config('app.env') === 'production') {
+            throw new \Exception('Face recognition service not configured for production');
+        }
+        
+        // Development: generate mock encoding
         return [
             'encoding' => base64_encode(hash('sha256', $imagePath . time())),
             'landmarks' => [

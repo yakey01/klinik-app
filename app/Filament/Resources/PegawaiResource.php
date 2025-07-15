@@ -187,8 +187,8 @@ class PegawaiResource extends Resource
                 'sm' => 1,
                 'md' => 2,
                 'lg' => 3,
-                'xl' => 4,
-                '2xl' => 5,
+                'xl' => 3,
+                '2xl' => 3,
             ])
             ->paginated([12, 24, 48, 96, 'all'])
             ->toggleColumnsTriggerAction(
@@ -351,20 +351,133 @@ class PegawaiResource extends Resource
                         ->label('Buat Akun User')
                         ->icon('heroicon-m-identification')
                         ->color('info')
-                        ->visible(fn ($record) => !$record->user_id)
+                        ->visible(fn ($record) => true) // Always visible now - can create multiple accounts
                         ->form([
                             Forms\Components\Select::make('jenis_pegawai_for_role')
-                                ->label('Jenis Pegawai untuk Role')
-                                ->options([
-                                    'Paramedis' => 'Paramedis (role: paramedis)',
-                                    'Non-Paramedis' => 'Non-Paramedis (role: petugas)',
-                                ])
-                                ->default(fn ($record) => $record->jenis_pegawai)
-                                ->required(),
+                                ->label('Menentukan role pengguna sebagai:')
+                                ->options(function ($record) {
+                                    // Get existing roles for this pegawai
+                                    $existingRoles = $record->users()->with('role')->get()->pluck('role.name')->toArray();
+                                    
+                                    // All available roles
+                                    $allRoles = [
+                                        'Paramedis' => 'Paramedis (role: paramedis)',
+                                        'Petugas' => 'Petugas (role: petugas)',
+                                        'Bendahara' => 'Bendahara (role: bendahara)',
+                                        'Pegawai' => 'Pegawai (role: pegawai)',
+                                    ];
+                                    
+                                    // Filter out existing roles
+                                    $availableRoles = [];
+                                    foreach ($allRoles as $key => $label) {
+                                        $roleName = strtolower($key);
+                                        if (!in_array($roleName, $existingRoles)) {
+                                            $availableRoles[$key] = $label;
+                                        }
+                                    }
+                                    
+                                    return $availableRoles;
+                                })
+                                ->default(fn ($record) => $record->jenis_pegawai === 'Paramedis' ? 'Paramedis' : 'Petugas')
+                                ->required()
+                                ->live()
+                                ->helperText(function ($record) {
+                                    $existingRoles = $record->users()->with('role')->get()->pluck('role.display_name')->toArray();
+                                    if (count($existingRoles) > 0) {
+                                        return 'Role yang sudah ada: ' . implode(', ', $existingRoles) . '. Pilih role baru yang belum ada.';
+                                    }
+                                    return 'Admin bisa membuat satu pegawai memiliki multiple role sebagai Bendahara, Pegawai atau Petugas';
+                                }),
+                                
+                            Forms\Components\TextInput::make('custom_username')
+                                ->label('Username Login (Opsional)')
+                                ->placeholder('Biarkan kosong untuk auto-generate berdasarkan nama')
+                                ->maxLength(50)
+                                ->minLength(3)
+                                ->regex('/^[a-zA-Z0-9._-]+$/')
+                                ->helperText('Username harus unik per role. Format: huruf, angka, titik, underscore, dash')
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, ?string $state, $record) {
+                                    if (empty($state)) return;
+                                    
+                                    // Get selected role
+                                    $selectedRole = $get('jenis_pegawai_for_role');
+                                    if (!$selectedRole) return;
+                                    
+                                    $roleName = match($selectedRole) {
+                                        'Paramedis' => 'paramedis',
+                                        'Petugas' => 'petugas',
+                                        'Bendahara' => 'bendahara',
+                                        'Pegawai' => 'pegawai',
+                                        default => 'petugas'
+                                    };
+                                    
+                                    $role = \App\Models\Role::where('name', $roleName)->first();
+                                    if (!$role) return;
+                                    
+                                    // Check if username exists for this role or other critical roles
+                                    $existingUser = \App\Models\User::where('username', $state)
+                                        ->when($record?->user_id, function ($query) use ($record) {
+                                            return $query->where('id', '!=', $record->user_id);
+                                        })
+                                        ->first();
+                                        
+                                    if ($existingUser) {
+                                        $set('custom_username', '');
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Username Sudah Digunakan')
+                                            ->body("Username '{$state}' sudah digunakan oleh {$existingUser->role->display_name}. Username harus unik untuk setiap role.")
+                                            ->danger()
+                                            ->send();
+                                    }
+                                }),
+                                
+                            Forms\Components\TextInput::make('custom_email')
+                                ->label('Email')
+                                ->email()
+                                ->required()
+                                ->maxLength(255)
+                                ->placeholder('Masukkan email pegawai')
+                                ->helperText('Email harus unik dan valid - setiap pegawai hanya boleh punya 1 email')
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, ?string $state, $record) {
+                                    if (empty($state)) return;
+                                    
+                                    $existingUser = \App\Models\User::where('email', $state)
+                                        ->when($record?->user_id, function ($query) use ($record) {
+                                            return $query->where('id', '!=', $record->user_id);
+                                        })
+                                        ->first();
+                                        
+                                    if ($existingUser) {
+                                        $set('custom_email', '');
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Email Sudah Digunakan')
+                                            ->body("Email '{$state}' sudah digunakan oleh {$existingUser->name}.")
+                                            ->danger()
+                                            ->send();
+                                    }
+                                }),
+                                
+                            Forms\Components\TextInput::make('custom_password')
+                                ->label('Password Kustom (Opsional)')
+                                ->password()
+                                ->revealable()
+                                ->placeholder('Biarkan kosong untuk auto-generate')
+                                ->minLength(6)
+                                ->maxLength(50)
+                                ->helperText('Minimal 6 karakter. Biarkan kosong untuk password otomatis 8 karakter'),
                         ])
                         ->action(function ($record, array $data) {
                             try {
-                                $roleName = $data['jenis_pegawai_for_role'] === 'Paramedis' ? 'paramedis' : 'petugas';
+                                // Map selected role to actual role name
+                                $roleName = match($data['jenis_pegawai_for_role']) {
+                                    'Paramedis' => 'paramedis',
+                                    'Petugas' => 'petugas',
+                                    'Bendahara' => 'bendahara',
+                                    'Pegawai' => 'pegawai',
+                                    default => 'petugas'
+                                };
                                 
                                 $role = Role::where('name', $roleName)->first();
                                 
@@ -377,36 +490,81 @@ class PegawaiResource extends Resource
                                     return;
                                 }
 
-                                $baseUsername = strtolower(str_replace([' ', '.', ','], '', $record->nama_lengkap));
-                                $baseUsername = Str::ascii($baseUsername);
-                                $baseUsername = preg_replace('/[^a-z0-9]/', '', $baseUsername);
-                                $baseUsername = substr($baseUsername, 0, 20);
-                                
-                                $username = $baseUsername;
-                                $counter = 1;
-                                
-                                while (User::where('username', $username)->exists()) {
-                                    $username = $baseUsername . $counter;
-                                    $counter++;
+                                // Handle username - use custom or auto-generate
+                                if (!empty($data['custom_username'])) {
+                                    $username = $data['custom_username'];
+                                    
+                                    // Validate uniqueness with role-specific check
+                                    $existingUser = User::where('username', $username)->first();
+                                    if ($existingUser) {
+                                        Notification::make()
+                                            ->title('Gagal Membuat Akun User')
+                                            ->body("Username '{$username}' sudah digunakan oleh {$existingUser->role->display_name}. Silakan pilih username lain.")
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+                                } else {
+                                    // Auto-generate username with role prefix for uniqueness
+                                    $rolePrefix = match($roleName) {
+                                        'paramedis' => 'pm',
+                                        'petugas' => 'pt',
+                                        'bendahara' => 'bd',
+                                        'pegawai' => 'pg',
+                                        default => 'usr'
+                                    };
+                                    
+                                    $baseUsername = strtolower(str_replace([' ', '.', ','], '', $record->nama_lengkap));
+                                    $baseUsername = Str::ascii($baseUsername);
+                                    $baseUsername = preg_replace('/[^a-z0-9]/', '', $baseUsername);
+                                    $baseUsername = substr($baseUsername, 0, 15);
+                                    
+                                    $username = $rolePrefix . '_' . $baseUsername;
+                                    $counter = 1;
+                                    
+                                    while (User::where('username', $username)->exists()) {
+                                        $username = $rolePrefix . '_' . $baseUsername . $counter;
+                                        $counter++;
+                                    }
                                 }
 
-                                $password = Str::random(8);
+                                // Handle password - use custom or auto-generate
+                                $password = !empty($data['custom_password']) ? $data['custom_password'] : Str::random(8);
+
+                                // Use the provided email (required field)
+                                $email = $data['custom_email'];
+                                
+                                // Double check email uniqueness
+                                $existingEmailUser = User::where('email', $email)->first();
+                                if ($existingEmailUser) {
+                                    Notification::make()
+                                        ->title('Gagal Membuat Akun User')
+                                        ->body("Email '{$email}' sudah digunakan oleh {$existingEmailUser->name}. Gunakan email yang berbeda.")
+                                        ->danger()
+                                        ->send();
+                                    return;
+                                }
 
                                 $user = User::create([
                                     'role_id' => $role->id,
+                                    'pegawai_id' => $record->id, // New: link to pegawai
                                     'name' => $record->nama_lengkap,
                                     'username' => $username,
+                                    'email' => $email,
                                     'password' => Hash::make($password),
                                     'nip' => $record->nik,
                                     'tanggal_bergabung' => now()->toDateString(),
                                     'is_active' => $record->aktif,
                                 ]);
 
-                                $record->update(['user_id' => $user->id]);
+                                // Legacy: update user_id if this is the first user account for pegawai
+                                if (!$record->user_id) {
+                                    $record->update(['user_id' => $user->id]);
+                                }
 
                                 Notification::make()
                                     ->title('Akun User Berhasil Dibuat')
-                                    ->body("Username: {$username}<br>Password: {$password}<br>Role: {$roleName}")
+                                    ->body("Username: {$username}<br>Email: {$email}<br>Password: {$password}<br>Role: {$role->display_name}")
                                     ->success()
                                     ->persistent()
                                     ->send();
@@ -423,6 +581,265 @@ class PegawaiResource extends Resource
                         ->modalHeading('Buat Akun User Pegawai')
                         ->modalDescription('Akun User akan dibuat dan dihubungkan dengan record pegawai ini.')
                         ->modalSubmitActionLabel('Buat Akun User'),
+
+                    // Advanced User Management
+                    Action::make('manage_user_account')
+                        ->label('Kelola Akun User')
+                        ->icon('heroicon-m-cog-6-tooth')
+                        ->color('warning')
+                        ->visible(fn ($record) => $record->users()->count() > 0)
+                        ->form([
+                            Forms\Components\Section::make('Pilih User Account')
+                                ->schema([
+                                    Forms\Components\Select::make('user_account_id')
+                                        ->label('Pilih User Account yang akan dikelola')
+                                        ->options(function ($record) {
+                                            return $record->users()->with('role')->get()->mapWithKeys(function ($user) {
+                                                return [$user->id => "{$user->username} ({$user->role->display_name})"];
+                                            });
+                                        })
+                                        ->required()
+                                        ->live()
+                                        ->helperText('Pilih user account yang ingin Anda kelola'),
+                                ]),
+                                
+                            Forms\Components\Section::make('Informasi User Saat Ini')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('current_user_info')
+                                        ->label('Detail User')
+                                        ->content(function (Forms\Get $get, $record) {
+                                            $userId = $get('user_account_id');
+                                            if (!$userId) return 'Pilih user account terlebih dahulu';
+                                            
+                                            $user = \App\Models\User::with('role')->find($userId);
+                                            if (!$user) return 'User tidak ditemukan';
+                                            
+                                            return new \Illuminate\Support\HtmlString("
+                                                <div class='space-y-2'>
+                                                    <div><strong>Nama:</strong> {$user->name}</div>
+                                                    <div><strong>Username:</strong> {$user->username}</div>
+                                                    <div><strong>Email:</strong> {$user->email}</div>
+                                                    <div><strong>Role:</strong> <span class='px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm'>{$user->role->display_name}</span></div>
+                                                    <div><strong>Status:</strong> <span class='px-2 py-1 " . ($user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800') . " rounded text-sm'>" . ($user->is_active ? 'Aktif' : 'Nonaktif') . "</span></div>
+                                                    <div><strong>Dibuat:</strong> {$user->created_at->format('d/m/Y H:i')}</div>
+                                                </div>
+                                            ");
+                                        }),
+                                ]),
+                                
+                            Forms\Components\Section::make('Ubah Role User')
+                                ->schema([
+                                    Forms\Components\Select::make('new_role')
+                                        ->label('Role Baru')
+                                        ->options([
+                                            'paramedis' => 'Paramedis',
+                                            'petugas' => 'Petugas', 
+                                            'bendahara' => 'Bendahara',
+                                            'pegawai' => 'Pegawai',
+                                        ])
+                                        ->default(function ($record) {
+                                            return $record->user?->role?->name;
+                                        })
+                                        ->helperText('Mengubah role akan mempengaruhi akses user dalam sistem'),
+                                ]),
+                                
+                            Forms\Components\Section::make('Ubah Username & Email')
+                                ->schema([
+                                    Forms\Components\TextInput::make('new_username')
+                                        ->label('Username Baru')
+                                        ->placeholder('Biarkan kosong jika tidak ingin mengubah')
+                                        ->maxLength(50)
+                                        ->minLength(3)
+                                        ->regex('/^[a-zA-Z0-9._-]+$/')
+                                        ->helperText('Username harus unik. Format: huruf, angka, titik, underscore, dash')
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, ?string $state, $record) {
+                                            if (empty($state)) return;
+                                            
+                                            $existingUser = \App\Models\User::where('username', $state)
+                                                ->where('id', '!=', $record->user_id)
+                                                ->first();
+                                                
+                                            if ($existingUser) {
+                                                $set('new_username', '');
+                                                \Filament\Notifications\Notification::make()
+                                                    ->title('Username Sudah Digunakan')
+                                                    ->body("Username '{$state}' sudah digunakan oleh {$existingUser->role->display_name}.")
+                                                    ->danger()
+                                                    ->send();
+                                            }
+                                        }),
+                                        
+                                    Forms\Components\TextInput::make('new_email')
+                                        ->label('Email Baru')
+                                        ->email()
+                                        ->placeholder('Biarkan kosong jika tidak ingin mengubah')
+                                        ->maxLength(255)
+                                        ->helperText('Email harus unik - setiap pegawai hanya boleh punya 1 email')
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, ?string $state, $record) {
+                                            if (empty($state)) return;
+                                            
+                                            $existingUser = \App\Models\User::where('email', $state)
+                                                ->where('id', '!=', $record->user_id)
+                                                ->first();
+                                                
+                                            if ($existingUser) {
+                                                $set('new_email', '');
+                                                \Filament\Notifications\Notification::make()
+                                                    ->title('Email Sudah Digunakan')
+                                                    ->body("Email '{$state}' sudah digunakan oleh {$existingUser->name}.")
+                                                    ->danger()
+                                                    ->send();
+                                            }
+                                        }),
+                                ])->columns(2),
+                                
+                            Forms\Components\Section::make('Reset Password')
+                                ->schema([
+                                    Forms\Components\TextInput::make('new_password')
+                                        ->label('Password Baru')
+                                        ->password()
+                                        ->revealable()
+                                        ->placeholder('Biarkan kosong jika tidak ingin mengubah')
+                                        ->minLength(6)
+                                        ->maxLength(50)
+                                        ->helperText('Minimal 6 karakter. Kosongkan jika tidak ingin mengubah password'),
+                                        
+                                    Forms\Components\Toggle::make('generate_random_password')
+                                        ->label('Generate Password Random')
+                                        ->helperText('Jika diaktifkan, akan generate password 8 karakter random'),
+                                ]),
+                                
+                            Forms\Components\Section::make('Status Akun')
+                                ->schema([
+                                    Forms\Components\Toggle::make('is_active')
+                                        ->label('Status Aktif')
+                                        ->default(function ($record) {
+                                            return $record->user?->is_active ?? true;
+                                        })
+                                        ->helperText('Nonaktifkan untuk melarang user login'),
+                                ]),
+                        ])
+                        ->action(function ($record, array $data) {
+                            try {
+                                $user = $record->user;
+                                if (!$user) {
+                                    Notification::make()
+                                        ->title('Error')
+                                        ->body('User tidak ditemukan')
+                                        ->danger()
+                                        ->send();
+                                    return;
+                                }
+                                
+                                $updates = [];
+                                $changesMessage = [];
+                                
+                                // Update role if changed
+                                if (!empty($data['new_role']) && $data['new_role'] !== $user->role->name) {
+                                    $newRole = \App\Models\Role::where('name', $data['new_role'])->first();
+                                    if ($newRole) {
+                                        $updates['role_id'] = $newRole->id;
+                                        $changesMessage[] = "Role diubah dari '{$user->role->display_name}' ke '{$newRole->display_name}'";
+                                    }
+                                }
+                                
+                                // Update username if provided
+                                if (!empty($data['new_username']) && $data['new_username'] !== $user->username) {
+                                    // Double check uniqueness
+                                    $existingUser = \App\Models\User::where('username', $data['new_username'])
+                                        ->where('id', '!=', $user->id)
+                                        ->first();
+                                        
+                                    if ($existingUser) {
+                                        Notification::make()
+                                            ->title('Username Sudah Digunakan')
+                                            ->body("Username '{$data['new_username']}' sudah digunakan oleh {$existingUser->role->display_name}")
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+                                    
+                                    $oldUsername = $user->username;
+                                    $updates['username'] = $data['new_username'];
+                                    $changesMessage[] = "Username diubah dari '{$oldUsername}' ke '{$data['new_username']}'";
+                                }
+                                
+                                // Update email if provided
+                                if (!empty($data['new_email']) && $data['new_email'] !== $user->email) {
+                                    // Double check uniqueness
+                                    $existingEmailUser = \App\Models\User::where('email', $data['new_email'])
+                                        ->where('id', '!=', $user->id)
+                                        ->first();
+                                        
+                                    if ($existingEmailUser) {
+                                        Notification::make()
+                                            ->title('Email Sudah Digunakan')
+                                            ->body("Email '{$data['new_email']}' sudah digunakan oleh {$existingEmailUser->name}")
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+                                    
+                                    $oldEmail = $user->email;
+                                    $updates['email'] = $data['new_email'];
+                                    $changesMessage[] = "Email diubah dari '{$oldEmail}' ke '{$data['new_email']}'";
+                                }
+                                
+                                // Update password
+                                $newPassword = null;
+                                if (!empty($data['generate_random_password']) && $data['generate_random_password']) {
+                                    $newPassword = \Illuminate\Support\Str::random(8);
+                                    $updates['password'] = \Illuminate\Support\Facades\Hash::make($newPassword);
+                                    $changesMessage[] = "Password di-reset (random)";
+                                } elseif (!empty($data['new_password'])) {
+                                    $newPassword = $data['new_password'];
+                                    $updates['password'] = \Illuminate\Support\Facades\Hash::make($newPassword);
+                                    $changesMessage[] = "Password diubah (custom)";
+                                }
+                                
+                                // Update status
+                                if (isset($data['is_active']) && $data['is_active'] != $user->is_active) {
+                                    $updates['is_active'] = $data['is_active'];
+                                    $changesMessage[] = $data['is_active'] ? "Status diaktifkan" : "Status dinonaktifkan";
+                                }
+                                
+                                // Apply updates
+                                if (!empty($updates)) {
+                                    $user->update($updates);
+                                    
+                                    $notificationBody = "Perubahan berhasil:\n• " . implode("\n• ", $changesMessage);
+                                    if ($newPassword) {
+                                        $notificationBody .= "\n\nPassword baru: {$newPassword}";
+                                    }
+                                    
+                                    Notification::make()
+                                        ->title('User Berhasil Diperbarui')
+                                        ->body($notificationBody)
+                                        ->success()
+                                        ->persistent()
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title('Tidak Ada Perubahan')
+                                        ->body('Tidak ada data yang diubah')
+                                        ->warning()
+                                        ->send();
+                                }
+                                
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Gagal Memperbarui User')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->modalHeading('Kelola Akun User Advanced')
+                        ->modalDescription('Ubah role, username, password, dan status user')
+                        ->modalSubmitActionLabel('Simpan Perubahan')
+                        ->modalWidth('4xl'),
 
                     // Card Actions
                     Action::make('create_card')

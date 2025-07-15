@@ -16,6 +16,11 @@ class NonParamedisUserSeeder extends Seeder
      */
     public function run(): void
     {
+        // Only run in development environment
+        if (!app()->environment(['local', 'development'])) {
+            $this->command->info('NonParamedis user seeder skipped in production environment');
+            return;
+        }
         // Get or create non_paramedis role
         $nonParamedisRole = Role::firstOrCreate(
             ['name' => 'non_paramedis'],

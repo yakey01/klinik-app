@@ -162,6 +162,163 @@
             transform: scale(1.05);
         }
         
+        .settings-dropdown {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 100px;
+        }
+        
+        .settings-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+        
+        .settings-menu {
+            position: relative;
+            background: white;
+            border-radius: 20px;
+            width: 320px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            animation: settingsSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        @media (max-width: 400px) {
+            .settings-menu {
+                width: 95vw;
+                margin: 0 10px;
+            }
+            
+            .settings-dropdown {
+                padding-top: 80px;
+            }
+        }
+        
+        @keyframes settingsSlideIn {
+            from {
+                transform: translateY(-50px) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--neutral-200);
+        }
+        
+        .settings-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--neutral-900);
+            margin: 0;
+        }
+        
+        .close-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: var(--neutral-100);
+            color: var(--neutral-600);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .close-btn:hover {
+            background: var(--neutral-200);
+            transform: scale(1.1);
+        }
+        
+        .settings-content {
+            padding: 0 24px 24px;
+        }
+        
+        .settings-section {
+            margin-bottom: 24px;
+        }
+        
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .settings-section h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--neutral-600);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 12px 0;
+        }
+        
+        .settings-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 8px;
+        }
+        
+        .settings-item:hover {
+            background: var(--neutral-50);
+        }
+        
+        .settings-item.logout-item {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #dc2626;
+        }
+        
+        .settings-item.logout-item:hover {
+            background: rgba(239, 68, 68, 0.15);
+        }
+        
+        .settings-icon {
+            font-size: 20px;
+            width: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .settings-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--neutral-900);
+            flex: 1;
+        }
+        
+        .settings-item.logout-item .settings-label {
+            color: #dc2626;
+        }
+        
         .header-title {
             font-size: 20px;
             font-weight: 800;
@@ -404,7 +561,50 @@
                     <h1 class="header-title" id="headerTitle">DOKTER MOBILE</h1>
                     <div class="header-actions">
                         <button class="back-btn">🔔</button>
-                        <button class="back-btn">⚙️</button>
+                        <button class="back-btn" onclick="toggleSettingsDropdown()" id="settingsBtn" title="Settings">⚙️</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Dropdown -->
+            <div id="settingsDropdown" class="settings-dropdown" style="display: none;">
+                <div class="settings-overlay" onclick="closeSettingsDropdown()"></div>
+                <div class="settings-menu">
+                    <div class="settings-header">
+                        <h3>Pengaturan</h3>
+                        <button class="close-btn" onclick="closeSettingsDropdown()">×</button>
+                    </div>
+                    <div class="settings-content">
+                        <div class="settings-section">
+                            <h4>Profil</h4>
+                            <div class="settings-item" onclick="showProfile()">
+                                <div class="settings-icon">👤</div>
+                                <div class="settings-label">Profil Saya</div>
+                            </div>
+                            <div class="settings-item" onclick="changePassword()">
+                                <div class="settings-icon">🔑</div>
+                                <div class="settings-label">Ubah Password</div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h4>Aplikasi</h4>
+                            <div class="settings-item" onclick="showNotificationSettings()">
+                                <div class="settings-icon">🔔</div>
+                                <div class="settings-label">Notifikasi</div>
+                            </div>
+                            <div class="settings-item" onclick="showAbout()">
+                                <div class="settings-icon">ℹ️</div>
+                                <div class="settings-label">Tentang</div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <div class="settings-item logout-item" onclick="performLogout()">
+                                <div class="settings-icon">🚪</div>
+                                <div class="settings-label">Keluar</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2045,6 +2245,159 @@
             }
         }
         
+        // Logout function
+        function performLogout() {
+            try {
+                // Close settings dropdown first
+                closeSettingsDropdown();
+                
+                // Show confirmation dialog
+                const confirmLogout = confirm('Apakah Anda yakin ingin keluar dari aplikasi?');
+                
+                if (confirmLogout) {
+                    showToast('Memproses logout...', 'info');
+                    
+                    // Disable settings button to prevent multiple clicks
+                    const settingsBtn = document.getElementById('settingsBtn');
+                    if (settingsBtn) {
+                        settingsBtn.disabled = true;
+                        settingsBtn.innerHTML = '⏳';
+                    }
+                    
+                    // Create logout form
+                    const logoutForm = document.createElement('form');
+                    logoutForm.method = 'POST';
+                    logoutForm.action = '{{ route("logout") }}';
+                    logoutForm.style.display = 'none';
+                    
+                    // Add CSRF token
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = '{{ csrf_token() }}';
+                    logoutForm.appendChild(csrfToken);
+                    
+                    // Add to body and submit
+                    document.body.appendChild(logoutForm);
+                    
+                    // Add timeout for backup redirect
+                    setTimeout(() => {
+                        showToast('Redirecting to login...', 'info');
+                        window.location.href = '/login';
+                    }, 5000);
+                    
+                    logoutForm.submit();
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                showToast('Terjadi kesalahan saat logout. Redirecting to login...', 'error');
+                
+                // Fallback redirect
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+            }
+        }
+
+        // Settings dropdown functions
+        function toggleSettingsDropdown() {
+            try {
+                const dropdown = document.getElementById('settingsDropdown');
+                if (dropdown) {
+                    const isVisible = dropdown.style.display !== 'none';
+                    if (isVisible) {
+                        closeSettingsDropdown();
+                    } else {
+                        showSettingsDropdown();
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling settings dropdown:', error);
+            }
+        }
+        
+        // Add keyboard support for closing settings dropdown
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const dropdown = document.getElementById('settingsDropdown');
+                if (dropdown && dropdown.style.display !== 'none') {
+                    closeSettingsDropdown();
+                }
+            }
+        });
+        
+        function showSettingsDropdown() {
+            try {
+                const dropdown = document.getElementById('settingsDropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'flex';
+                    // Add class for animation
+                    setTimeout(() => {
+                        dropdown.classList.add('active');
+                    }, 10);
+                }
+            } catch (error) {
+                console.error('Error showing settings dropdown:', error);
+            }
+        }
+        
+        function closeSettingsDropdown() {
+            try {
+                const dropdown = document.getElementById('settingsDropdown');
+                if (dropdown) {
+                    dropdown.classList.remove('active');
+                    setTimeout(() => {
+                        dropdown.style.display = 'none';
+                    }, 300);
+                }
+            } catch (error) {
+                console.error('Error closing settings dropdown:', error);
+            }
+        }
+        
+        // Settings menu functions
+        function showProfile() {
+            closeSettingsDropdown();
+            showToast('Fitur profil akan segera tersedia', 'info');
+        }
+        
+        function changePassword() {
+            closeSettingsDropdown();
+            showToast('Fitur ubah password akan segera tersedia', 'info');
+        }
+        
+        function showNotificationSettings() {
+            closeSettingsDropdown();
+            showToast('Fitur pengaturan notifikasi akan segera tersedia', 'info');
+        }
+        
+        function showAbout() {
+            closeSettingsDropdown();
+            const version = '1.0.0';
+            const buildDate = '{{ now()->format("d/m/Y") }}';
+            
+            const aboutMessage = `
+                <div style="text-align: center; padding: 10px;">
+                    <h3>Klinik Dokterku Mobile</h3>
+                    <p>Versi ${version}</p>
+                    <p>Build: ${buildDate}</p>
+                    <p>© 2025 Klinik Dokterku</p>
+                </div>
+            `;
+            
+            // Create a temporary modal for about info
+            const modal = document.createElement('div');
+            modal.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1001; display: flex; align-items: center; justify-content: center;" onclick="this.remove()">
+                    <div style="background: white; border-radius: 20px; padding: 20px; max-width: 300px; margin: 20px;" onclick="event.stopPropagation()">
+                        ${aboutMessage}
+                        <button onclick="this.closest('div').remove()" style="margin-top: 15px; padding: 10px 20px; background: var(--primary-blue); color: white; border: none; border-radius: 8px; cursor: pointer;">Tutup</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
         // Utility functions
         function showToast(message, type = 'success') {
             try {

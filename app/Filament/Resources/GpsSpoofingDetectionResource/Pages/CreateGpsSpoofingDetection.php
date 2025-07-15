@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateGpsSpoofingDetection extends CreateRecord
 {
     protected static string $resource = GpsSpoofingDetectionResource::class;
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

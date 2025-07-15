@@ -24,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // API v2 middleware
             'api.rate.limit' => \App\Http\Middleware\Api\ApiRateLimitMiddleware::class,
             'api.response.headers' => \App\Http\Middleware\Api\ApiResponseHeadersMiddleware::class,
+            // Performance middleware
+            'cache.response' => \App\Http\Middleware\CacheResponseMiddleware::class,
+            'log.requests' => \App\Http\Middleware\LogRequestsMiddleware::class,
         ]);
         
         // Add security headers to all responses

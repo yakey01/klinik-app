@@ -22,6 +22,17 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
+    // Bulk Operations API
+    Route::prefix('bulk')->group(function () {
+        Route::post('/create', [\App\Http\Controllers\Api\V2\BulkOperationController::class, 'bulkCreate']);
+        Route::put('/update', [\App\Http\Controllers\Api\V2\BulkOperationController::class, 'bulkUpdate']);
+        Route::delete('/delete', [\App\Http\Controllers\Api\V2\BulkOperationController::class, 'bulkDelete']);
+        Route::post('/validate', [\App\Http\Controllers\Api\V2\BulkOperationController::class, 'bulkValidate']);
+        Route::post('/import', [\App\Http\Controllers\Api\V2\BulkOperationController::class, 'bulkImport']);
+        Route::get('/stats', [\App\Http\Controllers\Api\V2\BulkOperationController::class, 'getStats']);
+        Route::get('/supported-models', [\App\Http\Controllers\Api\V2\BulkOperationController::class, 'getSupportedModels']);
+    });
+
     // GPS Attendance Routes with Device Binding
     Route::prefix('attendance')->middleware('device.binding')->group(function () {
         Route::post('/checkin', [AttendanceController::class, 'checkin']);

@@ -34,9 +34,14 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(CustomLogin::class)
-            ->brandName('Dokterku Admin')
+            ->brandName('🏥 Dokterku Admin')
             ->colors([
-                'primary' => Color::Blue,
+                'primary' => Color::rgb('rgb(102, 126, 234)'),
+                'secondary' => Color::rgb('rgb(118, 75, 162)'),
+                'success' => Color::rgb('rgb(16, 185, 129)'),
+                'warning' => Color::rgb('rgb(251, 189, 35)'),
+                'danger' => Color::rgb('rgb(239, 68, 68)'),
+                'info' => Color::rgb('rgb(58, 191, 248)'),
             ])
             ->darkMode()
             ->spa()
@@ -75,15 +80,20 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->tenant(null) // Disable multi-tenancy for now
             ->navigationGroups([
-                NavigationGroup::make('User Management')
+                NavigationGroup::make('👥 User Management')
+                    ->icon('heroicon-o-users')
                     ->collapsible(),
-                NavigationGroup::make('Medical Records')
+                NavigationGroup::make('📋 Medical Records')
+                    ->icon('heroicon-o-clipboard-document-list')
                     ->collapsible(),
-                NavigationGroup::make('Financial Management')
+                NavigationGroup::make('💰 Financial Management')
+                    ->icon('heroicon-o-currency-dollar')
                     ->collapsible(),
-                NavigationGroup::make('Reports & Analytics')
+                NavigationGroup::make('📊 Reports & Analytics')
+                    ->icon('heroicon-o-chart-bar')
                     ->collapsible(),
-                NavigationGroup::make('System Administration')
+                NavigationGroup::make('⚙️ System Administration')
+                    ->icon('heroicon-o-cog-6-tooth')
                     ->collapsible(),
             ]);
     }

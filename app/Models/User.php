@@ -167,6 +167,11 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(GpsSpoofingDetection::class);
     }
+
+    public function nonParamedisAttendances(): HasMany
+    {
+        return $this->hasMany(NonParamedisAttendance::class);
+    }
     
     // Relationship to dokter if user is a dokter
     public function dokter()
@@ -321,6 +326,32 @@ class User extends Authenticatable implements FilamentUser
         
         if ($panel->getId() === 'manajer') {
             return $this->role && $this->role->name === 'manajer';
+        }
+        
+        // Non-Paramedis panel (route uses 'nonparamedis' but role is 'non_paramedis')
+        if ($panel->getId() === 'nonparamedis' || $panel->getId() === 'non-paramedis') {
+            \Log::info('User model: canAccessPanel for non-paramedis panel', [
+                'user_id' => $this->id,
+                'user_email' => $this->email,
+                'panel_id' => $panel->getId(),
+                'role_id' => $this->role_id,
+                'has_role_relation' => $this->role ? 'YES' : 'NO',
+                'role_name' => $this->role?->name ?: 'NULL',
+            ]);
+            
+            // Ensure role relationship is loaded
+            if (!$this->relationLoaded('role')) {
+                $this->load('role');
+            }
+            
+            $hasAccess = $this->role && $this->role->name === 'non_paramedis';
+            \Log::info('User model: non-paramedis panel access decision', [
+                'user_id' => $this->id,
+                'has_access' => $hasAccess ? 'GRANTED' : 'DENIED',
+                'role_name_checked' => 'non_paramedis'
+            ]);
+            
+            return $hasAccess;
         }
         
         return false;

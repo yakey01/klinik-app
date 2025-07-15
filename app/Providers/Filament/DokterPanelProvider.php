@@ -55,6 +55,7 @@ class DokterPanelProvider extends PanelProvider
                 \App\Filament\Dokter\Pages\PresensiMobilePage::class,
                 \App\Filament\Dokter\Pages\JaspelMobilePage::class,
             ])
+            ->default(\App\Filament\Dokter\Pages\DashboardDokter::class)
             ->discoverWidgets(in: app_path('Filament/Dokter/Widgets'), for: 'App\\Filament\\Dokter\\Widgets')
             ->widgets([
                 \App\Filament\Dokter\Widgets\TindakanPerHariWidget::class,

@@ -17,7 +17,7 @@ class EnsureDokterRole
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
-            return redirect()->route('filament.dokter.auth.login');
+            return redirect()->route('login');
         }
 
         $user = Auth::user();

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\NonParamedisAttendance;
 use App\Models\User;
 use App\Models\WorkLocation;
+use App\Services\GpsValidationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,12 @@ use Illuminate\Support\Str;
 
 class NonParamedisDashboardController extends Controller
 {
+    protected GpsValidationService $gpsService;
+
+    public function __construct(GpsValidationService $gpsService)
+    {
+        $this->gpsService = $gpsService;
+    }
     /**
      * Standardized success response
      */
@@ -50,85 +57,6 @@ class NonParamedisDashboardController extends Controller
         ], $code);
     }
 
-    /**
-     * Calculate Haversine distance between two coordinates
-     */
-    private function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
-    {
-        $earthRadius = 6371000; // Earth's radius in meters
-        
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        
-        $a = sin($dLat/2) * sin($dLat/2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($dLon/2) * sin($dLon/2);
-             
-        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
-        
-        return $earthRadius * $c;
-    }
-
-    /**
-     * Validate GPS coordinates against work locations
-     */
-    private function validateGPSLocation(float $latitude, float $longitude, float $accuracy = null): array
-    {
-        try {
-            $workLocations = WorkLocation::active()->get();
-            
-            if ($workLocations->isEmpty()) {
-                return [
-                    'is_valid' => false,
-                    'distance' => null,
-                    'location' => null,
-                    'error' => 'No work locations configured'
-                ];
-            }
-
-            $validLocation = null;
-            $minDistance = PHP_FLOAT_MAX;
-
-            foreach ($workLocations as $location) {
-                $distance = $this->calculateDistance(
-                    $latitude, 
-                    $longitude, 
-                    $location->latitude, 
-                    $location->longitude
-                );
-
-                if ($distance < $minDistance) {
-                    $minDistance = $distance;
-                    $validLocation = $location;
-                }
-            }
-
-            // Check if within geofence
-            $isValid = $validLocation && $validLocation->isWithinGeofence($latitude, $longitude, $accuracy);
-
-            return [
-                'is_valid' => $isValid,
-                'distance' => round($minDistance, 2),
-                'location' => $validLocation ? [
-                    'id' => $validLocation->id,
-                    'name' => $validLocation->name,
-                    'address' => $validLocation->address,
-                    'radius' => $validLocation->radius_meters
-                ] : null,
-                'accuracy' => $accuracy
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('GPS validation error: ' . $e->getMessage());
-            
-            return [
-                'is_valid' => false,
-                'distance' => null,
-                'location' => null,
-                'error' => 'GPS validation failed'
-            ];
-        }
-    }
 
     /**
      * Calculate expected work days in a month (excluding weekends)
@@ -387,8 +315,8 @@ class NonParamedisDashboardController extends Controller
                 return $this->errorResponse('Anda sudah melakukan check-in hari ini', 422);
             }
             
-            // Validate GPS location
-            $gpsValidation = $this->validateGPSLocation(
+            // Validate GPS location using service
+            $gpsValidation = $this->gpsService->validateLocation(
                 $request->latitude, 
                 $request->longitude, 
                 $request->accuracy
@@ -396,11 +324,12 @@ class NonParamedisDashboardController extends Controller
             
             if (!$gpsValidation['is_valid']) {
                 return $this->errorResponse(
-                    'Lokasi check-in tidak valid. Pastikan Anda berada di area kerja yang ditentukan.',
+                    $this->gpsService->getValidationMessage($gpsValidation),
                     422,
                     [
                         'gps_validation' => $gpsValidation,
-                        'distance' => $gpsValidation['distance']
+                        'distance' => $gpsValidation['distance'],
+                        'gps_quality' => $this->gpsService->getGpsQuality($request->accuracy)
                     ]
                 );
             }
@@ -485,8 +414,8 @@ class NonParamedisDashboardController extends Controller
                 return $this->errorResponse('Tidak ditemukan data check-in hari ini', 422);
             }
             
-            // Validate GPS location
-            $gpsValidation = $this->validateGPSLocation(
+            // Validate GPS location using service
+            $gpsValidation = $this->gpsService->validateLocation(
                 $request->latitude, 
                 $request->longitude, 
                 $request->accuracy

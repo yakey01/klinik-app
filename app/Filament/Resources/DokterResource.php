@@ -234,99 +234,27 @@ class DokterResource extends Resource
                 'sm' => 1,
                 'md' => 2,
                 'lg' => 3,
+                'xl' => 4,
+                '2xl' => 5,
             ])
+            ->paginated([12, 24, 48, 96, 'all'])
             ->columns([
-                Tables\Columns\Layout\Stack::make([
-                    // Header: Photo + Name + NIK
-                    Tables\Columns\Layout\Split::make([
-                        Tables\Columns\ImageColumn::make('foto')
-                            ->circular()
-                            ->size(50)
-                            ->defaultImageUrl(fn ($record) => $record->default_avatar),
-                        
-                        Tables\Columns\Layout\Stack::make([
-                            Tables\Columns\TextColumn::make('nama_lengkap')
-                                ->weight(FontWeight::Bold)
-                                ->size('sm')
-                                ->limit(20)
-                                ->tooltip(fn ($record) => $record->nama_lengkap),
-                            Tables\Columns\TextColumn::make('nik')
-                                ->color('gray')
-                                ->size('xs')
-                                ->prefix('NIK: '),
-                        ])->space(1),
-                    ]),
-                    
-                    // Body: Jabatan + SIP
-                    Tables\Columns\Layout\Stack::make([
-                        Tables\Columns\TextColumn::make('jabatan_display')
-                            ->getStateUsing(fn ($record) => $record->jabatan_display)
-                            ->badge()
-                            ->color(fn ($record) => $record->jabatan_badge_color)
-                            ->size('xs'),
-                        
+                Tables\Columns\Layout\View::make('filament.components.dokter-card-simple')
+                    ->components([
+                        // Hidden columns for search functionality
+                        Tables\Columns\TextColumn::make('nama_lengkap')
+                            ->searchable()
+                            ->toggleable(isToggledHiddenByDefault: true),
+                        Tables\Columns\TextColumn::make('nik')
+                            ->searchable()
+                            ->toggleable(isToggledHiddenByDefault: true),
+                        Tables\Columns\TextColumn::make('jabatan')
+                            ->searchable()
+                            ->toggleable(isToggledHiddenByDefault: true),
                         Tables\Columns\TextColumn::make('nomor_sip')
-                            ->prefix('SIP: ')
-                            ->color('info')
-                            ->size('xs')
-                            ->limit(15)
-                            ->tooltip(fn ($record) => 'SIP: ' . $record->nomor_sip),
-                    ])->space(1),
-                    
-                    // Footer: Status + Contact + Account
-                    Tables\Columns\Layout\Split::make([
-                        Tables\Columns\TextColumn::make('status_text')
-                            ->getStateUsing(fn ($record) => $record->status_text)
-                            ->badge()
-                            ->color(fn ($record) => $record->status_badge_color)
-                            ->size('xs'),
-                        
-                        Tables\Columns\TextColumn::make('email')
-                            ->icon('heroicon-m-envelope')
-                            ->color('gray')
-                            ->size('xs')
-                            ->limit(20)
-                            ->tooltip(fn ($record) => $record->email ?: 'Tidak ada email'),
+                            ->searchable()
+                            ->toggleable(isToggledHiddenByDefault: true),
                     ]),
-                    
-                    // Account Status Row
-                    Tables\Columns\Layout\Split::make([
-                        Tables\Columns\TextColumn::make('account_status_text')
-                            ->getStateUsing(fn ($record) => $record->account_status_text)
-                            ->badge()
-                            ->color(fn ($record) => $record->account_status_badge_color)
-                            ->size('xs')
-                            ->visible(fn () => auth()->user()?->hasRole('admin')),
-                        
-                        Tables\Columns\TextColumn::make('username')
-                            ->icon('heroicon-m-user')
-                            ->color('info')
-                            ->size('xs')
-                            ->limit(15)
-                            ->placeholder('—')
-                            ->tooltip(fn ($record) => $record->username ? 'Username: ' . $record->username : 'Belum punya username')
-                            ->visible(fn () => auth()->user()?->hasRole('admin')),
-                    ])->visible(fn () => auth()->user()?->hasRole('admin')),
-                    
-                    // User Account Status Row
-                    Tables\Columns\Layout\Split::make([
-                        Tables\Columns\TextColumn::make('user_account_status')
-                            ->getStateUsing(fn ($record) => $record->user_id ? 'Akun User Aktif' : 'Belum Punya Akun User')
-                            ->badge()
-                            ->color(fn ($record) => $record->user_id ? 'success' : 'warning')
-                            ->size('xs')
-                            ->visible(fn () => auth()->user()?->hasRole('admin')),
-                        
-                        Tables\Columns\TextColumn::make('user.username')
-                            ->icon('heroicon-m-identification')
-                            ->color('info')
-                            ->size('xs')
-                            ->limit(15)
-                            ->placeholder('—')
-                            ->tooltip(fn ($record) => $record->user?->username ? 'User Username: ' . $record->user->username : 'Belum punya User account')
-                            ->visible(fn () => auth()->user()?->hasRole('admin')),
-                    ])->visible(fn () => auth()->user()?->hasRole('admin')),
-                ])->space(2),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('jabatan')
@@ -378,197 +306,203 @@ class DokterResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\Action::make('create_user_account')
-                    ->label('Buat Akun User')
-                    ->icon('heroicon-m-identification')
-                    ->color('info')
-                    ->visible(fn ($record) => !$record->user_id && auth()->user()?->hasRole('admin'))
-                    ->action(function ($record) {
-                        try {
-                            // Find the dokter role
-                            $dokterRole = \App\Models\Role::where('name', 'dokter')->first();
-                            
-                            if (!$dokterRole) {
+                Tables\Actions\ActionGroup::make([
+                    // Basic Actions
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat Detail')
+                        ->icon('heroicon-m-eye'),
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit Data')
+                        ->icon('heroicon-m-pencil-square'),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->icon('heroicon-m-trash'),
+                    
+                    // User Account Actions (Admin only)
+                    Tables\Actions\Action::make('create_user_account')
+                        ->label('Buat Akun User')
+                        ->icon('heroicon-m-identification')
+                        ->color('info')
+                        ->visible(fn ($record) => !$record->user_id && auth()->user()?->hasRole('admin'))
+                        ->action(function ($record) {
+                            try {
+                                $dokterRole = \App\Models\Role::where('name', 'dokter')->first();
+                                
+                                if (!$dokterRole) {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Gagal Membuat Akun User')
+                                        ->body('Role "dokter" tidak ditemukan dalam sistem.')
+                                        ->danger()
+                                        ->send();
+                                    return;
+                                }
+
+                                $baseUsername = strtolower(str_replace([' ', '.', ','], '', $record->nama_lengkap));
+                                $baseUsername = \Illuminate\Support\Str::ascii($baseUsername);
+                                $baseUsername = preg_replace('/[^a-z0-9]/', '', $baseUsername);
+                                $baseUsername = substr($baseUsername, 0, 20);
+                                
+                                $username = $baseUsername;
+                                $counter = 1;
+                                
+                                while (\App\Models\User::where('username', $username)->exists()) {
+                                    $username = $baseUsername . $counter;
+                                    $counter++;
+                                }
+
+                                $password = \Illuminate\Support\Str::random(8);
+
+                                $user = \App\Models\User::create([
+                                    'role_id' => $dokterRole->id,
+                                    'name' => $record->nama_lengkap,
+                                    'email' => $record->email,
+                                    'username' => $username,
+                                    'password' => \Illuminate\Support\Facades\Hash::make($password),
+                                    'nip' => $record->nik,
+                                    'tanggal_bergabung' => now()->toDateString(),
+                                    'is_active' => $record->aktif,
+                                ]);
+
+                                $record->update(['user_id' => $user->id]);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Akun User Berhasil Dibuat')
+                                    ->body("Username: {$username}<br>Password: {$password}<br>Role: dokter")
+                                    ->success()
+                                    ->persistent()
+                                    ->send();
+
+                            } catch (\Exception $e) {
                                 \Filament\Notifications\Notification::make()
                                     ->title('Gagal Membuat Akun User')
-                                    ->body('Role "dokter" tidak ditemukan dalam sistem.')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
                                     ->danger()
                                     ->send();
-                                return;
                             }
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Buat Akun User Dokter')
+                        ->modalDescription('Akun User akan dibuat dan dihubungkan dengan record dokter ini.')
+                        ->modalSubmitActionLabel('Buat Akun User'),
 
-                            // Generate username from name if not provided
-                            $baseUsername = strtolower(str_replace([' ', '.', ','], '', $record->nama_lengkap));
-                            $baseUsername = \Illuminate\Support\Str::ascii($baseUsername);
-                            $baseUsername = preg_replace('/[^a-z0-9]/', '', $baseUsername);
-                            $baseUsername = substr($baseUsername, 0, 20);
-                            
-                            $username = $baseUsername;
-                            $counter = 1;
-                            
-                            // Ensure username uniqueness
-                            while (\App\Models\User::where('username', $username)->exists()) {
-                                $username = $baseUsername . $counter;
-                                $counter++;
-                            }
-
-                            // Generate random password
-                            $password = \Illuminate\Support\Str::random(8);
-
-                            // Create User account
-                            $user = \App\Models\User::create([
-                                'role_id' => $dokterRole->id,
-                                'name' => $record->nama_lengkap,
-                                'email' => $record->email,
-                                'username' => $username,
-                                'password' => \Illuminate\Support\Facades\Hash::make($password),
-                                'nip' => $record->nik,
-                                'tanggal_bergabung' => now()->toDateString(),
-                                'is_active' => $record->aktif,
-                            ]);
-
-                            // Link the user to the dokter record
-                            $record->update(['user_id' => $user->id]);
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('Akun User Berhasil Dibuat')
-                                ->body("Username: {$username}<br>Password: {$password}<br>Role: dokter")
-                                ->success()
-                                ->persistent()
-                                ->send();
-
-                        } catch (\Exception $e) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Gagal Membuat Akun User')
-                                ->body('Terjadi kesalahan: ' . $e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Buat Akun User Dokter')
-                    ->modalDescription('Akun User akan dibuat dan dihubungkan dengan record dokter ini. Username dan password akan di-generate otomatis dengan role "dokter".')
-                    ->modalSubmitActionLabel('Buat Akun User'),
-
-                Tables\Actions\Action::make('link_existing_user')
-                    ->label('Link User Existing')
-                    ->icon('heroicon-m-link')
-                    ->color('warning')
-                    ->visible(fn ($record) => !$record->user_id && auth()->user()?->hasRole('admin'))
-                    ->form([
-                        Forms\Components\Select::make('user_id')
-                            ->label('Pilih User')
-                            ->options(function () {
-                                return \App\Models\User::whereHas('role', function ($query) {
-                                    $query->where('name', 'dokter');
+                    Tables\Actions\Action::make('link_existing_user')
+                        ->label('Link User Existing')
+                        ->icon('heroicon-m-link')
+                        ->color('warning')
+                        ->visible(fn ($record) => !$record->user_id && auth()->user()?->hasRole('admin'))
+                        ->form([
+                            Forms\Components\Select::make('user_id')
+                                ->label('Pilih User')
+                                ->options(function () {
+                                    return \App\Models\User::whereHas('role', function ($query) {
+                                        $query->where('name', 'dokter');
+                                    })
+                                    ->whereDoesntHave('dokter')
+                                    ->pluck('name', 'id');
                                 })
-                                ->whereDoesntHave('dokter')
-                                ->pluck('name', 'id');
-                            })
-                            ->searchable()
-                            ->required()
-                            ->helperText('Hanya menampilkan User dengan role "dokter" yang belum terhubung ke dokter lain'),
-                    ])
-                    ->action(function ($record, array $data) {
-                        try {
-                            $user = \App\Models\User::find($data['user_id']);
-                            if (!$user) {
-                                throw new \Exception('User tidak ditemukan');
+                                ->searchable()
+                                ->required()
+                                ->helperText('Hanya menampilkan User dengan role "dokter" yang belum terhubung ke dokter lain'),
+                        ])
+                        ->action(function ($record, array $data) {
+                            try {
+                                $user = \App\Models\User::find($data['user_id']);
+                                if (!$user) {
+                                    throw new \Exception('User tidak ditemukan');
+                                }
+
+                                $record->update(['user_id' => $user->id]);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->title('User Berhasil Dihubungkan')
+                                    ->body("User {$user->name} ({$user->username}) berhasil dihubungkan dengan dokter {$record->nama_lengkap}")
+                                    ->success()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Gagal Menghubungkan User')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
                             }
+                        })
+                        ->modalHeading('Hubungkan User Existing')
+                        ->modalDescription('Pilih User account yang sudah ada untuk dihubungkan dengan record dokter ini.')
+                        ->modalSubmitActionLabel('Hubungkan User'),
 
-                            $record->update(['user_id' => $user->id]);
+                    Tables\Actions\Action::make('view_user_account')
+                        ->label('Lihat User')
+                        ->icon('heroicon-m-eye')
+                        ->color('info')
+                        ->visible(fn ($record) => $record->user_id && auth()->user()?->hasRole('admin'))
+                        ->action(function ($record) {
+                            $user = $record->user;
+                            if ($user) {
+                                $userRole = optional($user->role)->display_name ?: optional($user->role)->name ?: 'Tidak ada role';
+                                $userStatus = $user->is_active ? 'Aktif' : 'Nonaktif';
+                                $joinDate = optional($user->tanggal_bergabung)->format('d/m/Y') ?: 'Tidak diketahui';
+                                
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Informasi Akun User')
+                                    ->body("
+                                        <strong>Nama:</strong> {$user->name}<br>
+                                        <strong>Username:</strong> {$user->username}<br>
+                                        <strong>Email:</strong> {$user->email}<br>
+                                        <strong>Role:</strong> {$userRole}<br>
+                                        <strong>Status:</strong> {$userStatus}<br>
+                                        <strong>Bergabung:</strong> {$joinDate}
+                                    ")
+                                    ->info()
+                                    ->persistent()
+                                    ->send();
+                            }
+                        }),
 
-                            \Filament\Notifications\Notification::make()
-                                ->title('User Berhasil Dihubungkan')
-                                ->body("User {$user->name} ({$user->username}) berhasil dihubungkan dengan dokter {$record->nama_lengkap}")
-                                ->success()
-                                ->send();
+                    Tables\Actions\Action::make('unlink_user_account')
+                        ->label('Putus Link User')
+                        ->icon('heroicon-m-x-mark')
+                        ->color('danger')
+                        ->visible(fn ($record) => $record->user_id && auth()->user()?->hasRole('admin'))
+                        ->action(function ($record) {
+                            try {
+                                $userName = $record->user?->name;
+                                
+                                $record->update(['user_id' => null]);
 
-                        } catch (\Exception $e) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Gagal Menghubungkan User')
-                                ->body('Terjadi kesalahan: ' . $e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
-                    })
-                    ->modalHeading('Hubungkan User Existing')
-                    ->modalDescription('Pilih User account yang sudah ada untuk dihubungkan dengan record dokter ini.')
-                    ->modalSubmitActionLabel('Hubungkan User'),
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Link User Berhasil Diputus')
+                                    ->body("Dokter {$record->nama_lengkap} tidak lagi terhubung dengan User {$userName}. User account tetap ada di sistem.")
+                                    ->success()
+                                    ->send();
 
-                Tables\Actions\Action::make('view_user_account')
-                    ->label('Lihat User')
-                    ->icon('heroicon-m-eye')
-                    ->color('info')
-                    ->visible(fn ($record) => $record->user_id && auth()->user()?->hasRole('admin'))
-                    ->action(function ($record) {
-                        $user = $record->user;
-                        if ($user) {
-                            $userRole = optional($user->role)->display_name ?: optional($user->role)->name ?: 'Tidak ada role';
-                            $userStatus = $user->is_active ? 'Aktif' : 'Nonaktif';
-                            $joinDate = optional($user->tanggal_bergabung)->format('d/m/Y') ?: 'Tidak diketahui';
+                            } catch (\Exception $e) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Gagal Memutus Link User')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Putus Link User Account')
+                        ->modalDescription('Link antara record dokter dan User account akan diputus. User account tidak akan dihapus dan tetap ada di sistem.')
+                        ->modalSubmitActionLabel('Putus Link'),
+
+                    Tables\Actions\Action::make('create_account')
+                        ->label('Buat Akun Login')
+                        ->icon('heroicon-m-user-plus')
+                        ->color('success')
+                        ->visible(fn ($record) => !$record->username && auth()->user()?->hasRole('admin'))
+                        ->action(function ($record) {
+                            $result = $record->createLoginAccount();
                             
-                            \Filament\Notifications\Notification::make()
-                                ->title('Informasi Akun User')
-                                ->body("
-                                    <strong>Nama:</strong> {$user->name}<br>
-                                    <strong>Username:</strong> {$user->username}<br>
-                                    <strong>Email:</strong> {$user->email}<br>
-                                    <strong>Role:</strong> {$userRole}<br>
-                                    <strong>Status:</strong> {$userStatus}<br>
-                                    <strong>Bergabung:</strong> {$joinDate}
-                                ")
-                                ->info()
-                                ->persistent()
-                                ->send();
-                        }
-                    }),
-
-                Tables\Actions\Action::make('unlink_user_account')
-                    ->label('Putus Link User')
-                    ->icon('heroicon-m-x-mark')
-                    ->color('danger')
-                    ->visible(fn ($record) => $record->user_id && auth()->user()?->hasRole('admin'))
-                    ->action(function ($record) {
-                        try {
-                            $userName = $record->user?->name;
-                            
-                            // Only unlink, don't delete the User record
-                            $record->update(['user_id' => null]);
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('Link User Berhasil Diputus')
-                                ->body("Dokter {$record->nama_lengkap} tidak lagi terhubung dengan User {$userName}. User account tetap ada di sistem.")
-                                ->success()
-                                ->send();
-
-                        } catch (\Exception $e) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Gagal Memutus Link User')
-                                ->body('Terjadi kesalahan: ' . $e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Putus Link User Account')
-                    ->modalDescription('Link antara record dokter dan User account akan diputus. User account tidak akan dihapus dan tetap ada di sistem.')
-                    ->modalSubmitActionLabel('Putus Link'),
-
-                Tables\Actions\Action::make('create_account')
-                    ->label('Buat Akun')
-                    ->icon('heroicon-m-user-plus')
-                    ->color('success')
-                    ->visible(fn ($record) => !$record->has_login_account && auth()->user()?->hasRole('admin'))
-                    ->action(function ($record) {
-                        $result = $record->createLoginAccount();
-                        
-                        if ($result['success']) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Akun Login Berhasil Dibuat')
-                                ->body("Username: {$result['username']}<br>Password: {$result['password']}")
-                                ->success()
-                                ->persistent()
+                            if ($result['success']) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Akun Login Berhasil Dibuat')
+                                    ->body("Username: {$result['username']}<br>Password: {$result['password']}")
+                                    ->success()
+                                    ->persistent()
                                 ->send();
                         } else {
                             \Filament\Notifications\Notification::make()

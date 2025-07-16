@@ -12,6 +12,8 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        //
+        // Temporary: Allow login route to bypass CSRF for debugging
+        // Remove this after fixing 419 issue
+        // 'login',
     ];
 }

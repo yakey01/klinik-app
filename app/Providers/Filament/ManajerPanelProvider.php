@@ -27,7 +27,7 @@ class ManajerPanelProvider extends PanelProvider
         return $panel
             ->id('manajer')
             ->path('manajer')
-            ->login(CustomLogin::class)
+            ->login()
             ->brandName('📊 Manajer Dashboard')
             ->viteTheme('resources/css/filament/manajer/theme.css')
             ->colors([
@@ -87,6 +87,7 @@ class ManajerPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\RedirectToUnifiedLogin::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

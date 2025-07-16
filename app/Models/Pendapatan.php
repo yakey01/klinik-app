@@ -43,23 +43,17 @@ class Pendapatan extends Model
 
     public function tindakan(): BelongsTo
     {
-        return $this->cacheRelation('tindakan', function() {
-            return $this->belongsTo(Tindakan::class);
-        });
+        return $this->belongsTo(Tindakan::class);
     }
 
     public function inputBy(): BelongsTo
     {
-        return $this->cacheRelation('inputBy', function() {
-            return $this->belongsTo(User::class, 'input_by');
-        });
+        return $this->belongsTo(User::class, 'input_by');
     }
 
     public function validasiBy(): BelongsTo
     {
-        return $this->cacheRelation('validasiBy', function() {
-            return $this->belongsTo(User::class, 'validasi_by');
-        });
+        return $this->belongsTo(User::class, 'validasi_by');
     }
 
     public function scopeByStatus($query, $status)

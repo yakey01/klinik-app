@@ -13,7 +13,7 @@ class PendapatanPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('manage_finance') || $user->hasPermissionTo('validate_transactions');
+        return $user->hasPermissionTo('view-finances') || $user->hasPermissionTo('validate_transactions');
     }
 
     /**
@@ -21,7 +21,7 @@ class PendapatanPolicy
      */
     public function view(User $user, Pendapatan $pendapatan): bool
     {
-        return $user->hasPermissionTo('manage_finance') || $user->hasPermissionTo('validate_transactions');
+        return $user->hasPermissionTo('view-finances') || $user->hasPermissionTo('validate_transactions');
     }
 
     /**
@@ -29,7 +29,7 @@ class PendapatanPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('manage_finance');
+        return $user->hasPermissionTo('create-finances');
     }
 
     /**
@@ -38,7 +38,7 @@ class PendapatanPolicy
     public function update(User $user, Pendapatan $pendapatan): bool
     {
         // Can edit if they have permission AND (they created it OR it's pending OR they're admin/manager)
-        return $user->hasPermissionTo('manage_finance') && (
+        return $user->hasPermissionTo('create-finances') && (
             $pendapatan->input_by === $user->id ||
             $pendapatan->status === 'pending' ||
             $user->hasRole(['admin', 'manajer'])

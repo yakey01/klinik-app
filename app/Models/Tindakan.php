@@ -47,23 +47,17 @@ class Tindakan extends Model
 
     public function pasien(): BelongsTo
     {
-        return $this->cacheRelation('pasien', function() {
-            return $this->belongsTo(Pasien::class);
-        });
+        return $this->belongsTo(Pasien::class);
     }
 
     public function jenisTindakan(): BelongsTo
     {
-        return $this->cacheRelation('jenisTindakan', function() {
-            return $this->belongsTo(JenisTindakan::class);
-        });
+        return $this->belongsTo(JenisTindakan::class);
     }
 
     public function dokter(): BelongsTo
     {
-        return $this->cacheRelation('dokter', function() {
-            return $this->belongsTo(Dokter::class, 'dokter_id');
-        });
+        return $this->belongsTo(Dokter::class, 'dokter_id');
     }
 
     public function paramedis(): BelongsTo

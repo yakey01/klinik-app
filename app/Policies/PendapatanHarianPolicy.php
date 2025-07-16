@@ -13,8 +13,8 @@ class PendapatanHarianPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('view_pendapatan_harian') || 
-               $user->hasPermissionTo('input_transactions') ||
+        return $user->hasPermissionTo('view-finances') || 
+               $user->hasPermissionTo('create-finances') ||
                $user->hasPermissionTo('validate_transactions');
     }
 
@@ -23,8 +23,8 @@ class PendapatanHarianPolicy
      */
     public function view(User $user, PendapatanHarian $pendapatanHarian): bool
     {
-        return ($user->hasPermissionTo('view_pendapatan_harian') || 
-                $user->hasPermissionTo('input_transactions') ||
+        return ($user->hasPermissionTo('view-finances') || 
+                $user->hasPermissionTo('create-finances') ||
                 $user->hasPermissionTo('validate_transactions')) &&
                ($pendapatanHarian->input_by === $user->id || 
                 $user->hasPermissionTo('validate_transactions'));
@@ -35,8 +35,7 @@ class PendapatanHarianPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('create_pendapatan_harian') ||
-               $user->hasPermissionTo('input_transactions');
+        return $user->hasPermissionTo('create-finances');
     }
 
     /**
@@ -44,7 +43,7 @@ class PendapatanHarianPolicy
      */
     public function update(User $user, PendapatanHarian $pendapatanHarian): bool
     {
-        return ($user->hasPermissionTo('edit_pendapatan_harian') || 
+        return ($user->hasPermissionTo('update_pendapatan') || 
                 $user->hasPermissionTo('input_transactions') ||
                 $user->hasPermissionTo('validate_transactions')) &&
                ($pendapatanHarian->input_by === $user->id || 
@@ -56,7 +55,7 @@ class PendapatanHarianPolicy
      */
     public function delete(User $user, PendapatanHarian $pendapatanHarian): bool
     {
-        return ($user->hasPermissionTo('delete_pendapatan_harian') ||
+        return ($user->hasPermissionTo('delete_pendapatan') ||
                 $user->hasPermissionTo('input_transactions')) &&
                ($pendapatanHarian->input_by === $user->id || 
                 $user->hasRole('admin'));
@@ -67,7 +66,7 @@ class PendapatanHarianPolicy
      */
     public function restore(User $user, PendapatanHarian $pendapatanHarian): bool
     {
-        return $user->hasPermissionTo('restore_pendapatan_harian') ||
+        return $user->hasPermissionTo('restore_pendapatan') ||
                $user->hasRole('admin');
     }
 
@@ -76,7 +75,7 @@ class PendapatanHarianPolicy
      */
     public function forceDelete(User $user, PendapatanHarian $pendapatanHarian): bool
     {
-        return $user->hasPermissionTo('force_delete_pendapatan_harian') ||
+        return $user->hasPermissionTo('force_delete_pendapatan') ||
                $user->hasRole('admin');
     }
 
@@ -85,7 +84,7 @@ class PendapatanHarianPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->hasPermissionTo('delete_any_pendapatan_harian') ||
+        return $user->hasPermissionTo('delete_any_pendapatan') ||
                $user->hasRole('admin');
     }
 
@@ -94,7 +93,7 @@ class PendapatanHarianPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->hasPermissionTo('restore_any_pendapatan_harian') ||
+        return $user->hasPermissionTo('restore_any_pendapatan') ||
                $user->hasRole('admin');
     }
 
@@ -103,7 +102,7 @@ class PendapatanHarianPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->hasPermissionTo('force_delete_any_pendapatan_harian') ||
+        return $user->hasPermissionTo('force_delete_any_pendapatan') ||
                $user->hasRole('admin');
     }
 }

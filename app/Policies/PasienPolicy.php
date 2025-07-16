@@ -53,7 +53,7 @@ class PasienPolicy
      */
     public function restore(User $user, Pasien $pasien): bool
     {
-        return $user->can('delete-patients');
+        return $user->can('delete_pasien');
     }
 
     /**

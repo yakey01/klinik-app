@@ -2,27 +2,29 @@
 
 namespace App\Filament\Bendahara\Resources;
 
-use App\Enums\TelegramNotificationType;
 use App\Models\PendapatanHarian;
-use App\Services\TelegramService;
+use App\Services\ValidationWorkflowService;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Filament\Tables\Actions\Action;
+use Filament\Support\Enums\Alignment;
+use Carbon\Carbon;
 
 class ValidasiPendapatanHarianResource extends Resource
 {
     protected static ?string $model = PendapatanHarian::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+    protected static ?string $navigationIcon = null;
 
     protected static ?string $navigationGroup = '💵 Validasi Transaksi';
 
-    protected static ?string $navigationLabel = '🔹 Validasi Pendapatan';
+    protected static ?string $navigationLabel = '📈 Pendapatan Harian';
 
     protected static ?string $modelLabel = 'Pendapatan Harian';
 
@@ -34,32 +36,27 @@ class ValidasiPendapatanHarianResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Detail Pendapatan Harian')
                     ->schema([
-                        Forms\Components\TextInput::make('petugas_name')
-                            ->label('Petugas Input')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->inputBy?->name ?? 'Tidak diketahui'),
-
                         Forms\Components\DatePicker::make('tanggal_input')
                             ->label('Tanggal Input')
+                            ->required()
                             ->disabled(),
 
                         Forms\Components\Select::make('shift')
                             ->label('Shift')
                             ->options([
-                                'Pagi' => 'Pagi',
-                                'Sore' => 'Sore',
+                                'pagi' => 'Pagi (07:00-15:00)',
+                                'siang' => 'Siang (15:00-23:00)',
+                                'malam' => 'Malam (23:00-07:00)',
                             ])
                             ->disabled(),
 
-                        Forms\Components\TextInput::make('jenis_pendapatan')
+                        Forms\Components\Select::make('pendapatan_id')
                             ->label('Jenis Pendapatan')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->pendapatan?->nama_pendapatan ?? 'Tidak diketahui'),
+                            ->relationship('pendapatan', 'nama_pendapatan')
+                            ->disabled(),
 
                         Forms\Components\TextInput::make('nominal')
-                            ->label('Nominal (Rp)')
+                            ->label('Nominal')
                             ->prefix('Rp')
                             ->numeric()
                             ->required(),
@@ -69,21 +66,32 @@ class ValidasiPendapatanHarianResource extends Resource
                             ->disabled()
                             ->columnSpanFull(),
 
+                        Forms\Components\Select::make('user_id')
+                            ->label('Input Oleh')
+                            ->relationship('user', 'name')
+                            ->disabled(),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Validasi Bendahara')
+                    ->schema([
                         Forms\Components\Select::make('status_validasi')
                             ->label('Status Validasi')
                             ->options([
                                 'pending' => 'Menunggu Validasi',
-                                'disetujui' => 'Disetujui',
-                                'ditolak' => 'Ditolak',
+                                'approved' => 'Disetujui',
+                                'rejected' => 'Ditolak',
+                                'need_revision' => 'Perlu Revisi',
                             ])
                             ->required(),
 
                         Forms\Components\Textarea::make('catatan_validasi')
                             ->label('Catatan Validasi')
                             ->placeholder('Tambahkan catatan validasi...')
+                            ->rows(3)
                             ->columnSpanFull(),
                     ])
-                    ->columns(2),
+                    ->columns(1),
             ]);
     }
 
@@ -96,18 +104,19 @@ class ValidasiPendapatanHarianResource extends Resource
                     ->date('d/m/Y')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('inputBy.name')
-                    ->label('Petugas')
-                    ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('shift')
+                Tables\Columns\BadgeColumn::make('shift')
                     ->label('Shift')
-                    ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Pagi' => 'success',
-                        'Sore' => 'warning',
+                        'pagi' => 'success',
+                        'siang' => 'warning',
+                        'malam' => 'info',
                         default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'pagi' => '🌅 Pagi',
+                        'siang' => '🌞 Siang',
+                        'malam' => '🌙 Malam',
+                        default => ucfirst($state),
                     }),
 
                 Tables\Columns\TextColumn::make('pendapatan.nama_pendapatan')
@@ -121,23 +130,30 @@ class ValidasiPendapatanHarianResource extends Resource
                     ->sortable()
                     ->alignEnd(),
 
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Input Oleh')
+                    ->searchable()
+                    ->toggleable(),
+
                 Tables\Columns\BadgeColumn::make('status_validasi')
                     ->label('Status')
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',
-                        'disetujui' => 'success',
-                        'ditolak' => 'danger',
+                        'approved' => 'success',
+                        'rejected' => 'danger',
+                        'need_revision' => 'info',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pending' => 'Menunggu',
-                        'disetujui' => 'Disetujui',
-                        'ditolak' => 'Ditolak',
+                        'pending' => '⏳ Menunggu',
+                        'approved' => '✅ Disetujui',
+                        'rejected' => '❌ Ditolak',
+                        'need_revision' => '📝 Revisi',
                         default => ucfirst($state),
                     }),
 
                 Tables\Columns\TextColumn::make('validasiBy.name')
-                    ->label('Divalidasi Oleh')
+                    ->label('Validasi Oleh')
                     ->placeholder('-')
                     ->toggleable(),
 
@@ -148,12 +164,12 @@ class ValidasiPendapatanHarianResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\Filter::make('tanggal_input')
+                Tables\Filters\Filter::make('tanggal')
                     ->form([
                         Forms\Components\DatePicker::make('dari')
-                            ->label('Dari Tanggal'),
+                            ->label('Tanggal Dari'),
                         Forms\Components\DatePicker::make('sampai')
-                            ->label('Sampai Tanggal'),
+                            ->label('Tanggal Sampai'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -167,116 +183,136 @@ class ValidasiPendapatanHarianResource extends Resource
                             );
                     }),
 
+                Tables\Filters\SelectFilter::make('shift')
+                    ->label('Shift')
+                    ->options([
+                        'pagi' => 'Pagi',
+                        'siang' => 'Siang',
+                        'malam' => 'Malam',
+                    ]),
+
                 Tables\Filters\SelectFilter::make('status_validasi')
-                    ->label('Status')
+                    ->label('Status Validasi')
                     ->options([
                         'pending' => 'Menunggu Validasi',
-                        'disetujui' => 'Disetujui',
-                        'ditolak' => 'Ditolak',
+                        'approved' => 'Disetujui',
+                        'rejected' => 'Ditolak',
+                        'need_revision' => 'Perlu Revisi',
                     ]),
 
-                Tables\Filters\SelectFilter::make('shift')
-                    ->options([
-                        'Pagi' => 'Pagi',
-                        'Sore' => 'Sore',
-                    ]),
+                Tables\Filters\SelectFilter::make('pendapatan_id')
+                    ->label('Jenis Pendapatan')
+                    ->relationship('pendapatan', 'nama_pendapatan')
+                    ->searchable(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn (PendapatanHarian $record): bool => $record->status_validasi === 'pending'),
-                Tables\Actions\Action::make('approve')
-                    ->label('Setujui')
-                    ->icon('heroicon-m-check')
-                    ->color('success')
-                    ->action(function (PendapatanHarian $record) {
-                        $record->update([
-                            'status_validasi' => 'disetujui',
-                            'validasi_by' => Auth::id(),
-                            'validasi_at' => now(),
-                        ]);
-
-                        Notification::make()
-                            ->title('Pendapatan harian disetujui')
-                            ->success()
-                            ->send();
-
-                        // Send Telegram notification to manajer
-                        try {
-                            $telegramService = app(TelegramService::class);
-                            $message = $telegramService->formatNotificationMessage(
-                                TelegramNotificationType::VALIDASI_DISETUJUI->value,
-                                [
-                                    'validator_name' => Auth::user()->name,
-                                    'type' => 'Pendapatan',
-                                    'amount' => $record->nominal,
-                                    'description' => $record->deskripsi ?? 'Pendapatan dari '.($record->pendapatan->nama_pendapatan ?? '-'),
-                                    'date' => $record->tanggal_input->format('d/m/Y'),
-                                    'shift' => $record->shift,
-                                    'petugas' => $record->inputBy->name ?? 'Unknown',
-                                ]
-                            );
-
-                            $telegramService->sendNotificationToRole('manajer', TelegramNotificationType::VALIDASI_DISETUJUI->value, $message);
-                        } catch (\Exception $e) {
-                            \Log::error('Failed to send telegram notification for approval: '.$e->getMessage());
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->visible(fn (PendapatanHarian $record): bool => $record->status_validasi === 'pending'),
-
-                Tables\Actions\Action::make('reject')
-                    ->label('Tolak')
-                    ->icon('heroicon-m-x-mark')
-                    ->color('danger')
-                    ->action(function (PendapatanHarian $record) {
-                        $record->update([
-                            'status_validasi' => 'ditolak',
-                            'validasi_by' => Auth::id(),
-                            'validasi_at' => now(),
-                        ]);
-
-                        Notification::make()
-                            ->title('Pendapatan harian ditolak')
-                            ->warning()
-                            ->send();
-                    })
-                    ->requiresConfirmation()
-                    ->visible(fn (PendapatanHarian $record): bool => $record->status_validasi === 'pending'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('approve_all')
-                        ->label('Validasi Semua')
-                        ->icon('heroicon-m-check-circle')
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('approve')
+                        ->label('✅ Setujui')
                         ->color('success')
-                        ->action(function ($records) {
-                            $records->each(function ($record) {
-                                if ($record->status_validasi === 'pending') {
-                                    $record->update([
-                                        'status_validasi' => 'disetujui',
-                                        'validasi_by' => Auth::id(),
-                                        'validasi_at' => now(),
-                                    ]);
-                                }
-                            });
+                        ->action(function (PendapatanHarian $record) {
+                            try {
+                                $record->update([
+                                    'status_validasi' => 'approved',
+                                    'validasi_by' => Auth::id(),
+                                    'validasi_at' => now(),
+                                ]);
 
-                            Notification::make()
-                                ->title('Semua pendapatan harian berhasil divalidasi')
-                                ->success()
-                                ->send();
+                                Notification::make()
+                                    ->title('✅ Pendapatan Disetujui')
+                                    ->body("Pendapatan harian tanggal {$record->tanggal_input->format('d/m/Y')} disetujui")
+                                    ->success()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal Menyetujui')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
                         })
-                        ->requiresConfirmation(),
-                ]),
+                        ->requiresConfirmation()
+                        ->visible(fn (PendapatanHarian $record): bool => $record->status_validasi === 'pending'),
+
+                    Tables\Actions\Action::make('reject')
+                        ->label('❌ Tolak')
+                        ->color('danger')
+                        ->form([
+                            Forms\Components\Textarea::make('rejection_reason')
+                                ->label('Alasan Penolakan')
+                                ->placeholder('Jelaskan alasan penolakan...')
+                                ->required()
+                                ->rows(3),
+                        ])
+                        ->action(function (PendapatanHarian $record, array $data) {
+                            try {
+                                $record->update([
+                                    'status_validasi' => 'rejected',
+                                    'catatan_validasi' => $data['rejection_reason'],
+                                    'validasi_by' => Auth::id(),
+                                    'validasi_at' => now(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('❌ Pendapatan Ditolak')
+                                    ->body("Pendapatan harian ditolak")
+                                    ->warning()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal Menolak')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->visible(fn (PendapatanHarian $record): bool => $record->status_validasi === 'pending'),
+                        
+                    Tables\Actions\ViewAction::make()->label('👁️ Lihat'),
+                    Tables\Actions\EditAction::make()
+                        ->label('✏️ Edit')
+                        ->visible(fn (PendapatanHarian $record): bool => 
+                            in_array($record->status_validasi, ['pending', 'need_revision'])
+                        ),
+                ])
+                ->label('Aksi')
+                ->button()
+                ->size('sm'),
             ])
-            ->defaultSort('created_at', 'desc')
-            ->poll('30s');
+            ->headerActions([
+                Action::make('daily_summary')
+                    ->label('📊 Ringkasan Harian')
+                    ->color('info')
+                    ->action(function () {
+                        $today = now()->toDateString();
+                        $summary = [
+                            'total_today' => PendapatanHarian::whereDate('tanggal_input', $today)->sum('nominal'),
+                            'count_today' => PendapatanHarian::whereDate('tanggal_input', $today)->count(),
+                            'pending_count' => PendapatanHarian::where('status_validasi', 'pending')->count(),
+                        ];
+
+                        $message = "📊 **RINGKASAN PENDAPATAN HARIAN**\n\n";
+                        $message .= "📅 Hari Ini: Rp " . number_format($summary['total_today'], 0, ',', '.') . "\n";
+                        $message .= "📝 Total Entry: {$summary['count_today']}\n";
+                        $message .= "⏳ Pending: {$summary['pending_count']}";
+
+                        Notification::make()
+                            ->title('📊 Ringkasan Pendapatan')
+                            ->body($message)
+                            ->info()
+                            ->send();
+                    }),
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['inputBy', 'validasiBy', 'pendapatan']);
+            ->with(['pendapatan', 'user', 'validasiBy']);
     }
 
     public static function getNavigationBadge(): ?string
@@ -284,12 +320,15 @@ class ValidasiPendapatanHarianResource extends Resource
         return static::getModel()::where('status_validasi', 'pending')->count();
     }
 
+    public static function canAccess(): bool
+    {
+        return true; // Override access control for bendahara
+    }
+
     public static function getPages(): array
     {
         return [
-            'index' => \App\Filament\Bendahara\Resources\ValidasiPendapatanHarianResource\Pages\ListValidasiPendapatanHarians::route('/'),
-            'view' => \App\Filament\Bendahara\Resources\ValidasiPendapatanHarianResource\Pages\ViewValidasiPendapatanHarian::route('/{record}'),
-            'edit' => \App\Filament\Bendahara\Resources\ValidasiPendapatanHarianResource\Pages\EditValidasiPendapatanHarian::route('/{record}/edit'),
+            'index' => ValidasiPendapatanHarianResource\Pages\ListValidasiPendapatanHarian::route('/'),
         ];
     }
 }

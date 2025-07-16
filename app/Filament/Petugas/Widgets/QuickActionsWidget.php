@@ -2,8 +2,6 @@
 
 namespace App\Filament\Petugas\Widgets;
 
-use Filament\Actions\Action;
-use Filament\Support\Enums\ActionSize;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -22,7 +20,7 @@ class QuickActionsWidget extends Widget
             'icon' => 'heroicon-o-user-plus',
             'color' => 'primary',
             'route' => 'filament.petugas.resources.pasiens.create',
-            'permission' => 'create_pasien',
+            'permission' => 'create-patients',
         ],
         'add_procedure' => [
             'label' => 'Input Tindakan',
@@ -36,14 +34,14 @@ class QuickActionsWidget extends Widget
             'icon' => 'heroicon-o-arrow-trending-up',
             'color' => 'warning',
             'route' => 'filament.petugas.resources.pendapatan-harians.create',
-            'permission' => 'create_pendapatan_harian',
+            'permission' => 'create_pendapatan',
         ],
         'add_expense' => [
             'label' => 'Input Pengeluaran',
             'icon' => 'heroicon-o-arrow-trending-down',
             'color' => 'danger',
             'route' => 'filament.petugas.resources.pengeluaran-harians.create',
-            'permission' => 'create_pengeluaran_harian',
+            'permission' => 'create_pengeluaran',
         ],
         'daily_report' => [
             'label' => 'Laporan Harian',
@@ -57,7 +55,7 @@ class QuickActionsWidget extends Widget
             'icon' => 'heroicon-o-users',
             'color' => 'info',
             'route' => 'filament.petugas.resources.pasiens.index',
-            'permission' => 'view_pasien',
+            'permission' => 'view-patients',
         ],
     ];
 
@@ -90,13 +88,13 @@ class QuickActionsWidget extends Widget
                         }
                     }
                     
-                    $actions[] = Action::make($actionKey)
-                        ->label($actionConfig['label'])
-                        ->icon($actionConfig['icon'])
-                        ->color($actionConfig['color'])
-                        ->size(ActionSize::Large)
-                        ->url(route($actionConfig['route']))
-                        ->openUrlInNewTab(false);
+                    $actions[] = [
+                        'key' => $actionKey,
+                        'label' => $actionConfig['label'],
+                        'icon' => $actionConfig['icon'],
+                        'color' => $actionConfig['color'],
+                        'url' => route($actionConfig['route']),
+                    ];
                         
                 } catch (Exception $e) {
                     Log::error('QuickActionsWidget: Failed to create action', [

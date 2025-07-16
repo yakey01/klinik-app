@@ -40,16 +40,12 @@ class Pengeluaran extends Model
 
     public function inputBy(): BelongsTo
     {
-        return $this->cacheRelation('inputBy', function() {
-            return $this->belongsTo(User::class, 'input_by');
-        });
+        return $this->belongsTo(User::class, 'input_by');
     }
 
     public function validasiBy(): BelongsTo
     {
-        return $this->cacheRelation('validasiBy', function() {
-            return $this->belongsTo(User::class, 'validasi_by');
-        });
+        return $this->belongsTo(User::class, 'validasi_by');
     }
 
     public function scopeByStatus($query, $status)

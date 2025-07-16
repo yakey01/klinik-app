@@ -51,7 +51,7 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('view-reports', function (User $user) {
-            return $user->can('view-reports');
+            return $user->can('view_reports');
         });
 
         Gate::define('manage-users', function (User $user) {

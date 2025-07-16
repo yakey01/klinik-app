@@ -1,17 +1,16 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-
 export default defineConfig({
     plugins: [
-        tailwindcss(),
         react(),
         laravel({
             input: [
                 'resources/css/app.css', 
                 'resources/js/app.js',
                 'resources/css/filament/admin/theme.css',
+                'resources/css/filament/bendahara/theme.css',
+                'resources/css/filament/manajer/theme.css',
                 'resources/css/filament/paramedis-mobile.css',
                 'resources/react/paramedis-jaspel/main.jsx',
                 'resources/react/paramedis-jaspel/styles/ParamedisJaspelDashboard.css',

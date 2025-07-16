@@ -16,6 +16,7 @@ class Pegawai extends Model
     protected $fillable = [
         'nik',
         'nama_lengkap',
+        'email',
         'tanggal_lahir',
         'jenis_kelamin',
         'jabatan',
@@ -264,6 +265,13 @@ class Pegawai extends Model
         static::creating(function ($model) {
             if (auth()->check()) {
                 $model->input_by = auth()->id();
+            }
+        });
+
+        static::updated(function ($model) {
+            // If email was changed, update all associated user accounts
+            if ($model->wasChanged('email') && $model->email) {
+                $model->users()->update(['email' => $model->email]);
             }
         });
     }

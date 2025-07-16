@@ -22,6 +22,19 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
+    // Bendahara API - Financial Management & Reporting
+    Route::prefix('bendahara')->middleware('role:bendahara|admin')->group(function () {
+        Route::get('/dashboard-stats', [\App\Http\Controllers\Api\BendaharaController::class, 'getDashboardStats']);
+        Route::get('/financial-overview', [\App\Http\Controllers\Api\BendaharaController::class, 'getFinancialOverview']);
+        Route::post('/generate-report', [\App\Http\Controllers\Api\BendaharaController::class, 'generateReport']);
+        Route::get('/validation-queue', [\App\Http\Controllers\Api\BendaharaController::class, 'getValidationQueue']);
+        Route::post('/bulk-validation', [\App\Http\Controllers\Api\BendaharaController::class, 'bulkValidation']);
+        Route::get('/cash-flow-analysis', [\App\Http\Controllers\Api\BendaharaController::class, 'getCashFlowAnalysis']);
+        Route::get('/budget-tracking', [\App\Http\Controllers\Api\BendaharaController::class, 'getBudgetTracking']);
+        Route::post('/clear-cache', [\App\Http\Controllers\Api\BendaharaController::class, 'clearCache']);
+        Route::get('/health-check', [\App\Http\Controllers\Api\BendaharaController::class, 'healthCheck']);
+    });
+
     // Bulk Operations API
     Route::prefix('bulk')->group(function () {
         Route::post('/create', [\App\Http\Controllers\Api\V2\BulkOperationController::class, 'bulkCreate']);

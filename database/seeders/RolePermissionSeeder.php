@@ -32,7 +32,16 @@ class RolePermissionSeeder extends Seeder
             'edit-patients',
             'delete-patients',
             
-            // Medical Procedures
+            // Medical Procedures (Tindakan)
+            'view_tindakan',
+            'create_tindakan',
+            'edit_tindakan',
+            'delete_tindakan',
+            'approve_tindakan',
+            'reject_tindakan',
+            'perform_tindakan',
+            
+            // Legacy procedure permissions (kept for compatibility)
             'view-procedures',
             'create-procedures',
             'edit-procedures',
@@ -102,6 +111,7 @@ class RolePermissionSeeder extends Seeder
                     'view-jaspel', 'view-uang-duduk', 'view-reports', 'generate-reports',
                     'export-reports', 'manager-dashboard', 'approve-finances', 'approve-jaspel',
                     'approve-uang-duduk', 'create-patients', 'edit-patients',
+                    'view_tindakan', 'approve_tindakan', 'reject_tindakan',
                 ],
             ],
             'bendahara' => [
@@ -112,6 +122,7 @@ class RolePermissionSeeder extends Seeder
                     'create-jaspel', 'edit-jaspel', 'view-uang-duduk', 'create-uang-duduk',
                     'edit-uang-duduk', 'view-reports', 'generate-reports', 'export-reports',
                     'treasurer-dashboard', 'view-patients', 'view-procedures',
+                    'view_tindakan', 'approve_tindakan', 'reject_tindakan',
                 ],
             ],
             'petugas' => [
@@ -121,6 +132,7 @@ class RolePermissionSeeder extends Seeder
                     'view-patients', 'create-patients', 'edit-patients', 'view-procedures',
                     'create-procedures', 'edit-procedures', 'view-finances', 'create-finances',
                     'staff-dashboard', 'view-jaspel', 'view-uang-duduk',
+                    'view_tindakan', 'create_tindakan', 'edit_tindakan',
                 ],
             ],
             'dokter' => [
@@ -130,6 +142,7 @@ class RolePermissionSeeder extends Seeder
                     'view-patients', 'create-patients', 'edit-patients', 'view-procedures',
                     'create-procedures', 'edit-procedures', 'perform-procedures',
                     'doctor-dashboard', 'view-jaspel', 'view-reports',
+                    'view_tindakan', 'create_tindakan', 'edit_tindakan', 'perform_tindakan',
                 ],
             ],
             'paramedis' => [
@@ -139,6 +152,7 @@ class RolePermissionSeeder extends Seeder
                     'view-patients', 'create-patients', 'edit-patients', 'view-procedures',
                     'create-procedures', 'edit-procedures', 'perform-procedures',
                     'paramedic-dashboard', 'view-jaspel',
+                    'view_tindakan', 'create_tindakan', 'edit_tindakan', 'perform_tindakan',
                 ],
             ],
             'non_paramedis' => [
@@ -147,6 +161,7 @@ class RolePermissionSeeder extends Seeder
                 'permissions' => [
                     'view-patients', 'view-procedures', 'create-procedures',
                     'edit-procedures', 'non-paramedic-dashboard', 'view-jaspel',
+                    'view_tindakan', 'create_tindakan', 'edit_tindakan', 'perform_tindakan',
                 ],
             ],
             'dokter_gigi' => [

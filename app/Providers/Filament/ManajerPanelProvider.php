@@ -27,51 +27,28 @@ class ManajerPanelProvider extends PanelProvider
         return $panel
             ->id('manajer')
             ->path('manajer')
-            ->login(false)
-            ->brandName('📊 Dokterku - Manajer')
-            ->favicon(asset('favicon.ico'))
+            ->login(CustomLogin::class)
+            ->brandName('📊 Manajer Dashboard')
             ->colors([
-                'primary' => Color::rgb('rgb(118, 75, 162)'),
-                'secondary' => Color::rgb('rgb(102, 126, 234)'),
-                'success' => Color::rgb('rgb(16, 185, 129)'),
-                'warning' => Color::rgb('rgb(251, 189, 35)'),
-                'danger' => Color::rgb('rgb(239, 68, 68)'),
-                'info' => Color::rgb('rgb(58, 191, 248)'),
+                'primary' => Color::Blue,
+                'success' => Color::Green,
+                'warning' => Color::Amber,
+                'danger' => Color::Red,
             ])
-            ->darkMode()
+            ->viteTheme('resources/css/filament/manajer/theme.css')
             ->resources([
-                \App\Filament\Manajer\Resources\LaporanKeuanganResource::class,
-                \App\Filament\Manajer\Resources\ManajemenKaryawanResource::class,
-                \App\Filament\Manajer\Resources\AnalyticsKinerjaResource::class,
+                \App\Filament\Manajer\Resources\EmployeePerformanceResource::class,
+                \App\Filament\Manajer\Resources\LeaveApprovalResource::class,
             ])
             ->pages([
                 Pages\Dashboard::class,
             ])
-            // ->discoverWidgets(in: app_path('Filament/Manajer/Widgets'), for: 'App\\Filament\\Manajer\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
-                \App\Filament\Manajer\Widgets\ManajerSummaryWidget::class,
-                \App\Filament\Manajer\Widgets\FinancialTrendWidget::class,
-                \App\Filament\Manajer\Widgets\PatientDistributionWidget::class,
-                \App\Filament\Manajer\Widgets\EmployeePerformanceWidget::class,
-                \App\Filament\Manajer\Widgets\TopServiceFeeWidget::class,
             ])
             ->navigationGroups([
-                NavigationGroup::make('📊 Dashboard Analytics')
-                    ->icon('heroicon-o-chart-bar')
-                    ->collapsible(),
-                NavigationGroup::make('💰 Financial Reports')
-                    ->icon('heroicon-o-document-currency-dollar')
-                    ->collapsible(),
-                NavigationGroup::make('👥 Employee Management')
-                    ->icon('heroicon-o-users')
-                    ->collapsible(),
-                NavigationGroup::make('📈 Performance Analytics')
-                    ->icon('heroicon-o-chart-bar-square')
-                    ->collapsible(),
-                NavigationGroup::make('🔧 Settings')
-                    ->icon('heroicon-o-cog-6-tooth')
-                    ->collapsible(),
+                NavigationGroup::make('👥 Personnel Management')
+                    ->collapsed(false),
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -87,8 +64,6 @@ class ManajerPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->authGuard('web')
-            ->databaseNotifications()
-            ->tenant(null);
+            ->authGuard('web');
     }
 }

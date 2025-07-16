@@ -33,7 +33,7 @@ class PegawaiResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Pegawai';
 
-    protected static ?string $navigationGroup = 'SDM';
+    protected static ?string $navigationGroup = '🔐 User Management';
     protected static ?int $navigationSort = 10;
 
     public static function form(Form $form): Form

@@ -15,7 +15,7 @@ class LeaveApprovalResource extends Resource
 {
     protected static ?string $model = PermohonanCuti::class;
 
-    protected static ?string $navigationIcon = null;
+    protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     
     protected static ?string $navigationLabel = 'Leave Approvals';
     
@@ -166,12 +166,26 @@ class LeaveApprovalResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('status', 'pending');
+            ->with(['pegawai']);
     }
 
     public static function canAccess(): bool
     {
         return auth()->user()?->hasRole('manajer') ?? false;
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $pendingCount = static::getEloquentQuery()
+            ->where('status', 'pending')
+            ->count();
+            
+        return $pendingCount > 0 ? (string) $pendingCount : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
     }
 
     public static function getPages(): array

@@ -60,6 +60,16 @@ class Pegawai extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function tindakanAsParamedis(): HasMany
+    {
+        return $this->hasMany(Tindakan::class, 'paramedis_id');
+    }
+
+    public function tindakanAsNonParamedis(): HasMany
+    {
+        return $this->hasMany(Tindakan::class, 'non_paramedis_id');
+    }
+
     /**
      * New relationship - multiple users per pegawai (different roles)
      */

@@ -17,15 +17,9 @@ class ManajerMiddleware
     {
         $user = Auth::user();
 
-        // Check if user is authenticated
+        // Skip authentication check - let Filament handle it
         if (!$user) {
-            Log::warning('ManajerMiddleware: Unauthorized access attempt', [
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'url' => $request->fullUrl(),
-            ]);
-            
-            return redirect()->route('filament.manajer.auth.login');
+            return $next($request);
         }
 
         // Check if user has manajer role

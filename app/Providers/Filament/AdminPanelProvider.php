@@ -27,6 +27,11 @@ use Hasnayeen\Themes\ThemesPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
+    public function canAccessPanel(): bool
+    {
+        return auth()->user()?->hasRole('admin') ?? false;
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -35,6 +40,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login(CustomLogin::class)
             ->brandName('🏥 Dokterku Admin')
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->colors([
                 'primary' => Color::rgb('rgb(102, 126, 234)'),
                 'secondary' => Color::rgb('rgb(118, 75, 162)'),
@@ -47,12 +53,51 @@ class AdminPanelProvider extends PanelProvider
             ->spa()
             ->globalSearch()
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->resources([
+                // 👥 User Management Group
+                \App\Filament\Resources\UserResource::class,
+                \App\Filament\Resources\RoleResource::class,
+                \App\Filament\Resources\PegawaiResource::class,
+                
+                // 📋 Medical Records Group  
+                \App\Filament\Resources\DokterResource::class,
+                \App\Filament\Resources\PasienResource::class,
+                \App\Filament\Resources\TindakanResource::class,
+                \App\Filament\Resources\JenisTindakanResource::class,
+                
+                // 💰 Financial Management Group
+                \App\Filament\Resources\PendapatanResource::class,
+                \App\Filament\Resources\PengeluaranResource::class,
+                \App\Filament\Resources\DokterUmumJaspelResource::class,
+                
+                // 📊 Reports & Analytics Group
+                \App\Filament\Resources\ReportResource::class,
+                \App\Filament\Resources\AuditLogResource::class,
+                \App\Filament\Resources\BulkOperationResource::class,
+                
+                // ⚙️ System Administration Group
+                \App\Filament\Resources\SystemSettingResource::class,
+                \App\Filament\Resources\FeatureFlagResource::class,
+                \App\Filament\Resources\TelegramSettingResource::class,
+                \App\Filament\Resources\SecurityLogResource::class,
+                \App\Filament\Resources\FaceRecognitionResource::class,
+                \App\Filament\Resources\GpsSpoofingDetectionResource::class,
+                \App\Filament\Resources\GpsSpoofingConfigResource::class,
+                \App\Filament\Resources\ValidasiLokasiResource::class,
+                \App\Filament\Resources\UserDeviceResource::class,
+                \App\Filament\Resources\EmployeeCardResource::class,
+                \App\Filament\Resources\WorkLocationResource::class,
+                \App\Filament\Resources\KalenderKerjaResource::class,
+                \App\Filament\Resources\JadwalJagaResource::class,
+                \App\Filament\Resources\ShiftTemplateResource::class,
+                \App\Filament\Resources\PermohonanCutiResource::class,
+                \App\Filament\Resources\CutiPegawaiResource::class,
+                \App\Filament\Resources\LeaveTypeResource::class,
+                \App\Filament\Resources\AbsenceRequestResource::class,
+            ])
             ->pages([
                 Pages\Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
                 \App\Filament\Widgets\AdminOverviewWidget::class,
@@ -72,6 +117,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\AdminMiddleware::class,
             ])
             ->authGuard('web')
             ->databaseNotifications()
@@ -80,20 +126,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->tenant(null) // Disable multi-tenancy for now
             ->navigationGroups([
-                NavigationGroup::make('👥 User Management')
-                    ->icon('heroicon-o-users')
+                NavigationGroup::make('🔐 User Management')
                     ->collapsible(),
-                NavigationGroup::make('📋 Medical Records')
-                    ->icon('heroicon-o-clipboard-document-list')
+                NavigationGroup::make('🏥 Medical Records')
                     ->collapsible(),
-                NavigationGroup::make('💰 Financial Management')
-                    ->icon('heroicon-o-currency-dollar')
+                NavigationGroup::make('💳 Financial Management')
                     ->collapsible(),
-                NavigationGroup::make('📊 Reports & Analytics')
-                    ->icon('heroicon-o-chart-bar')
+                NavigationGroup::make('📈 Reports & Analytics')
                     ->collapsible(),
                 NavigationGroup::make('⚙️ System Administration')
-                    ->icon('heroicon-o-cog-6-tooth')
                     ->collapsible(),
             ]);
     }

@@ -103,6 +103,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsTo(Pegawai::class, 'pegawai_id');
     }
 
+    public function permohonanCutis(): HasMany
+    {
+        return $this->hasMany(PermohonanCuti::class, 'pegawai_id');
+    }
+
     /**
      * Legacy custom role relationship - kept for backward compatibility during migration
      */

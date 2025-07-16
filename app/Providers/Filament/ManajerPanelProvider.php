@@ -29,7 +29,6 @@ class ManajerPanelProvider extends PanelProvider
             ->path('manajer')
             ->login(CustomLogin::class)
             ->brandName('📊 Manajer Dashboard')
-            ->viteTheme('resources/css/filament/manajer/theme.css')
             ->colors([
                 'primary' => Color::Blue,
                 'success' => Color::Green,
@@ -37,6 +36,7 @@ class ManajerPanelProvider extends PanelProvider
                 'danger' => Color::Red,
                 'info' => Color::Cyan,
             ])
+            ->darkMode(true)
             ->resources([
                 // 👥 Personnel Management Group
                 \App\Filament\Manajer\Resources\EmployeePerformanceResource::class,
@@ -55,7 +55,6 @@ class ManajerPanelProvider extends PanelProvider
                 \App\Filament\Manajer\Resources\ApprovalWorkflowResource::class,
             ])
             ->pages([
-                Pages\Dashboard::class,
                 \App\Filament\Manajer\Pages\ExecutiveDashboard::class,
             ])
             ->widgets([
@@ -90,10 +89,10 @@ class ManajerPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                'manajer',
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->authGuard('web');
     }
 }

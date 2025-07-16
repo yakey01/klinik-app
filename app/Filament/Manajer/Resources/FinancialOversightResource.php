@@ -11,7 +11,7 @@ class FinancialOversightResource extends Resource
 {
     protected static ?string $model = Pendapatan::class;
 
-    protected static ?string $navigationIcon = null;
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
     
     protected static ?string $navigationLabel = 'Financial Overview';
     

@@ -1,8 +1,7 @@
+/* Import only non-conflicting systems - design-system.css removed to prevent Filament conflicts */
+@import './loading-system.css';
+@import './mobile-responsive.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import Dokterku Design System */
-@import './design-system.css';
-@import './loading-system.css';
-@import './mobile-responsive.css';

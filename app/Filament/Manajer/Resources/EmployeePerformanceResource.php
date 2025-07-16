@@ -14,7 +14,7 @@ class EmployeePerformanceResource extends Resource
 {
     protected static ?string $model = Pegawai::class;
 
-    protected static ?string $navigationIcon = null;
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
     
     protected static ?string $navigationLabel = 'Employee Performance';
     
@@ -24,7 +24,7 @@ class EmployeePerformanceResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('nama')
+                Forms\Components\TextInput::make('nama_lengkap')
                     ->label('Nama Pegawai')
                     ->required(),
                     
@@ -32,22 +32,17 @@ class EmployeePerformanceResource extends Resource
                     ->label('NIK')
                     ->required(),
                     
-                Forms\Components\Select::make('jabatan')
-                    ->label('Jabatan')
+                Forms\Components\Select::make('jenis_pegawai')
+                    ->label('Jenis Pegawai')
                     ->options([
-                        'dokter' => 'Dokter',
-                        'perawat' => 'Perawat',
-                        'administrasi' => 'Administrasi',
-                        'farmasi' => 'Farmasi',
+                        'Paramedis' => 'Paramedis',
+                        'Non-Paramedis' => 'Non-Paramedis',
                     ])
                     ->required(),
-                    
-                Forms\Components\TextInput::make('performance_score')
-                    ->label('Performance Score')
-                    ->numeric()
-                    ->minValue(0)
-                    ->maxValue(100)
-                    ->suffix('%'),
+
+                Forms\Components\TextInput::make('jabatan')
+                    ->label('Jabatan')
+                    ->required(),
             ]);
     }
 
@@ -55,7 +50,7 @@ class EmployeePerformanceResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nama')
+                Tables\Columns\TextColumn::make('nama_lengkap')
                     ->label('Nama Pegawai')
                     ->searchable()
                     ->sortable(),
@@ -64,25 +59,63 @@ class EmployeePerformanceResource extends Resource
                     ->label('NIK')
                     ->searchable(),
                     
-                Tables\Columns\TextColumn::make('jabatan')
-                    ->label('Jabatan')
-                    ->badge()
+                Tables\Columns\BadgeColumn::make('jenis_pegawai')
+                    ->label('Type')
                     ->colors([
-                        'primary' => 'dokter',
-                        'success' => 'perawat',
-                        'warning' => 'administrasi',
-                        'info' => 'farmasi',
+                        'primary' => 'Paramedis',
+                        'success' => 'Non-Paramedis',
                     ]),
+
+                Tables\Columns\TextColumn::make('jabatan')
+                    ->label('Position')
+                    ->searchable(),
                     
-                Tables\Columns\TextColumn::make('user.attendances_count')
-                    ->label('Kehadiran')
-                    ->counts('user.attendances')
+                Tables\Columns\TextColumn::make('monthly_activities')
+                    ->label('Monthly Activities')
+                    ->state(function (Pegawai $record): string {
+                        // Simulate activity count based on procedures performed
+                        $activities = \App\Models\Tindakan::whereRaw('strftime("%m", created_at) = ?', [str_pad(now()->month, 2, '0', STR_PAD_LEFT)])
+                            ->where(function($query) use ($record) {
+                                $query->where('paramedis_id', $record->id)
+                                      ->orWhere('non_paramedis_id', $record->id);
+                            })
+                            ->count();
+                        return $activities . ' activities';
+                    })
+                    ->badge()
+                    ->color(function (string $state): string {
+                        $count = (int) str_replace(' activities', '', $state);
+                        return match (true) {
+                            $count >= 20 => 'success',
+                            $count >= 10 => 'warning',
+                            default => 'danger',
+                        };
+                    })
                     ->sortable(),
                     
-                Tables\Columns\TextColumn::make('performance_score')
-                    ->label('Performance')
-                    ->suffix('%')
-                    ->color(fn ($state) => $state >= 80 ? 'success' : ($state >= 60 ? 'warning' : 'danger'))
+                Tables\Columns\TextColumn::make('calculated_performance')
+                    ->label('Performance Score')
+                    ->state(function (Pegawai $record): string {
+                        // Calculate performance based on monthly activities
+                        $activities = \App\Models\Tindakan::whereRaw('strftime("%m", created_at) = ?', [str_pad(now()->month, 2, '0', STR_PAD_LEFT)])
+                            ->where(function($query) use ($record) {
+                                $query->where('paramedis_id', $record->id)
+                                      ->orWhere('non_paramedis_id', $record->id);
+                            })
+                            ->count();
+                        
+                        $score = min(100, ($activities * 3)); // 3% per activity
+                        return $score . '%';
+                    })
+                    ->badge()
+                    ->color(function (string $state): string {
+                        $score = (int) str_replace('%', '', $state);
+                        return match (true) {
+                            $score >= 80 => 'success',
+                            $score >= 60 => 'warning',
+                            default => 'danger',
+                        };
+                    })
                     ->sortable(),
                     
                 Tables\Columns\TextColumn::make('created_at')
@@ -91,20 +124,24 @@ class EmployeePerformanceResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('jabatan')
-                    ->label('Jabatan')
+                Tables\Filters\SelectFilter::make('jenis_pegawai')
+                    ->label('Employee Type')
                     ->options([
-                        'dokter' => 'Dokter',
-                        'perawat' => 'Perawat',
-                        'administrasi' => 'Administrasi',
-                        'farmasi' => 'Farmasi',
+                        'Paramedis' => 'Paramedis',
+                        'Non-Paramedis' => 'Non-Paramedis',
                     ]),
+
+                Tables\Filters\Filter::make('high_performers')
+                    ->label('High Performers (>20 activities)')
+                    ->query(fn (Builder $query): Builder => 
+                        $query->whereRaw('(SELECT COUNT(*) FROM tindakan WHERE strftime("%m", tindakan.created_at) = ? AND (tindakan.paramedis_id = pegawais.id OR tindakan.non_paramedis_id = pegawais.id) AND tindakan.deleted_at IS NULL) > 20', [str_pad(now()->month, 2, '0', STR_PAD_LEFT)])
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
-            ->defaultSort('performance_score', 'desc');
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function canAccess(): bool

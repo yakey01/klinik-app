@@ -39,12 +39,6 @@ class PetugasPanelProvider extends PanelProvider
                 'danger' => Color::rgb('rgb(239, 68, 68)'),
                 'info' => Color::rgb('rgb(58, 191, 248)'),
             ])
-            ->darkMode()
-            ->spa()
-            ->globalSearch()
-            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
-            ->breadcrumbs(false)
-            ->topNavigation(false)
             ->sidebarCollapsibleOnDesktop()
             ->resources([
                 // 🏥 Manajemen Pasien Group
@@ -63,22 +57,24 @@ class PetugasPanelProvider extends PanelProvider
                 // 📊 Dashboard Page
                 \App\Filament\Petugas\Pages\PetugasDashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Petugas/Widgets'), for: 'App\\Filament\\Petugas\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                \App\Filament\Petugas\Widgets\NotificationWidget::class,
+                \Filament\Widgets\AccountWidget::class,
                 \App\Filament\Petugas\Widgets\PetugasStatsWidget::class,
+                \App\Filament\Petugas\Widgets\NotificationWidget::class,
                 \App\Filament\Petugas\Widgets\QuickActionsWidget::class,
             ])
             ->navigationGroups([
-                NavigationGroup::make('🏠 Dashboard')
+                NavigationGroup::make('📊 Dashboard')
                     ->collapsed(false),
                 NavigationGroup::make('🏥 Manajemen Pasien')
-                    ->collapsed(false),
+                    ->collapsed(false)
+                    ->collapsible(),
                 NavigationGroup::make('📊 Input Data Harian')
-                    ->collapsed(false),
+                    ->collapsed(false)
+                    ->collapsible(),
                 NavigationGroup::make('💰 Transaksi')
-                    ->collapsed(true),
+                    ->collapsed(true)
+                    ->collapsible(),
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -95,10 +91,6 @@ class PetugasPanelProvider extends PanelProvider
                 Authenticate::class,
                 \App\Http\Middleware\PetugasMiddleware::class,
             ])
-            ->authGuard('web')
-            ->databaseNotifications()
-            ->databaseNotificationsPolling('30s')
-            ->profile()
-            ->tenant(null);
+            ->authGuard('web');
     }
 }

@@ -19,9 +19,9 @@ class BudgetPlanningResource extends Resource
 
     protected static ?string $navigationIcon = null;
 
-    protected static ?string $navigationGroup = '💰 Manajemen Jaspel';
+    protected static ?string $navigationGroup = 'Manajemen Jaspel';
 
-    protected static ?string $navigationLabel = '🎯 Budget Planning';
+    protected static ?string $navigationLabel = 'Budget Planning';
 
     protected static ?string $modelLabel = 'Budget Planning';
 

@@ -24,6 +24,22 @@ Route::post('/login', [UnifiedAuthController::class, 'store'])
     ->name('unified.login');
 Route::post('/logout', [UnifiedAuthController::class, 'destroy'])->name('logout');
 
+// Test manajer login
+Route::get('/test-manajer-login', function () {
+    $user = \App\Models\User::where('email', 'tina@manajer.com')->first();
+    if ($user && \Illuminate\Support\Facades\Hash::check('password', $user->password)) {
+        \Illuminate\Support\Facades\Auth::login($user);
+        return response()->json([
+            'success' => true,
+            'user' => $user->name,
+            'role' => $user->role->name,
+            'can_access_manajer' => $user->hasRole('manajer'),
+            'redirect_url' => '/manajer'
+        ]);
+    }
+    return response()->json(['success' => false, 'message' => 'Login failed']);
+})->name('test.manajer.login');
+
 // Email verification routes
 Route::get('/email/verify', function () {
     return view('auth.verify-email');

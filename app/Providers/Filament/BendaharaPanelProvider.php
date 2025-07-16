@@ -26,7 +26,7 @@ class BendaharaPanelProvider extends PanelProvider
             ->id('bendahara')
             ->path('bendahara')
             ->login(false)
-            ->brandName('💰 Bendahara Dashboard')
+            ->brandName('Bendahara Dashboard')
             ->viteTheme('resources/css/filament/bendahara/theme.css')
             ->colors([
                 'primary' => Color::Amber,
@@ -37,29 +37,26 @@ class BendaharaPanelProvider extends PanelProvider
             ])
             ->sidebarCollapsibleOnDesktop()
             ->pages([
-                // 📊 Dashboard Page
                 \App\Filament\Bendahara\Pages\BendaharaDashboard::class,
             ])
             ->resources([
-                // 💵 Validasi Transaksi Group
+                // Validasi Transaksi Group
                 \App\Filament\Bendahara\Resources\ValidasiPendapatanResource::class,
-                \App\Filament\Bendahara\Resources\ValidasiPendapatanHarianResource::class,
                 \App\Filament\Bendahara\Resources\ValidasiPengeluaranResource::class,
-                \App\Filament\Bendahara\Resources\ValidasiPengeluaranHarianResource::class,
                 \App\Filament\Bendahara\Resources\ValidasiTindakanResource::class,
                 
-                // 💰 Manajemen Jaspel Group
+                // Manajemen Jaspel Group
                 \App\Filament\Bendahara\Resources\ValidasiJaspelResource::class,
                 \App\Filament\Bendahara\Resources\BudgetPlanningResource::class,
                 
-                // 📈 Laporan Keuangan Group
+                // Laporan Keuangan Group
                 \App\Filament\Bendahara\Resources\LaporanKeuanganResource::class,
                 
-                // 📋 Audit & Kontrol Group
+                // Audit & Kontrol Group
                 \App\Filament\Bendahara\Resources\AuditTrailResource::class,
                 \App\Filament\Bendahara\Resources\FinancialAlertResource::class,
                 
-                // 🏥 Validasi Data Group
+                // Validasi Data Group
                 \App\Filament\Bendahara\Resources\ValidasiJumlahPasienResource::class,
             ])
             ->widgets([
@@ -69,18 +66,23 @@ class BendaharaPanelProvider extends PanelProvider
                 \App\Filament\Bendahara\Widgets\LanguageSwitcherWidget::class,
             ])
             ->navigationGroups([
-                NavigationGroup::make('📊 Dashboard')
+                NavigationGroup::make('Dashboard')
                     ->collapsed(false),
-                NavigationGroup::make('💵 Validasi Transaksi')
-                    ->collapsed(false),
-                NavigationGroup::make('💰 Manajemen Jaspel')
-                    ->collapsed(false),
-                NavigationGroup::make('📈 Laporan Keuangan')
-                    ->collapsed(true),
-                NavigationGroup::make('📋 Audit & Kontrol')
-                    ->collapsed(true),
-                NavigationGroup::make('🏥 Validasi Data')
-                    ->collapsed(true),
+                NavigationGroup::make('Validasi Transaksi')
+                    ->collapsed(true)
+                    ->collapsible(),
+                NavigationGroup::make('Manajemen Jaspel')
+                    ->collapsed(true)
+                    ->collapsible(),
+                NavigationGroup::make('Laporan Keuangan')
+                    ->collapsed(true)
+                    ->collapsible(),
+                NavigationGroup::make('Audit & Kontrol')
+                    ->collapsed(true)
+                    ->collapsible(),
+                NavigationGroup::make('Validasi Data')
+                    ->collapsed(true)
+                    ->collapsible(),
             ])
             ->middleware([
                 EncryptCookies::class,

@@ -19,9 +19,9 @@ class FinancialAlertResource extends Resource
 
     protected static ?string $navigationIcon = null;
 
-    protected static ?string $navigationGroup = '📋 Audit & Kontrol';
+    protected static ?string $navigationGroup = 'Audit & Kontrol';
 
-    protected static ?string $navigationLabel = '🚨 Financial Alerts';
+    protected static ?string $navigationLabel = 'Financial Alerts';
 
     protected static ?string $modelLabel = 'Financial Alert';
 

@@ -26,7 +26,7 @@ class BendaharaDashboard extends Page
     
     protected static ?int $navigationSort = 1;
     
-    protected static ?string $navigationGroup = '📊 Dashboard';
+    protected static ?string $navigationGroup = 'Dashboard';
     
     public function mount(): void
     {

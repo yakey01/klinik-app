@@ -22,9 +22,9 @@ class ValidasiJumlahPasienResource extends Resource
 
     protected static ?string $navigationIcon = null;
 
-    protected static ?string $navigationGroup = '🏥 Validasi Data';
+    protected static ?string $navigationGroup = 'Validasi Data';
 
-    protected static ?string $navigationLabel = '👥 Validasi Jumlah Pasien';
+    protected static ?string $navigationLabel = 'Validasi Jumlah Pasien';
 
     protected static ?string $modelLabel = 'Jumlah Pasien Harian';
 

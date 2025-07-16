@@ -103,7 +103,7 @@ class ValidasiJumlahPasienResource extends Resource
                     ->date('d/m/Y')
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('shift')
+                Tables\Columns\TextColumn::make('shift')
                     ->label('Shift')
                     ->color(fn (string $state): string => match ($state) {
                         'pagi' => 'success',
@@ -141,7 +141,7 @@ class ValidasiJumlahPasienResource extends Resource
                     ->alignment(Alignment::Center)
                     ->toggleable(),
 
-                Tables\Columns\BadgeColumn::make('status_validasi')
+                Tables\Columns\TextColumn::make('status_validasi')
                     ->label('Status')
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',

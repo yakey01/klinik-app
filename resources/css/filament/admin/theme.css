@@ -1,11 +1,412 @@
 @import '/vendor/filament/filament/resources/css/theme.css';
 
-/* Only essential Filament-compatible customizations */
+/* Admin Panel Design System - Medical Professional Theme */
 [data-filament-panel-id="admin"] {
-    /* Panel isolation for multi-panel setup */
-    isolation: isolate;
-    contain: layout style;
+    /* Primary Colors - Medical Blue/Purple */
+    --primary: 102 126 234; /* Medical Blue */
+    --secondary: 118 75 162; /* Medical Purple */
+    --success: 16 185 129; /* Green */
+    --warning: 251 189 35; /* Orange */
+    --danger: 239 68 68; /* Red */
+    --info: 58 191 248; /* Cyan */
+    --gray: 107 114 128; /* Gray */
+    
+    /* Panel Variables */
+    --admin-primary: #667eea;
+    --admin-primary-light: #8b9df7;
+    --admin-primary-dark: #4f63d2;
+    --medical-blue: #667eea;
+    --medical-purple: #764ba2;
+    --medical-accent: #3abff8;
+    
+    /* Enhanced Medical Color Palette */
+    --primary-50: #eff2ff;
+    --primary-100: #e0e7ff;
+    --primary-200: #c7d2fe;
+    --primary-300: #a5b4fc;
+    --primary-400: #8b9df7;
+    --primary-500: #667eea;
+    --primary-600: #5a67d8;
+    --primary-700: #4c51bf;
+    --primary-800: #434190;
+    --primary-900: #3c366b;
+    --primary-950: #252338;
 }
 
-/* Use Filament's native color system instead of custom overrides */
-/* All other styling removed to prevent conflicts with Filament */
+/* Medical Admin Branding */
+[data-filament-panel-id="admin"] .fi-topbar {
+    background: linear-gradient(135deg, var(--admin-primary) 0%, var(--medical-purple) 100%);
+    border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+[data-filament-panel-id="admin"] .fi-sidebar-header {
+    background: linear-gradient(135deg, var(--admin-primary) 0%, var(--medical-purple) 100%);
+    border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+[data-filament-panel-id="admin"] .fi-sidebar-header .fi-logo {
+    color: white;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Medical Widget Styling */
+[data-filament-panel-id="admin"] .fi-wi-stats-overview-stat {
+    background: rgba(102, 126, 234, 0.08);
+    border-radius: 0.875rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(102, 126, 234, 0.15);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+[data-filament-panel-id="admin"] .fi-wi-stats-overview-stat::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--admin-primary), var(--medical-purple));
+}
+
+[data-filament-panel-id="admin"] .fi-wi-stats-overview-stat:hover {
+    background: rgba(102, 126, 234, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+}
+
+[data-filament-panel-id="admin"] .fi-wi-stats-overview-stat-value {
+    color: var(--admin-primary);
+    font-weight: 700;
+    font-size: 2rem;
+    line-height: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+[data-filament-panel-id="admin"] .fi-wi-stats-overview-stat-label {
+    color: rgb(75 85 99);
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+[data-filament-panel-id="admin"] .fi-wi-stats-overview-stat-description {
+    color: rgb(107 114 128);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+/* Medical Badge Styling */
+[data-filament-panel-id="admin"] .fi-badge {
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+[data-filament-panel-id="admin"] .fi-badge-color-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #047857;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+[data-filament-panel-id="admin"] .fi-badge-color-warning {
+    background-color: rgba(251, 189, 35, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(251, 189, 35, 0.2);
+}
+
+[data-filament-panel-id="admin"] .fi-badge-color-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+[data-filament-panel-id="admin"] .fi-badge-color-info {
+    background-color: rgba(58, 191, 248, 0.1);
+    color: #0284c7;
+    border: 1px solid rgba(58, 191, 248, 0.2);
+}
+
+[data-filament-panel-id="admin"] .fi-badge-color-primary {
+    background-color: rgba(102, 126, 234, 0.1);
+    color: #4f63d2;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+/* Medical Card Styling */
+[data-filament-panel-id="admin"] .fi-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    border-radius: 0.875rem;
+    box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.1), 0 2px 4px -1px rgba(102, 126, 234, 0.06);
+    transition: all 0.3s ease;
+}
+
+[data-filament-panel-id="admin"] .fi-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.15), 0 4px 6px -2px rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+/* Medical Progress Bar */
+[data-filament-panel-id="admin"] .progress-bar {
+    background: rgba(229, 231, 235, 1);
+    border-radius: 9999px;
+    height: 0.5rem;
+    overflow: hidden;
+    position: relative;
+}
+
+[data-filament-panel-id="admin"] .progress-bar-fill {
+    background: linear-gradient(90deg, var(--admin-primary) 0%, var(--medical-purple) 100%);
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+[data-filament-panel-id="admin"] .progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Medical Button Styling */
+[data-filament-panel-id="admin"] .fi-btn-primary {
+    background: linear-gradient(135deg, var(--admin-primary) 0%, var(--medical-purple) 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+[data-filament-panel-id="admin"] .fi-btn-primary:hover {
+    background: linear-gradient(135deg, var(--admin-primary-dark) 0%, #5a4fcf 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+[data-filament-panel-id="admin"] .fi-btn-secondary {
+    background: transparent;
+    border: 1px solid var(--admin-primary);
+    color: var(--admin-primary);
+    transition: all 0.2s ease;
+}
+
+[data-filament-panel-id="admin"] .fi-btn-secondary:hover {
+    background: var(--admin-primary);
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* Medical Table Styling */
+[data-filament-panel-id="admin"] .fi-ta-header-cell {
+    background: rgba(102, 126, 234, 0.05);
+    font-weight: 600;
+    color: var(--admin-primary-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+}
+
+[data-filament-panel-id="admin"] .fi-ta-row:hover {
+    background: rgba(102, 126, 234, 0.04);
+    transition: background-color 0.2s ease;
+}
+
+[data-filament-panel-id="admin"] .fi-ta-cell {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.3);
+    transition: all 0.2s ease;
+}
+
+/* Medical Form Styling */
+[data-filament-panel-id="admin"] .fi-input {
+    border: 1px solid rgba(209, 213, 219, 1);
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(5px);
+}
+
+[data-filament-panel-id="admin"] .fi-input:focus {
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    background: rgba(255, 255, 255, 1);
+}
+
+[data-filament-panel-id="admin"] .fi-select {
+    border: 1px solid rgba(209, 213, 219, 1);
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+[data-filament-panel-id="admin"] .fi-select:focus {
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Medical Section Styling */
+[data-filament-panel-id="admin"] .fi-section {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    border-radius: 0.875rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.05);
+}
+
+[data-filament-panel-id="admin"] .fi-section-header {
+    border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+    padding: 1.5rem;
+}
+
+[data-filament-panel-id="admin"] .fi-section-content {
+    padding: 1.5rem;
+}
+
+/* Medical Chart Container */
+[data-filament-panel-id="admin"] .chart-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 0.875rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.05);
+    backdrop-filter: blur(10px);
+}
+
+/* Medical Widget Grid */
+[data-filament-panel-id="admin"] .fi-wi-grid {
+    gap: 1.5rem;
+}
+
+/* Medical Icon Styling */
+[data-filament-panel-id="admin"] .fi-icon {
+    color: var(--admin-primary);
+    transition: all 0.2s ease;
+}
+
+[data-filament-panel-id="admin"] .fi-icon:hover {
+    color: var(--admin-primary-dark);
+    transform: scale(1.05);
+}
+
+/* Medical Navigation */
+[data-filament-panel-id="admin"] .fi-sidebar-nav-item {
+    transition: all 0.2s ease;
+    border-radius: 0.5rem;
+    margin: 0.125rem 0;
+}
+
+[data-filament-panel-id="admin"] .fi-sidebar-nav-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+    transform: translateX(2px);
+}
+
+[data-filament-panel-id="admin"] .fi-sidebar-nav-item.active {
+    background: linear-gradient(135deg, var(--admin-primary) 0%, var(--medical-purple) 100%);
+    color: white;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+/* Medical Responsive Design */
+@media (max-width: 768px) {
+    [data-filament-panel-id="admin"] .fi-wi-stats-overview-stat {
+        margin-bottom: 1rem;
+        padding: 1.25rem;
+    }
+    
+    [data-filament-panel-id="admin"] .fi-wi-stats-overview-stat-value {
+        font-size: 1.5rem;
+    }
+    
+    [data-filament-panel-id="admin"] .fi-card {
+        margin-bottom: 1rem;
+    }
+    
+    [data-filament-panel-id="admin"] .chart-container {
+        padding: 1rem;
+    }
+    
+    [data-filament-panel-id="admin"] .fi-wi-grid {
+        gap: 1rem;
+    }
+    
+    [data-filament-panel-id="admin"] .fi-ta-cell {
+        padding: 0.75rem;
+    }
+}
+
+/* Medical Dark Mode Support */
+[data-filament-panel-id="admin"] .dark .fi-card {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+[data-filament-panel-id="admin"] .dark .fi-input {
+    background: rgba(31, 41, 55, 0.9);
+    border-color: rgba(102, 126, 234, 0.3);
+    color: rgba(229, 231, 235, 1);
+}
+
+[data-filament-panel-id="admin"] .dark .fi-section {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+[data-filament-panel-id="admin"] .dark .chart-container {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+[data-filament-panel-id="admin"] .dark .fi-wi-stats-overview-stat {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+[data-filament-panel-id="admin"] .dark .fi-ta-header-cell {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+/* Medical Loading Animation */
+[data-filament-panel-id="admin"] .loading-heartbeat {
+    animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+    0% { transform: scale(1); }
+    14% { transform: scale(1.1); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.1); }
+    70% { transform: scale(1); }
+}
+
+/* Medical Notification Styling */
+[data-filament-panel-id="admin"] .fi-notification {
+    border-left: 4px solid var(--admin-primary);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px rgba(102, 126, 234, 0.1);
+}

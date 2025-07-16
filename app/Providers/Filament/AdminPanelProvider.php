@@ -38,19 +38,18 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(CustomLogin::class)
-            ->brandName('🏥 Dokterku Admin')
+            ->login(false)
+            ->brandName('🏥 Dokterku Admin Portal')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->colors([
-                'primary' => Color::rgb('rgb(102, 126, 234)'),
-                'secondary' => Color::rgb('rgb(118, 75, 162)'),
-                'success' => Color::rgb('rgb(16, 185, 129)'),
-                'warning' => Color::rgb('rgb(251, 189, 35)'),
-                'danger' => Color::rgb('rgb(239, 68, 68)'),
-                'info' => Color::rgb('rgb(58, 191, 248)'),
+                'primary' => Color::Blue,
+                'secondary' => Color::Purple,
+                'success' => Color::Green,
+                'warning' => Color::Orange,
+                'danger' => Color::Red,
+                'info' => Color::Cyan,
             ])
             ->darkMode()
-            ->spa()
             ->globalSearch()
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->resources([
@@ -100,6 +99,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->widgets([
                 Widgets\AccountWidget::class,
+                \App\Filament\Widgets\AdminInteractiveDashboardWidget::class,
                 \App\Filament\Widgets\AdminOverviewWidget::class,
                 \App\Filament\Widgets\SystemHealthWidget::class,
                 \App\Filament\Widgets\ClinicStatsWidget::class,
@@ -126,16 +126,20 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->tenant(null) // Disable multi-tenancy for now
             ->navigationGroups([
-                NavigationGroup::make('🔐 User Management')
-                    ->collapsible(),
-                NavigationGroup::make('🏥 Medical Records')
-                    ->collapsible(),
+                NavigationGroup::make('📊 Dashboard')
+                    ->collapsed(false),
+                NavigationGroup::make('👥 User Management')
+                    ->collapsed(false),
+                NavigationGroup::make('🏥 Medical Operations')
+                    ->collapsed(false),
+                NavigationGroup::make('💊 Clinical Records')
+                    ->collapsed(true),
                 NavigationGroup::make('💳 Financial Management')
-                    ->collapsible(),
-                NavigationGroup::make('📈 Reports & Analytics')
-                    ->collapsible(),
+                    ->collapsed(true),
+                NavigationGroup::make('📈 Analytics & Reports')
+                    ->collapsed(true),
                 NavigationGroup::make('⚙️ System Administration')
-                    ->collapsible(),
+                    ->collapsed(true),
             ]);
     }
 }

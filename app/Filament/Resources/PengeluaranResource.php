@@ -12,6 +12,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
+use Filament\Notifications\Notification;
 
 class PengeluaranResource extends Resource
 {
@@ -36,26 +38,38 @@ class PengeluaranResource extends Resource
                         Forms\Components\TextInput::make('kode_pengeluaran')
                             ->label('Kode Pengeluaran')
                             ->required()
-                            ->unique(ignoreRecord: true)
-                            ->placeholder('OUT001')
-                            ->maxLength(50),
+                            ->maxLength(50)
+                            ->placeholder('Auto-generated: PNG-0001')
+                            ->prefixIcon('heroicon-o-hashtag')
+                            ->readOnly()
+                            ->dehydrated()
+                            ->helperText('Kode akan dibuat otomatis saat menyimpan data'),
 
                         Forms\Components\TextInput::make('nama_pengeluaran')
                             ->label('Nama Pengeluaran')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Contoh: Alat Tulis Kantor'),
+                            ->placeholder('Contoh: Alat Tulis Kantor')
+                            ->unique(ignoreRecord: true)
+                            ->helperText('Nama pengeluaran harus unik dan tidak boleh sama dengan yang sudah ada')
+                            ->validationAttribute('nama pengeluaran'),
 
                         Forms\Components\Select::make('kategori')
                             ->label('Kategori')
                             ->options([
+                                'konsumsi' => 'Konsumsi / Minuman / Makanan',
+                                'alat_bahan' => 'Belanja Alat & Bahan Habis Pakai',
+                                'akomodasi' => 'Akomodasi & Transportasi',
+                                'medis' => 'Obat & Alkes',
+                                'honor' => 'Honor & Fee',
+                                'promosi' => 'Promosi & Kegiatan',
                                 'operasional' => 'Operasional',
-                                'medis' => 'Medis',
                                 'maintenance' => 'Maintenance',
                                 'administrasi' => 'Administrasi',
                                 'lainnya' => 'Lainnya',
                             ])
-                            ->required(),
+                            ->required()
+                            ->searchable(),
 
                         Forms\Components\Textarea::make('keterangan')
                             ->label('Keterangan')
@@ -65,33 +79,17 @@ class PengeluaranResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Status & Validasi')
+                Forms\Components\Section::make('Data Sistem')
                     ->schema([
-                        Forms\Components\Select::make('status_validasi')
-                            ->label('Status Validasi')
-                            ->options([
-                                'pending' => 'Menunggu Validasi',
-                                'disetujui' => 'Disetujui',
-                                'ditolak' => 'Ditolak',
-                            ])
-                            ->default('disetujui')
-                            ->required(),
-
                         Forms\Components\Hidden::make('input_by')
                             ->default(fn () => auth()->id()),
-
-                        Forms\Components\Hidden::make('validasi_by')
-                            ->default(fn () => auth()->id()),
-
-                        Forms\Components\Hidden::make('validasi_at')
-                            ->default(fn () => now()),
 
                         Forms\Components\Hidden::make('tanggal')
                             ->default(fn () => now()),
 
                         Forms\Components\Hidden::make('nominal')
                             ->default(0),
-                    ]),
+                    ])
             ]);
     }
 
@@ -117,16 +115,26 @@ class PengeluaranResource extends Resource
                     ->label('Kategori')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'operasional' => 'success',
+                        'konsumsi' => 'success',
+                        'alat_bahan' => 'warning',
+                        'akomodasi' => 'info',
                         'medis' => 'danger',
+                        'honor' => 'primary',
+                        'promosi' => 'secondary',
+                        'operasional' => 'success',
                         'maintenance' => 'warning',
                         'administrasi' => 'info',
                         'lainnya' => 'gray',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'operasional' => 'Operasional',
+                        'konsumsi' => 'Konsumsi',
+                        'alat_bahan' => 'Alat & Bahan',
+                        'akomodasi' => 'Akomodasi',
                         'medis' => 'Medis',
+                        'honor' => 'Honor & Fee',
+                        'promosi' => 'Promosi',
+                        'operasional' => 'Operasional',
                         'maintenance' => 'Maintenance',
                         'administrasi' => 'Administrasi',
                         'lainnya' => 'Lainnya',
@@ -139,20 +147,6 @@ class PengeluaranResource extends Resource
                     ->tooltip(fn ($record) => $record->keterangan)
                     ->placeholder('Tidak ada keterangan'),
 
-                Tables\Columns\BadgeColumn::make('status_validasi')
-                    ->label('Status')
-                    ->color(fn (string $state): string => match ($state) {
-                        'pending' => 'warning',
-                        'disetujui' => 'success',
-                        'ditolak' => 'danger',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pending' => 'Menunggu',
-                        'disetujui' => 'Disetujui',
-                        'ditolak' => 'Ditolak',
-                        default => ucfirst($state),
-                    }),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
@@ -163,23 +157,29 @@ class PengeluaranResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('kategori')
                     ->options([
-                        'operasional' => 'Operasional',
+                        'konsumsi' => 'Konsumsi',
+                        'alat_bahan' => 'Alat & Bahan',
+                        'akomodasi' => 'Akomodasi',
                         'medis' => 'Medis',
+                        'honor' => 'Honor & Fee',
+                        'promosi' => 'Promosi',
+                        'operasional' => 'Operasional',
                         'maintenance' => 'Maintenance',
                         'administrasi' => 'Administrasi',
                         'lainnya' => 'Lainnya',
                     ]),
-                Tables\Filters\SelectFilter::make('status_validasi')
-                    ->options([
-                        'pending' => 'Menunggu Validasi',
-                        'disetujui' => 'Disetujui',
-                        'ditolak' => 'Ditolak',
-                    ]),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->color('info')
+                    ->icon('heroicon-o-eye'),
+                Tables\Actions\EditAction::make()
+                    ->color('warning')
+                    ->icon('heroicon-o-pencil'),
+                Tables\Actions\DeleteAction::make()
+                    ->color('danger')
+                    ->icon('heroicon-o-trash'),
+                    
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

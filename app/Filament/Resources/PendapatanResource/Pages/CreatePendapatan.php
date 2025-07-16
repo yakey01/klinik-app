@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\PendapatanResource\Pages;
 
 use App\Filament\Resources\PendapatanResource;
+use App\Services\AutoCodeGeneratorService;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class CreatePendapatan extends CreateRecord
 {
@@ -16,8 +18,23 @@ class CreatePendapatan extends CreateRecord
         return $this->getResource()::getUrl('index');
     }
     
+    public function mount(): void
+    {
+        parent::mount();
+        
+        // Generate and set the auto-generated code when form is mounted
+        $this->form->fill([
+            'kode_pendapatan' => AutoCodeGeneratorService::generatePendapatanCode(),
+        ]);
+    }
+    
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // Double-check and regenerate code if empty or conflicting
+        if (empty($data['kode_pendapatan'])) {
+            $data['kode_pendapatan'] = AutoCodeGeneratorService::generatePendapatanCode();
+        }
+        
         // Set default values for system fields
         $data['input_by'] = Auth::id();
         $data['status_validasi'] = 'pending';
@@ -29,6 +46,19 @@ class CreatePendapatan extends CreateRecord
         $data['kategori'] = 'lain_lain';
         
         return $data;
+    }
+    
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        return DB::transaction(function () use ($data) {
+            // Final safety check - regenerate code if it exists
+            $existingRecord = $this->getModel()::where('kode_pendapatan', $data['kode_pendapatan'])->first();
+            if ($existingRecord) {
+                $data['kode_pendapatan'] = AutoCodeGeneratorService::generatePendapatanCode();
+            }
+            
+            return parent::handleRecordCreation($data);
+        });
     }
     
     protected function getCreatedNotificationTitle(): ?string

@@ -18,7 +18,7 @@ class PendapatanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-trending-up';
     
-    protected static ?string $navigationGroup = '📝 Input Data';
+    protected static ?string $navigationGroup = '💰 Transaksi';
     
     protected static ?string $navigationLabel = 'Pendapatan Lainnya';
     

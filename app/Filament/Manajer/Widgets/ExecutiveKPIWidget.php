@@ -9,6 +9,7 @@ use App\Models\Pendapatan;
 use App\Models\Pegawai;
 use App\Models\PermohonanCuti;
 use App\Models\Tindakan;
+use App\Models\Dokter;
 use Illuminate\Support\Facades\DB;
 
 class ExecutiveKPIWidget extends BaseWidget
@@ -56,10 +57,17 @@ class ExecutiveKPIWidget extends BaseWidget
         $procedureGrowth = $previousProcedures > 0 ? 
             round((($currentProcedures - $previousProcedures) / $previousProcedures) * 100, 1) : 0;
         
-        // Staff productivity
-        $activeStaff = Pegawai::where('updated_at', '>=', now()->subDays(30))->count();
-        $totalStaff = Pegawai::count();
-        $staffUtilization = $totalStaff > 0 ? round(($activeStaff / $totalStaff) * 100, 1) : 0;
+        // Staff productivity by role
+        $paramedisCount = Pegawai::where('jenis_pegawai', 'Paramedis')->where('aktif', true)->count();
+        $nonParamedisCount = Pegawai::where('jenis_pegawai', 'Non-Paramedis')->where('aktif', true)->count();
+        $dokterCount = Dokter::where('aktif', true)->count();
+        $totalStaff = $paramedisCount + $nonParamedisCount + $dokterCount;
+        
+        // Calculate role-based efficiency
+        $paramedisEfficiency = $paramedisCount > 0 ? 
+            round((Tindakan::whereNotNull('paramedis_id')->whereMonth('created_at', $currentMonth)->count() / $paramedisCount), 1) : 0;
+        $dokterEfficiency = $dokterCount > 0 ? 
+            round((Tindakan::whereNotNull('dokter_id')->whereMonth('created_at', $currentMonth)->count() / $dokterCount), 1) : 0;
         
         // Approval metrics
         $pendingApprovals = PermohonanCuti::where('status', 'Menunggu')->count();
@@ -113,10 +121,10 @@ class ExecutiveKPIWidget extends BaseWidget
                     'heroicon-m-arrow-trending-down')
                 ->color($procedureGrowth >= 0 ? 'success' : 'danger'),
                 
-            Stat::make('Staff Utilization', "{$staffUtilization}%")
-                ->description("{$activeStaff} of {$totalStaff} staff active")
+            Stat::make('Total Staff', $totalStaff)
+                ->description("👨‍⚕️ {$dokterCount} Dokter | 🏥 {$paramedisCount} Paramedis | 📋 {$nonParamedisCount} Non-Paramedis")
                 ->descriptionIcon('heroicon-m-users')
-                ->color($staffUtilization >= 80 ? 'success' : ($staffUtilization >= 60 ? 'warning' : 'danger')),
+                ->color('info'),
                 
             Stat::make('Pending Approvals', $pendingApprovals)
                 ->description($overdueApprovals > 0 ? 
@@ -127,13 +135,10 @@ class ExecutiveKPIWidget extends BaseWidget
                     'heroicon-m-check-circle')
                 ->color($overdueApprovals > 0 ? 'danger' : 'success'),
                 
-            Stat::make('Avg Revenue per Patient', 
-                $currentPatients > 0 ? 
-                    'Rp ' . number_format($currentRevenue / $currentPatients) : 
-                    'Rp 0')
-                ->description('This month\'s efficiency')
-                ->descriptionIcon('heroicon-m-calculator')
-                ->color('info'),
+            Stat::make('Dokter Efficiency', $dokterEfficiency . ' procedures/dokter')
+                ->description('Average procedures per doctor this month')
+                ->descriptionIcon('heroicon-m-user-circle')
+                ->color($dokterEfficiency >= 10 ? 'success' : ($dokterEfficiency >= 5 ? 'warning' : 'danger')),
         ];
     }
 }

@@ -1,5 +1,11 @@
 @php
     $record = $getRecord();
+    $jabatanDisplay = match($record->jabatan) {
+        'dokter_spesialis' => 'Dokter Spesialis',
+        'dokter_umum' => 'Dokter Umum',
+        'dokter' => 'Dokter',
+        default => ucfirst($record->jabatan)
+    };
 @endphp
 
 <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow h-72 flex flex-col">

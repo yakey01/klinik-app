@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\TelegramSettingResource\Widgets;
+namespace App\Filament\Widgets;
 
 use App\Models\TelegramSetting;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
@@ -8,6 +8,10 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class TelegramStatsWidget extends BaseWidget
 {
+    protected static ?string $pollingInterval = '30s';
+    
+    protected static bool $isLazy = false;
+    
     protected function getStats(): array
     {
         $totalRoles = TelegramSetting::count();
@@ -17,6 +21,10 @@ class TelegramStatsWidget extends BaseWidget
             ->sum(function ($setting) {
                 return count($setting->notification_types ?? []);
             });
+
+        $configuredRoles = TelegramSetting::whereNotNull('chat_id')
+            ->where('chat_id', '!=', '')
+            ->count();
 
         return [
             Stat::make('Total Role Terkonfigurasi', $totalRoles)
@@ -28,6 +36,11 @@ class TelegramStatsWidget extends BaseWidget
                 ->description('Role yang menerima notifikasi')
                 ->descriptionIcon('heroicon-m-check-circle')
                 ->color('success'),
+
+            Stat::make('Chat ID Terkonfigurasi', $configuredRoles)
+                ->description('Role dengan Chat ID valid')
+                ->descriptionIcon('heroicon-m-chat-bubble-left-right')
+                ->color($configuredRoles === $totalRoles ? 'success' : 'warning'),
 
             Stat::make('Total Notifikasi Aktif', $totalNotificationTypes)
                 ->description('Jenis notifikasi yang dikonfigurasi')

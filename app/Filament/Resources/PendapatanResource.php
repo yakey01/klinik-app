@@ -58,12 +58,11 @@ class PendapatanResource extends Resource
                             ->label('Kode Pendapatan')
                             ->required()
                             ->maxLength(20)
-                            ->placeholder('Masukkan kode pendapatan')
+                            ->placeholder('Auto-generated: PND-0001')
                             ->prefixIcon('heroicon-o-hashtag')
-                            ->autofocus()
-                            ->unique(ignoreRecord: true)
-                            ->alphaDash()
-                            ->helperText('Kode harus unik dan hanya boleh berisi huruf, angka, tanda hubung, dan underscore'),
+                            ->readOnly()
+                            ->dehydrated()
+                            ->helperText('Kode akan dibuat otomatis saat menyimpan data'),
                         
                         Forms\Components\TextInput::make('nama_pendapatan')
                             ->label('Nama Pendapatan')
@@ -71,7 +70,20 @@ class PendapatanResource extends Resource
                             ->maxLength(100)
                             ->placeholder('Masukkan nama pendapatan')
                             ->prefixIcon('heroicon-o-document-text')
-                            ->helperText('Nama pendapatan yang jelas dan deskriptif'),
+                            ->rules([
+                                function ($context, $record) {
+                                    $rule = 'unique:pendapatan,nama_pendapatan';
+                                    
+                                    // Jika sedang edit, abaikan record yang sedang diedit
+                                    if ($context === 'edit' && $record) {
+                                        $rule .= ',' . $record->id;
+                                    }
+                                    
+                                    return $rule;
+                                }
+                            ])
+                            ->helperText('Nama pendapatan harus unik dan tidak boleh sama dengan yang sudah ada')
+                            ->validationAttribute('nama pendapatan'),
                         
                         Forms\Components\Select::make('sumber_pendapatan')
                             ->label('Sumber Pendapatan')
@@ -84,10 +96,16 @@ class PendapatanResource extends Resource
                             ->native(false)
                             ->prefixIcon('heroicon-o-folder-open'),
 
-                        Forms\Components\Toggle::make('is_aktif')
+                        Forms\Components\Select::make('is_aktif')
                             ->label('Status Aktif')
-                            ->default(true)
-                            ->helperText('Tentukan apakah pendapatan ini masih aktif digunakan'),
+                            ->options([
+                                1 => 'Aktif',
+                                0 => 'Tidak Aktif'
+                            ])
+                            ->default(1)
+                            ->helperText('Tentukan apakah pendapatan ini masih aktif digunakan')
+                            ->native(false)
+                            ->prefixIcon('heroicon-o-check-circle'),
                     ])
                     ->columnSpan('full')
                     ->extraAttributes([
@@ -330,6 +348,56 @@ class PendapatanResource extends Resource
                         Notification::make()
                             ->title('Status Berhasil Diubah')
                             ->body($record->is_aktif ? 'Pendapatan diaktifkan' : 'Pendapatan dinonaktifkan')
+                            ->success()
+                            ->send();
+                    })
+                    ->requiresConfirmation(),
+                    
+                Tables\Actions\Action::make('toggle_validation')
+                    ->label(fn ($record) => match($record->status_validasi) {
+                        'pending' => 'Setujui',
+                        'disetujui' => 'Pending',
+                        'ditolak' => 'Setujui',
+                        default => 'Setujui'
+                    })
+                    ->icon(fn ($record) => match($record->status_validasi) {
+                        'pending' => 'heroicon-o-check-circle',
+                        'disetujui' => 'heroicon-o-clock',
+                        'ditolak' => 'heroicon-o-check-circle',
+                        default => 'heroicon-o-check-circle'
+                    })
+                    ->color(fn ($record) => match($record->status_validasi) {
+                        'pending' => 'success',
+                        'disetujui' => 'warning',
+                        'ditolak' => 'success',
+                        default => 'success'
+                    })
+                    ->action(function ($record) {
+                        $newStatus = match($record->status_validasi) {
+                            'pending' => 'disetujui',
+                            'disetujui' => 'pending',
+                            'ditolak' => 'disetujui',
+                            default => 'disetujui'
+                        };
+                        
+                        $updateData = [
+                            'status_validasi' => $newStatus,
+                            'validasi_by' => Auth::id(),
+                            'validasi_at' => now(),
+                        ];
+                        
+                        $record->update($updateData);
+                        
+                        $statusLabel = match($newStatus) {
+                            'pending' => 'Pending',
+                            'disetujui' => 'Disetujui',
+                            'ditolak' => 'Ditolak',
+                            default => $newStatus
+                        };
+                        
+                        Notification::make()
+                            ->title('Status Validasi Berhasil Diubah')
+                            ->body("Status validasi diubah menjadi: {$statusLabel}")
                             ->success()
                             ->send();
                     })

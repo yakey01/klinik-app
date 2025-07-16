@@ -140,13 +140,23 @@ class TeamPerformanceWidget extends BaseWidget
                     ->weight('bold')
                     ->getStateUsing(function($record) {
                         $totalProcedures = $record->paramedis_procedures_count + $record->non_paramedis_procedures_count;
-                        return match(true) {
-                            $totalProcedures >= 50 => 95,
-                            $totalProcedures >= 30 => 85,
-                            $totalProcedures >= 20 => 75,
-                            $totalProcedures >= 10 => 65,
-                            default => 55
-                        };
+                        
+                        // Calculate performance based on actual average of all staff
+                        $avgProcedures = \App\Models\Pegawai::withCount([
+                            'tindakanAsParamedis' => function($query) {
+                                $query->where('created_at', '>=', now()->subMonth());
+                            },
+                            'tindakanAsNonParamedis' => function($query) {
+                                $query->where('created_at', '>=', now()->subMonth());
+                            }
+                        ])->get()->avg(function($pegawai) {
+                            return $pegawai->tindakan_as_paramedis_count + $pegawai->tindakan_as_non_paramedis_count;
+                        });
+                        
+                        if ($avgProcedures == 0) return 50;
+                        
+                        $performanceRatio = $totalProcedures / $avgProcedures;
+                        return min(100, max(0, round($performanceRatio * 100)));
                     })
                     ->color(fn($state) => match(true) {
                         $state >= 90 => 'success',

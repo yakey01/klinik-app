@@ -73,10 +73,11 @@ class OperationalAnalyticsResource extends Resource
                 Tables\Columns\TextColumn::make('avg_waiting_time')
                     ->label('Avg Wait Time')
                     ->state(function (Pasien $record): string {
-                        // Simulated waiting time calculation
-                        $avgWaitTime = Tindakan::where('pasien_id', $record->id)
+                        // Calculate estimated time based on actual procedure count
+                        $procedureCount = Tindakan::where('pasien_id', $record->id)
                             ->whereRaw('strftime("%m", created_at) = ?', [str_pad(now()->month, 2, '0', STR_PAD_LEFT)])
-                            ->count() * 15; // Estimate 15 min per procedure
+                            ->count();
+                        $avgWaitTime = $procedureCount > 0 ? $procedureCount * 10 : 0; // Realistic 10 min estimate
                         return $avgWaitTime > 0 ? $avgWaitTime . ' min' : 'N/A';
                     })
                     ->badge()

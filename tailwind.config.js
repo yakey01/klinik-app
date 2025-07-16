@@ -1,5 +1,6 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
+import colors from 'tailwindcss/colors';
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -7,6 +8,8 @@ export default {
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
+        './app/Filament/**/*.php',
+        './vendor/filament/**/*.blade.php',
     ],
 
     theme: {
@@ -38,6 +41,13 @@ export default {
                     'error': '#ef4444',
                     'info': '#3abff8',
                 },
+                // Filament color mappings
+                'danger': colors.red,
+                'gray': colors.gray,
+                'info': colors.blue,
+                'primary': colors.blue,
+                'success': colors.green,
+                'warning': colors.yellow,
             },
             fontSize: {
                 'mobile-xs': '0.75rem',

@@ -53,7 +53,18 @@ class ExecutiveDashboard extends Dashboard
     public function getWidgets(): array
     {
         return [
+            // Core KPI Overview
             \App\Filament\Manajer\Widgets\ExecutiveKPIWidget::class,
+            
+            // Role-Based Analytics
+            \App\Filament\Manajer\Widgets\StaffPerformanceByRoleWidget::class,
+            \App\Filament\Manajer\Widgets\RevenueByRoleWidget::class,
+            \App\Filament\Manajer\Widgets\ProductivityMetricsWidget::class,
+            \App\Filament\Manajer\Widgets\RoleEfficiencyWidget::class,
+            
+            // Additional Analytics
+            \App\Filament\Manajer\Widgets\AdvancedKPIAnalyticsWidget::class,
+            \App\Filament\Manajer\Widgets\ExtendedKPIMetricsWidget::class,
             \App\Filament\Manajer\Widgets\FinancialOverviewWidget::class,
             \App\Filament\Manajer\Widgets\OperationsDashboardWidget::class,
             \App\Filament\Manajer\Widgets\StrategicInsightsWidget::class,

@@ -1,0 +1,303 @@
+@import '/vendor/filament/filament/resources/css/theme.css';
+
+/* Petugas Panel Design System - Comprehensive Styling */
+[data-filament-panel-id="petugas"] {
+    /* Primary Colors - Medical Green/Blue */
+    --primary: 16 185 129; /* Emerald */
+    --success: 34 197 94; /* Green */
+    --warning: 251 189 35; /* Yellow */
+    --danger: 239 68 68; /* Red */
+    --info: 59 130 246; /* Blue */
+    --gray: 107 114 128; /* Gray */
+    
+    /* Panel Variables */
+    --panel-primary: #10b981;
+    --panel-primary-light: #34d399;
+    --panel-primary-dark: #047857;
+    
+    /* Enhanced Color Palette */
+    --primary-50: #ecfdf5;
+    --primary-100: #d1fae5;
+    --primary-200: #a7f3d0;
+    --primary-300: #6ee7b7;
+    --primary-400: #34d399;
+    --primary-500: #10b981;
+    --primary-600: #059669;
+    --primary-700: #047857;
+    --primary-800: #065f46;
+    --primary-900: #064e3b;
+    --primary-950: #022c22;
+}
+
+/* Petugas Branding */
+[data-filament-panel-id="petugas"] .fi-topbar {
+    background: linear-gradient(135deg, var(--panel-primary) 0%, var(--panel-primary-dark) 100%);
+}
+
+[data-filament-panel-id="petugas"] .fi-sidebar-header {
+    background: linear-gradient(135deg, var(--panel-primary) 0%, var(--panel-primary-dark) 100%);
+}
+
+[data-filament-panel-id="petugas"] .fi-sidebar-header .fi-logo {
+    color: white;
+    font-weight: 600;
+}
+
+/* Widget Styling - Fix for Stats Overview */
+[data-filament-panel-id="petugas"] .fi-wi-stats-overview-stat {
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    transition: all 0.2s ease;
+}
+
+[data-filament-panel-id="petugas"] .fi-wi-stats-overview-stat:hover {
+    background: rgba(16, 185, 129, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-filament-panel-id="petugas"] .fi-wi-stats-overview-stat-value {
+    color: var(--panel-primary);
+    font-weight: 700;
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+}
+
+[data-filament-panel-id="petugas"] .fi-wi-stats-overview-stat-label {
+    color: rgb(107 114 128);
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Badge Styling - Fix for Deprecated BadgeColumn */
+[data-filament-panel-id="petugas"] .fi-badge {
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+[data-filament-panel-id="petugas"] .fi-badge-color-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+[data-filament-panel-id="petugas"] .fi-badge-color-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+[data-filament-panel-id="petugas"] .fi-badge-color-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+[data-filament-panel-id="petugas"] .fi-badge-color-info {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Card Styling - Enhanced for Dashboard */
+[data-filament-panel-id="petugas"] .fi-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+[data-filament-panel-id="petugas"] .fi-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Progress Bar Styling */
+[data-filament-panel-id="petugas"] .progress-bar {
+    background: rgba(229, 231, 235, 1);
+    border-radius: 9999px;
+    height: 0.5rem;
+    overflow: hidden;
+}
+
+[data-filament-panel-id="petugas"] .progress-bar-fill {
+    background: linear-gradient(90deg, var(--panel-primary) 0%, var(--panel-primary-light) 100%);
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+}
+
+/* Button Styling - Enhanced */
+[data-filament-panel-id="petugas"] .fi-btn-primary {
+    background: linear-gradient(135deg, var(--panel-primary) 0%, var(--panel-primary-dark) 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+[data-filament-panel-id="petugas"] .fi-btn-primary:hover {
+    background: linear-gradient(135deg, var(--panel-primary-dark) 0%, #022c22 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Table Styling - Enhanced */
+[data-filament-panel-id="petugas"] .fi-ta-header-cell {
+    background: rgba(16, 185, 129, 0.05);
+    font-weight: 600;
+    color: var(--panel-primary-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+}
+
+[data-filament-panel-id="petugas"] .fi-ta-row:hover {
+    background: rgba(16, 185, 129, 0.05);
+}
+
+[data-filament-panel-id="petugas"] .fi-ta-cell {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+/* Form Styling - Enhanced */
+[data-filament-panel-id="petugas"] .fi-input {
+    border: 1px solid rgba(209, 213, 219, 1);
+    border-radius: 0.5rem;
+    transition: border-color 0.2s ease;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+[data-filament-panel-id="petugas"] .fi-input:focus {
+    border-color: var(--panel-primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Section Styling */
+[data-filament-panel-id="petugas"] .fi-section {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(229, 231, 235, 0.3);
+    border-radius: 0.75rem;
+    backdrop-filter: blur(10px);
+}
+
+/* Chart Container Styling */
+[data-filament-panel-id="petugas"] .chart-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(229, 231, 235, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Widget Grid Styling */
+[data-filament-panel-id="petugas"] .fi-wi-grid {
+    gap: 1.5rem;
+}
+
+/* Icon Styling */
+[data-filament-panel-id="petugas"] .fi-icon {
+    color: var(--panel-primary);
+    transition: color 0.2s ease;
+}
+
+[data-filament-panel-id="petugas"] .fi-icon:hover {
+    color: var(--panel-primary-dark);
+}
+
+/* Navigation Groups Styling */
+[data-filament-panel-id="petugas"] .fi-sidebar-group {
+    margin-bottom: 0.5rem;
+}
+
+[data-filament-panel-id="petugas"] .fi-sidebar-group-label {
+    color: var(--panel-primary);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+[data-filament-panel-id="petugas"] .fi-sidebar-group-label:hover {
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 0.5rem;
+}
+
+[data-filament-panel-id="petugas"] .fi-sidebar-group-items {
+    transition: all 0.2s ease;
+}
+
+[data-filament-panel-id="petugas"] .fi-sidebar-group.fi-collapsed .fi-sidebar-group-items {
+    height: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+[data-filament-panel-id="petugas"] .fi-sidebar-group:not(.fi-collapsed) .fi-sidebar-group-items {
+    height: auto;
+    opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    [data-filament-panel-id="petugas"] .fi-wi-stats-overview-stat {
+        margin-bottom: 1rem;
+        padding: 1rem;
+    }
+    
+    [data-filament-panel-id="petugas"] .fi-wi-stats-overview-stat-value {
+        font-size: 1.5rem;
+    }
+    
+    [data-filament-panel-id="petugas"] .fi-card {
+        margin-bottom: 1rem;
+    }
+    
+    [data-filament-panel-id="petugas"] .chart-container {
+        padding: 1rem;
+    }
+    
+    [data-filament-panel-id="petugas"] .fi-wi-grid {
+        gap: 1rem;
+    }
+}
+
+/* Dark Mode Support */
+[data-filament-panel-id="petugas"] .dark .fi-card {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(75, 85, 99, 0.3);
+}
+
+[data-filament-panel-id="petugas"] .dark .fi-input {
+    background: rgba(31, 41, 55, 0.9);
+    border-color: rgba(75, 85, 99, 0.5);
+    color: rgba(229, 231, 235, 1);
+}
+
+[data-filament-panel-id="petugas"] .dark .fi-section {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(75, 85, 99, 0.3);
+}
+
+[data-filament-panel-id="petugas"] .dark .chart-container {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(75, 85, 99, 0.3);
+}

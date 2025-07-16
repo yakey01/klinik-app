@@ -45,7 +45,7 @@ class ListPegawais extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
-            PegawaiStatsWidget::class,
+            \App\Filament\Widgets\PegawaiStatsWidget::class,
         ];
     }
 

@@ -71,7 +71,8 @@ class ValidasiPengeluaranResource extends Resource
                     ->money('IDR')
                     ->sortable(),
                     
-                Tables\Columns\BadgeColumn::make('status_validasi')
+                Tables\Columns\TextColumn::make('status_validasi')
+                    ->badge()
                     ->label('Status')
                     ->colors([
                         'warning' => 'pending',

@@ -88,14 +88,10 @@
             padding: 0.75rem 1rem;
         }
         
-        /* Enhanced mobile stats widget for bendahara */
+        /* Enhanced mobile support for bendahara - using Filament responsive classes */
         @media (max-width: 768px) {
-            [data-filament-panel-id="bendahara"] .fi-wi-stats-overview-stat {
-                margin-bottom: 1rem;
-            }
-            
-            [data-filament-panel-id="bendahara"] .fi-wi-stats-overview-stat-value {
-                font-size: 1.5rem;
+            [data-filament-panel-id="bendahara"] {
+                /* Let Filament handle mobile responsiveness */
             }
         }
     }
@@ -107,18 +103,8 @@
         contain: layout style;
     }
     
-    /* Ensure widget consistency within bendahara panel */
-    [data-filament-panel-id="bendahara"] .fi-wi-stats-overview {
-        background: linear-gradient(135deg, rgba(251, 189, 35, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%);
-        padding: 1rem;
-        border-radius: 0.75rem;
-    }
-    
-    /* Form styling consistency */
-    [data-filament-panel-id="bendahara"] .fi-form {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(5px);
-        border-radius: 0.75rem;
-        padding: 1.5rem;
+    /* Minimal bendahara panel styling - let Filament handle the rest */
+    [data-filament-panel-id="bendahara"] {
+        /* Keep only essential branding overrides */
     }
 </style>

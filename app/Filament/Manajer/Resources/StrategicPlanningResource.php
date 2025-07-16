@@ -60,7 +60,8 @@ class StrategicPlanningResource extends Resource
                             $count >= 25 => 'warning',
                             default => 'danger',
                         };
-                    }),
+                    })
+                    ->url(fn (Pegawai $record): string => route('filament.manajer.resources.strategic-plannings.performance-details', $record)),
 
                 Tables\Columns\TextColumn::make('efficiency_rating')
                     ->label('Efficiency Rating')
@@ -119,9 +120,29 @@ class StrategicPlanningResource extends Resource
                     ->label('Performance Details')
                     ->icon('heroicon-o-chart-bar')
                     ->color('info')
+                    ->url(fn (Pegawai $record): string => route('filament.manajer.resources.strategic-plannings.performance-details', $record)),
+                    
+                Tables\Actions\Action::make('procedure_breakdown')
+                    ->label('Procedure Breakdown')
+                    ->icon('heroicon-o-list-bullet')
+                    ->color('warning')
+                    ->modalHeading(fn (Pegawai $record): string => "Procedure Breakdown - {$record->nama_lengkap}")
+                    ->modalContent(fn (Pegawai $record): \Illuminate\Contracts\View\View => view('filament.manajer.modals.procedure-breakdown', ['staff' => $record]))
+                    ->modalWidth('5xl'),
+                    
+                Tables\Actions\Action::make('send_performance_alert')
+                    ->label('Send Alert')
+                    ->icon('heroicon-o-bell')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Send Performance Alert')
+                    ->modalDescription('This will send a performance improvement notification to the selected staff member.')
                     ->action(function (Pegawai $record) {
-                        session()->flash('success', "Viewing performance details for: {$record->nama_lengkap}");
-                    }),
+                        // Dispatch notification job
+                        \App\Jobs\SendPerformanceAlertJob::dispatch($record);
+                        session()->flash('success', "Performance alert sent to {$record->nama_lengkap}");
+                    })
+                    ->visible(fn (Pegawai $record): bool => static::isLowPerformer($record)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -131,6 +152,24 @@ class StrategicPlanningResource extends Resource
                         ->action(function ($records) {
                             // Export logic would go here
                             session()->flash('success', 'Performance report exported successfully');
+                        }),
+                        
+                    Tables\Actions\Action::make('bulk_performance_alert')
+                        ->label('Send Performance Alerts')
+                        ->icon('heroicon-o-bell')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Send Bulk Performance Alerts')
+                        ->modalDescription('This will send performance alerts to all selected staff members.')
+                        ->action(function ($records) {
+                            $count = 0;
+                            foreach ($records as $staff) {
+                                if (static::isLowPerformer($staff)) {
+                                    \App\Jobs\SendPerformanceAlertJob::dispatch($staff);
+                                    $count++;
+                                }
+                            }
+                            session()->flash('success', "Performance alerts sent to {$count} staff members");
                         }),
                 ]),
             ])
@@ -163,10 +202,23 @@ class StrategicPlanningResource extends Resource
         return 'warning';
     }
 
+    protected static function isLowPerformer(Pegawai $record): bool
+    {
+        $monthlyTindakan = Tindakan::whereRaw('strftime("%m", created_at) = ?', [str_pad(now()->month, 2, '0', STR_PAD_LEFT)])
+            ->where(function($query) use ($record) {
+                $query->where('paramedis_id', $record->id)
+                      ->orWhere('non_paramedis_id', $record->id);
+            })
+            ->count();
+            
+        return $monthlyTindakan < 10; // Threshold for low performance
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => \App\Filament\Manajer\Resources\StrategicPlanningResource\Pages\ListStrategicPlannings::route('/'),
+            'performance-details' => \App\Filament\Manajer\Resources\StrategicPlanningResource\Pages\PerformanceDetails::route('/{record}/performance'),
         ];
     }
 }

@@ -114,8 +114,9 @@ class ValidasiJaspelResource extends Resource
                     ->searchable()
                     ->limit(30),
 
-                Tables\Columns\BadgeColumn::make('jenis_jaspel')
+                Tables\Columns\TextColumn::make('jenis_jaspel')
                     ->label('Jenis')
+                    ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'dokter_umum' => 'success',
                         'dokter_spesialis' => 'warning',
@@ -137,7 +138,7 @@ class ValidasiJaspelResource extends Resource
                     ->sortable()
                     ->alignEnd(),
 
-                Tables\Columns\BadgeColumn::make('status_validasi')
+                Tables\Columns\TextColumn::make('status_validasi')
                     ->label('Status')
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',

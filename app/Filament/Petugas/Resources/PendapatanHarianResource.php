@@ -34,7 +34,7 @@ class PendapatanHarianResource extends Resource
     
     protected static ?string $modelLabel = 'Pendapatan Harian';
     
-    protected static ?string $navigationGroup = '📝 Input Data';
+    protected static ?string $navigationGroup = '📊 Input Data Harian';
     
     protected static ?int $navigationSort = 2;
 

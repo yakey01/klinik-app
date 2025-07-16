@@ -25,7 +25,7 @@ class BendaharaPanelProvider extends PanelProvider
         return $panel
             ->id('bendahara')
             ->path('bendahara')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('💰 Bendahara Dashboard')
             ->viteTheme('resources/css/filament/bendahara/theme.css')
             ->colors([
@@ -34,6 +34,11 @@ class BendaharaPanelProvider extends PanelProvider
                 'warning' => Color::Orange,
                 'danger' => Color::Red,
                 'info' => Color::Blue,
+            ])
+            ->sidebarCollapsibleOnDesktop()
+            ->pages([
+                // 📊 Dashboard Page
+                \App\Filament\Bendahara\Pages\BendaharaDashboard::class,
             ])
             ->resources([
                 // 💵 Validasi Transaksi Group
@@ -59,8 +64,13 @@ class BendaharaPanelProvider extends PanelProvider
             ])
             ->widgets([
                 \Filament\Widgets\AccountWidget::class,
+                \App\Filament\Bendahara\Widgets\InteractiveDashboardWidget::class,
+                \App\Filament\Bendahara\Widgets\BudgetTrackingWidget::class,
+                \App\Filament\Bendahara\Widgets\LanguageSwitcherWidget::class,
             ])
             ->navigationGroups([
+                NavigationGroup::make('📊 Dashboard')
+                    ->collapsed(false),
                 NavigationGroup::make('💵 Validasi Transaksi')
                     ->collapsed(false),
                 NavigationGroup::make('💰 Manajemen Jaspel')

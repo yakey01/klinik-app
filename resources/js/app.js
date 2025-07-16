@@ -1,4 +1,5 @@
 import './bootstrap';
+import './filament-support';
 
 import Alpine from 'alpinejs';
 

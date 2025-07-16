@@ -67,9 +67,10 @@ class OperationsDashboardWidget extends BaseWidget
             ->whereDate('updated_at', $today)
             ->count();
         
-        // Capacity utilization
-        $avgDailyCapacity = 100; // Assumed daily capacity
-        $capacityUtilization = min(100, ($todayPatients / $avgDailyCapacity) * 100);
+        // Capacity utilization - calculate based on actual data
+        $avgDailyPatients = Pasien::where('created_at', '>=', now()->subDays(30))
+            ->count() / 30; // Average patients per day in last 30 days
+        $capacityUtilization = $avgDailyPatients > 0 ? min(100, ($todayPatients / $avgDailyPatients) * 100) : 0;
         
         // Patient flow trend (last 7 days)
         $patientTrend = collect();
@@ -118,7 +119,7 @@ class OperationsDashboardWidget extends BaseWidget
                 ->color($procedureGrowth >= 0 ? 'success' : 'warning'),
                 
             Stat::make('Capacity Utilization', "{$capacityUtilization}%")
-                ->description("{$todayPatients}/{$avgDailyCapacity} daily capacity")
+                ->description("{$todayPatients} patients today (vs 30-day avg)")
                 ->descriptionIcon($capacityUtilization > 80 ? 
                     'heroicon-m-exclamation-triangle' : 
                     'heroicon-m-check-circle')

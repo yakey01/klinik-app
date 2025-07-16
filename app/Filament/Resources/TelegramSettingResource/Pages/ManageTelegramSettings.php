@@ -247,7 +247,7 @@ class ManageTelegramSettings extends ManageRecords
     protected function getHeaderWidgets(): array
     {
         return [
-            \App\Filament\Resources\TelegramSettingResource\Widgets\TelegramStatsWidget::class,
+            \App\Filament\Widgets\TelegramStatsWidget::class,
         ];
     }
 

@@ -33,7 +33,7 @@ class PengeluaranHarianResource extends Resource
     
     protected static ?string $modelLabel = 'Pengeluaran Harian';
     
-    protected static ?string $navigationGroup = '📝 Input Data';
+    protected static ?string $navigationGroup = '📊 Input Data Harian';
 
     protected static ?int $navigationSort = 3;
 
@@ -107,11 +107,7 @@ class PengeluaranHarianResource extends Resource
                     ->modalHeading('📊 Ringkasan Pengeluaran Harian')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Tutup'),
-                Tables\Actions\CreateAction::make()
-                    ->label('➕ Tambah Pengeluaran')
-                    ->icon('heroicon-o-plus-circle')
-                    ->color('danger')
-                    ->button()
+                // Remove duplicate CreateAction - it's already in ListPengeluaranHarians page
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('tanggal_input')

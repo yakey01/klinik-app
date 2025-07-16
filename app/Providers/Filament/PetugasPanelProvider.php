@@ -28,12 +28,13 @@ class PetugasPanelProvider extends PanelProvider
             ->id('petugas')
             ->path('petugas')
             ->login(false)
-            ->brandName('📋 Dokterku - Petugas')
+            ->brandName('🏥 Dokterku - Petugas')
+            ->viteTheme('resources/css/filament/petugas/theme.css')
             ->favicon(asset('favicon.ico'))
             ->colors([
-                'primary' => Color::rgb('rgb(102, 126, 234)'),
-                'secondary' => Color::rgb('rgb(118, 75, 162)'),
-                'success' => Color::rgb('rgb(16, 185, 129)'),
+                'primary' => Color::rgb('rgb(16, 185, 129)'),
+                'secondary' => Color::rgb('rgb(59, 130, 246)'),
+                'success' => Color::rgb('rgb(34, 197, 94)'),
                 'warning' => Color::rgb('rgb(251, 189, 35)'),
                 'danger' => Color::rgb('rgb(239, 68, 68)'),
                 'info' => Color::rgb('rgb(58, 191, 248)'),
@@ -44,16 +45,23 @@ class PetugasPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->breadcrumbs(false)
             ->topNavigation(false)
+            ->sidebarCollapsibleOnDesktop()
             ->resources([
+                // 🏥 Manajemen Pasien Group
+                \App\Filament\Petugas\Resources\PasienResource::class,
                 \App\Filament\Petugas\Resources\TindakanResource::class,
+                
+                // 📊 Input Data Harian Group
                 \App\Filament\Petugas\Resources\PendapatanHarianResource::class,
                 \App\Filament\Petugas\Resources\PengeluaranHarianResource::class,
                 \App\Filament\Petugas\Resources\JumlahPasienHarianResource::class,
+                
+                // 💰 Transaksi Group
                 \App\Filament\Petugas\Resources\PendapatanResource::class,
-                \App\Filament\Petugas\Resources\PasienResource::class,
             ])
             ->pages([
-                \App\Filament\Petugas\Pages\Dashboard::class,
+                // 📊 Dashboard Page
+                \App\Filament\Petugas\Pages\PetugasDashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Petugas/Widgets'), for: 'App\\Filament\\Petugas\\Widgets')
             ->widgets([
@@ -61,6 +69,16 @@ class PetugasPanelProvider extends PanelProvider
                 \App\Filament\Petugas\Widgets\NotificationWidget::class,
                 \App\Filament\Petugas\Widgets\PetugasStatsWidget::class,
                 \App\Filament\Petugas\Widgets\QuickActionsWidget::class,
+            ])
+            ->navigationGroups([
+                NavigationGroup::make('🏠 Dashboard')
+                    ->collapsed(false),
+                NavigationGroup::make('🏥 Manajemen Pasien')
+                    ->collapsed(false),
+                NavigationGroup::make('📊 Input Data Harian')
+                    ->collapsed(false),
+                NavigationGroup::make('💰 Transaksi')
+                    ->collapsed(true),
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -81,14 +99,6 @@ class PetugasPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
             ->profile()
-            ->tenant(null)
-            ->navigationGroups([
-                NavigationGroup::make('🏠 Dashboard')
-                    ->collapsed(false),
-                NavigationGroup::make('📝 Input Data')
-                    ->collapsed(false),
-                NavigationGroup::make('👥 Manajemen Pasien')
-                    ->collapsed(false),
-            ]);
+            ->tenant(null);
     }
 }

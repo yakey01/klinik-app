@@ -86,10 +86,10 @@ class StrategicInsightsWidget extends BaseWidget
         $avgProcedureValue = $totalProcedures > 0 ? $monthlyIncome / $totalProcedures : 0;
         $costPerAcquisition = $currentPatients > 0 ? $monthlyExpense / $currentPatients : 0;
         
-        // Capacity utilization
-        $maxCapacity = $totalStaff * 22 * 8; // Assuming 22 working days, 8 hours/day
-        $actualHours = $totalProcedures * 1.5; // Assuming 1.5 hours per procedure
-        $capacityUtilization = $maxCapacity > 0 ? round(($actualHours / $maxCapacity) * 100, 1) : 0;
+        // Capacity utilization - calculate based on actual staff productivity
+        $avgDailyProcedures = $totalProcedures / now()->day; // Average procedures per day this month
+        $avgProceduresPerStaff = $totalStaff > 0 ? $avgDailyProcedures / $totalStaff : 0;
+        $capacityUtilization = $avgProceduresPerStaff > 0 ? min(100, round($avgProceduresPerStaff * 10, 1)) : 0; // Scale to percentage
         
         // Employee satisfaction proxy
         $pendingLeaves = PermohonanCuti::where('status', 'Menunggu')->count();

@@ -885,6 +885,13 @@ class PegawaiResource extends Resource
             ]);
     }
 
+    public static function getWidgets(): array
+    {
+        return [
+            \App\Filament\Widgets\PegawaiStatsWidget::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [

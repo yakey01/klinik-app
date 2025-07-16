@@ -24,7 +24,7 @@ class JumlahPasienHarianResource extends Resource
     
     protected static ?string $navigationLabel = 'Input Jumlah Pasien';
     
-    protected static ?string $navigationGroup = '📝 Input Data';
+    protected static ?string $navigationGroup = '📊 Input Data Harian';
     
     protected static ?string $modelLabel = 'Jumlah Pasien Harian';
     

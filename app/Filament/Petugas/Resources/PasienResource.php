@@ -32,7 +32,7 @@ class PasienResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-plus';
     
-    protected static ?string $navigationGroup = '👥 Manajemen Pasien';
+    protected static ?string $navigationGroup = '🏥 Manajemen Pasien';
     
     protected static ?string $navigationLabel = 'Input Pasien';
     

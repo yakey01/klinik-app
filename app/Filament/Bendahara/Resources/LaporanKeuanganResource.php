@@ -19,9 +19,9 @@ class LaporanKeuanganResource extends Resource
 
     protected static ?string $navigationIcon = null;
 
-    protected static ?string $navigationGroup = '📈 Laporan Keuangan';
+    protected static ?string $navigationGroup = 'Laporan Keuangan';
 
-    protected static ?string $navigationLabel = '📊 Laporan Keuangan';
+    protected static ?string $navigationLabel = 'Laporan Keuangan';
 
     protected static ?string $modelLabel = 'Laporan Keuangan';
 

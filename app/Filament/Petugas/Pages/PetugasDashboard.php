@@ -16,12 +16,12 @@ class PetugasDashboard extends BaseDashboard
     
     protected static ?int $navigationSort = 1;
     
-    protected static ?string $navigationGroup = '🏠 Dashboard';
+    protected static ?string $navigationGroup = '📊 Dashboard';
     
     public function getWidgets(): array
     {
         return [
-            \App\Filament\Petugas\Widgets\PetugasDashboardSummaryWidget::class,
+            \App\Filament\Petugas\Widgets\PetugasStatsWidget::class,
             \App\Filament\Petugas\Widgets\NotificationWidget::class,
             \App\Filament\Petugas\Widgets\QuickActionsWidget::class,
         ];

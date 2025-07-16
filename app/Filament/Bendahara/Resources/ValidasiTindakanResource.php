@@ -19,7 +19,7 @@ class ValidasiTindakanResource extends Resource
     
     protected static ?string $navigationLabel = 'Validasi Tindakan';
     
-    protected static ?string $navigationGroup = '💵 Validasi Transaksi';
+    protected static ?string $navigationGroup = 'Validasi Transaksi';
 
     public static function form(Form $form): Form
     {

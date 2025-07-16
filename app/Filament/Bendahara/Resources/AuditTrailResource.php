@@ -20,9 +20,9 @@ class AuditTrailResource extends Resource
 
     protected static ?string $navigationIcon = null;
 
-    protected static ?string $navigationGroup = '📋 Audit & Kontrol';
+    protected static ?string $navigationGroup = 'Audit & Kontrol';
 
-    protected static ?string $navigationLabel = '🔍 Audit Trail';
+    protected static ?string $navigationLabel = 'Audit Trail';
 
     protected static ?string $modelLabel = 'Audit Trail';
 

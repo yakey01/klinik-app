@@ -22,9 +22,9 @@ class ValidasiJaspelResource extends Resource
 
     protected static ?string $navigationIcon = null;
 
-    protected static ?string $navigationGroup = '💰 Manajemen Jaspel';
+    protected static ?string $navigationGroup = 'Manajemen Jaspel';
 
-    protected static ?string $navigationLabel = '✅ Validasi Jaspel';
+    protected static ?string $navigationLabel = 'Validasi Jaspel';
 
     protected static ?string $modelLabel = 'Jaspel';
 

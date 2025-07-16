@@ -27,7 +27,7 @@ class ManajerPanelProvider extends PanelProvider
         return $panel
             ->id('manajer')
             ->path('manajer')
-            ->login(false)
+            ->login(CustomLogin::class)
             ->brandName('📊 Manajer Dashboard')
             ->viteTheme('resources/css/filament/manajer/theme.css')
             ->colors([
@@ -64,16 +64,6 @@ class ManajerPanelProvider extends PanelProvider
                 \App\Filament\Manajer\Widgets\ExecutiveKPIWidget::class,
                 \App\Filament\Manajer\Widgets\FinancialOverviewWidget::class,
                 \App\Filament\Manajer\Widgets\TeamPerformanceWidget::class,
-                \App\Filament\Manajer\Widgets\OperationsDashboardWidget::class,
-                \App\Filament\Manajer\Widgets\ApprovalQueueWidget::class,
-                \App\Filament\Manajer\Widgets\StrategicInsightsWidget::class,
-                \App\Filament\Manajer\Widgets\AdvancedKPIAnalyticsWidget::class,
-                \App\Filament\Manajer\Widgets\ExtendedKPIMetricsWidget::class,
-                // New Role-Based KPI Widgets
-                \App\Filament\Manajer\Widgets\StaffPerformanceByRoleWidget::class,
-                \App\Filament\Manajer\Widgets\RevenueByRoleWidget::class,
-                \App\Filament\Manajer\Widgets\ProductivityMetricsWidget::class,
-                \App\Filament\Manajer\Widgets\RoleEfficiencyWidget::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make('👥 Personnel Management')
@@ -100,6 +90,7 @@ class ManajerPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\ManajerMiddleware::class,
             ])
             ->authGuard('web');
     }

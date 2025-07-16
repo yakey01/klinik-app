@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'enhanced.role' => \App\Http\Middleware\EnhancedRoleMiddleware::class,
             'permission' => \App\Http\Middleware\PermissionMiddleware::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'manajer' => \App\Http\Middleware\ManajerMiddleware::class,
             'petugas' => \App\Http\Middleware\PetugasMiddleware::class,
             'paramedis' => \App\Http\Middleware\ParamedisMiddleware::class,
             'device.binding' => \App\Http\Middleware\DeviceBindingMiddleware::class,

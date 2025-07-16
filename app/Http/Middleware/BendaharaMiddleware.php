@@ -42,7 +42,7 @@ class BendaharaMiddleware
         }
 
         // Check if user account is active
-        if (method_exists($user, 'isActive') && !$user->isActive()) {
+        if (!$user->is_active) {
             Log::warning('BendaharaMiddleware: Access denied - inactive account', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,

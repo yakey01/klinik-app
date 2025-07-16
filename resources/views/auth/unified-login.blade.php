@@ -83,7 +83,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('unified.login') }}" class="space-y-6">
+            <form method="POST" action="{{ route('unified.login') }}" class="space-y-6" id="loginForm">
                 @csrf
 
                 <div>
@@ -189,8 +189,19 @@
 
         // Smooth form animation & Password toggle
         document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('form');
+            const form = document.getElementById('loginForm');
             const inputs = form.querySelectorAll('input[type="text"], input[type="password"]');
+            
+            // Handle 419 errors by refreshing CSRF token
+            form.addEventListener('submit', function(e) {
+                const tokenInput = form.querySelector('input[name="_token"]');
+                if (!tokenInput || !tokenInput.value) {
+                    e.preventDefault();
+                    alert('Token keamanan tidak valid. Halaman akan di-refresh.');
+                    window.location.reload();
+                    return false;
+                }
+            });
             
             // Form input animations
             inputs.forEach(input => {

@@ -1,0 +1,368 @@
+/**
+ * Theme Petugas - Isolated CSS for Non-Filament Views
+ * This CSS is specifically designed for standalone Petugas dashboard views
+ * and won't interfere with existing Filament styling
+ */
+
+/* Import Inter font for consistency */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Isolated scope for Petugas standalone views */
+.petugas-isolated {
+    /* CSS Custom Properties for theming */
+    --medical-50: #ecfdf5;
+    --medical-100: #d1fae5;
+    --medical-200: #a7f3d0;
+    --medical-300: #6ee7b7;
+    --medical-400: #34d399;
+    --medical-500: #10b981;
+    --medical-600: #059669;
+    --medical-700: #047857;
+    --medical-800: #065f46;
+    --medical-900: #064e3b;
+    --medical-950: #022c22;
+    
+    /* Dark mode medical colors */
+    --medical-dark-50: #022c22;
+    --medical-dark-100: #064e3b;
+    --medical-dark-200: #065f46;
+    --medical-dark-300: #047857;
+    --medical-dark-400: #059669;
+    --medical-dark-500: #10b981;
+    --medical-dark-600: #34d399;
+    --medical-dark-700: #6ee7b7;
+    --medical-dark-800: #a7f3d0;
+    --medical-dark-900: #d1fae5;
+    
+    /* Base styling */
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    color: #1f2937;
+    background-color: #f9fafb;
+}
+
+/* Dark mode overrides */
+.petugas-isolated.dark {
+    color: #f3f4f6;
+    background-color: #111827;
+}
+
+/* Glass morphism effect for cards */
+.petugas-isolated .glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+.petugas-isolated.dark .glass-card {
+    background: rgba(31, 41, 55, 0.95);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Medical gradient backgrounds */
+.petugas-isolated .gradient-medical {
+    background: linear-gradient(135deg, var(--medical-500) 0%, var(--medical-700) 100%);
+}
+
+.petugas-isolated .gradient-medical-light {
+    background: linear-gradient(135deg, var(--medical-400) 0%, var(--medical-600) 100%);
+}
+
+.petugas-isolated .gradient-medical-soft {
+    background: linear-gradient(135deg, var(--medical-50) 0%, var(--medical-100) 100%);
+}
+
+.petugas-isolated.dark .gradient-medical-soft {
+    background: linear-gradient(135deg, var(--medical-dark-50) 0%, var(--medical-dark-100) 100%);
+}
+
+/* Hover lift effect */
+.petugas-isolated .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.petugas-isolated .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.petugas-isolated.dark .hover-lift:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced focus states */
+.petugas-isolated button:focus,
+.petugas-isolated input:focus,
+.petugas-isolated select:focus,
+.petugas-isolated textarea:focus {
+    outline: 2px solid var(--medical-500);
+    outline-offset: 2px;
+}
+
+/* Custom scrollbar styling */
+.petugas-isolated ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.petugas-isolated ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.petugas-isolated ::-webkit-scrollbar-thumb {
+    background: var(--medical-400);
+    border-radius: 4px;
+}
+
+.petugas-isolated ::-webkit-scrollbar-thumb:hover {
+    background: var(--medical-500);
+}
+
+.petugas-isolated.dark ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.petugas-isolated.dark ::-webkit-scrollbar-thumb {
+    background: var(--medical-600);
+}
+
+.petugas-isolated.dark ::-webkit-scrollbar-thumb:hover {
+    background: var(--medical-500);
+}
+
+/* Enhanced animations */
+.petugas-isolated .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.petugas-isolated .animate-slide-in-left {
+    animation: slideInLeft 0.5s ease-out forwards;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.petugas-isolated .animate-scale-in {
+    animation: scaleIn 0.4s ease-out forwards;
+    transform: scale(0.9);
+}
+
+@keyframes scaleIn {
+    to {
+        transform: scale(1);
+    }
+}
+
+/* Pulse effect for important elements */
+.petugas-isolated .pulse-green {
+    animation: pulseGreen 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseGreen {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+}
+
+/* Enhanced button styles */
+.petugas-isolated .btn-medical {
+    background: linear-gradient(135deg, var(--medical-500) 0%, var(--medical-600) 100%);
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.petugas-isolated .btn-medical:hover {
+    background: linear-gradient(135deg, var(--medical-600) 0%, var(--medical-700) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.petugas-isolated .btn-medical:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Status badges */
+.petugas-isolated .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.petugas-isolated .badge-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--medical-700);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.petugas-isolated .badge-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.petugas-isolated .badge-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.petugas-isolated .badge-info {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Dark mode badge adjustments */
+.petugas-isolated.dark .badge-success {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: var(--medical-400);
+}
+
+.petugas-isolated.dark .badge-warning {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+.petugas-isolated.dark .badge-danger {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.petugas-isolated.dark .badge-info {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+/* Progress bars */
+.petugas-isolated .progress-bar {
+    width: 100%;
+    height: 0.5rem;
+    background-color: rgba(229, 231, 235, 1);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.petugas-isolated.dark .progress-bar {
+    background-color: rgba(75, 85, 99, 1);
+}
+
+.petugas-isolated .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--medical-500) 0%, var(--medical-400) 100%);
+    border-radius: 9999px;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Loading states */
+.petugas-isolated .loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(16, 185, 129, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--medical-500);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Enhanced shadow utilities */
+.petugas-isolated .shadow-medical {
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1), 0 2px 4px -1px rgba(16, 185, 129, 0.06);
+}
+
+.petugas-isolated .shadow-medical-lg {
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.1), 0 4px 6px -2px rgba(16, 185, 129, 0.05);
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+    .petugas-isolated .responsive-padding {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .petugas-isolated .responsive-text-sm {
+        font-size: 0.875rem;
+    }
+    
+    .petugas-isolated .responsive-grid-1 {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+    .petugas-isolated .responsive-grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 769px) {
+    .petugas-isolated .responsive-grid-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+/* Print styles */
+@media print {
+    .petugas-isolated {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .petugas-isolated .glass-card {
+        background: white !important;
+        border: 1px solid #e5e7eb !important;
+        box-shadow: none !important;
+    }
+    
+    .petugas-isolated .gradient-medical {
+        background: #10b981 !important;
+    }
+    
+    .petugas-isolated button {
+        border: 1px solid #e5e7eb !important;
+    }
+}

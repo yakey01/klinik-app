@@ -43,6 +43,14 @@ class PetugasDashboard extends BaseDashboard
                 ->color('success')
                 ->size(ActionSize::Small)
                 ->url(route('filament.petugas.resources.pasiens.create')),
+                
+            Action::make('enhanced_dashboard')
+                ->label('Dashboard Enhanced')
+                ->icon('heroicon-o-sparkles')
+                ->color('warning')
+                ->size(ActionSize::Small)
+                ->url(route('petugas.enhanced.dashboard'))
+                ->openUrlInNewTab(),
         ];
     }
 }

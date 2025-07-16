@@ -18,13 +18,15 @@ class PendapatanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-trending-up';
     
-    protected static ?string $navigationGroup = 'Input Data';
+    protected static ?string $navigationGroup = '📝 Input Data';
+    
+    protected static ?string $navigationLabel = 'Pendapatan Lainnya';
     
     protected static ?string $modelLabel = 'Pendapatan';
     
     protected static ?string $pluralModelLabel = 'Input Pendapatan';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
     {

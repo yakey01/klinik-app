@@ -71,9 +71,9 @@
                     @else
                         @forelse($notifications as $notification)
                             <div 
-                                class="notification-item flex items-start space-x-3 p-3 rounded-lg transition-colors
+                                class="flex items-start space-x-3 p-3 rounded-lg transition-all duration-200 ease-in-out
                                     {{ $notification['read_at'] ? 'bg-gray-50 dark:bg-gray-800' : 'bg-primary-50 dark:bg-primary-900/20' }}
-                                    hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                    hover:bg-gray-100 dark:hover:bg-gray-700 hover:translate-x-1 hover:shadow-md cursor-pointer"
                                 wire:click="markAsRead('{{ $notification['id'] }}')"
                             >
                                 <div class="flex-shrink-0">
@@ -142,14 +142,3 @@
         </div>
     </div>
 </div>
-
-<style>
-.notification-item {
-    transition: all 0.2s ease-in-out;
-}
-
-.notification-item:hover {
-    transform: translateX(4px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-</style>

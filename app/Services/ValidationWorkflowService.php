@@ -673,4 +673,656 @@ class ValidationWorkflowService
             ]);
         }
     }
+
+    /**
+     * Bulk approve/reject operations
+     */
+    public function bulkAction(array $recordIds, string $action, array $options = []): array
+    {
+        try {
+            DB::beginTransaction();
+            
+            $results = [];
+            $successCount = 0;
+            $failureCount = 0;
+            
+            foreach ($recordIds as $recordId) {
+                try {
+                    $modelClass = $options['model_class'] ?? null;
+                    if (!$modelClass || !class_exists($modelClass)) {
+                        throw new Exception('Invalid model class');
+                    }
+                    
+                    $record = $modelClass::find($recordId);
+                    if (!$record) {
+                        $results[$recordId] = ['success' => false, 'message' => 'Record not found'];
+                        $failureCount++;
+                        continue;
+                    }
+                    
+                    switch ($action) {
+                        case 'approve':
+                            $result = $this->approve($record, $options);
+                            break;
+                        case 'reject':
+                            $reason = $options['reason'] ?? 'Bulk rejection';
+                            $result = $this->reject($record, $reason, $options);
+                            break;
+                        case 'request_revision':
+                            $reason = $options['reason'] ?? 'Bulk revision request';
+                            $result = $this->requestRevision($record, $reason, $options);
+                            break;
+                        default:
+                            throw new Exception('Invalid action');
+                    }
+                    
+                    $results[$recordId] = $result;
+                    $successCount++;
+                    
+                } catch (Exception $e) {
+                    $results[$recordId] = ['success' => false, 'message' => $e->getMessage()];
+                    $failureCount++;
+                }
+            }
+            
+            DB::commit();
+            
+            // Send bulk notification
+            $this->sendBulkNotification($action, $successCount, $failureCount, $options);
+            
+            return [
+                'success' => true,
+                'total_processed' => count($recordIds),
+                'success_count' => $successCount,
+                'failure_count' => $failureCount,
+                'results' => $results,
+                'summary' => "Bulk {$action}: {$successCount} successful, {$failureCount} failed",
+            ];
+            
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Bulk validation action failed', [
+                'action' => $action,
+                'record_count' => count($recordIds),
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Send bulk notification
+     */
+    protected function sendBulkNotification(string $action, int $successCount, int $failureCount, array $options): void
+    {
+        try {
+            $message = "🔄 *Bulk {$action} completed*\n\n";
+            $message .= "✅ Successful: {$successCount}\n";
+            $message .= "❌ Failed: {$failureCount}\n";
+            $message .= "📅 " . now()->format('d/m/Y H:i');
+            
+            // Notify current user
+            $this->telegramService->sendMessage(Auth::id(), $message);
+            
+            // Notify supervisors if there were failures
+            if ($failureCount > 0) {
+                $supervisors = User::whereHas('roles', function ($query) {
+                    $query->whereIn('name', ['supervisor', 'manager']);
+                })->get();
+                
+                foreach ($supervisors as $supervisor) {
+                    $this->telegramService->sendMessage($supervisor->id, $message);
+                }
+            }
+            
+        } catch (Exception $e) {
+            Log::error('Failed to send bulk notification', [
+                'action' => $action,
+                'success_count' => $successCount,
+                'failure_count' => $failureCount,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Get validation workflow status for a record
+     */
+    public function getWorkflowStatus(Model $record): array
+    {
+        try {
+            $modelName = class_basename($record);
+            $rules = $this->validationRules[$modelName] ?? [];
+            
+            // Get validation history from audit logs
+            $history = AuditLog::where('model_type', get_class($record))
+                ->where('model_id', $record->id)
+                ->whereIn('action', ['submitted', 'approved', 'rejected', 'revision_requested'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            // Calculate workflow metrics
+            $submittedAt = $record->submitted_at ?? $record->created_at;
+            $daysPending = $submittedAt ? now()->diffInDays($submittedAt) : 0;
+            
+            $priority = $this->calculatePriority($record);
+            $canAutoApprove = $this->shouldAutoApprove($record, $rules);
+            
+            return [
+                'current_status' => $record->status_validasi ?? 'draft',
+                'status_display' => $this->validationStates[$record->status_validasi ?? 'pending'] ?? 'Unknown',
+                'submitted_at' => $submittedAt,
+                'days_pending' => $daysPending,
+                'priority' => $priority,
+                'priority_level' => $this->getPriorityLevel($priority),
+                'can_auto_approve' => $canAutoApprove,
+                'workflow_history' => $history->map(function ($log) {
+                    return [
+                        'action' => $log->action,
+                        'user' => $log->user->name ?? 'System',
+                        'timestamp' => $log->created_at,
+                        'details' => json_decode($log->changes, true),
+                    ];
+                })->toArray(),
+                'next_actions' => $this->getAvailableActions($record),
+                'requirements' => [
+                    'approval_levels' => $rules['approval_levels'] ?? [],
+                    'required_fields' => $rules['required_fields'] ?? [],
+                    'auto_approve_threshold' => $rules['auto_approve_threshold'] ?? 0,
+                ],
+            ];
+            
+        } catch (Exception $e) {
+            Log::error('Failed to get workflow status', [
+                'record_id' => $record->id,
+                'model' => class_basename($record),
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'current_status' => 'unknown',
+                'error' => 'Unable to determine workflow status',
+            ];
+        }
+    }
+
+    /**
+     * Get available actions for a record based on current status and user permissions
+     */
+    protected function getAvailableActions(Model $record): array
+    {
+        $user = Auth::user();
+        $status = $record->status_validasi ?? 'draft';
+        $actions = [];
+        
+        if (!$user) {
+            return $actions;
+        }
+        
+        // Check user permissions
+        $canApprove = $user->hasAnyRole(['supervisor', 'manager', 'admin']);
+        $isOwner = $record->input_by === $user->id || $record->user_id === $user->id;
+        
+        switch ($status) {
+            case 'draft':
+                if ($isOwner) {
+                    $actions[] = 'submit';
+                    $actions[] = 'edit';
+                    $actions[] = 'delete';
+                }
+                break;
+                
+            case 'pending':
+                if ($canApprove) {
+                    $actions[] = 'approve';
+                    $actions[] = 'reject';
+                    $actions[] = 'request_revision';
+                }
+                if ($isOwner) {
+                    $actions[] = 'cancel';
+                }
+                break;
+                
+            case 'revision':
+                if ($isOwner) {
+                    $actions[] = 'resubmit';
+                    $actions[] = 'edit';
+                    $actions[] = 'cancel';
+                }
+                break;
+                
+            case 'approved':
+                if ($canApprove) {
+                    $actions[] = 'view_details';
+                }
+                break;
+                
+            case 'rejected':
+                if ($isOwner) {
+                    $actions[] = 'resubmit';
+                    $actions[] = 'view_rejection_reason';
+                }
+                if ($canApprove) {
+                    $actions[] = 'reconsider';
+                }
+                break;
+        }
+        
+        return $actions;
+    }
+
+    /**
+     * Get priority level description
+     */
+    protected function getPriorityLevel(int $priority): string
+    {
+        if ($priority >= 8) {
+            return 'critical';
+        } elseif ($priority >= 5) {
+            return 'high';
+        } elseif ($priority >= 3) {
+            return 'medium';
+        } else {
+            return 'low';
+        }
+    }
+
+    /**
+     * Cancel a pending validation
+     */
+    public function cancel(Model $record, string $reason = '', array $options = []): array
+    {
+        try {
+            DB::beginTransaction();
+            
+            $cancelledBy = $options['cancelled_by'] ?? Auth::id();
+            
+            // Update record status
+            $record->update([
+                'status_validasi' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancelled_by' => $cancelledBy,
+                'cancellation_reason' => $reason,
+            ]);
+            
+            // Update related status if applicable
+            if ($record->hasAttribute('status') && $record->status !== 'batal') {
+                $record->update(['status' => 'batal']);
+            }
+            
+            // Notify relevant users
+            $this->notifySubmitter($record, 'cancelled', $reason);
+            
+            // Send real-time notification
+            $this->sendRealTimeNotification($record, 'validation_cancelled');
+            
+            // Log cancellation
+            $this->logValidationAction($record, 'cancelled', [
+                'cancelled_by' => $cancelledBy,
+                'reason' => $reason,
+            ]);
+            
+            DB::commit();
+            
+            return [
+                'success' => true,
+                'status' => 'cancelled',
+                'message' => 'Validation cancelled successfully',
+                'cancelled_by' => $cancelledBy,
+                'cancelled_at' => now(),
+                'reason' => $reason,
+            ];
+            
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Cancellation failed', [
+                'record_id' => $record->id,
+                'model' => class_basename($record),
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Resubmit a record after revision or rejection
+     */
+    public function resubmit(Model $record, array $options = []): array
+    {
+        try {
+            DB::beginTransaction();
+            
+            $resubmittedBy = $options['resubmitted_by'] ?? Auth::id();
+            $changes = $options['changes'] ?? [];
+            
+            // Validate current status allows resubmission
+            if (!in_array($record->status_validasi, ['revision', 'rejected', 'cancelled'])) {
+                throw new Exception('Record cannot be resubmitted from current status');
+            }
+            
+            // Apply any changes
+            if (!empty($changes)) {
+                $record->update($changes);
+            }
+            
+            // Reset validation status
+            $record->update([
+                'status_validasi' => 'pending',
+                'resubmitted_at' => now(),
+                'resubmitted_by' => $resubmittedBy,
+                'revision_count' => ($record->revision_count ?? 0) + 1,
+            ]);
+            
+            // Check for auto-approval
+            $modelName = class_basename($record);
+            $rules = $this->validationRules[$modelName] ?? [];
+            $autoApprove = $this->shouldAutoApprove($record, $rules);
+            
+            if ($autoApprove) {
+                $result = $this->approve($record, [
+                    'reason' => 'Auto-approved on resubmission',
+                    'approved_by' => 'system',
+                    'auto_approved' => true,
+                ]);
+            } else {
+                // Notify approvers
+                $this->notifyApprovers($record, 'resubmitted');
+                
+                // Send real-time notification
+                $this->sendRealTimeNotification($record, 'validation_resubmitted');
+                
+                $result = [
+                    'success' => true,
+                    'status' => 'pending',
+                    'message' => 'Record resubmitted for validation',
+                    'auto_approved' => false,
+                ];
+            }
+            
+            // Log resubmission
+            $this->logValidationAction($record, 'resubmitted', [
+                'resubmitted_by' => $resubmittedBy,
+                'changes' => $changes,
+                'revision_count' => $record->revision_count,
+            ]);
+            
+            DB::commit();
+            return $result;
+            
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Resubmission failed', [
+                'record_id' => $record->id,
+                'model' => class_basename($record),
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Get validation dashboard metrics
+     */
+    public function getValidationDashboardMetrics(): array
+    {
+        try {
+            return Cache::remember('validation_dashboard_metrics', 900, function () {
+                $models = [
+                    'Tindakan' => Tindakan::class,
+                    'PendapatanHarian' => PendapatanHarian::class,
+                    'PengeluaranHarian' => PengeluaranHarian::class,
+                ];
+                
+                $metrics = [
+                    'overview' => [],
+                    'by_model' => [],
+                    'performance' => [],
+                    'alerts' => [],
+                ];
+                
+                $totalPending = 0;
+                $totalValue = 0;
+                $oldestPending = null;
+                
+                foreach ($models as $modelName => $modelClass) {
+                    $pending = $modelClass::where('status_validasi', 'pending')->count();
+                    $approved = $modelClass::where('status_validasi', 'disetujui')
+                        ->whereDate('approved_at', '>=', Carbon::now()->subDays(30))
+                        ->count();
+                    $rejected = $modelClass::where('status_validasi', 'ditolak')
+                        ->whereDate('rejected_at', '>=', Carbon::now()->subDays(30))
+                        ->count();
+                    
+                    $valueField = $modelClass === Tindakan::class ? 'tarif' : 'nominal';
+                    $pendingValue = $modelClass::where('status_validasi', 'pending')->sum($valueField) ?? 0;
+                    
+                    // Find oldest pending item
+                    $oldest = $modelClass::where('status_validasi', 'pending')
+                        ->orderBy('submitted_at', 'asc')
+                        ->first();
+                    
+                    if ($oldest && (!$oldestPending || $oldest->submitted_at < $oldestPending->submitted_at)) {
+                        $oldestPending = $oldest;
+                    }
+                    
+                    $metrics['by_model'][$modelName] = [
+                        'pending' => $pending,
+                        'approved_30d' => $approved,
+                        'rejected_30d' => $rejected,
+                        'pending_value' => $pendingValue,
+                        'approval_rate' => ($approved + $rejected) > 0 ? 
+                            round(($approved / ($approved + $rejected)) * 100, 2) : 0,
+                    ];
+                    
+                    $totalPending += $pending;
+                    $totalValue += $pendingValue;
+                }
+                
+                // Calculate overall metrics
+                $metrics['overview'] = [
+                    'total_pending' => $totalPending,
+                    'total_pending_value' => $totalValue,
+                    'oldest_pending_days' => $oldestPending ? 
+                        now()->diffInDays($oldestPending->submitted_at) : 0,
+                    'avg_approval_time' => $this->calculateAverageApprovalTime(),
+                ];
+                
+                // Performance metrics
+                $metrics['performance'] = [
+                    'daily_approvals' => $this->getDailyApprovalCount(),
+                    'validation_velocity' => $this->calculateValidationVelocity(),
+                    'backlog_trend' => $this->getBacklogTrend(),
+                ];
+                
+                // Generate alerts
+                $metrics['alerts'] = $this->generateValidationAlerts($metrics);
+                
+                return $metrics;
+            });
+            
+        } catch (Exception $e) {
+            Log::error('Failed to get validation dashboard metrics', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'overview' => [],
+                'by_model' => [],
+                'performance' => [],
+                'alerts' => [],
+                'error' => 'Unable to load validation metrics',
+            ];
+        }
+    }
+
+    /**
+     * Calculate average approval time in hours
+     */
+    protected function calculateAverageApprovalTime(): float
+    {
+        try {
+            $approvals = AuditLog::where('action', 'approved')
+                ->where('created_at', '>=', Carbon::now()->subDays(30))
+                ->get();
+            
+            if ($approvals->isEmpty()) {
+                return 0;
+            }
+            
+            $totalHours = 0;
+            $count = 0;
+            
+            foreach ($approvals as $approval) {
+                $submission = AuditLog::where('model_type', $approval->model_type)
+                    ->where('model_id', $approval->model_id)
+                    ->where('action', 'submitted')
+                    ->where('created_at', '<', $approval->created_at)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                
+                if ($submission) {
+                    $hours = $submission->created_at->diffInHours($approval->created_at);
+                    $totalHours += $hours;
+                    $count++;
+                }
+            }
+            
+            return $count > 0 ? round($totalHours / $count, 2) : 0;
+            
+        } catch (Exception $e) {
+            Log::error('Failed to calculate average approval time', [
+                'error' => $e->getMessage()
+            ]);
+            return 0;
+        }
+    }
+
+    /**
+     * Get daily approval count for the last 7 days
+     */
+    protected function getDailyApprovalCount(): array
+    {
+        try {
+            $last7Days = collect();
+            for ($i = 6; $i >= 0; $i--) {
+                $date = Carbon::now()->subDays($i);
+                $count = AuditLog::where('action', 'approved')
+                    ->whereDate('created_at', $date)
+                    ->count();
+                
+                $last7Days->push([
+                    'date' => $date->format('Y-m-d'),
+                    'count' => $count,
+                ]);
+            }
+            
+            return $last7Days->toArray();
+            
+        } catch (Exception $e) {
+            Log::error('Failed to get daily approval count', [
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Calculate validation velocity (items processed per day)
+     */
+    protected function calculateValidationVelocity(): float
+    {
+        try {
+            $last30Days = AuditLog::whereIn('action', ['approved', 'rejected'])
+                ->where('created_at', '>=', Carbon::now()->subDays(30))
+                ->count();
+            
+            return round($last30Days / 30, 2);
+            
+        } catch (Exception $e) {
+            Log::error('Failed to calculate validation velocity', [
+                'error' => $e->getMessage()
+            ]);
+            return 0;
+        }
+    }
+
+    /**
+     * Get backlog trend (pending items over time)
+     */
+    protected function getBacklogTrend(): array
+    {
+        try {
+            $trend = collect();
+            for ($i = 6; $i >= 0; $i--) {
+                $date = Carbon::now()->subDays($i);
+                
+                // This is an approximation - ideally we'd have historical snapshots
+                $submitted = AuditLog::where('action', 'submitted')
+                    ->whereDate('created_at', $date)
+                    ->count();
+                
+                $processed = AuditLog::whereIn('action', ['approved', 'rejected'])
+                    ->whereDate('created_at', $date)
+                    ->count();
+                
+                $trend->push([
+                    'date' => $date->format('Y-m-d'),
+                    'submitted' => $submitted,
+                    'processed' => $processed,
+                    'net_change' => $submitted - $processed,
+                ]);
+            }
+            
+            return $trend->toArray();
+            
+        } catch (Exception $e) {
+            Log::error('Failed to get backlog trend', [
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Generate validation alerts
+     */
+    protected function generateValidationAlerts(array $metrics): array
+    {
+        $alerts = [];
+        
+        // High backlog alert
+        if ($metrics['overview']['total_pending'] > 50) {
+            $alerts[] = [
+                'type' => 'warning',
+                'title' => 'High Validation Backlog',
+                'message' => "You have {$metrics['overview']['total_pending']} items pending validation",
+                'action' => 'Review and process pending validations',
+                'priority' => 'high',
+            ];
+        }
+        
+        // Old pending items alert
+        if ($metrics['overview']['oldest_pending_days'] > 7) {
+            $alerts[] = [
+                'type' => 'error',
+                'title' => 'Overdue Validations',
+                'message' => "Oldest pending item is {$metrics['overview']['oldest_pending_days']} days old",
+                'action' => 'Process overdue validations immediately',
+                'priority' => 'critical',
+            ];
+        }
+        
+        // High value pending alert
+        if ($metrics['overview']['total_pending_value'] > 5000000) {
+            $alerts[] = [
+                'type' => 'warning',
+                'title' => 'High Value Pending',
+                'message' => 'Pending validations worth over Rp 5M',
+                'action' => 'Review high-value pending items',
+                'priority' => 'high',
+            ];
+        }
+        
+        return $alerts;
+    }
 }

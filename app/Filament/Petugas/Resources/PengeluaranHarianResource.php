@@ -29,13 +29,14 @@ class PengeluaranHarianResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-trending-down';
     
-    protected static ?string $navigationLabel = 'Pengeluaran Harian';
+    protected static ?string $navigationLabel = 'Input Pengeluaran';
     
     protected static ?string $modelLabel = 'Pengeluaran Harian';
     
-    protected static ?string $navigationGroup = '📊 Transaksi Harian';
+    protected static ?string $navigationGroup = '📝 Input Data';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
+
 
     public static function form(Form $form): Form
     {
@@ -565,7 +566,7 @@ class PengeluaranHarianResource extends Resource
                         ->modalHeading('Approve Pengeluaran')
                         ->modalDescription('Approve pengeluaran yang dipilih untuk validasi.')
                         ->modalSubmitActionLabel('Approve')
-                        ->visible(fn (): bool => auth()->user()->can('approve_pengeluaran'))
+                        ->visible(fn (): bool => auth()->user()->can('validate_transactions'))
                         ->action(function (Collection $records) {
                             try {
                                 $bulkService = new BulkOperationService();

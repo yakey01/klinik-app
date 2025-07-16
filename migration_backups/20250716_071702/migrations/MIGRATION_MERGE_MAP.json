@@ -1,0 +1,197 @@
+{
+  "merge_groups": [
+    {
+      "target_migration": "2025_07_11_092700_enhance_users_table_complete.php",
+      "risk_level": "MEDIUM",
+      "original_migrations": [
+        "2025_07_11_092700_add_role_id_to_users_table.php",
+        "2025_07_12_225550_add_username_to_users_table.php",
+        "2025_07_15_070054_add_profile_settings_to_users_table.php",
+        "2025_07_15_095251_make_role_id_nullable_in_users_table.php",
+        "2025_07_15_231720_add_pegawai_id_to_users_table.php"
+      ],
+      "dependencies": ["roles", "pegawais", "work_locations"],
+      "operations": [
+        "Add role_id with foreign key",
+        "Add username unique field",
+        "Add comprehensive profile settings",
+        "Make role_id nullable",
+        "Add pegawai_id relationship"
+      ],
+      "rollback_complexity": "HIGH",
+      "notes": "Most complex merge due to multiple foreign keys and extensive field additions"
+    },
+    {
+      "target_migration": "2025_07_11_125444_enhance_pendapatan_table_complete.php",
+      "risk_level": "LOW",
+      "original_migrations": [
+        "2025_07_11_125444_add_new_fields_to_pendapatan_table.php",
+        "2025_07_11_125722_update_pendapatan_table_nullable_fields.php",
+        "2025_07_11_160519_add_is_aktif_to_pendapatan_table.php"
+      ],
+      "dependencies": [],
+      "operations": [
+        "Add transaction detail fields",
+        "Make certain fields nullable",
+        "Add is_aktif boolean field"
+      ],
+      "rollback_complexity": "LOW",
+      "notes": "Simple field additions with no complex relationships"
+    },
+    {
+      "target_migration": "2025_07_11_123000_enhance_tindakan_table_complete.php",
+      "risk_level": "MEDIUM",
+      "original_migrations": [
+        "2025_07_11_123000_add_input_by_to_tindakan_table.php",
+        "2025_07_13_100339_add_validation_fields_to_tindakan_table.php",
+        "2025_07_13_100412_fix_foreign_keys_in_tindakan_table.php",
+        "2025_07_13_100434_make_dokter_id_nullable_in_tindakan_table.php"
+      ],
+      "dependencies": ["users", "pasien", "dokters"],
+      "operations": [
+        "Add input_by field",
+        "Add comprehensive validation system",
+        "Fix foreign key constraints",
+        "Make dokter_id nullable"
+      ],
+      "rollback_complexity": "MEDIUM",
+      "notes": "Requires careful handling of foreign key modifications"
+    },
+    {
+      "target_migration": "2025_07_11_233203_enhance_pegawais_table_complete.php",
+      "risk_level": "LOW",
+      "original_migrations": [
+        "2025_07_11_233203_update_pegawais_table_make_nik_required.php",
+        "2025_07_13_000205_add_user_id_to_pegawais_table.php",
+        "2025_07_13_075245_add_login_fields_to_pegawais_table.php"
+      ],
+      "dependencies": ["users"],
+      "operations": [
+        "Make NIK required",
+        "Add user_id relationship",
+        "Add authentication fields"
+      ],
+      "rollback_complexity": "LOW",
+      "notes": "Straightforward enhancements with minimal risk"
+    },
+    {
+      "target_migration": "2025_07_11_225513_create_gps_spoofing_system_tables.php",
+      "risk_level": "LOW",
+      "original_migrations": [
+        "2025_07_11_225513_create_gps_spoofing_detections_table.php",
+        "2025_07_11_230950_create_gps_spoofing_settings_table.php",
+        "2025_07_12_005224_create_gps_spoofing_configs_table.php",
+        "2025_07_12_013248_add_device_limit_settings_to_gps_spoofing_configs_table.php"
+      ],
+      "dependencies": [],
+      "operations": [
+        "Create GPS spoofing detection table",
+        "Create GPS spoofing settings table",
+        "Create GPS spoofing configs table",
+        "Add device limit settings"
+      ],
+      "rollback_complexity": "LOW",
+      "notes": "New table creations can be safely combined"
+    },
+    {
+      "target_migration": "2025_07_11_165455_enhance_attendances_table_complete.php",
+      "risk_level": "LOW",
+      "original_migrations": [
+        "2025_07_11_165455_add_device_fields_to_attendances_table.php",
+        "2025_07_14_010934_add_gps_fields_to_attendances_table.php"
+      ],
+      "dependencies": ["user_devices"],
+      "operations": [
+        "Add device tracking fields",
+        "Add GPS location fields"
+      ],
+      "rollback_complexity": "LOW",
+      "notes": "Simple field additions for enhanced tracking"
+    },
+    {
+      "target_migration": "2025_07_11_162113_enhance_pendapatan_harians_table_complete.php",
+      "risk_level": "LOW",
+      "original_migrations": [
+        "2025_07_11_162113_change_pendapatan_harians_relation_to_pendapatan.php",
+        "2025_07_12_021528_add_validation_fields_to_pendapatan_harians_table.php"
+      ],
+      "dependencies": ["pendapatan"],
+      "operations": [
+        "Change foreign key relationship",
+        "Add validation fields"
+      ],
+      "rollback_complexity": "MEDIUM",
+      "notes": "Foreign key change requires careful handling"
+    },
+    {
+      "target_migration": "2025_07_12_072713_enhance_dokters_table_complete.php",
+      "risk_level": "LOW",
+      "original_migrations": [
+        "2025_07_12_073448_add_user_id_to_dokters_table.php",
+        "2025_07_12_131056_add_auth_management_to_dokters_table.php"
+      ],
+      "dependencies": ["users"],
+      "operations": [
+        "Add user_id relationship",
+        "Add authentication management fields"
+      ],
+      "rollback_complexity": "LOW",
+      "notes": "Two related modifications that can be combined"
+    },
+    {
+      "target_migration": "2025_07_13_140942_enhance_jumlah_pasien_harians_table_complete.php",
+      "risk_level": "LOW",
+      "original_migrations": [
+        "2025_07_13_140942_create_jumlah_pasien_harians_table.php",
+        "2025_07_13_150636_add_status_validasi_to_jumlah_pasien_harians_table.php"
+      ],
+      "dependencies": ["users"],
+      "operations": [
+        "Create table",
+        "Add validation status fields"
+      ],
+      "rollback_complexity": "LOW",
+      "notes": "Table creation and immediate enhancement can be merged"
+    },
+    {
+      "target_migration": "2025_07_15_094706_create_system_configuration_tables.php",
+      "risk_level": "LOW",
+      "original_migrations": [
+        "2025_07_15_094706_create_feature_flags_table.php",
+        "2025_07_15_094706_create_system_settings_table.php"
+      ],
+      "dependencies": [],
+      "operations": [
+        "Create feature flags table",
+        "Create system settings table"
+      ],
+      "rollback_complexity": "LOW",
+      "notes": "Related system configuration tables"
+    }
+  ],
+  "statistics": {
+    "total_original_migrations": 93,
+    "total_merged_migrations": 10,
+    "reduction_percentage": 89.25,
+    "high_risk_merges": 0,
+    "medium_risk_merges": 3,
+    "low_risk_merges": 7
+  },
+  "implementation_order": [
+    "2025_07_11_225513_create_gps_spoofing_system_tables.php",
+    "2025_07_15_094706_create_system_configuration_tables.php",
+    "2025_07_11_125444_enhance_pendapatan_table_complete.php",
+    "2025_07_11_233203_enhance_pegawais_table_complete.php",
+    "2025_07_11_165455_enhance_attendances_table_complete.php",
+    "2025_07_11_162113_enhance_pendapatan_harians_table_complete.php",
+    "2025_07_12_072713_enhance_dokters_table_complete.php",
+    "2025_07_13_140942_enhance_jumlah_pasien_harians_table_complete.php",
+    "2025_07_11_123000_enhance_tindakan_table_complete.php",
+    "2025_07_11_092700_enhance_users_table_complete.php"
+  ],
+  "validation_queries": {
+    "check_foreign_keys": "SELECT * FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = DATABASE()",
+    "check_indexes": "SHOW INDEXES FROM {table_name}",
+    "check_columns": "DESCRIBE {table_name}"
+  }
+}

@@ -2,117 +2,95 @@
 
 namespace App\Filament\Bendahara\Resources;
 
-use App\Filament\Bendahara\Resources\ValidasiJumlahPasienResource\Pages;
 use App\Models\JumlahPasienHarian;
+use App\Services\ValidationWorkflowService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
+use Filament\Tables\Actions\Action;
+use Filament\Support\Enums\Alignment;
+use Carbon\Carbon;
 
 class ValidasiJumlahPasienResource extends Resource
 {
     protected static ?string $model = JumlahPasienHarian::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-check-circle';
-    
-    protected static ?string $navigationLabel = 'Validasi Pasien Harian';
-    
-    protected static ?string $modelLabel = 'Validasi Jumlah Pasien';
-    
+    protected static ?string $navigationIcon = null;
+
+    protected static ?string $navigationGroup = '🏥 Validasi Data';
+
+    protected static ?string $navigationLabel = '👥 Validasi Jumlah Pasien';
+
+    protected static ?string $modelLabel = 'Jumlah Pasien Harian';
+
     protected static ?string $pluralModelLabel = 'Validasi Jumlah Pasien';
-    
-    protected static ?string $navigationGroup = 'Validasi Data';
-    
-    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Data Pasien')
+                Forms\Components\Section::make('Detail Jumlah Pasien')
                     ->schema([
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\DatePicker::make('tanggal')
-                                    ->label('Tanggal')
-                                    ->disabled()
-                                    ->displayFormat('d/m/Y'),
-                                    
-                                Forms\Components\Select::make('poli')
-                                    ->label('Poli')
-                                    ->options([
-                                        'umum' => 'Poli Umum',
-                                        'gigi' => 'Poli Gigi',
-                                    ])
-                                    ->disabled(),
-                            ]),
-                            
-                        Forms\Components\Grid::make(3)
-                            ->schema([
-                                Forms\Components\TextInput::make('jumlah_pasien_umum')
-                                    ->label('Pasien Umum')
-                                    ->numeric()
-                                    ->disabled(),
-                                    
-                                Forms\Components\TextInput::make('jumlah_pasien_bpjs')
-                                    ->label('Pasien BPJS')
-                                    ->numeric()
-                                    ->disabled(),
-                                    
-                                Forms\Components\TextInput::make('total_pasien')
-                                    ->label('Total Pasien')
-                                    ->numeric()
-                                    ->disabled()
-                                    ->default(fn ($record) => $record ? $record->total_pasien : 0),
-                            ]),
-                            
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('dokter_id')
-                                    ->label('Dokter Pelaksana')
-                                    ->relationship('dokter', 'nama_lengkap')
-                                    ->disabled(),
-                                    
-                                Forms\Components\TextInput::make('inputBy.name')
-                                    ->label('Diinput Oleh')
-                                    ->disabled(),
-                            ]),
-                    ]),
-                    
-                Forms\Components\Section::make('Validasi')
+                        Forms\Components\DatePicker::make('tanggal')
+                            ->label('Tanggal')
+                            ->required()
+                            ->disabled(),
+
+                        Forms\Components\Select::make('shift')
+                            ->label('Shift')
+                            ->options([
+                                'pagi' => 'Pagi (07:00-15:00)',
+                                'siang' => 'Siang (15:00-23:00)',
+                                'malam' => 'Malam (23:00-07:00)',
+                            ])
+                            ->disabled(),
+
+                        Forms\Components\TextInput::make('jumlah_pasien')
+                            ->label('Jumlah Pasien')
+                            ->numeric()
+                            ->required(),
+
+                        Forms\Components\TextInput::make('pasien_umum')
+                            ->label('Pasien Umum')
+                            ->numeric()
+                            ->disabled(),
+
+                        Forms\Components\TextInput::make('pasien_bpjs')
+                            ->label('Pasien BPJS')
+                            ->numeric()
+                            ->disabled(),
+
+                        Forms\Components\Select::make('input_by')
+                            ->label('Input Oleh')
+                            ->relationship('inputBy', 'name')
+                            ->disabled(),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Validasi Bendahara')
                     ->schema([
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('status_validasi')
-                                    ->label('Status Validasi')
-                                    ->options([
-                                        'pending' => 'Menunggu Validasi',
-                                        'approved' => 'Disetujui',
-                                        'rejected' => 'Ditolak',
-                                    ])
-                                    ->required()
-                                    ->default('pending'),
-                                    
-                                Forms\Components\TextInput::make('validasiBy.name')
-                                    ->label('Divalidasi Oleh')
-                                    ->disabled()
-                                    ->visible(fn ($record) => $record && $record->validasi_by),
-                            ]),
-                            
+                        Forms\Components\Select::make('status_validasi')
+                            ->label('Status Validasi')
+                            ->options([
+                                'pending' => 'Menunggu Validasi',
+                                'approved' => 'Disetujui',
+                                'rejected' => 'Ditolak',
+                                'need_revision' => 'Perlu Revisi',
+                            ])
+                            ->required(),
+
                         Forms\Components\Textarea::make('catatan_validasi')
                             ->label('Catatan Validasi')
+                            ->placeholder('Tambahkan catatan validasi...')
                             ->rows(3)
-                            ->placeholder('Tambahkan catatan jika diperlukan...'),
-                            
-                        Forms\Components\DateTimePicker::make('validasi_at')
-                            ->label('Tanggal Validasi')
-                            ->disabled()
-                            ->visible(fn ($record) => $record && $record->validasi_at),
+                            ->columnSpanFull(),
                     ])
-                    ->visible(fn ($livewire) => $livewire instanceof Pages\EditValidasiJumlahPasien),
+                    ->columns(1),
             ]);
     }
 
@@ -124,60 +102,67 @@ class ValidasiJumlahPasienResource extends Resource
                     ->label('Tanggal')
                     ->date('d/m/Y')
                     ->sortable(),
-                    
-                Tables\Columns\BadgeColumn::make('poli')
-                    ->label('Poli')
-                    ->colors([
-                        'primary' => 'umum',
-                        'success' => 'gigi',
-                    ])
+
+                Tables\Columns\BadgeColumn::make('shift')
+                    ->label('Shift')
+                    ->color(fn (string $state): string => match ($state) {
+                        'pagi' => 'success',
+                        'siang' => 'warning',
+                        'malam' => 'info',
+                        default => 'gray',
+                    })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'umum' => 'Poli Umum',
-                        'gigi' => 'Poli Gigi',
-                        default => $state,
+                        'pagi' => '🌅 Pagi',
+                        'siang' => '🌞 Siang',
+                        'malam' => '🌙 Malam',
+                        default => ucfirst($state),
                     }),
-                    
-                Tables\Columns\TextColumn::make('dokter.nama_lengkap')
-                    ->label('Dokter')
-                    ->searchable()
-                    ->sortable(),
-                    
-                Tables\Columns\TextColumn::make('jumlah_pasien_umum')
-                    ->label('Pasien Umum')
-                    ->alignCenter(),
-                    
-                Tables\Columns\TextColumn::make('jumlah_pasien_bpjs')
-                    ->label('Pasien BPJS')
-                    ->alignCenter(),
-                    
-                Tables\Columns\TextColumn::make('total_pasien')
-                    ->label('Total')
-                    ->alignCenter()
-                    ->weight('bold')
-                    ->color('primary'),
-                    
+
+                Tables\Columns\TextColumn::make('jumlah_pasien')
+                    ->label('Total Pasien')
+                    ->numeric()
+                    ->alignment(Alignment::Center)
+                    ->sortable()
+                    ->color(fn (int $state): string => match (true) {
+                        $state > 100 => 'danger',
+                        $state > 50 => 'warning',
+                        default => 'success',
+                    }),
+
+                Tables\Columns\TextColumn::make('pasien_umum')
+                    ->label('Umum')
+                    ->numeric()
+                    ->alignment(Alignment::Center)
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('pasien_bpjs')
+                    ->label('BPJS')
+                    ->numeric()
+                    ->alignment(Alignment::Center)
+                    ->toggleable(),
+
                 Tables\Columns\BadgeColumn::make('status_validasi')
                     ->label('Status')
-                    ->colors([
-                        'warning' => 'pending',
-                        'success' => 'approved',
-                        'danger' => 'rejected',
-                    ])
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'warning',
+                        'approved' => 'success',
+                        'rejected' => 'danger',
+                        'need_revision' => 'info',
+                        default => 'gray',
+                    })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pending' => 'Menunggu',
-                        'approved' => 'Disetujui',
-                        'rejected' => 'Ditolak',
-                        default => $state,
+                        'pending' => '⏳ Menunggu',
+                        'approved' => '✅ Disetujui',
+                        'rejected' => '❌ Ditolak',
+                        'need_revision' => '📝 Revisi',
+                        default => ucfirst($state),
                     }),
-                    
+
                 Tables\Columns\TextColumn::make('inputBy.name')
-                    ->label('Diinput Oleh')
-                    ->searchable(),
-                    
-                Tables\Columns\TextColumn::make('validasiBy.name')
-                    ->label('Divalidasi Oleh')
-                    ->placeholder('Belum divalidasi'),
-                    
+                    ->label('Input Oleh')
+                    ->searchable()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime('d/m/Y H:i')
@@ -185,28 +170,12 @@ class ValidasiJumlahPasienResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status_validasi')
-                    ->label('Status Validasi')
-                    ->options([
-                        'pending' => 'Menunggu Validasi',
-                        'approved' => 'Disetujui',
-                        'rejected' => 'Ditolak',
-                    ])
-                    ->default('pending'),
-                    
-                Tables\Filters\SelectFilter::make('poli')
-                    ->label('Poli')
-                    ->options([
-                        'umum' => 'Poli Umum',
-                        'gigi' => 'Poli Gigi',
-                    ]),
-                    
                 Tables\Filters\Filter::make('tanggal')
                     ->form([
                         Forms\Components\DatePicker::make('dari')
-                            ->label('Dari Tanggal'),
+                            ->label('Tanggal Dari'),
                         Forms\Components\DatePicker::make('sampai')
-                            ->label('Sampai Tanggal'),
+                            ->label('Tanggal Sampai'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -219,85 +188,154 @@ class ValidasiJumlahPasienResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('tanggal', '<=', $date),
                             );
                     }),
+
+                Tables\Filters\SelectFilter::make('shift')
+                    ->label('Shift')
+                    ->options([
+                        'pagi' => 'Pagi',
+                        'siang' => 'Siang',
+                        'malam' => 'Malam',
+                    ]),
+
+                Tables\Filters\SelectFilter::make('status_validasi')
+                    ->label('Status Validasi')
+                    ->options([
+                        'pending' => 'Menunggu Validasi',
+                        'approved' => 'Disetujui',
+                        'rejected' => 'Ditolak',
+                        'need_revision' => 'Perlu Revisi',
+                    ]),
+
+                Tables\Filters\Filter::make('pasien_banyak')
+                    ->label('Pasien > 50')
+                    ->query(fn (Builder $query): Builder => $query->where('jumlah_pasien', '>', 50)),
             ])
             ->actions([
-                Tables\Actions\Action::make('approve')
-                    ->label('Setujui')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->form([
-                        Forms\Components\Textarea::make('catatan_validasi')
-                            ->label('Catatan Persetujuan')
-                            ->placeholder('Tambahkan catatan jika diperlukan...')
-                            ->rows(3),
-                    ])
-                    ->action(function (JumlahPasienHarian $record, array $data): void {
-                        $record->approve(auth()->user(), $data['catatan_validasi'] ?? null);
-                        
-                        // Trigger jaspel calculation here
-                        \App\Jobs\HitungJaspelPasienJob::dispatch($record->id);
-                    })
-                    ->visible(fn (JumlahPasienHarian $record): bool => $record->isPending()),
-                    
-                Tables\Actions\Action::make('reject')
-                    ->label('Tolak')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->form([
-                        Forms\Components\Textarea::make('catatan_validasi')
-                            ->label('Alasan Penolakan')
-                            ->placeholder('Jelaskan alasan penolakan...')
-                            ->required()
-                            ->rows(3),
-                    ])
-                    ->action(function (JumlahPasienHarian $record, array $data): void {
-                        $record->reject(auth()->user(), $data['catatan_validasi']);
-                    })
-                    ->visible(fn (JumlahPasienHarian $record): bool => $record->isPending()),
-                    
-                Tables\Actions\ViewAction::make()
-                    ->label('Detail'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('approve_bulk')
-                        ->label('Setujui Terpilih')
-                        ->icon('heroicon-o-check-circle')
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('approve')
+                        ->label('✅ Setujui')
                         ->color('success')
-                        ->requiresConfirmation()
-                        ->action(function (\Illuminate\Database\Eloquent\Collection $records): void {
-                            foreach ($records as $record) {
-                                if ($record->isPending()) {
-                                    $record->approve(auth()->user());
-                                    \App\Jobs\HitungJaspelPasienJob::dispatch($record->id);
-                                }
+                        ->action(function (JumlahPasienHarian $record) {
+                            try {
+                                $record->update([
+                                    'status_validasi' => 'approved',
+                                    'validasi_by' => Auth::id(),
+                                    'validasi_at' => now(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('✅ Data Pasien Disetujui')
+                                    ->body("Data pasien tanggal {$record->tanggal->format('d/m/Y')} shift {$record->shift} disetujui")
+                                    ->success()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal Menyetujui')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
                             }
-                        }),
-                ]),
+                        })
+                        ->requiresConfirmation()
+                        ->visible(fn (JumlahPasienHarian $record): bool => $record->status_validasi === 'pending'),
+
+                    Tables\Actions\Action::make('reject')
+                        ->label('❌ Tolak')
+                        ->color('danger')
+                        ->form([
+                            Forms\Components\Textarea::make('rejection_reason')
+                                ->label('Alasan Penolakan')
+                                ->placeholder('Jelaskan alasan penolakan...')
+                                ->required()
+                                ->rows(3),
+                        ])
+                        ->action(function (JumlahPasienHarian $record, array $data) {
+                            try {
+                                $record->update([
+                                    'status_validasi' => 'rejected',
+                                    'catatan_validasi' => $data['rejection_reason'],
+                                    'validasi_by' => Auth::id(),
+                                    'validasi_at' => now(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('❌ Data Pasien Ditolak')
+                                    ->body("Data pasien ditolak")
+                                    ->warning()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('❌ Gagal Menolak')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->requiresConfirmation()
+                        ->visible(fn (JumlahPasienHarian $record): bool => $record->status_validasi === 'pending'),
+                        
+                    Tables\Actions\ViewAction::make()->label('👁️ Lihat'),
+                    Tables\Actions\EditAction::make()
+                        ->label('✏️ Edit')
+                        ->visible(fn (JumlahPasienHarian $record): bool => 
+                            in_array($record->status_validasi, ['pending', 'need_revision'])
+                        ),
+                ])
+                ->label('Aksi')
+                ->button()
+                ->size('sm'),
             ])
-            ->defaultSort('tanggal', 'desc');
+            ->headerActions([
+                Action::make('patient_summary')
+                    ->label('👥 Ringkasan Pasien')
+                    ->color('info')
+                    ->action(function () {
+                        $today = now()->toDateString();
+                        $summary = [
+                            'total_today' => JumlahPasienHarian::whereDate('tanggal', $today)->sum('jumlah_pasien'),
+                            'avg_per_shift' => JumlahPasienHarian::whereDate('tanggal', $today)->avg('jumlah_pasien'),
+                            'pending_count' => JumlahPasienHarian::where('status_validasi', 'pending')->count(),
+                            'monthly_avg' => JumlahPasienHarian::whereMonth('tanggal', now()->month)->avg('jumlah_pasien'),
+                        ];
+
+                        $message = "👥 **RINGKASAN PASIEN HARIAN**\n\n";
+                        $message .= "📅 Hari Ini: {$summary['total_today']} pasien\n";
+                        $message .= "📊 Rata-rata per Shift: " . round($summary['avg_per_shift'], 1) . " pasien\n";
+                        $message .= "📈 Rata-rata Bulanan: " . round($summary['monthly_avg'], 1) . " pasien\n";
+                        $message .= "⏳ Pending Validasi: {$summary['pending_count']}";
+
+                        Notification::make()
+                            ->title('👥 Ringkasan Pasien')
+                            ->body($message)
+                            ->info()
+                            ->send();
+                    }),
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
-    public static function getRelations(): array
+    public static function getEloquentQuery(): Builder
     {
-        return [
-            //
-        ];
+        return parent::getEloquentQuery()
+            ->with(['inputBy', 'validasiBy']);
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('status_validasi', 'pending')->count();
+    }
+
+    public static function canAccess(): bool
+    {
+        return true; // Override access control for bendahara
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListValidasiJumlahPasiens::route('/'),
-            'view' => Pages\ViewValidasiJumlahPasien::route('/{record}'),
+            'index' => ValidasiJumlahPasienResource\Pages\ListValidasiJumlahPasien::route('/'),
         ];
-    }
-    
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->with(['dokter', 'inputBy', 'validasiBy']);
     }
 }

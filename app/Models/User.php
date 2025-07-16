@@ -270,6 +270,28 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Override hasPermissionTo to check both Spatie permissions and custom role permissions
+     */
+    public function hasPermissionTo($permission, $guardName = null): bool
+    {
+        // First check Spatie Permission package
+        try {
+            if (parent::hasPermissionTo($permission, $guardName)) {
+                return true;
+            }
+        } catch (\Exception $e) {
+            // If Spatie permission check fails, continue to custom role check
+        }
+        
+        // Check custom role permissions array
+        if ($this->role && $this->role->permissions) {
+            return in_array($permission, $this->role->permissions);
+        }
+        
+        return false;
+    }
+
+    /**
      * Find user by email or username for authentication
      */
     public static function findForAuth(string $identifier): ?self

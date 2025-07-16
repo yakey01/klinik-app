@@ -15,7 +15,7 @@ class TindakanPolicy
     {
         // Allow users with input_transactions, view-procedures, or validate_transactions permission to view procedures
         return $user->hasPermissionTo('input_transactions') || 
-               $user->hasPermissionTo('view-procedures') || 
+               $user->hasPermissionTo('view_tindakan') || 
                $user->hasPermissionTo('validate_transactions');
     }
 
@@ -26,7 +26,7 @@ class TindakanPolicy
     {
         // Allow users with input_transactions, view-procedures, or validate_transactions permission to view procedures
         return $user->hasPermissionTo('input_transactions') || 
-               $user->hasPermissionTo('view-procedures') || 
+               $user->hasPermissionTo('view_tindakan') || 
                $user->hasPermissionTo('validate_transactions');
     }
 
@@ -36,7 +36,7 @@ class TindakanPolicy
     public function create(User $user): bool
     {
         // Allow users with input_transactions permission to create procedures
-        return $user->can('input_transactions') || $user->can('create-procedures');
+        return $user->can('input_transactions') || $user->can('create_tindakan');
     }
 
     /**
@@ -50,7 +50,7 @@ class TindakanPolicy
         }
         
         // User can edit if they have permission AND (they created it OR they're involved in it)
-        return ($user->hasPermissionTo('input_transactions') || $user->hasPermissionTo('edit-procedures')) && (
+        return ($user->hasPermissionTo('input_transactions') || $user->hasPermissionTo('update_tindakan')) && (
             $tindakan->input_by === $user->id ||
             $tindakan->dokter_id === $user->id ||
             $tindakan->paramedis_id === $user->id ||
@@ -64,7 +64,7 @@ class TindakanPolicy
      */
     public function delete(User $user, Tindakan $tindakan): bool
     {
-        return ($user->can('input_transactions') || $user->can('delete-procedures')) && (
+        return ($user->can('input_transactions') || $user->can('delete_tindakan')) && (
             $tindakan->input_by === $user->id ||
             $user->role && in_array($user->role->name, ['admin', 'manajer'])
         );
@@ -75,7 +75,7 @@ class TindakanPolicy
      */
     public function perform(User $user): bool
     {
-        return $user->can('perform-procedures');
+        return $user->can('create_tindakan');
     }
 
     /**
@@ -83,7 +83,7 @@ class TindakanPolicy
      */
     public function restore(User $user, Tindakan $tindakan): bool
     {
-        return $user->can('delete-procedures');
+        return $user->can('delete_tindakan');
     }
 
     /**

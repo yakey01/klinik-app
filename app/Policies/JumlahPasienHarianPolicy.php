@@ -13,8 +13,8 @@ class JumlahPasienHarianPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('view_jumlah_pasien_harian') || 
-               $user->hasPermissionTo('input_transactions') ||
+        return $user->hasPermissionTo('view-patients') || 
+               $user->hasPermissionTo('create-patients') ||
                $user->hasPermissionTo('validate_transactions');
     }
 
@@ -24,8 +24,8 @@ class JumlahPasienHarianPolicy
     public function view(User $user, JumlahPasienHarian $jumlahPasienHarian): bool
     {
         // Allow if user has permission and either created the record or has validation rights
-        return ($user->hasPermissionTo('view_jumlah_pasien_harian') || 
-                $user->hasPermissionTo('input_transactions') ||
+        return ($user->hasPermissionTo('view-patients') || 
+                $user->hasPermissionTo('create-patients') ||
                 $user->hasPermissionTo('validate_transactions')) &&
                ($jumlahPasienHarian->input_by === $user->id || 
                 $user->hasPermissionTo('validate_transactions'));
@@ -36,8 +36,7 @@ class JumlahPasienHarianPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('create_jumlah_pasien_harian') ||
-               $user->hasPermissionTo('input_transactions');
+        return $user->hasPermissionTo('create-patients');
     }
 
     /**

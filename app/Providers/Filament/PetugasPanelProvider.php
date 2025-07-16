@@ -42,15 +42,18 @@ class PetugasPanelProvider extends PanelProvider
             ->spa()
             ->globalSearch()
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            ->breadcrumbs(false)
+            ->topNavigation(false)
             ->resources([
-                \App\Filament\Petugas\Resources\JumlahPasienHarianResource::class,
-                \App\Filament\Petugas\Resources\PasienResource::class,
+                \App\Filament\Petugas\Resources\TindakanResource::class,
                 \App\Filament\Petugas\Resources\PendapatanHarianResource::class,
                 \App\Filament\Petugas\Resources\PengeluaranHarianResource::class,
-                \App\Filament\Petugas\Resources\TindakanResource::class,
+                \App\Filament\Petugas\Resources\JumlahPasienHarianResource::class,
+                \App\Filament\Petugas\Resources\PendapatanResource::class,
+                \App\Filament\Petugas\Resources\PasienResource::class,
             ])
             ->pages([
-                Pages\Dashboard::class,
+                \App\Filament\Petugas\Pages\Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Petugas/Widgets'), for: 'App\\Filament\\Petugas\\Widgets')
             ->widgets([
@@ -76,20 +79,16 @@ class PetugasPanelProvider extends PanelProvider
             ])
             ->authGuard('web')
             ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
+            ->profile()
             ->tenant(null)
             ->navigationGroups([
                 NavigationGroup::make('🏠 Dashboard')
-                    ->icon('heroicon-o-home')
-                    ->collapsible(),
-                NavigationGroup::make('📊 Data Entry')
-                    ->icon('heroicon-o-document-text')
-                    ->collapsible(),
-                NavigationGroup::make('💰 Financial')
-                    ->icon('heroicon-o-currency-dollar')
-                    ->collapsible(),
-                NavigationGroup::make('🤒 Patient Care')
-                    ->icon('heroicon-o-heart')
-                    ->collapsible(),
+                    ->collapsed(false),
+                NavigationGroup::make('📝 Input Data')
+                    ->collapsed(false),
+                NavigationGroup::make('👥 Manajemen Pasien')
+                    ->collapsed(false),
             ]);
     }
 }

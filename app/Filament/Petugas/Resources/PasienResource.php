@@ -34,7 +34,7 @@ class PasienResource extends Resource
     
     protected static ?string $navigationGroup = '👥 Manajemen Pasien';
     
-    protected static ?string $navigationLabel = '👤 Pasien';
+    protected static ?string $navigationLabel = 'Input Pasien';
     
     protected static ?string $modelLabel = 'Pasien';
     

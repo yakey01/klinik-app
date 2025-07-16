@@ -32,13 +32,16 @@ class TindakanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-hand-raised';
 
-    protected static ?string $navigationGroup = '🏥 Tindakan Medis';
+    protected static ?string $navigationLabel = 'Input Tindakan';
+    
+    protected static ?string $navigationGroup = '📝 Input Data';
 
     protected static ?string $modelLabel = 'Tindakan';
 
     protected static ?string $pluralModelLabel = 'Input Tindakan';
 
     protected static ?int $navigationSort = 1;
+
 
     public static function form(Form $form): Form
     {

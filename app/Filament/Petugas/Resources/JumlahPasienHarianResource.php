@@ -22,15 +22,16 @@ class JumlahPasienHarianResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     
-    protected static ?string $navigationLabel = 'Jumlah Pasien Harian';
+    protected static ?string $navigationLabel = 'Input Jumlah Pasien';
     
-    protected static ?string $navigationGroup = 'Data Pasien';
+    protected static ?string $navigationGroup = '📝 Input Data';
     
     protected static ?string $modelLabel = 'Jumlah Pasien Harian';
     
     protected static ?string $pluralModelLabel = 'Data Jumlah Pasien Harian';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
+
 
     public static function form(Form $form): Form
     {

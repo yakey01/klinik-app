@@ -1,112 +1,11 @@
-/* Admin Panel Styles - Scoped to prevent conflicts with other panels */
+@import '/vendor/filament/filament/resources/css/theme.css';
 
-/* Scope all admin styles to admin panel */
-[data-filament-panel-id="admin"] .fi-sidebar {
-    transition: all 0.3s ease;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-}
-
-[data-filament-panel-id="admin"] .fi-widget-stats-card {
-    transition: all 0.2s ease;
-    background: white;
-    border: 1px solid rgba(203, 213, 225, 0.5);
-}
-
-[data-filament-panel-id="admin"] .fi-widget-stats-card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-    border-color: rgba(59, 130, 246, 0.3);
-}
-
-[data-filament-panel-id="admin"] .fi-sidebar-nav-item {
-    transition: all 0.2s ease;
-    border-radius: 0.375rem;
-}
-
-[data-filament-panel-id="admin"] .fi-sidebar-nav-item:hover {
-    background-color: rgba(59, 130, 246, 0.1);
-    transform: translateX(2px);
-}
-
-[data-filament-panel-id="admin"] .fi-sidebar-nav-item.fi-active {
-    background-color: rgba(59, 130, 246, 0.15);
-    border-left: 3px solid #3b82f6;
-}
-
-/* Real-time notification styles for admin */
-[data-filament-panel-id="admin"] .realtime-notification {
-    border-left: 4px solid #3b82f6;
-    background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
-    padding: 1rem;
-    margin-bottom: 0.5rem;
-    border-radius: 0.375rem;
-    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
-}
-
-[data-filament-panel-id="admin"] .realtime-notification.success {
-    border-left-color: #10b981;
-    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
-}
-
-[data-filament-panel-id="admin"] .realtime-notification.warning {
-    border-left-color: #f59e0b;
-    background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
-    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1);
-}
-
-[data-filament-panel-id="admin"] .realtime-notification.error {
-    border-left-color: #ef4444;
-    background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
-    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.1);
-}
-
-/* Admin table styles */
-[data-filament-panel-id="admin"] .fi-ta-table {
-    background: white;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-[data-filament-panel-id="admin"] .fi-ta-header-cell {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
-    font-weight: 500;
-}
-
-/* Dark mode support for admin panel */
-[data-filament-panel-id="admin"].dark .realtime-notification {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%);
-    border-color: rgba(59, 130, 246, 0.3);
-}
-
-[data-filament-panel-id="admin"].dark .realtime-notification.success {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%);
-    border-color: rgba(16, 185, 129, 0.3);
-}
-
-[data-filament-panel-id="admin"].dark .realtime-notification.warning {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%);
-    border-color: rgba(245, 158, 11, 0.3);
-}
-
-[data-filament-panel-id="admin"].dark .realtime-notification.error {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%);
-    border-color: rgba(239, 68, 68, 0.3);
-}
-
-[data-filament-panel-id="admin"].dark .fi-sidebar-nav-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-filament-panel-id="admin"].dark .fi-widget-stats-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Admin panel isolation */
+/* Only essential Filament-compatible customizations */
 [data-filament-panel-id="admin"] {
+    /* Panel isolation for multi-panel setup */
     isolation: isolate;
     contain: layout style;
 }
+
+/* Use Filament's native color system instead of custom overrides */
+/* All other styling removed to prevent conflicts with Filament */

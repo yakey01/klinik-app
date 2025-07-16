@@ -10,7 +10,6 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/css/filament/admin/theme.css',
                 'resources/css/filament/bendahara/theme.css',
-                'resources/css/filament/manajer/theme.css',
                 'resources/css/filament/paramedis-mobile.css',
                 'resources/react/paramedis-jaspel/main.jsx',
                 'resources/react/paramedis-jaspel/styles/ParamedisJaspelDashboard.css',

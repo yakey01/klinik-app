@@ -57,6 +57,9 @@ class BendaharaPanelProvider extends PanelProvider
                 // 🏥 Validasi Data Group
                 \App\Filament\Bendahara\Resources\ValidasiJumlahPasienResource::class,
             ])
+            ->widgets([
+                \Filament\Widgets\AccountWidget::class,
+            ])
             ->navigationGroups([
                 NavigationGroup::make('💵 Validasi Transaksi')
                     ->collapsed(false),
@@ -82,6 +85,7 @@ class BendaharaPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->authGuard('web');
     }
 }

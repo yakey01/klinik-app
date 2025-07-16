@@ -22,6 +22,23 @@
         @endif
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <!-- Dashboard Enhanced Link -->
+            <a href="{{ route('petugas.enhanced.dashboard') }}" 
+               target="_blank"
+               class="block bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg p-4 border border-emerald-300 dark:border-emerald-600 hover:shadow-lg transition-all hover:from-emerald-600 hover:to-emerald-700 transform hover:scale-105">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-white">
+                            ✨ Dashboard Enhanced
+                        </h3>
+                        <p class="text-xs text-emerald-100">Modern UI dengan Charts</p>
+                    </div>
+                </div>
+            </a>
+            
             @forelse ($viewData['actions'] as $action)
                 <a href="{{ $action['url'] }}" 
                    class="block bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow hover:border-{{ $action['color'] }}-300 dark:hover:border-{{ $action['color'] }}-600">

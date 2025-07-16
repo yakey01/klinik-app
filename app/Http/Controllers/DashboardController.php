@@ -18,7 +18,7 @@ class DashboardController extends Controller
         if ($user->hasRole('admin')) {
             return redirect('/admin'); // Redirect to Filament admin panel
         } elseif ($user->hasRole('manajer')) {
-            return redirect()->route('manager.dashboard');
+            return redirect('/manajer');
         } elseif ($user->hasRole('bendahara')) {
             return redirect('/bendahara');
         } elseif ($user->hasRole('petugas')) {

@@ -15,8 +15,8 @@ class LanguageSwitcherWidget extends Widget
         session(['locale' => $locale]);
         app()->setLocale($locale);
         
-        // Redirect to refresh the page with new language
-        $this->redirect(request()->header('Referer'));
+        // Use JavaScript to refresh the page instead of redirect
+        $this->js('window.location.reload()');
     }
     
     public function getCurrentLocale(): string

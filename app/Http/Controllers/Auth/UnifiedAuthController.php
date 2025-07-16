@@ -230,8 +230,8 @@ class UnifiedAuthController extends Controller
                 Log::info('Redirecting petugas user to /petugas');
                 return redirect('/petugas');
             } elseif ($user->hasRole('manajer')) {
-                Log::info('Redirecting manajer user to /manager/dashboard');
-                return redirect('/manager/dashboard');
+                Log::info('Redirecting manajer user to /manajer');
+                return redirect('/manajer');
             } elseif ($user->hasRole('bendahara')) {
                 Log::info('Redirecting bendahara user to /bendahara');
                 return redirect('/bendahara');

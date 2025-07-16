@@ -86,6 +86,7 @@ Route::middleware(['auth'])->group(function () {
         return redirect('/bendahara');
     })->name('treasurer.dashboard');
     Route::get('/staff/dashboard', [StaffDashboardController::class, 'index'])->name('staff.dashboard');
+    Route::get('/petugas/enhanced-dashboard', [StaffDashboardController::class, 'enhanced'])->name('petugas.enhanced.dashboard');
     // Redirect DOKTER to Flutter mobile app
     Route::get('/doctor/dashboard', function () {
         return redirect('/dokter/mobile-app');

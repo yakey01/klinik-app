@@ -28,6 +28,19 @@ class UnifiedAuthController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Check for CSRF token issues
+        if (!$request->has('_token') || empty($request->input('_token'))) {
+            Log::warning('Login attempt without CSRF token', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'session_id' => $request->session()->getId()
+            ]);
+            
+            return back()->withErrors([
+                'email_or_username' => 'Token keamanan tidak valid. Silakan refresh halaman dan coba lagi.',
+            ])->withInput($request->except('password'));
+        }
+
         // Rate limiting check
         $key = 'login_attempts:' . $request->ip();
         $maxAttempts = 5;
@@ -38,7 +51,7 @@ class UnifiedAuthController extends Controller
             'ip' => $request->ip(),
             'has_token' => $request->has('_token'),
             'session_id' => $request->session()->getId(),
-            'csrf_token' => $request->input('_token'),
+            'csrf_token' => substr($request->input('_token'), 0, 10) . '...',
             'user_agent' => $request->userAgent()
         ]);
 

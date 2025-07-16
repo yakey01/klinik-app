@@ -36,11 +36,12 @@ class ManajerMiddleware
         }
 
         // Check if user account is active
-        if (method_exists($user, 'isActive') && !$user->isActive()) {
+        if (!$user->is_active) {
             Log::warning('ManajerMiddleware: Access denied - inactive account', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,
                 'ip' => $request->ip(),
+                'is_active' => $user->is_active,
             ]);
 
             Auth::logout();

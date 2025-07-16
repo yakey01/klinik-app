@@ -47,6 +47,34 @@
     background-color: #111827;
 }
 
+/* Sidebar Dark Mode Support */
+.petugas-isolated.dark .petugas-sidebar {
+    background-color: #111827;
+    border-color: #374151;
+}
+
+.petugas-isolated.dark .sidebar-nav-group-header {
+    color: #10b981;
+}
+
+.petugas-isolated.dark .sidebar-nav-group-header:hover {
+    background-color: rgba(16, 185, 129, 0.1);
+}
+
+.petugas-isolated.dark .sidebar-nav-item {
+    color: #d1d5db;
+}
+
+.petugas-isolated.dark .sidebar-nav-item:hover {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.petugas-isolated.dark .sidebar-nav-item.active {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
 /* Glass morphism effect for cards */
 .petugas-isolated .glass-card {
     background: rgba(255, 255, 255, 0.95);

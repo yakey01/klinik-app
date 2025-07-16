@@ -77,50 +77,291 @@
             0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
             70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
         }
+        
+        /* Sidebar Styles - Isolated */
+        .petugas-sidebar {
+            width: 256px; /* 16rem - same as Filament default */
+            transition: all 0.3s ease;
+        }
+        
+        .petugas-sidebar.collapsed {
+            width: 64px; /* 4rem - collapsed width */
+        }
+        
+        .sidebar-nav-group {
+            margin-bottom: 1rem;
+        }
+        
+        .sidebar-nav-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--medical-600);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 0.5rem;
+        }
+        
+        .sidebar-nav-group-header:hover {
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+        
+        .sidebar-nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            margin: 0.125rem 0.5rem;
+            font-size: 0.875rem;
+            color: rgb(107, 114, 128);
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-nav-item:hover {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--medical-700);
+        }
+        
+        .sidebar-nav-item.active {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--medical-700);
+            font-weight: 600;
+        }
+        
+        .sidebar-nav-item svg {
+            width: 1.25rem;
+            height: 1.25rem;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-nav-group-content {
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-nav-group.collapsed .sidebar-nav-group-content {
+            max-height: 0;
+        }
+        
+        .sidebar-nav-group:not(.collapsed) .sidebar-nav-group-content {
+            max-height: 1000px;
+        }
+        
+        .sidebar-toggle-icon {
+            transition: transform 0.2s ease;
+        }
+        
+        .sidebar-nav-group.collapsed .sidebar-toggle-icon {
+            transform: rotate(-90deg);
+        }
+        
+        /* Mobile sidebar */
+        @media (max-width: 768px) {
+            .petugas-sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 50;
+                transform: translateX(-100%);
+            }
+            
+            .petugas-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .sidebar-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 40;
+            }
+        }
     </style>
 </head>
-<body class="petugas-isolated bg-gradient-to-br from-medical-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 min-h-screen">
-    <!-- Header -->
-    <header class="bg-white dark:bg-gray-900 shadow-lg border-b border-medical-200 dark:border-gray-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-6">
-                <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 gradient-medical rounded-xl flex items-center justify-center pulse-green">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Petugas</h1>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Sistem Manajemen Klinik Dokterku</p>
-                    </div>
+<body class="petugas-isolated bg-gradient-to-br from-medical-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 min-h-screen flex">
+    
+    <!-- Sidebar -->
+    <aside id="petugas-sidebar" class="petugas-sidebar bg-white dark:bg-gray-900 shadow-lg border-r border-medical-200 dark:border-gray-700 h-screen overflow-y-auto">
+        <!-- Sidebar Header -->
+        <div class="gradient-medical p-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-2m-2 0H5m14 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4"></path>
+                    </svg>
                 </div>
-                
-                <div class="flex items-center space-x-4">
-                    <!-- Dark Mode Toggle -->
-                    <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                        <svg class="w-5 h-5 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
-                        </svg>
-                        <svg class="w-5 h-5 dark:hidden" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                        </svg>
-                    </button>
-                    
-                    <!-- Refresh Button -->
-                    <button onclick="refreshData()" class="inline-flex items-center px-4 py-2 bg-medical-600 hover:bg-medical-700 text-white font-medium rounded-lg transition-colors">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                        Refresh
-                    </button>
+                <div class="text-white">
+                    <h2 class="font-bold text-sm">🏥 Dokterku</h2>
+                    <p class="text-xs text-medical-100">Petugas</p>
                 </div>
             </div>
+            <button onclick="toggleSidebar()" class="text-white hover:bg-medical-700 p-1 rounded lg:hidden">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
         </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Navigation -->
+        <nav class="p-4 space-y-2">
+            <!-- Dashboard Group -->
+            <div class="sidebar-nav-group">
+                <div class="sidebar-nav-group-header" onclick="toggleNavGroup(this)">
+                    <span>📊 Dashboard</span>
+                    <svg class="sidebar-toggle-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-group-content">
+                    <a href="#" class="sidebar-nav-item active">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <!-- Manajemen Pasien Group -->
+            <div class="sidebar-nav-group">
+                <div class="sidebar-nav-group-header" onclick="toggleNavGroup(this)">
+                    <span>🏥 Manajemen Pasien</span>
+                    <svg class="sidebar-toggle-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-group-content">
+                    <a href="/petugas/pasiens" class="sidebar-nav-item">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Input Pasien
+                    </a>
+                    <a href="/petugas/tindakans" class="sidebar-nav-item">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3"></path>
+                        </svg>
+                        Input Tindakan
+                    </a>
+                </div>
+            </div>
+
+            <!-- Input Data Harian Group -->
+            <div class="sidebar-nav-group">
+                <div class="sidebar-nav-group-header" onclick="toggleNavGroup(this)">
+                    <span>📊 Input Data Harian</span>
+                    <svg class="sidebar-toggle-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-group-content">
+                    <a href="/petugas/pendapatan-harians" class="sidebar-nav-item">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        Input Pendapatan
+                    </a>
+                    <a href="/petugas/pengeluaran-harians" class="sidebar-nav-item">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+                        </svg>
+                        Input Pengeluaran
+                    </a>
+                    <a href="/petugas/jumlah-pasien-harians" class="sidebar-nav-item">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Input Jumlah Pasien
+                    </a>
+                </div>
+            </div>
+
+            <!-- Transaksi Group -->
+            <div class="sidebar-nav-group collapsed">
+                <div class="sidebar-nav-group-header" onclick="toggleNavGroup(this)">
+                    <span>💰 Transaksi</span>
+                    <svg class="sidebar-toggle-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-group-content">
+                    <a href="/petugas/pendapatans" class="sidebar-nav-item">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        Pendapatan Lainnya
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-900 shadow-lg border-b border-medical-200 dark:border-gray-700">
+            <div class="px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-6">
+                    <div class="flex items-center space-x-4">
+                        <!-- Mobile Menu Button -->
+                        <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+                        
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 gradient-medical rounded-xl flex items-center justify-center pulse-green">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold text-gray-900 dark:text-white">Dashboard Petugas</h1>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Enhanced UI/UX</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <!-- Dark Mode Toggle -->
+                        <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <svg class="w-5 h-5 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+                            </svg>
+                            <svg class="w-5 h-5 dark:hidden" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Refresh Button -->
+                        <button onclick="refreshData()" class="inline-flex items-center px-4 py-2 bg-medical-600 hover:bg-medical-700 text-white font-medium rounded-lg transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
         
         <!-- Quick Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -300,10 +541,30 @@
                 </button>
             </div>
         </div>
-    </main>
+        
+        </main>
+    </div>
 
     <script src="/js/petugas-chart.js"></script>
     <script>
+        // Sidebar functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('petugas-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            
+            if (window.innerWidth < 1024) { // Mobile
+                sidebar.classList.toggle('mobile-open');
+                backdrop.classList.toggle('hidden');
+            } else { // Desktop
+                sidebar.classList.toggle('collapsed');
+            }
+        }
+
+        function toggleNavGroup(header) {
+            const group = header.closest('.sidebar-nav-group');
+            group.classList.toggle('collapsed');
+        }
+
         // Dark mode toggle
         function toggleDarkMode() {
             document.documentElement.classList.toggle('dark');
@@ -354,6 +615,30 @@
 
         // Auto-refresh every 30 seconds
         setInterval(updateStats, 30000);
+
+        // Handle window resize for sidebar
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('petugas-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            
+            if (window.innerWidth >= 1024) {
+                sidebar.classList.remove('mobile-open');
+                backdrop.classList.add('hidden');
+            }
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('petugas-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            
+            if (window.innerWidth < 1024 && 
+                !sidebar.contains(event.target) && 
+                !event.target.closest('[onclick="toggleSidebar()"]')) {
+                sidebar.classList.remove('mobile-open');
+                backdrop.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>

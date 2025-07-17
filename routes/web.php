@@ -87,6 +87,82 @@ Route::middleware(['auth'])->group(function () {
     })->name('treasurer.dashboard');
     Route::get('/staff/dashboard', [StaffDashboardController::class, 'index'])->name('staff.dashboard');
     Route::get('/petugas/enhanced-dashboard', [StaffDashboardController::class, 'enhanced'])->name('petugas.enhanced.dashboard');
+    
+    // Enhanced Petugas Management Routes
+    Route::middleware(['auth', 'role:petugas'])->prefix('petugas/enhanced')->name('petugas.enhanced.')->group(function () {
+        // Patient Management
+        Route::prefix('pasien')->name('pasien.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'index'])->name('index');
+            Route::get('/data', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'getData'])->name('data');
+            Route::get('/create', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'store'])->name('store');
+            Route::get('/{id}', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'update'])->name('update');
+            Route::delete('/{id}', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-delete', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('/export', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'export'])->name('export');
+            Route::get('/search/autocomplete', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'search'])->name('search');
+            Route::get('/{id}/timeline', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'getTimeline'])->name('timeline');
+        });
+        
+        // Tindakan (Medical Procedure) Management
+        Route::prefix('tindakan')->name('tindakan.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'index'])->name('index');
+            Route::get('/data', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'getData'])->name('data');
+            Route::get('/create', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'store'])->name('store');
+            Route::get('/{id}', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'update'])->name('update');
+            Route::delete('/{id}', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-update-status', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'bulkUpdateStatus'])->name('bulk-update-status');
+            Route::get('/{patientId}/timeline', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'getTimeline'])->name('patient-timeline');
+            Route::post('/export', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'export'])->name('export');
+            Route::get('/search/autocomplete', [App\Http\Controllers\Petugas\Enhanced\TindakanController::class, 'search'])->name('search');
+        });
+        
+        // Pendapatan (Revenue) Management
+        Route::prefix('pendapatan')->name('pendapatan.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'index'])->name('index');
+            Route::get('/data', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'getData'])->name('data');
+            Route::get('/create', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'store'])->name('store');
+            Route::get('/{id}', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'update'])->name('update');
+            Route::delete('/{id}', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-create-from-tindakan', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'bulkCreateFromTindakan'])->name('bulk-create-from-tindakan');
+            Route::get('/analytics', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'getAnalytics'])->name('analytics');
+            Route::post('/export', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'export'])->name('export');
+            Route::get('/suggestions', [App\Http\Controllers\Petugas\Enhanced\PendapatanController::class, 'getSuggestions'])->name('suggestions');
+        });
+        
+        // Pengeluaran (Expense) Management
+        Route::prefix('pengeluaran')->name('pengeluaran.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'index'])->name('index');
+            Route::get('/data', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'getData'])->name('data');
+            Route::get('/create', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'store'])->name('store');
+            Route::get('/{id}', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'update'])->name('update');
+            Route::delete('/{id}', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-update-status', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'bulkUpdateStatus'])->name('bulk-update-status');
+            Route::get('/budget-analysis', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'getBudgetAnalysisData'])->name('budget-analysis');
+            Route::post('/export', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'export'])->name('export');
+            Route::get('/suggestions', [App\Http\Controllers\Petugas\Enhanced\PengeluaranController::class, 'getSuggestions'])->name('suggestions');
+        });
+        
+        // Jumlah Pasien (Patient Reporting) Management
+        Route::prefix('jumlah-pasien')->name('jumlah-pasien.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Petugas\Enhanced\JumlahPasienController::class, 'index'])->name('index');
+            Route::get('/calendar-data', [App\Http\Controllers\Petugas\Enhanced\JumlahPasienController::class, 'getCalendarData'])->name('calendar-data');
+            Route::get('/date-stats', [App\Http\Controllers\Petugas\Enhanced\JumlahPasienController::class, 'getDateStats'])->name('date-stats');
+            Route::get('/analytics', [App\Http\Controllers\Petugas\Enhanced\JumlahPasienController::class, 'getAnalytics'])->name('analytics');
+            Route::post('/export', [App\Http\Controllers\Petugas\Enhanced\JumlahPasienController::class, 'export'])->name('export');
+        });
+    });
     // Redirect DOKTER to Flutter mobile app
     Route::get('/doctor/dashboard', function () {
         return redirect('/dokter/mobile-app');

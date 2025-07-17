@@ -621,3 +621,255 @@ Route::prefix('v2')->group(function () {
         // - Files endpoints
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Enhanced API V1 Routes - Mobile Integration
+|--------------------------------------------------------------------------
+|
+| Enhanced RESTful API routes for mobile integration with the new enhanced
+| management system. Includes comprehensive endpoints for patients,
+| procedures, financial management, and analytics.
+|
+*/
+
+// API Health Check
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now()->toISOString(),
+        'version' => 'v1',
+        'service' => 'Dokterku Enhanced API',
+    ]);
+})->name('api.health');
+
+// Enhanced V1 API Routes
+Route::prefix('v1')->name('api.v1.')->group(function () {
+    
+    // Auth required routes with rate limiting
+    Route::middleware(['auth:sanctum', App\Http\Middleware\ApiRateLimiter::class . ':200:1'])->group(function () {
+        
+        // User info endpoint
+        Route::get('/me', function (Request $request) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'role' => $request->user()->role?->name,
+                ],
+                'timestamp' => now()->toISOString(),
+            ]);
+        })->name('me');
+
+        // Patient Management API
+        Route::prefix('patients')->name('patients.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\V1\PasienController::class, 'index'])->name('index');
+            Route::post('/', [App\Http\Controllers\Api\V1\PasienController::class, 'store'])->name('store');
+            Route::get('/search', [App\Http\Controllers\Api\V1\PasienController::class, 'search'])->name('search');
+            Route::get('/statistics', [App\Http\Controllers\Api\V1\PasienController::class, 'statistics'])->name('statistics');
+            Route::get('/{id}', [App\Http\Controllers\Api\V1\PasienController::class, 'show'])->name('show');
+            Route::put('/{id}', [App\Http\Controllers\Api\V1\PasienController::class, 'update'])->name('update');
+            Route::delete('/{id}', [App\Http\Controllers\Api\V1\PasienController::class, 'destroy'])->name('destroy');
+        });
+
+        // Medical Procedures API
+        Route::prefix('procedures')->name('procedures.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\V1\TindakanController::class, 'index'])->name('index');
+            Route::post('/', [App\Http\Controllers\Api\V1\TindakanController::class, 'store'])->name('store');
+            Route::get('/statistics', [App\Http\Controllers\Api\V1\TindakanController::class, 'statistics'])->name('statistics');
+            Route::get('/{id}', [App\Http\Controllers\Api\V1\TindakanController::class, 'show'])->name('show');
+            Route::put('/{id}', [App\Http\Controllers\Api\V1\TindakanController::class, 'update'])->name('update');
+            Route::patch('/{id}/status', [App\Http\Controllers\Api\V1\TindakanController::class, 'updateStatus'])->name('update-status');
+            Route::get('/patient/{patientId}/timeline', [App\Http\Controllers\Api\V1\TindakanController::class, 'patientTimeline'])->name('patient-timeline');
+        });
+
+        // Revenue Management API
+        Route::prefix('revenue')->name('revenue.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\V1\PendapatanController::class, 'index'])->name('index');
+            Route::post('/', [App\Http\Controllers\Api\V1\PendapatanController::class, 'store'])->name('store');
+            Route::get('/analytics', [App\Http\Controllers\Api\V1\PendapatanController::class, 'analytics'])->name('analytics');
+            Route::get('/suggestions', [App\Http\Controllers\Api\V1\PendapatanController::class, 'suggestions'])->name('suggestions');
+            Route::post('/bulk-create-from-procedures', [App\Http\Controllers\Api\V1\PendapatanController::class, 'bulkCreateFromTindakan'])->name('bulk-create-from-procedures');
+            Route::get('/{id}', [App\Http\Controllers\Api\V1\PendapatanController::class, 'show'])->name('show');
+            Route::put('/{id}', [App\Http\Controllers\Api\V1\PendapatanController::class, 'update'])->name('update');
+            Route::delete('/{id}', [App\Http\Controllers\Api\V1\PendapatanController::class, 'destroy'])->name('destroy');
+        });
+
+        // Expense Management API
+        Route::prefix('expenses')->name('expenses.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Api\V1\PengeluaranController::class, 'index'])->name('index');
+            Route::post('/', [App\Http\Controllers\Api\V1\PengeluaranController::class, 'store'])->name('store');
+            Route::get('/budget-analysis', [App\Http\Controllers\Api\V1\PengeluaranController::class, 'budgetAnalysis'])->name('budget-analysis');
+            Route::get('/suggestions', [App\Http\Controllers\Api\V1\PengeluaranController::class, 'suggestions'])->name('suggestions');
+            Route::post('/bulk-update-status', [App\Http\Controllers\Api\V1\PengeluaranController::class, 'bulkUpdateStatus'])->name('bulk-update-status');
+            Route::get('/{id}', [App\Http\Controllers\Api\V1\PengeluaranController::class, 'show'])->name('show');
+            Route::put('/{id}', [App\Http\Controllers\Api\V1\PengeluaranController::class, 'update'])->name('update');
+            Route::delete('/{id}', [App\Http\Controllers\Api\V1\PengeluaranController::class, 'destroy'])->name('destroy');
+        });
+
+        // Analytics & Reporting API
+        Route::prefix('analytics')->name('analytics.')->group(function () {
+            Route::get('/dashboard', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'dashboard'])->name('dashboard');
+            Route::get('/patients', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'patients'])->name('patients');
+            Route::get('/financial', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'financial'])->name('financial');
+            Route::get('/procedures', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'procedures'])->name('procedures');
+            Route::get('/trends', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'trends'])->name('trends');
+            Route::get('/comparative', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'comparative'])->name('comparative');
+            Route::get('/performance', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'performance'])->name('performance');
+            Route::post('/custom-report', [App\Http\Controllers\Api\V1\AnalyticsController::class, 'customReport'])->name('custom-report');
+        });
+
+        // ML Insights and Predictive Analytics API
+        Route::prefix('ml-insights')->name('ml-insights.')->group(function () {
+            Route::get('/patient-flow-prediction', [App\Http\Controllers\Api\V1\MLInsightsController::class, 'patientFlowPrediction'])->name('patient-flow-prediction');
+            Route::get('/revenue-forecast', [App\Http\Controllers\Api\V1\MLInsightsController::class, 'revenueForecast'])->name('revenue-forecast');
+            Route::get('/disease-patterns', [App\Http\Controllers\Api\V1\MLInsightsController::class, 'diseasePatterns'])->name('disease-patterns');
+            Route::get('/resource-optimization', [App\Http\Controllers\Api\V1\MLInsightsController::class, 'resourceOptimization'])->name('resource-optimization');
+            Route::get('/dashboard', [App\Http\Controllers\Api\V1\MLInsightsController::class, 'dashboard'])->name('dashboard');
+            Route::get('/quick-summary', [App\Http\Controllers\Api\V1\MLInsightsController::class, 'quickSummary'])->name('quick-summary');
+            Route::get('/predictive-alerts', [App\Http\Controllers\Api\V1\MLInsightsController::class, 'predictiveAlerts'])->name('predictive-alerts');
+        });
+
+        // Mobile App Specific Endpoints
+        Route::prefix('mobile')->name('mobile.')->group(function () {
+            
+            // Quick access endpoints for mobile
+            Route::get('/dashboard-summary', function (Request $request) {
+                $today = now()->startOfDay();
+                $thisMonth = now()->startOfMonth();
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'today' => [
+                            'new_patients' => \App\Models\Pasien::whereDate('created_at', $today)->count(),
+                            'procedures' => \App\Models\Tindakan::whereDate('tanggal_tindakan', $today)->count(),
+                            'revenue' => \App\Models\Pendapatan::whereDate('tanggal_pendapatan', $today)->sum('jumlah'),
+                        ],
+                        'month' => [
+                            'new_patients' => \App\Models\Pasien::where('created_at', '>=', $thisMonth)->count(),
+                            'procedures' => \App\Models\Tindakan::where('tanggal_tindakan', '>=', $thisMonth)->count(),
+                            'revenue' => \App\Models\Pendapatan::where('tanggal_pendapatan', '>=', $thisMonth)->sum('jumlah'),
+                        ],
+                        'pending_approvals' => \App\Models\Tindakan::where('status_validasi', 'pending')->count(),
+                    ],
+                    'timestamp' => now()->toISOString(),
+                ]);
+            })->name('dashboard-summary');
+
+            // Recent activity for mobile
+            Route::get('/recent-activity', function (Request $request) {
+                $limit = min($request->get('limit', 10), 50);
+                
+                $activities = \App\Models\Tindakan::with(['pasien:id,nama_pasien,nomor_pasien', 'jenisTindakan:id,nama_tindakan'])
+                    ->orderByDesc('created_at')
+                    ->limit($limit)
+                    ->get()
+                    ->map(function ($tindakan) {
+                        return [
+                            'id' => $tindakan->id,
+                            'type' => 'procedure',
+                            'title' => $tindakan->jenisTindakan?->nama_tindakan ?? 'Medical Procedure',
+                            'subtitle' => $tindakan->pasien?->nama_pasien ?? 'Unknown Patient',
+                            'status' => $tindakan->status_validasi,
+                            'date' => $tindakan->created_at->toISOString(),
+                            'formatted_date' => $tindakan->created_at->diffForHumans(),
+                        ];
+                    });
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $activities,
+                    'timestamp' => now()->toISOString(),
+                ]);
+            })->name('recent-activity');
+
+            // Quick stats for mobile widgets
+            Route::get('/quick-stats', function (Request $request) {
+                $period = $request->get('period', 'week'); // day, week, month
+                
+                $now = now();
+                [$startDate, $endDate] = match ($period) {
+                    'day' => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
+                    'month' => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
+                    default => [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()],
+                };
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'period' => $period,
+                        'patients' => [
+                            'new' => \App\Models\Pasien::whereBetween('created_at', [$startDate, $endDate])->count(),
+                            'total' => \App\Models\Pasien::count(),
+                        ],
+                        'procedures' => [
+                            'total' => \App\Models\Tindakan::whereBetween('tanggal_tindakan', [$startDate, $endDate])->count(),
+                            'approved' => \App\Models\Tindakan::whereBetween('tanggal_tindakan', [$startDate, $endDate])->where('status_validasi', 'approved')->count(),
+                            'pending' => \App\Models\Tindakan::whereBetween('tanggal_tindakan', [$startDate, $endDate])->where('status_validasi', 'pending')->count(),
+                        ],
+                        'financial' => [
+                            'revenue' => \App\Models\Pendapatan::whereBetween('tanggal_pendapatan', [$startDate, $endDate])->sum('jumlah'),
+                            'expenses' => \App\Models\Pengeluaran::whereBetween('tanggal_pengeluaran', [$startDate, $endDate])->sum('jumlah'),
+                        ],
+                    ],
+                    'timestamp' => now()->toISOString(),
+                ]);
+            })->name('quick-stats');
+
+        });
+
+    });
+
+    // Public endpoints (no auth required) with higher rate limiting
+    Route::middleware([App\Http\Middleware\ApiRateLimiter::class . ':60:1'])->group(function () {
+        
+        // API Documentation endpoint
+        Route::get('/docs', function () {
+            return response()->json([
+                'success' => true,
+                'message' => 'Dokterku Enhanced API v1',
+                'documentation' => [
+                    'base_url' => url('/api/v1'),
+                    'authentication' => 'Bearer Token (Sanctum)',
+                    'rate_limit' => '200 requests per minute (authenticated), 60 requests per minute (public)',
+                    'endpoints' => [
+                        'patients' => '/api/v1/patients',
+                        'procedures' => '/api/v1/procedures',
+                        'revenue' => '/api/v1/revenue',
+                        'expenses' => '/api/v1/expenses',
+                        'analytics' => '/api/v1/analytics',
+                        'mobile' => '/api/v1/mobile',
+                    ],
+                    'supported_formats' => ['JSON'],
+                    'version' => 'v1.0.0',
+                ],
+                'timestamp' => now()->toISOString(),
+            ]);
+        })->name('docs');
+
+    });
+
+});
+
+// Fallback for undefined enhanced API routes
+Route::prefix('v1')->group(function () {
+    Route::fallback(function () {
+        return response()->json([
+            'success' => false,
+            'message' => 'Enhanced API endpoint not found',
+            'available_endpoints' => [
+                'patients' => '/api/v1/patients',
+                'procedures' => '/api/v1/procedures',
+                'revenue' => '/api/v1/revenue',
+                'expenses' => '/api/v1/expenses',
+                'analytics' => '/api/v1/analytics',
+                'mobile' => '/api/v1/mobile',
+            ],
+            'documentation' => url('/api/v1/docs'),
+            'timestamp' => now()->toISOString(),
+        ], 404);
+    });
+});

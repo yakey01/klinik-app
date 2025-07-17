@@ -8,6 +8,7 @@ export default defineConfig({
             input: [
                 'resources/css/app.css', 
                 'resources/js/app.js',
+                'resources/js/widget-animations.js',
                 'resources/css/filament/admin/theme.css',
                 'resources/css/filament/bendahara/theme.css',
                 'resources/css/filament/manajer/theme.css',

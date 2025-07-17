@@ -2,29 +2,28 @@
 
 namespace App\Filament\Petugas\Resources;
 
-use App\Filament\Petugas\Resources\PendapatanResource\Pages;
+use App\Filament\Petugas\Resources\ValidasiPendapatanResource\Pages;
 use App\Models\Pendapatan;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\Action;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
-class PendapatanResource extends Resource
+class ValidasiPendapatanResource extends Resource
 {
     protected static ?string $model = Pendapatan::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-arrow-trending-up';
+    protected static ?string $navigationIcon = null;
     
-    protected static ?string $navigationGroup = '💰 Transaksi';
+    protected static ?string $navigationLabel = 'Validasi Pendapatan';
     
-    protected static ?string $navigationLabel = 'Pendapatan Lainnya';
-    
-    protected static ?string $modelLabel = 'Pendapatan';
-    
-    protected static ?string $pluralModelLabel = 'Input Pendapatan';
+    protected static ?string $navigationGroup = 'Transaction Management';
 
     protected static ?int $navigationSort = 5;
 

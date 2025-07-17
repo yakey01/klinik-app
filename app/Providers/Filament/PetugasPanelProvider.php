@@ -28,51 +28,51 @@ class PetugasPanelProvider extends PanelProvider
             ->id('petugas')
             ->path('petugas')
             ->login(false)
-            ->brandName('🏥 Dokterku - Petugas')
+            ->brandName('Petugas Dashboard')
             ->viteTheme('resources/css/filament/petugas/theme.css')
-            ->favicon(asset('favicon.ico'))
             ->colors([
-                'primary' => Color::rgb('rgb(16, 185, 129)'),
-                'secondary' => Color::rgb('rgb(59, 130, 246)'),
-                'success' => Color::rgb('rgb(34, 197, 94)'),
-                'warning' => Color::rgb('rgb(251, 189, 35)'),
-                'danger' => Color::rgb('rgb(239, 68, 68)'),
-                'info' => Color::rgb('rgb(58, 191, 248)'),
+                'primary' => Color::Amber,
+                'success' => Color::Green,
+                'warning' => Color::Orange,
+                'danger' => Color::Red,
+                'info' => Color::Blue,
             ])
             ->sidebarCollapsibleOnDesktop()
             ->resources([
-                // 🏥 Manajemen Pasien Group
+                // Patient Management Group
                 \App\Filament\Petugas\Resources\PasienResource::class,
                 \App\Filament\Petugas\Resources\TindakanResource::class,
                 
-                // 📊 Input Data Harian Group
+                // Daily Data Entry Group  
                 \App\Filament\Petugas\Resources\PendapatanHarianResource::class,
                 \App\Filament\Petugas\Resources\PengeluaranHarianResource::class,
                 \App\Filament\Petugas\Resources\JumlahPasienHarianResource::class,
                 
-                // 💰 Transaksi Group
-                \App\Filament\Petugas\Resources\PendapatanResource::class,
+                // Transaction Management Group
+                \App\Filament\Petugas\Resources\ValidasiPendapatanResource::class,
             ])
             ->pages([
-                // 📊 Dashboard Page
                 \App\Filament\Petugas\Pages\PetugasDashboard::class,
             ])
             ->widgets([
                 \Filament\Widgets\AccountWidget::class,
-                \App\Filament\Petugas\Widgets\PetugasStatsWidget::class,
-                \App\Filament\Petugas\Widgets\NotificationWidget::class,
-                \App\Filament\Petugas\Widgets\QuickActionsWidget::class,
             ])
             ->navigationGroups([
-                NavigationGroup::make('📊 Dashboard')
+                NavigationGroup::make('Dashboard')
                     ->collapsed(false),
-                NavigationGroup::make('🏥 Manajemen Pasien')
-                    ->collapsed(false)
+                NavigationGroup::make('Patient Management')
+                    ->collapsed(true)
                     ->collapsible(),
-                NavigationGroup::make('📊 Input Data Harian')
-                    ->collapsed(false)
+                NavigationGroup::make('Daily Data Entry')
+                    ->collapsed(true)
                     ->collapsible(),
-                NavigationGroup::make('💰 Transaksi')
+                NavigationGroup::make('Transaction Management')
+                    ->collapsed(true)
+                    ->collapsible(),
+                NavigationGroup::make('Reports & Analytics')
+                    ->collapsed(true)
+                    ->collapsible(),
+                NavigationGroup::make('Settings')
                     ->collapsed(true)
                     ->collapsible(),
             ])

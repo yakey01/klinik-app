@@ -30,7 +30,7 @@ class ValidasiLokasiResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Validasi Lokasi';
     
-    protected static ?string $navigationGroup = 'Presensi';
+    protected static ?string $navigationGroup = '📍 PRESENSI';
     
     protected static ?int $navigationSort = 40;
 

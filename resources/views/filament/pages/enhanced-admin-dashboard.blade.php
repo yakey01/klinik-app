@@ -23,20 +23,20 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-300">System Health</h3>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">System Health</h3>
                         <p class="text-lg font-semibold text-gray-900 dark:text-white capitalize">{{ $systemHealth['status'] }}</p>
                     </div>
                 </div>
                 <div class="text-right">
                     <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $systemHealth['memory_usage'] }}%</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Memory Usage</div>
+                    <div class="text-xs text-gray-700 dark:text-gray-300">Memory Usage</div>
                 </div>
             </div>
             
             <div class="space-y-3">
                 <!-- Memory Usage -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Memory</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Memory</span>
                     <div class="flex items-center space-x-2">
                         <div class="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full" style="width: {{ $systemHealth['memory_usage'] }}%"></div>
@@ -47,7 +47,7 @@
                 
                 <!-- CPU Usage -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">CPU</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">CPU</span>
                     <div class="flex items-center space-x-2">
                         <div class="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div class="bg-purple-600 dark:bg-purple-500 h-2 rounded-full" style="width: {{ $systemHealth['cpu_usage'] }}%"></div>
@@ -59,12 +59,12 @@
                 <!-- Active Alerts -->
                 <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600 dark:text-gray-300">Active Alerts</span>
+                        <span class="text-sm text-gray-800 dark:text-gray-200">Active Alerts</span>
                         <span class="text-sm font-medium {{ $systemHealth['active_alerts'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
                             {{ $systemHealth['active_alerts'] }}
                         </span>
                     </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <div class="text-xs text-gray-700 dark:text-gray-300 mt-1">
                         Last check: {{ $systemHealth['last_check'] }}
                     </div>
                 </div>
@@ -81,26 +81,26 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-300">Security Status</h3>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Security Status</h3>
                         <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ $securityDashboard['failed_logins'] }} Failed Logins</p>
                     </div>
                 </div>
                 <div class="text-right">
                     <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $securityDashboard['active_sessions'] }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Active Sessions</div>
+                    <div class="text-xs text-gray-700 dark:text-gray-300">Active Sessions</div>
                 </div>
             </div>
             
             <div class="space-y-3">
                 <!-- Security Events -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Security Events (24h)</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Security Events (24h)</span>
                     <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $securityDashboard['security_events'] }}</span>
                 </div>
                 
                 <!-- Suspicious Activities -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Suspicious Activities</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Suspicious Activities</span>
                     <span class="text-sm font-medium {{ $securityDashboard['suspicious_activities'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
                         {{ $securityDashboard['suspicious_activities'] }}
                     </span>
@@ -109,7 +109,7 @@
                 <!-- Trend Indicator -->
                 <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600 dark:text-gray-300">Security Trend</span>
+                        <span class="text-sm text-gray-800 dark:text-gray-200">Security Trend</span>
                         <div class="flex items-center space-x-1">
                             @if($securityDashboard['trend_direction'] === 'up')
                                 <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
@@ -122,12 +122,12 @@
                                 </svg>
                                 <span class="text-sm text-green-600 dark:text-green-400">Decreasing</span>
                             @else
-                                <span class="text-sm text-gray-600 dark:text-gray-400">Stable</span>
+                                <span class="text-sm text-gray-800 dark:text-gray-300">Stable</span>
                             @endif
                         </div>
                     </div>
                     @if($securityDashboard['last_incident'])
-                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div class="text-xs text-gray-700 dark:text-gray-300 mt-1">
                             Last incident: {{ $securityDashboard['last_incident'] }}
                         </div>
                     @endif
@@ -145,39 +145,39 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-300">User Management</h3>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">User Management</h3>
                         <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ $userManagement['total_users'] }} Total Users</p>
                     </div>
                 </div>
                 <div class="text-right">
                     <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $userManagement['activity_percentage'] }}%</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Active Rate</div>
+                    <div class="text-xs text-gray-700 dark:text-gray-300">Active Rate</div>
                 </div>
             </div>
             
             <div class="space-y-3">
                 <!-- Active vs Inactive Users -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Active Users</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Active Users</span>
                     <span class="text-sm font-medium text-green-600 dark:text-green-400">{{ $userManagement['active_users'] }}</span>
                 </div>
                 
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Inactive Users</span>
-                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ $userManagement['inactive_users'] }}</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Inactive Users</span>
+                    <span class="text-sm font-medium text-gray-800 dark:text-gray-300">{{ $userManagement['inactive_users'] }}</span>
                 </div>
                 
                 <!-- New Users This Month -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">New This Month</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">New This Month</span>
                     <span class="text-sm font-medium text-blue-600 dark:text-blue-400">{{ $userManagement['new_users_this_month'] }}</span>
                 </div>
                 
                 <!-- Pending Approvals -->
                 <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600 dark:text-gray-300">Pending Approvals</span>
-                        <span class="text-sm font-medium {{ $userManagement['pending_approvals'] > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-400' }}">
+                        <span class="text-sm text-gray-800 dark:text-gray-200">Pending Approvals</span>
+                        <span class="text-sm font-medium {{ $userManagement['pending_approvals'] > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-800 dark:text-gray-300' }}">
                             {{ $userManagement['pending_approvals'] }}
                         </span>
                     </div>
@@ -186,7 +186,7 @@
                     <div class="mt-3 space-y-1">
                         @foreach($userManagement['users_by_role'] as $role => $count)
                             <div class="flex justify-between text-xs">
-                                <span class="text-gray-500 dark:text-gray-400 capitalize">{{ str_replace('_', ' ', $role) }}</span>
+                                <span class="text-gray-700 dark:text-gray-300 capitalize">{{ str_replace('_', ' ', $role) }}</span>
                                 <span class="text-gray-700 dark:text-gray-300">{{ $count }}</span>
                             </div>
                         @endforeach
@@ -205,7 +205,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-300">System Performance</h3>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">System Performance</h3>
                         <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ $systemPerformance['response_time'] }}ms</p>
                     </div>
                 </div>
@@ -213,26 +213,26 @@
                     <div class="text-2xl font-bold {{ $systemPerformance['performance_score'] >= 80 ? 'text-green-600 dark:text-green-400' : ($systemPerformance['performance_score'] >= 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400') }}">
                         {{ $systemPerformance['performance_score'] }}
                     </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Performance Score</div>
+                    <div class="text-xs text-gray-700 dark:text-gray-300">Performance Score</div>
                 </div>
             </div>
             
             <div class="space-y-3">
                 <!-- Cache Hit Rate -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Cache Hit Rate</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Cache Hit Rate</span>
                     <span class="text-sm font-medium text-green-600 dark:text-green-400">{{ $systemPerformance['cache_hit_rate'] }}%</span>
                 </div>
                 
                 <!-- Database Queries -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">DB Queries</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">DB Queries</span>
                     <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $systemPerformance['database_queries'] }}</span>
                 </div>
                 
                 <!-- Queue Jobs -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Queue Jobs</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Queue Jobs</span>
                     <span class="text-sm font-medium {{ $systemPerformance['queue_jobs'] > 50 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400' }}">
                         {{ $systemPerformance['queue_jobs'] }}
                     </span>
@@ -245,7 +245,7 @@
                             <div class="h-2 rounded-full {{ $systemPerformance['performance_score'] >= 80 ? 'bg-green-500' : ($systemPerformance['performance_score'] >= 60 ? 'bg-yellow-500' : 'bg-red-500') }}" 
                                  style="width: {{ $systemPerformance['performance_score'] }}%"></div>
                         </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div class="text-xs text-gray-700 dark:text-gray-300 mt-1">
                             {{ $systemPerformance['performance_score'] >= 80 ? 'Excellent' : ($systemPerformance['performance_score'] >= 60 ? 'Good' : 'Needs Attention') }}
                         </div>
                     </div>
@@ -263,7 +263,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-300">Financial Overview</h3>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Financial Overview</h3>
                         <p class="text-lg font-semibold text-gray-900 dark:text-white">Rp {{ number_format($financialOverview['current_revenue'], 0, ',', '.') }}</p>
                     </div>
                 </div>
@@ -271,14 +271,14 @@
                     <div class="text-2xl font-bold {{ $financialOverview['net_income'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
                         {{ $financialOverview['profit_margin'] }}%
                     </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Profit Margin</div>
+                    <div class="text-xs text-gray-700 dark:text-gray-300">Profit Margin</div>
                 </div>
             </div>
             
             <div class="space-y-3">
                 <!-- Revenue Trend -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Revenue Trend</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Revenue Trend</span>
                     <div class="flex items-center space-x-1">
                         @if($financialOverview['revenue_trend'] > 0)
                             <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -296,13 +296,13 @@
                 
                 <!-- Expenses -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Total Expenses</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Total Expenses</span>
                     <span class="text-sm font-medium text-gray-900 dark:text-white">Rp {{ number_format($financialOverview['current_expenses'], 0, ',', '.') }}</span>
                 </div>
                 
                 <!-- Net Income -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Net Income</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Net Income</span>
                     <span class="text-sm font-medium {{ $financialOverview['net_income'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
                         Rp {{ number_format($financialOverview['net_income'], 0, ',', '.') }}
                     </span>
@@ -311,7 +311,7 @@
                 <!-- Pending Approvals -->
                 <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600 dark:text-gray-300">Pending Approvals</span>
+                        <span class="text-sm text-gray-800 dark:text-gray-200">Pending Approvals</span>
                         <span class="text-sm font-medium {{ $financialOverview['pending_approvals'] > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400' }}">
                             {{ $financialOverview['pending_approvals'] }}
                         </span>
@@ -330,39 +330,39 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-300">Medical Operations</h3>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Medical Operations</h3>
                         <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ $medicalOperations['total_patients'] }} Patients</p>
                     </div>
                 </div>
                 <div class="text-right">
                     <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ $medicalOperations['completion_rate'] }}%</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Completion Rate</div>
+                    <div class="text-xs text-gray-700 dark:text-gray-300">Completion Rate</div>
                 </div>
             </div>
             
             <div class="space-y-3">
                 <!-- Procedures Completed -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Procedures Completed</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Procedures Completed</span>
                     <span class="text-sm font-medium text-blue-600 dark:text-blue-400">{{ $medicalOperations['procedures_completed'] }}</span>
                 </div>
                 
                 <!-- Staff Efficiency -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Staff Efficiency</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Staff Efficiency</span>
                     <span class="text-sm font-medium text-green-600 dark:text-green-400">{{ $medicalOperations['staff_efficiency'] }}/staff</span>
                 </div>
                 
                 <!-- Active Staff -->
                 <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Active Staff</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">Active Staff</span>
                     <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $medicalOperations['active_staff'] }}</span>
                 </div>
                 
                 <!-- Patient Growth -->
                 <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600 dark:text-gray-300">Patient Growth</span>
+                        <span class="text-sm text-gray-800 dark:text-gray-200">Patient Growth</span>
                         <div class="flex items-center space-x-1">
                             @if($medicalOperations['patient_growth'] > 0)
                                 <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -388,7 +388,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-lg border dark:border-gray-700 transition-all duration-300">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">6-Month Trends</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">System metrics over the last 6 months</p>
+                <p class="text-sm text-gray-700 dark:text-gray-300">System metrics over the last 6 months</p>
             </div>
             <div class="p-6">
                 <div id="sixMonthTrendsChart" style="height: 300px;" class="chart-container"></div>
@@ -399,7 +399,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-lg border dark:border-gray-700 transition-all duration-300">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Activities</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Latest admin actions and system events</p>
+                <p class="text-sm text-gray-700 dark:text-gray-300">Latest admin actions and system events</p>
             </div>
             <div class="p-6">
                 <div class="space-y-4">
@@ -420,7 +420,7 @@
                                 </div>
                             @else
                                 <div class="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                                    <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 text-gray-800 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
                                     </svg>
                                 </div>
@@ -428,7 +428,7 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $activity['description'] }}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $activity['user'] }} • {{ $activity['timestamp'] }}</p>
+                            <p class="text-sm text-gray-700 dark:text-gray-300">{{ $activity['user'] }} • {{ $activity['timestamp'] }}</p>
                         </div>
                         <div class="flex-shrink-0">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 

@@ -33,7 +33,7 @@ Route::get('/test-manajer-login', function () {
             'success' => true,
             'user' => $user->name,
             'role' => $user->role->name,
-            'can_access_manajer' => $user->hasRole('manajer'),
+            'can_access_manajer' => $user?->hasRole('manajer') ?? false,
             'redirect_url' => '/manajer'
         ]);
     }
@@ -308,7 +308,7 @@ Route::middleware(['auth'])->group(function () {
         }
         
         // Redirect paramedis users to their proper panel
-        if ($user->hasRole('paramedis')) {
+        if ($user?->hasRole('paramedis')) {
             return redirect('/paramedis');
         }
         
@@ -400,7 +400,7 @@ Route::get('/debug-dokter', function () {
             'email' => $user->email,
             'role' => $user->role?->name ?? 'no_role',
             'role_id' => $user->role_id,
-            'has_dokter_role' => $user->hasRole('dokter'),
+            'has_dokter_role' => $user?->hasRole('dokter') ?? false,
             'all_roles' => $user->roles->pluck('name')->toArray(),
         ],
         'routes' => [

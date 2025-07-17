@@ -28,7 +28,7 @@ class WorkLocationResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Lokasi Kerja';
     
-    protected static ?string $navigationGroup = 'Presensi';
+    protected static ?string $navigationGroup = '📍 PRESENSI';
     
     protected static ?int $navigationSort = 41;
 

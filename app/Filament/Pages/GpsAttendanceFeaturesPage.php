@@ -10,7 +10,7 @@ class GpsAttendanceFeaturesPage extends Page
     protected static string $view = 'filament.pages.gps-attendance-features-page';
     protected static ?string $navigationLabel = 'Aplikasi Absensi Berbasis GPS';
     protected static ?string $title = 'Aplikasi Absensi Berbasis GPS';
-    protected static ?string $navigationGroup = 'Presensi';
+    protected static ?string $navigationGroup = '📍 PRESENSI';
     protected static ?int $navigationSort = 40;
 
     public function getTitle(): string

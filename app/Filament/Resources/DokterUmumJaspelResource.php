@@ -18,7 +18,7 @@ class DokterUmumJaspelResource extends Resource
     protected static ?string $model = DokterUmumJaspel::class;
     
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
-    protected static ?string $navigationGroup = '💳 Financial Management';
+    protected static ?string $navigationGroup = '💰 FINANSIAL MANAGEMENT';
     protected static ?string $navigationLabel = 'Manajemen JP Dokter Umum';
     protected static ?int $navigationSort = 70;
     protected static ?string $modelLabel = 'JP Dokter Umum';
@@ -72,12 +72,26 @@ class DokterUmumJaspelResource extends Resource
                             ->helperText('Fee yang diterima per pasien BPJS')
                             ->columnSpan(1),
 
-                        Forms\Components\Toggle::make('status_aktif')
-                            ->label('Status Aktif')
-                            ->default(true)
-                            ->onColor('success')
-                            ->offColor('danger')
-                            ->helperText('Formula aktif akan digunakan dalam perhitungan')
+                        Forms\Components\Grid::make(1)
+                            ->schema([
+                                Forms\Components\Toggle::make('status_aktif')
+                                    ->label('Status Aktif')
+                                    ->default(true)
+                                    ->onColor('success')
+                                    ->offColor('danger')
+                                    ->onIcon('heroicon-o-check-circle')
+                                    ->offIcon('heroicon-o-x-circle')
+                                    ->inline(false)
+                                    ->reactive()
+                                    ->helperText(fn ($get) => $get('status_aktif') 
+                                        ? '🟢 AKTIF - Formula akan digunakan dalam perhitungan' 
+                                        : '🔴 NONAKTIF - Formula tidak akan digunakan dalam perhitungan'),
+                                
+                                Forms\Components\View::make('components.status-toggle-indicator')
+                                    ->viewData(fn ($get) => ['status_aktif' => $get('status_aktif')])
+                                    ->extraAttributes(['class' => 'mt-2'])
+                            ])
+                            ->extraAttributes(['class' => 'status-toggle-container'])
                             ->columnSpan(1),
                     ])
                     ->columns(3),

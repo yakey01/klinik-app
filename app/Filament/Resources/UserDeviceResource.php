@@ -26,7 +26,7 @@ class UserDeviceResource extends Resource
     protected static ?string $navigationLabel = 'Device Management';
     protected static ?string $modelLabel = 'User Device';
     protected static ?string $pluralModelLabel = 'User Devices';
-    protected static ?string $navigationGroup = 'Presensi';
+    protected static ?string $navigationGroup = '📍 PRESENSI';
     protected static ?int $navigationSort = 45;
 
     public static function form(Form $form): Form

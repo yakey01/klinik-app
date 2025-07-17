@@ -28,14 +28,15 @@ class ManajerPanelProvider extends PanelProvider
             ->id('manajer')
             ->path('manajer')
             ->login()
-            ->brandName('📊 Manajer Dashboard')
+            ->brandName('📊 Executive Dashboard')
             ->viteTheme('resources/css/filament/manajer/theme.css')
             ->colors([
-                'primary' => Color::Blue,
-                'success' => Color::Green,
-                'warning' => Color::Amber,
-                'danger' => Color::Red,
-                'info' => Color::Cyan,
+                'primary' => Color::hex('#6366F1'), // Professional Indigo
+                'secondary' => Color::hex('#8B5CF6'), // Purple accent
+                'success' => Color::hex('#10B981'), // Success green
+                'warning' => Color::hex('#F59E0B'), // Warning amber
+                'danger' => Color::hex('#EF4444'), // Error red
+                'info' => Color::hex('#06B6D4'), // Info cyan
             ])
             ->darkMode(true)
             ->resources([
@@ -57,24 +58,33 @@ class ManajerPanelProvider extends PanelProvider
             ])
             ->pages([
                 \App\Filament\Manajer\Pages\ExecutiveDashboard::class,
+                \App\Filament\Manajer\Pages\EnhancedManajerDashboard::class,
             ])
             ->widgets([
                 Widgets\AccountWidget::class,
-                // Executive Dashboard Widgets
+                // Executive Dashboard Widgets - Enhanced
+                \App\Filament\Manajer\Widgets\ManajerHeroStatsWidget::class,
+                \App\Filament\Manajer\Widgets\ManajerFinancialInsightsWidget::class,
+                \App\Filament\Manajer\Widgets\ManajerTeamPerformanceWidget::class,
+                \App\Filament\Manajer\Widgets\ManajerOperationalDashboardWidget::class,
+                \App\Filament\Manajer\Widgets\ManajerStrategicMetricsWidget::class,
+                \App\Filament\Manajer\Widgets\ManajerApprovalWorkflowWidget::class,
+                
+                // Legacy Widgets (for backwards compatibility)
                 \App\Filament\Manajer\Widgets\ExecutiveKPIWidget::class,
                 \App\Filament\Manajer\Widgets\FinancialOverviewWidget::class,
                 \App\Filament\Manajer\Widgets\TeamPerformanceWidget::class,
             ])
             ->navigationGroups([
-                NavigationGroup::make('👥 Personnel Management')
+                NavigationGroup::make('📊 Executive Overview')
                     ->collapsed(false),
-                NavigationGroup::make('📊 Strategic Planning')
+                NavigationGroup::make('💼 Strategic Planning')
                     ->collapsed(false),
-                NavigationGroup::make('🏥 Operations Analytics')
+                NavigationGroup::make('👥 Team Management')
                     ->collapsed(true),
-                NavigationGroup::make('💰 Financial Oversight')
+                NavigationGroup::make('💰 Financial Control')
                     ->collapsed(true),
-                NavigationGroup::make('⚡ Workflow Management')
+                NavigationGroup::make('⚡ Workflow Automation')
                     ->collapsed(true),
             ])
             ->middleware([

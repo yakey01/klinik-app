@@ -26,7 +26,7 @@ class AttendanceResource extends Resource
     protected static ?string $navigationLabel = 'Presensi Saya';
     protected static ?string $modelLabel = 'Presensi';
     protected static ?string $pluralModelLabel = 'Data Presensi';
-    protected static ?string $navigationGroup = 'Presensi';
+    protected static ?string $navigationGroup = '📍 PRESENSI';
     protected static ?int $navigationSort = 1;
     protected static bool $shouldRegisterNavigation = false;
 

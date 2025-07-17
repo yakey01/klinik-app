@@ -33,7 +33,7 @@ class SystemSettingResource extends Resource
     
     protected static ?string $pluralModelLabel = 'System Settings';
     
-    protected static ?string $navigationGroup = '⚙️ System Administration';
+    protected static ?string $navigationGroup = '🔧 PENGATURAN';
     
     protected static ?int $navigationSort = 1;
 

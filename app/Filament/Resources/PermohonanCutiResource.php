@@ -20,7 +20,7 @@ class PermohonanCutiResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     
-    protected static ?string $navigationGroup = 'Cuti & Absen';
+    protected static ?string $navigationGroup = '🏖️ CUTI DAN ABSEN';
     
     protected static ?string $navigationLabel = 'Permohonan Cuti';
     

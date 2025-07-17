@@ -20,7 +20,7 @@ class KalenderKerjaResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     
-    protected static ?string $navigationGroup = 'Kalender & Jadwal';
+    protected static ?string $navigationGroup = '📅 KALENDAR DAN JADWAL';
     
     protected static ?string $navigationLabel = 'Kalender Kerja';
     

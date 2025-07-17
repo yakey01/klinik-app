@@ -127,19 +127,23 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->tenant(null) // Disable multi-tenancy for now
             ->navigationGroups([
-                NavigationGroup::make('📊 Dashboard')
+                NavigationGroup::make('📊 DASHBOARD')
                     ->collapsed(false),
-                NavigationGroup::make('👥 User Management')
+                NavigationGroup::make('👥 USER MANAGEMENT')
                     ->collapsed(false),
-                NavigationGroup::make('🏥 Medical Operations')
-                    ->collapsed(false),
-                NavigationGroup::make('💊 Clinical Records')
+                NavigationGroup::make('💰 FINANSIAL MANAGEMENT')
                     ->collapsed(true),
-                NavigationGroup::make('💳 Financial Management')
+                NavigationGroup::make('🏖️ CUTI DAN ABSEN')
                     ->collapsed(true),
-                NavigationGroup::make('📈 Analytics & Reports')
+                NavigationGroup::make('📅 KALENDAR DAN JADWAL')
                     ->collapsed(true),
-                NavigationGroup::make('⚙️ System Administration')
+                NavigationGroup::make('🔔 NOTIFICATION')
+                    ->collapsed(true),
+                NavigationGroup::make('📍 PRESENSI')
+                    ->collapsed(true),
+                NavigationGroup::make('⚙️ SYSTEM ADMINISTRATION')
+                    ->collapsed(true),
+                NavigationGroup::make('🔧 PENGATURAN')
                     ->collapsed(true),
             ]);
     }

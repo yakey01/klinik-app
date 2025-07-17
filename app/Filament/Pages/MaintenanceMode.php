@@ -25,7 +25,7 @@ class MaintenanceMode extends Page
     
     protected static ?string $title = 'Maintenance Mode Control';
     
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static ?string $navigationGroup = '⚙️ SYSTEM ADMINISTRATION';
     
     protected static ?int $navigationSort = 3;
 

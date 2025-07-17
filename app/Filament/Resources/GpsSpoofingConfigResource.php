@@ -29,7 +29,7 @@ class GpsSpoofingConfigResource extends Resource
     
     protected static ?string $pluralModelLabel = 'GPS Security Settings';
     
-    protected static ?string $navigationGroup = 'Presensi';
+    protected static ?string $navigationGroup = '📍 PRESENSI';
     
     protected static ?int $navigationSort = 42;
 

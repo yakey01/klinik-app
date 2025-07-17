@@ -28,7 +28,7 @@ class ReportBuilder extends Page
     
     protected static ?string $title = 'Report Builder';
     
-    protected static ?string $navigationGroup = 'Reports & Analytics';
+    protected static ?string $navigationGroup = '⚙️ SYSTEM ADMINISTRATION';
     
     protected static ?int $navigationSort = 1;
     

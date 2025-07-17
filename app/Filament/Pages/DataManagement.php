@@ -33,7 +33,7 @@ class DataManagement extends Page
     
     protected static ?string $title = 'Data Management';
     
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static ?string $navigationGroup = '⚙️ SYSTEM ADMINISTRATION';
     
     protected static ?int $navigationSort = 3;
     

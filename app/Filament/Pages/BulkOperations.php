@@ -27,7 +27,7 @@ class BulkOperations extends Page
     
     protected static ?string $title = 'Create Bulk Operations';
     
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static ?string $navigationGroup = '⚙️ SYSTEM ADMINISTRATION';
     
     protected static ?int $navigationSort = 8;
     

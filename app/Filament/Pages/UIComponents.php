@@ -16,7 +16,7 @@ class UIComponents extends Page
     
     protected static ?string $title = 'UI Component Library';
     
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static ?string $navigationGroup = '⚙️ SYSTEM ADMINISTRATION';
     
     protected static ?int $navigationSort = 4;
     

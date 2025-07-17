@@ -31,7 +31,7 @@ class SecurityLogResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Security Logs';
     
-    protected static ?string $navigationGroup = 'System Administration';
+    protected static ?string $navigationGroup = '⚙️ SYSTEM ADMINISTRATION';
     
     protected static ?int $navigationSort = 7;
     

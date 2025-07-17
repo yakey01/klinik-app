@@ -201,7 +201,13 @@ class WidgetAnimationController {
         tooltip.className = 'tooltip';
         tooltip.textContent = text;
         
-        document.body.appendChild(tooltip);
+        // Safety check for document.body
+        if (document.body) {
+            document.body.appendChild(tooltip);
+        } else {
+            // Fallback: append to document.documentElement if body not ready
+            document.documentElement.appendChild(tooltip);
+        }
         
         const rect = element.getBoundingClientRect();
         tooltip.style.left = rect.left + (rect.width / 2) + 'px';

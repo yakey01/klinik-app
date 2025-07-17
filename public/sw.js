@@ -1,5 +1,5 @@
 // Service Worker for Dokterku PWA (All Roles)
-const CACHE_NAME = 'dokterku-v2.0.0';
+const CACHE_NAME = 'dokterku-v3.0.0-ULTRAFIX';
 const STATIC_CACHE_URLS = [
     '/paramedis',
     '/nonparamedis',
@@ -10,17 +10,32 @@ const STATIC_CACHE_URLS = [
     '/api/v2/locations/work-locations'
 ];
 
-// Install event - cache static assets
+// Install event - ULTRA cache clearing and asset caching
 self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('Caching static assets');
-                return cache.addAll(STATIC_CACHE_URLS);
-            })
-            .catch(error => {
-                console.error('Failed to cache static assets:', error);
-            })
+        Promise.all([
+            // Delete ALL old caches first
+            caches.keys().then(cacheNames => {
+                return Promise.all(
+                    cacheNames.filter(cacheName => {
+                        // Delete all caches that don't match our new ULTRAFIX version
+                        return cacheName !== CACHE_NAME;
+                    }).map(cacheName => {
+                        console.log('ULTRAFIX: Deleting old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    })
+                );
+            }),
+            // Then create new cache
+            caches.open(CACHE_NAME)
+                .then(cache => {
+                    console.log('ULTRAFIX: Caching static assets with new cache');
+                    return cache.addAll(STATIC_CACHE_URLS);
+                })
+                .catch(error => {
+                    console.error('ULTRAFIX: Cache installation failed:', error);
+                })
+        ])
     );
     self.skipWaiting();
 });

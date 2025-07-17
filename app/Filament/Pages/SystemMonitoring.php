@@ -41,7 +41,7 @@ class SystemMonitoring extends Page
     
     public static function canAccess(): bool
     {
-        return Auth::user()->hasRole(['super-admin', 'admin']);
+        return Auth::user()?->hasRole(['super-admin', 'admin']) ?? false;
     }
     
     public function mount(): void

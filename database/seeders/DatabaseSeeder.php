@@ -29,6 +29,14 @@ class DatabaseSeeder extends Seeder
             WorkLocationSeeder::class,
             NonParamedisUserSeeder::class,
             NonParamedisAttendanceSeeder::class,
+            
+            // Dokter system seeders
+            DokterPermissionsSeeder::class,
+            DokterSeeder::class,
+            DokterUserSeeder::class,
+            DokterJadwalJagaSeeder::class,
+            DokterTindakanSeeder::class,
+            DokterAttendanceSeeder::class,
         ]);
     }
 }

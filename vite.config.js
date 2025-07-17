@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
+import path from 'path';
+
 export default defineConfig({
     plugins: [
         react(),
@@ -9,6 +11,8 @@ export default defineConfig({
                 'resources/css/app.css', 
                 'resources/js/app.js',
                 'resources/js/widget-animations.js',
+                'resources/js/dokter-mobile-app.tsx',
+                'resources/js/paramedis/modern-dashboard.tsx',
                 'resources/css/filament/admin/theme.css',
                 'resources/css/filament/bendahara/theme.css',
                 'resources/css/filament/manajer/theme.css',
@@ -22,6 +26,11 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, 'resources/js'),
+        },
+    },
     build: {
         rollupOptions: {
             output: {

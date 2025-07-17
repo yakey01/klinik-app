@@ -10,7 +10,9 @@ export default {
         './resources/views/**/*.blade.php',
         './app/Filament/**/*.php',
         './vendor/filament/**/*.blade.php',
+        './resources/js/**/*.{js,jsx,ts,tsx}',
     ],
+    darkMode: 'class',
 
     theme: {
         extend: {

@@ -19,12 +19,16 @@ class CreateUser extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // DEBUG: Log form data yang diterima
+        // DEBUG: Log form data yang diterima dengan detail lebih lengkap
         \Log::info('CreateUser: Form data received', [
             'data_keys' => array_keys($data),
             'username' => $data['username'] ?? 'NOT_SET',
             'name' => $data['name'] ?? 'NOT_SET',
             'email' => $data['email'] ?? 'NOT_SET',
+            'email_type' => gettype($data['email'] ?? null),
+            'email_empty_check' => empty($data['email']),
+            'email_trim_check' => isset($data['email']) ? trim($data['email']) === '' : 'EMAIL_NOT_SET',
+            'all_request_data' => request()->all(),
             'full_data' => $data
         ]);
         
@@ -32,11 +36,21 @@ class CreateUser extends CreateRecord
         $employeeType = $data['employee_type'] ?? null;
         $relatedRecordId = request()->get('related_record_id');
         
-        // Email is now required and must be provided by user
-        if (empty($data['email'])) {
-            throw ValidationException::withMessages([
-                'email' => 'Email harus diisi - setiap pegawai hanya boleh memiliki 1 email yang unik.'
-            ]);
+        // Email is now optional - user can be created with username only
+        // Handle ConvertEmptyStringsToNull middleware effect
+        if (isset($data['email']) && !is_null($data['email']) && !empty($data['email'])) {
+            // Ensure email is trimmed if provided
+            $data['email'] = trim($data['email']);
+            
+            // Validate email format if provided
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                throw ValidationException::withMessages([
+                    'email' => 'Format email tidak valid. Masukkan alamat email yang benar.'
+                ]);
+            }
+        } else {
+            // Email is empty/null - set to null for proper database handling
+            $data['email'] = null;
         }
         
         // Validate role consistency if role_id is already set and source is provided
@@ -87,6 +101,38 @@ class CreateUser extends CreateRecord
         ]);
         
         return $data;
+    }
+    
+    /**
+     * Override the create method to add more debugging and protection
+     */
+    protected function handleRecordCreation(array $data): Model
+    {
+        // DEBUG: Log final data before actual creation
+        \Log::info('CreateUser: Final data before Eloquent create', [
+            'data_keys' => array_keys($data),
+            'email_value' => $data['email'] ?? 'NOT_SET',
+            'email_type' => gettype($data['email'] ?? null),
+            'email_var_dump' => var_export($data['email'] ?? null, true),
+            'name_value' => $data['name'] ?? 'NOT_SET',
+            'username_value' => $data['username'] ?? 'NOT_SET',
+            'complete_data' => $data
+        ]);
+        
+        // Email is now optional - log for debugging but allow null values
+        \Log::info('CreateUser: Email validation', [
+            'email_isset' => isset($data['email']),
+            'email_value' => $data['email'] ?? 'NULL',
+            'email_is_null' => is_null($data['email'] ?? 'UNSET'),
+            'username' => $data['username'] ?? 'NO_USERNAME'
+        ]);
+        
+        // Ensure email is properly trimmed if provided, otherwise keep as null
+        if (isset($data['email']) && !is_null($data['email']) && $data['email'] !== '') {
+            $data['email'] = trim($data['email']);
+        }
+        
+        return static::getModel()::create($data);
     }
     
     /**

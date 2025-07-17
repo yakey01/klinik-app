@@ -291,68 +291,12 @@ Route::prefix('v2')->group(function () {
                     ]);
                 });
                 
-                // Dashboard endpoints
-                Route::get('/', function () {
-                    $user = auth()->user();
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Dokter dashboard data retrieved',
-                        'data' => [
-                            'user' => [
-                                'id' => $user->id,
-                                'name' => $user->name,
-                                'initials' => strtoupper(substr($user->name, 0, 2)),
-                                'role' => 'Dokter Umum'
-                            ],
-                            'stats' => [
-                                'patients_today' => 12,
-                                'tindakan_today' => 8,
-                                'jaspel_month' => 25000000,
-                                'shifts_week' => 5
-                            ],
-                            'current_status' => 'active',
-                            'quick_actions' => [
-                                [
-                                    'id' => 'presensi',
-                                    'title' => 'Presensi',
-                                    'subtitle' => 'Kelola kehadiran dan absensi',
-                                    'icon' => '📋',
-                                    'action' => 'presensi',
-                                    'enabled' => true
-                                ],
-                                [
-                                    'id' => 'pasien',
-                                    'title' => 'Data Pasien',
-                                    'subtitle' => 'Kelola data dan riwayat pasien',
-                                    'icon' => '👥',
-                                    'action' => 'pasien',
-                                    'enabled' => true
-                                ],
-                                [
-                                    'id' => 'tindakan',
-                                    'title' => 'Tindakan Medis',
-                                    'subtitle' => 'Input dan kelola tindakan medis',
-                                    'icon' => '🏥',
-                                    'action' => 'tindakan',
-                                    'enabled' => true
-                                ],
-                                [
-                                    'id' => 'jaspel',
-                                    'title' => 'Jaspel',
-                                    'subtitle' => 'Lihat jasa pelayanan dan penghasilan',
-                                    'icon' => '💰',
-                                    'action' => 'jaspel',
-                                    'enabled' => true
-                                ]
-                            ]
-                        ],
-                        'meta' => [
-                            'version' => '2.0',
-                            'timestamp' => now()->toISOString(),
-                            'request_id' => \Illuminate\Support\Str::uuid()->toString(),
-                        ]
-                    ]);
-                });
+                // Dashboard endpoints - Real API dengan DokterDashboardController
+                Route::get('/', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'index']);
+                Route::get('/jadwal-jaga', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getJadwalJaga']);
+                Route::get('/jaspel', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getJaspel']);
+                Route::get('/tindakan', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getTindakan']);
+                Route::get('/presensi', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getPresensi']);
                 
                 // Attendance endpoints
                 Route::get('/attendance/status', function () {

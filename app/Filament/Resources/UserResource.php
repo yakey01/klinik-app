@@ -69,18 +69,26 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('email')
                             ->label('Email')
                             ->email()
-                            ->required()
+                            ->nullable()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true)
                             ->rules([
+                                'nullable',
+                                'email',
                                 function () {
                                     return new \App\Rules\PreventDuplicateAccounts(
                                         request()->route('record')
                                     );
                                 }
                             ])
-                            ->helperText('Email harus unik - setiap pegawai hanya boleh memiliki 1 email')
-                            ->placeholder('Masukkan alamat email pegawai'),
+                            ->helperText('Email opsional - bisa kosong jika user login dengan username')
+                            ->placeholder('Masukkan alamat email (opsional)')
+                            ->dehydrated(true)
+                            ->live(onBlur: true)
+                            ->dehydrateStateUsing(function (?string $state) {
+                                // Return null for empty strings to properly handle nullable field
+                                return filled($state) ? trim($state) : null;
+                            }),
                         Forms\Components\TextInput::make('nip')
                             ->label('NIP')
                             ->maxLength(255),
@@ -268,6 +276,14 @@ class UserResource extends Resource
                             ->content(function () {
                                 return new \Illuminate\Support\HtmlString('
                                     <div class="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                        <h4 class="font-semibold mb-2 text-blue-800 dark:text-blue-200">📧 Aturan Email:</h4>
+                                        <ul class="space-y-1 mb-3">
+                                            <li>• <strong>Email OPSIONAL</strong> - user dapat dibuat tanpa email</li>
+                                            <li>• Jika email diisi, harus dalam format yang valid</li>
+                                            <li>• Email harus unik jika digunakan</li>
+                                            <li>• User tanpa email harus login menggunakan username</li>
+                                        </ul>
+                                        
                                         <h4 class="font-semibold mb-2 text-blue-800 dark:text-blue-200">📋 Aturan Username:</h4>
                                         <ul class="space-y-1 mb-3">
                                             <li>• <strong>Username WAJIB</strong> untuk role: Petugas, Bendahara, Pegawai</li>

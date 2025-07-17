@@ -45,7 +45,7 @@ class ManajerMiddleware
             ]);
 
             Auth::logout();
-            return redirect()->route('filament.manajer.auth.login')
+            return redirect()->route('login')
                 ->with('error', 'Akun Anda tidak aktif. Hubungi administrator.');
         }
 
@@ -62,10 +62,11 @@ class ManajerMiddleware
             ]);
 
             // Check session age for sensitive operations
-            $sessionAge = time() - $request->session()->get('login_time', 0);
+            $loginTime = $request->session()->get('login_time', $request->session()->get('login_web_' . sha1(static::class), time()));
+            $sessionAge = time() - $loginTime;
             $maxSessionAge = config('session.sensitive_operation_timeout', 3600); // 1 hour
 
-            if ($sessionAge > $maxSessionAge) {
+            if ($sessionAge > $maxSessionAge && $loginTime > 0) {
                 Log::warning('ManajerMiddleware: Session expired for sensitive operation', [
                     'user_id' => $user->id,
                     'session_age' => $sessionAge,
@@ -73,7 +74,7 @@ class ManajerMiddleware
                 ]);
 
                 $request->session()->flush();
-                return redirect()->route('filament.manajer.auth.login')
+                return redirect()->route('login')
                     ->with('error', 'Sesi Anda telah berakhir untuk operasi sensitif. Silakan login kembali.');
             }
 
@@ -133,9 +134,7 @@ class ManajerMiddleware
                str_contains($routeName ?? '', 'approve') ||
                str_contains($routeName ?? '', 'reject') ||
                str_contains($routeName ?? '', 'export') ||
-               str_contains($routeName ?? '', 'bulk') ||
-               str_contains($routeName ?? '', 'strategic') ||
-               str_contains($routeName ?? '', 'analytics');
+               str_contains($routeName ?? '', 'bulk');
     }
 
     /**

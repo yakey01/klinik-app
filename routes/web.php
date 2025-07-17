@@ -8,6 +8,10 @@ use App\Http\Controllers\Petugas\StaffDashboardController;
 use App\Http\Controllers\NonParamedis\DashboardController as NonParamedisDashboardController;
 use App\Http\Controllers\Auth\UnifiedAuthController;
 use Illuminate\Support\Facades\Route;
+
+// Include test routes
+require __DIR__.'/test.php';
+require __DIR__.'/test-models.php';
 use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
@@ -17,6 +21,7 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+
 // Unified authentication routes
 Route::get('/login', [UnifiedAuthController::class, 'create'])->name('login');
 Route::post('/login', [UnifiedAuthController::class, 'store'])
@@ -24,21 +29,6 @@ Route::post('/login', [UnifiedAuthController::class, 'store'])
     ->name('unified.login');
 Route::post('/logout', [UnifiedAuthController::class, 'destroy'])->name('logout');
 
-// Test manajer login
-Route::get('/test-manajer-login', function () {
-    $user = \App\Models\User::where('email', 'tina@manajer.com')->first();
-    if ($user && \Illuminate\Support\Facades\Hash::check('password', $user->password)) {
-        \Illuminate\Support\Facades\Auth::login($user);
-        return response()->json([
-            'success' => true,
-            'user' => $user->name,
-            'role' => $user->role->name,
-            'can_access_manajer' => $user?->hasRole('manajer') ?? false,
-            'redirect_url' => '/manajer'
-        ]);
-    }
-    return response()->json(['success' => false, 'message' => 'Login failed']);
-})->name('test.manajer.login');
 
 // Email verification routes
 Route::get('/email/verify', function () {
@@ -178,7 +168,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/mobile-app', function () {
             $user = auth()->user();
             $token = $user->createToken('mobile-app-dokter-' . now()->timestamp)->plainTextToken;
-            return view('mobile.dokter.app', compact('token'));
+            
+            $userData = [
+                'name' => $user->name,
+                'email' => $user->email,
+                'initials' => strtoupper(substr($user->name ?? 'DA', 0, 2))
+            ];
+            
+            return view('mobile.dokter.app', compact('token', 'userData'));
         })->name('mobile-app');
         
         // Legacy routes - redirect to new mobile app

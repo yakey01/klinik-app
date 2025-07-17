@@ -28,7 +28,7 @@ class ParamedisPanelProvider extends PanelProvider
             ->id('paramedis')
             ->path('paramedis')
             ->login(false)
-            ->default(\App\Filament\Paramedis\Pages\UjiCobaDashboard::class)
+            ->default(\App\Filament\Paramedis\Pages\ModernDashboard::class)
             ->brandName('👨‍⚕️ Dokterku - Paramedis')
             ->favicon(asset('favicon.ico'))
             ->colors([
@@ -45,7 +45,8 @@ class ParamedisPanelProvider extends PanelProvider
             ])
             ->pages([
                 // \App\Filament\Paramedis\Pages\PremiumDashboard::class, // Temporarily disabled - causing route conflicts
-                \App\Filament\Paramedis\Pages\UjiCobaDashboard::class,
+                \App\Filament\Paramedis\Pages\ModernDashboard::class,
+                // \App\Filament\Paramedis\Pages\UjiCobaDashboard::class, // Replaced by ModernDashboard
                 \App\Filament\Paramedis\Pages\PresensiPage::class,
                 \App\Filament\Paramedis\Pages\JaspelPremiumPage::class,
                 \App\Filament\Paramedis\Pages\JadwalJagaPage::class,

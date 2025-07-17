@@ -34,10 +34,14 @@ class TeamPerformanceWidget extends BaseWidget
                             $query->where('created_at', '>=', now()->subMonth());
                         }
                     ])
-                    ->with(['user.permohonanCutis' => function($query) {
-                        $query->where('status', 'Disetujui')
-                              ->where('created_at', '>=', now()->subMonth());
-                    }])
+                    ->with([
+                        'user' => function($query) {
+                            $query->with(['permohonanCutis' => function($q) {
+                                $q->where('status', 'Disetujui')
+                                  ->where('created_at', '>=', now()->subMonth());
+                            }]);
+                        }
+                    ])
                     ->orderBy('id', 'desc')
                     ->limit(10)
             )
@@ -53,7 +57,7 @@ class TeamPerformanceWidget extends BaseWidget
                     ->weight('bold')
                     ->searchable()
                     ->sortable()
-                    ->description(fn($record) => $record->user->email ?? 'No email'),
+                    ->description(fn($record) => $record->user?->email ?? 'No email'),
                     
                 Tables\Columns\TextColumn::make('jabatan')
                     ->label('Position')
@@ -120,11 +124,11 @@ class TeamPerformanceWidget extends BaseWidget
                     ->label('Leave Days')
                     ->alignCenter()
                     ->sortable()
-                    ->getStateUsing(fn($record) => $record->user->permohonanCutis->count())
+                    ->getStateUsing(fn($record) => $record->user?->permohonanCutis?->count() ?? 0)
                     ->suffix(' days')
                     ->description('This month')
                     ->color(function ($state, $record) {
-                        $value = $record->user->permohonanCutis->count();
+                        $value = $record->user?->permohonanCutis?->count() ?? 0;
                         return match(true) {
                             $value == 0 => 'success',
                             $value <= 2 => 'warning',
@@ -224,9 +228,9 @@ class TeamPerformanceWidget extends BaseWidget
                     ->icon('heroicon-m-chat-bubble-left-ellipsis')
                     ->color('success')
                     ->action(function ($record) {
-                        $this->notify('info', 'Email: ' . $record->user->email . ' - Performance Update');
+                        $this->notify('info', 'Email: ' . ($record->user?->email ?? 'No email') . ' - Performance Update');
                     })
-                    ->visible(fn($record) => !empty($record->user->email)),
+                    ->visible(fn($record) => !empty($record->user?->email)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkAction::make('export_performance')

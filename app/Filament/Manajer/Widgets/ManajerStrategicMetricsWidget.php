@@ -3,9 +3,11 @@
 namespace App\Filament\Manajer\Widgets;
 
 use Filament\Widgets\Widget;
-use App\Models\Pendapatan;
+use App\Models\PendapatanHarian;
+use App\Models\JumlahPasienHarian;
 use App\Models\Pasien;
 use App\Models\Tindakan;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class ManajerStrategicMetricsWidget extends Widget
@@ -35,24 +37,24 @@ class ManajerStrategicMetricsWidget extends Widget
         $goals = [
             'revenue' => [
                 'target' => 50000000, // 50 million per month
-                'actual' => Pendapatan::whereMonth('created_at', $currentMonth->month)
-                    ->whereYear('created_at', $currentMonth->year)
-                    ->sum('jumlah'),
+                'actual' => PendapatanHarian::whereMonth('tanggal_input', $currentMonth->month)
+                    ->whereYear('tanggal_input', $currentMonth->year)
+                    ->sum('nominal'),
                 'label' => 'Monthly Revenue Target',
                 'unit' => 'Rp',
             ],
             'patients' => [
                 'target' => 1000, // 1000 patients per month
-                'actual' => Pasien::whereMonth('created_at', $currentMonth->month)
-                    ->whereYear('created_at', $currentMonth->year)
-                    ->count(),
+                'actual' => JumlahPasienHarian::whereMonth('tanggal', $currentMonth->month)
+                    ->whereYear('tanggal', $currentMonth->year)
+                    ->sum(DB::raw('jumlah_pasien_umum + jumlah_pasien_bpjs')),
                 'label' => 'Monthly Patient Target',
                 'unit' => '',
             ],
             'procedures' => [
                 'target' => 1500, // 1500 procedures per month
-                'actual' => Tindakan::whereMonth('created_at', $currentMonth->month)
-                    ->whereYear('created_at', $currentMonth->year)
+                'actual' => Tindakan::whereMonth('tanggal_tindakan', $currentMonth->month)
+                    ->whereYear('tanggal_tindakan', $currentMonth->year)
                     ->count(),
                 'label' => 'Monthly Procedures Target',
                 'unit' => '',
@@ -83,32 +85,32 @@ class ManajerStrategicMetricsWidget extends Widget
         $previousYear = Carbon::now()->subYear()->year;
         
         // Month-over-month growth
-        $currentMonthRevenue = Pendapatan::whereMonth('created_at', $currentMonth->month)
-            ->whereYear('created_at', $currentMonth->year)
-            ->sum('jumlah');
+        $currentMonthRevenue = PendapatanHarian::whereMonth('tanggal_input', $currentMonth->month)
+            ->whereYear('tanggal_input', $currentMonth->year)
+            ->sum('nominal');
             
-        $previousMonthRevenue = Pendapatan::whereMonth('created_at', $previousMonth->month)
-            ->whereYear('created_at', $previousMonth->year)
-            ->sum('jumlah');
+        $previousMonthRevenue = PendapatanHarian::whereMonth('tanggal_input', $previousMonth->month)
+            ->whereYear('tanggal_input', $previousMonth->year)
+            ->sum('nominal');
             
         $monthlyGrowth = $previousMonthRevenue > 0 ? 
             (($currentMonthRevenue - $previousMonthRevenue) / $previousMonthRevenue) * 100 : 0;
         
         // Year-over-year growth
-        $currentYearRevenue = Pendapatan::whereYear('created_at', $currentYear)->sum('jumlah');
-        $previousYearRevenue = Pendapatan::whereYear('created_at', $previousYear)->sum('jumlah');
+        $currentYearRevenue = PendapatanHarian::whereYear('tanggal_input', $currentYear)->sum('nominal');
+        $previousYearRevenue = PendapatanHarian::whereYear('tanggal_input', $previousYear)->sum('nominal');
         
         $yearlyGrowth = $previousYearRevenue > 0 ? 
             (($currentYearRevenue - $previousYearRevenue) / $previousYearRevenue) * 100 : 0;
         
         // Patient growth
-        $currentMonthPatients = Pasien::whereMonth('created_at', $currentMonth->month)
-            ->whereYear('created_at', $currentMonth->year)
-            ->count();
+        $currentMonthPatients = JumlahPasienHarian::whereMonth('tanggal', $currentMonth->month)
+            ->whereYear('tanggal', $currentMonth->year)
+            ->sum(DB::raw('jumlah_pasien_umum + jumlah_pasien_bpjs'));
             
-        $previousMonthPatients = Pasien::whereMonth('created_at', $previousMonth->month)
-            ->whereYear('created_at', $previousMonth->year)
-            ->count();
+        $previousMonthPatients = JumlahPasienHarian::whereMonth('tanggal', $previousMonth->month)
+            ->whereYear('tanggal', $previousMonth->year)
+            ->sum(DB::raw('jumlah_pasien_umum + jumlah_pasien_bpjs'));
             
         $patientGrowth = $previousMonthPatients > 0 ? 
             (($currentMonthPatients - $previousMonthPatients) / $previousMonthPatients) * 100 : 0;
@@ -127,16 +129,16 @@ class ManajerStrategicMetricsWidget extends Widget
         
         for ($i = 11; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
-            $monthlyRevenue = Pendapatan::whereMonth('created_at', $date->month)
-                ->whereYear('created_at', $date->year)
-                ->sum('jumlah');
+            $monthlyRevenue = PendapatanHarian::whereMonth('tanggal_input', $date->month)
+                ->whereYear('tanggal_input', $date->year)
+                ->sum('nominal');
                 
             $trajectory[] = [
                 'month' => $date->format('M Y'),
                 'revenue' => $monthlyRevenue,
-                'patients' => Pasien::whereMonth('created_at', $date->month)
-                    ->whereYear('created_at', $date->year)
-                    ->count(),
+                'patients' => JumlahPasienHarian::whereMonth('tanggal', $date->month)
+                    ->whereYear('tanggal', $date->year)
+                    ->sum(DB::raw('jumlah_pasien_umum + jumlah_pasien_bpjs')),
             ];
         }
         
@@ -164,9 +166,9 @@ class ManajerStrategicMetricsWidget extends Widget
         
         // Simple linear projection based on current trends
         $projectedRevenue = [];
-        $currentRevenue = Pendapatan::whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
-            ->sum('jumlah');
+        $currentRevenue = PendapatanHarian::whereMonth('tanggal_input', Carbon::now()->month)
+            ->whereYear('tanggal_input', Carbon::now()->year)
+            ->sum('nominal');
             
         for ($i = 1; $i <= 6; $i++) {
             $projectedMonth = Carbon::now()->addMonths($i);
@@ -196,8 +198,8 @@ class ManajerStrategicMetricsWidget extends Widget
         $currentMonth = Carbon::now();
         
         // Simple efficiency calculation based on procedures vs capacity
-        $totalProcedures = Tindakan::whereMonth('created_at', $currentMonth->month)
-            ->whereYear('created_at', $currentMonth->year)
+        $totalProcedures = Tindakan::whereMonth('tanggal_tindakan', $currentMonth->month)
+            ->whereYear('tanggal_tindakan', $currentMonth->year)
             ->count();
             
         $workingDays = $currentMonth->diffInWeekdays(Carbon::now()->startOfMonth());

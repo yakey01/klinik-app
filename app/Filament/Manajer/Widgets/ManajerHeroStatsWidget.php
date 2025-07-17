@@ -3,7 +3,9 @@
 namespace App\Filament\Manajer\Widgets;
 
 use Filament\Widgets\Widget;
-use App\Models\Pendapatan;
+use App\Models\PendapatanHarian;
+use App\Models\PengeluaranHarian;
+use App\Models\JumlahPasienHarian;
 use App\Models\Pasien;
 use App\Models\Tindakan;
 use App\Models\Pegawai;
@@ -24,38 +26,38 @@ class ManajerHeroStatsWidget extends Widget
         $previousMonth = Carbon::now()->subMonth();
         
         // Total Revenue with Growth
-        $currentRevenue = Pendapatan::whereMonth('created_at', $currentMonth->month)
-            ->whereYear('created_at', $currentMonth->year)
-            ->sum('jumlah');
+        $currentRevenue = PendapatanHarian::whereMonth('tanggal_input', $currentMonth->month)
+            ->whereYear('tanggal_input', $currentMonth->year)
+            ->sum('nominal');
             
-        $previousRevenue = Pendapatan::whereMonth('created_at', $previousMonth->month)
-            ->whereYear('created_at', $previousMonth->year)
-            ->sum('jumlah');
+        $previousRevenue = PendapatanHarian::whereMonth('tanggal_input', $previousMonth->month)
+            ->whereYear('tanggal_input', $previousMonth->year)
+            ->sum('nominal');
             
         $revenueGrowth = $previousRevenue > 0 
             ? (($currentRevenue - $previousRevenue) / $previousRevenue) * 100 
             : 0;
 
         // Patient Count with Growth
-        $currentPatients = Pasien::whereMonth('created_at', $currentMonth->month)
-            ->whereYear('created_at', $currentMonth->year)
-            ->count();
+        $currentPatients = JumlahPasienHarian::whereMonth('tanggal', $currentMonth->month)
+            ->whereYear('tanggal', $currentMonth->year)
+            ->sum(DB::raw('jumlah_pasien_umum + jumlah_pasien_bpjs'));
             
-        $previousPatients = Pasien::whereMonth('created_at', $previousMonth->month)
-            ->whereYear('created_at', $previousMonth->year)
-            ->count();
+        $previousPatients = JumlahPasienHarian::whereMonth('tanggal', $previousMonth->month)
+            ->whereYear('tanggal', $previousMonth->year)
+            ->sum(DB::raw('jumlah_pasien_umum + jumlah_pasien_bpjs'));
             
         $patientGrowth = $previousPatients > 0 
             ? (($currentPatients - $previousPatients) / $previousPatients) * 100 
             : 0;
 
         // Procedures Count with Growth
-        $currentProcedures = Tindakan::whereMonth('created_at', $currentMonth->month)
-            ->whereYear('created_at', $currentMonth->year)
+        $currentProcedures = Tindakan::whereMonth('tanggal_tindakan', $currentMonth->month)
+            ->whereYear('tanggal_tindakan', $currentMonth->year)
             ->count();
             
-        $previousProcedures = Tindakan::whereMonth('created_at', $previousMonth->month)
-            ->whereYear('created_at', $previousMonth->year)
+        $previousProcedures = Tindakan::whereMonth('tanggal_tindakan', $previousMonth->month)
+            ->whereYear('tanggal_tindakan', $previousMonth->year)
             ->count();
             
         $procedureGrowth = $previousProcedures > 0 
@@ -67,9 +69,9 @@ class ManajerHeroStatsWidget extends Widget
         $staffEfficiency = $this->calculateStaffEfficiency();
 
         // Today's Quick Stats
-        $todayRevenue = Pendapatan::whereDate('created_at', Carbon::today())->sum('jumlah');
-        $todayPatients = Pasien::whereDate('created_at', Carbon::today())->count();
-        $todayProcedures = Tindakan::whereDate('created_at', Carbon::today())->count();
+        $todayRevenue = PendapatanHarian::whereDate('tanggal_input', Carbon::today())->sum('nominal');
+        $todayPatients = JumlahPasienHarian::whereDate('tanggal', Carbon::today())->sum(DB::raw('jumlah_pasien_umum + jumlah_pasien_bpjs'));
+        $todayProcedures = Tindakan::whereDate('tanggal_tindakan', Carbon::today())->count();
 
         return [
             'stats' => [
@@ -124,8 +126,8 @@ class ManajerHeroStatsWidget extends Widget
     {
         // Calculate staff efficiency based on procedures per staff member
         $activeStaff = Pegawai::where('aktif', true)->count();
-        $monthlyProcedures = Tindakan::whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
+        $monthlyProcedures = Tindakan::whereMonth('tanggal_tindakan', Carbon::now()->month)
+            ->whereYear('tanggal_tindakan', Carbon::now()->year)
             ->count();
         
         if ($activeStaff === 0) return 0;
@@ -140,8 +142,8 @@ class ManajerHeroStatsWidget extends Widget
 
     private function getRevenueTrend(): array
     {
-        return Pendapatan::selectRaw('DATE(created_at) as date, SUM(jumlah) as total')
-            ->whereDate('created_at', '>=', Carbon::now()->subDays(7))
+        return PendapatanHarian::selectRaw('DATE(tanggal_input) as date, SUM(nominal) as total')
+            ->whereDate('tanggal_input', '>=', Carbon::now()->subDays(7))
             ->groupBy('date')
             ->orderBy('date')
             ->pluck('total', 'date')
@@ -150,8 +152,8 @@ class ManajerHeroStatsWidget extends Widget
 
     private function getPatientTrend(): array
     {
-        return Pasien::selectRaw('DATE(created_at) as date, COUNT(*) as total')
-            ->whereDate('created_at', '>=', Carbon::now()->subDays(7))
+        return JumlahPasienHarian::selectRaw('DATE(tanggal) as date, SUM(jumlah_pasien_umum + jumlah_pasien_bpjs) as total')
+            ->whereDate('tanggal', '>=', Carbon::now()->subDays(7))
             ->groupBy('date')
             ->orderBy('date')
             ->pluck('total', 'date')
@@ -160,8 +162,8 @@ class ManajerHeroStatsWidget extends Widget
 
     private function getProcedureTrend(): array
     {
-        return Tindakan::selectRaw('DATE(created_at) as date, COUNT(*) as total')
-            ->whereDate('created_at', '>=', Carbon::now()->subDays(7))
+        return Tindakan::selectRaw('DATE(tanggal_tindakan) as date, COUNT(*) as total')
+            ->whereDate('tanggal_tindakan', '>=', Carbon::now()->subDays(7))
             ->groupBy('date')
             ->orderBy('date')
             ->pluck('total', 'date')
@@ -179,12 +181,12 @@ class ManajerHeroStatsWidget extends Widget
         $alerts = [];
         
         // Low revenue alert
-        $todayRevenue = Pendapatan::whereDate('created_at', Carbon::today())->sum('jumlah');
-        $avgDailyRevenue = Pendapatan::whereDate('created_at', '>=', Carbon::now()->subDays(30))
+        $todayRevenue = PendapatanHarian::whereDate('tanggal_input', Carbon::today())->sum('nominal');
+        $avgDailyRevenue = PendapatanHarian::whereDate('tanggal_input', '>=', Carbon::now()->subDays(30))
             ->selectRaw('AVG(daily_revenue) as avg_revenue')
             ->fromSub(function ($query) {
-                $query->selectRaw('DATE(created_at) as date, SUM(jumlah) as daily_revenue')
-                    ->from('pendapatans')
+                $query->selectRaw('DATE(tanggal_input) as date, SUM(nominal) as daily_revenue')
+                    ->from('pendapatan_harians')
                     ->groupBy('date');
             }, 'daily_revenues')
             ->value('avg_revenue') ?? 0;

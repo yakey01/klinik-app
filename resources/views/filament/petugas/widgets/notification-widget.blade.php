@@ -1,144 +1,159 @@
-@php
-    $viewData = $this->getViewData();
-    $total = $viewData['total'];
-    $unread = $viewData['unread'];
-    $notifications = $viewData['notifications'];
-    $error = $viewData['error'] ?? null;
-@endphp
-
-<div class="fi-wi-stats-overview">
-    <div class="fi-wi-stats-overview-cards-grid grid gap-6 lg:grid-cols-4">
-        <div class="fi-wi-stats-overview-card relative overflow-hidden rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
-            <div class="fi-wi-stats-overview-card-icon-wrapper flex items-center justify-center rounded-xl bg-primary-50 p-3 dark:bg-primary-500/10">
-                <svg class="fi-wi-stats-overview-card-icon h-6 w-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM10 7L7 4v3H2v10h5V7z"/>
-                </svg>
-            </div>
-            
-            <div class="fi-wi-stats-overview-card-content">
-                <h3 class="fi-wi-stats-overview-card-label text-sm font-medium text-gray-500 dark:text-gray-400">
-                    🔔 Notifications
-                </h3>
-                <p class="fi-wi-stats-overview-card-value text-3xl font-semibold text-gray-900 dark:text-white">
-                    {{ $total }}
-                </p>
-                @if($error)
-                    <p class="fi-wi-stats-overview-card-description text-sm text-danger-600 dark:text-danger-400">
-                        ⚠️ {{ $error }}
-                    </p>
-                @elseif($unread > 0)
-                    <p class="fi-wi-stats-overview-card-description text-sm text-danger-600 dark:text-danger-400">
-                        {{ $unread }} belum dibaca
-                    </p>
-                @else
-                    <p class="fi-wi-stats-overview-card-description text-sm text-success-600 dark:text-success-400">
-                        Semua sudah dibaca
-                    </p>
-                @endif
-            </div>
-        </div>
-        
-        <div class="lg:col-span-3">
-            <div class="fi-wi-stats-overview-card relative overflow-hidden rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        📬 Notifikasi Terbaru
+<x-filament-widgets::widget>
+    <x-filament::section>
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        Notifikasi
                     </h3>
-                    @if($total > 0)
-                        <button 
-                            type="button" 
-                            class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        {{ $total }} total, {{ $unread }} belum dibaca
+                    </p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    @if($unread > 0)
+                        <x-filament::button
+                            size="sm"
+                            color="gray"
                             wire:click="clearAll"
                         >
-                            Bersihkan Semua
-                        </button>
+                            <x-filament::icon
+                                icon="heroicon-o-check-circle"
+                                class="w-4 h-4 mr-1"
+                            />
+                            Tandai Semua
+                        </x-filament::button>
                     @endif
+                    
+                    <div class="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+                        <div class="w-2 h-2 bg-success-500 dark:bg-success-400 rounded-full animate-pulse"></div>
+                        <span>{{ $last_updated }}</span>
+                    </div>
                 </div>
-                
-                <div class="space-y-4 max-h-80 overflow-y-auto">
-                    @if($error)
-                        <div class="text-center py-8 text-red-500 dark:text-red-400">
-                            <div class="text-4xl mb-2">⚠️</div>
-                            <p class="text-sm">{{ $error }}</p>
-                            <button 
-                                type="button" 
-                                class="mt-2 text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-                                wire:click="$refresh"
-                            >
-                                Coba Lagi
-                            </button>
-                        </div>
-                    @else
-                        @forelse($notifications as $notification)
-                            <div 
-                                class="flex items-start space-x-3 p-3 rounded-lg transition-all duration-200 ease-in-out
-                                    {{ $notification['read_at'] ? 'bg-gray-50 dark:bg-gray-800' : 'bg-primary-50 dark:bg-primary-900/20' }}
-                                    hover:bg-gray-100 dark:hover:bg-gray-700 hover:translate-x-1 hover:shadow-md cursor-pointer"
-                                wire:click="markAsRead('{{ $notification['id'] }}')"
-                            >
-                                <div class="flex-shrink-0">
-                                    @php
-                                        $priorityIcon = match($notification['priority'] ?? 'medium') {
-                                            'low' => 'ℹ️',
-                                            'medium' => '📢',
-                                            'high' => '⚠️',
-                                            'urgent' => '🚨',
-                                            'critical' => '🔥',
-                                            default => '📢',
-                                        };
-                                    @endphp
-                                    <span class="text-lg">{{ $priorityIcon }}</span>
-                                </div>
-                                
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center justify-between">
-                                        <h4 class="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                            {{ $notification['title'] ?? 'Notifikasi' }}
-                                        </h4>
-                                        <time class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ isset($notification['created_at']) ? \Carbon\Carbon::parse($notification['created_at'])->diffForHumans() : 'Tidak diketahui' }}
-                                        </time>
+            </div>
+
+            @if(isset($error) && $error)
+                <div class="flex items-center justify-center p-8">
+                    <div class="text-center">
+                        <x-filament::icon
+                            icon="heroicon-o-exclamation-triangle"
+                            class="w-12 h-12 mx-auto text-danger-500 dark:text-danger-400 mb-4"
+                        />
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                            {{ $error }}
+                        </h3>
+                        <x-filament::button
+                            color="primary"
+                            size="sm"
+                            wire:poll.30s
+                        >
+                            Coba Lagi
+                        </x-filament::button>
+                    </div>
+                </div>
+            @elseif(empty($notifications))
+                <div class="flex items-center justify-center p-8">
+                    <div class="text-center">
+                        <x-filament::icon
+                            icon="heroicon-o-bell-slash"
+                            class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-600 mb-4"
+                        />
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                            Tidak ada notifikasi
+                        </h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            Semua notifikasi akan muncul di sini
+                        </p>
+                    </div>
+                </div>
+            @else
+                <div class="space-y-3 max-h-96 overflow-y-auto">
+                    @foreach($notifications as $notification)
+                        <div class="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors {{ $notification['read_at'] ? 'bg-gray-50 dark:bg-gray-800/30' : 'bg-white dark:bg-gray-800' }}">
+                            <div class="flex-shrink-0">
+                                @if($notification['type'] === 'success')
+                                    <div class="w-8 h-8 bg-success-100 dark:bg-success-900/30 rounded-full flex items-center justify-center">
+                                        <x-filament::icon
+                                            icon="heroicon-o-check-circle"
+                                            class="w-4 h-4 text-success-600 dark:text-success-400"
+                                        />
                                     </div>
-                                    
-                                    <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                                        {{ $notification['message'] ?? 'Tidak ada pesan' }}
-                                    </p>
-                                    
-                                    @if(($notification['type'] ?? '') === 'validation_pending')
-                                        <div class="mt-2 flex items-center space-x-2">
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
-                                                Menunggu Validasi
-                                            </span>
-                                            @if(isset($notification['data']['priority']))
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
-                                                    {{ $notification['data']['priority'] === 'urgent' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' }}">
-                                                    {{ $notification['data']['priority'] === 'urgent' ? 'Urgent' : 'Normal' }}
-                                                </span>
-                                            @endif
-                                        </div>
-                                    @endif
-                                </div>
-                                
-                                @if(!($notification['read_at'] ?? false))
-                                    <div class="flex-shrink-0">
-                                        <div class="w-2 h-2 bg-primary-600 rounded-full"></div>
+                                @elseif($notification['type'] === 'warning')
+                                    <div class="w-8 h-8 bg-warning-100 dark:bg-warning-900/30 rounded-full flex items-center justify-center">
+                                        <x-filament::icon
+                                            icon="heroicon-o-exclamation-triangle"
+                                            class="w-4 h-4 text-warning-600 dark:text-warning-400"
+                                        />
+                                    </div>
+                                @elseif($notification['type'] === 'error')
+                                    <div class="w-8 h-8 bg-danger-100 dark:bg-danger-900/30 rounded-full flex items-center justify-center">
+                                        <x-filament::icon
+                                            icon="heroicon-o-x-circle"
+                                            class="w-4 h-4 text-danger-600 dark:text-danger-400"
+                                        />
+                                    </div>
+                                @else
+                                    <div class="w-8 h-8 bg-info-100 dark:bg-info-900/30 rounded-full flex items-center justify-center">
+                                        <x-filament::icon
+                                            icon="heroicon-o-information-circle"
+                                            class="w-4 h-4 text-info-600 dark:text-info-400"
+                                        />
                                     </div>
                                 @endif
                             </div>
-                        @empty
-                            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                                <div class="text-4xl mb-2">📭</div>
-                                <p class="text-sm">Tidak ada notifikasi</p>
+                            
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $notification['title'] ?? 'Notifikasi' }}
+                                        </h4>
+                                        <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                                            {{ $notification['message'] ?? $notification['data']['message'] ?? 'Tidak ada pesan' }}
+                                        </p>
+                                        <div class="flex items-center space-x-2 mt-2">
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ \Carbon\Carbon::parse($notification['created_at'])->diffForHumans() }}
+                                            </span>
+                                            @if(!$notification['read_at'])
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
+                                                    Baru
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    
+                                    @if(!$notification['read_at'])
+                                        <x-filament::button
+                                            size="sm"
+                                            color="gray"
+                                            wire:click="markAsRead('{{ $notification['id'] }}')"
+                                            class="ml-2"
+                                        >
+                                            <x-filament::icon
+                                                icon="heroicon-o-check"
+                                                class="w-3 h-3"
+                                            />
+                                        </x-filament::button>
+                                    @endif
+                                </div>
                             </div>
-                        @endforelse
-                    @endif
+                        </div>
+                    @endforeach
                 </div>
                 
-                <div class="mt-4 flex justify-between items-center text-xs text-gray-500">
-                    <span>Terakhir diperbarui: {{ $viewData['last_updated'] }}</span>
-                    <span>User ID: {{ $viewData['user_id'] ?? 'Unknown' }}</span>
-                </div>
-            </div>
+                @if($total > count($notifications))
+                    <div class="text-center pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <x-filament::button
+                            size="sm"
+                            color="gray"
+                            outlined
+                        >
+                            Lihat Semua ({{ $total }})
+                        </x-filament::button>
+                    </div>
+                @endif
+            @endif
         </div>
-    </div>
-</div>
+    </x-filament::section>
+</x-filament-widgets::widget>

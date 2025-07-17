@@ -95,7 +95,8 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Resources\AbsenceRequestResource::class,
             ])
             ->pages([
-                Pages\Dashboard::class,
+                \App\Filament\Pages\EnhancedAdminDashboard::class,
+                \App\Filament\Pages\SystemMonitoring::class,
             ])
             ->widgets([
                 Widgets\AccountWidget::class,

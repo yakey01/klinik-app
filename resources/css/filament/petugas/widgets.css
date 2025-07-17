@@ -1,0 +1,53 @@
+/* Pinterest-Inspired Widget Styles for Petugas Panel */
+
+/* Minimal Widget Design System - uses CSS variables from theme.css */
+
+/* Essential widget styles that complement theme.css */
+.fi-wi-widget {
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.fi-wi-widget:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+/* Chart containers */
+.chart-container canvas {
+    border-radius: var(--radius-md);
+}
+
+/* Progress indicators */
+.progress-bar {
+    background: var(--color-gray-100);
+    border-radius: var(--radius-sm);
+    height: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background: var(--color-indigo-500);
+    border-radius: var(--radius-sm);
+    height: 100%;
+    transition: width 1s ease;
+}
+
+/* Error states */
+.error-state {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-md);
+    color: #dc2626;
+    padding: var(--space-4);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .fi-wi-widget {
+        margin-bottom: var(--space-4);
+    }
+}

@@ -201,6 +201,21 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Pengeluaran::class, 'input_by');
     }
 
+    public function pendapatanHarian(): HasMany
+    {
+        return $this->hasMany(PendapatanHarian::class, 'user_id');
+    }
+
+    public function pengeluaranHarian(): HasMany
+    {
+        return $this->hasMany(PengeluaranHarian::class, 'user_id');
+    }
+
+    public function tindakanInput(): HasMany
+    {
+        return $this->hasMany(Tindakan::class, 'input_by');
+    }
+
     public function locationValidations(): HasMany
     {
         return $this->hasMany(LocationValidation::class);

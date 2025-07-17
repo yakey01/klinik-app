@@ -214,7 +214,7 @@ class CacheService
     }
     
     /**
-     * Invalidate cache by tag
+     * Invalidate cache by tag (fallback for non-Redis stores)
      */
     public function flushTag(string $tag): bool
     {
@@ -234,8 +234,16 @@ class CacheService
                     Redis::del($keys);
                 }
             } else {
-                // For other cache stores, use tags if supported
-                Cache::tags($cacheTag)->flush();
+                // For non-Redis stores, flush all cache as fallback
+                // since tags are not supported on file/array drivers
+                $this->loggingService->logActivity(
+                    'cache_tag_flush_fallback',
+                    null,
+                    ['cache_tag' => $cacheTag, 'action' => 'flush_all'],
+                    'Cache tags not supported, flushing all cache instead'
+                );
+                
+                Cache::flush();
             }
             
             $this->loggingService->logActivity(

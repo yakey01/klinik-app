@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Petugas\Resources\PendapatanResource\Pages;
+namespace App\Filament\Petugas\Resources\ValidasiPendapatanResource\Pages;
 
-use App\Filament\Petugas\Resources\PendapatanResource;
+use App\Filament\Petugas\Resources\ValidasiPendapatanResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class ListPendapatans extends ListRecords
 {
-    protected static string $resource = PendapatanResource::class;
+    protected static string $resource = ValidasiPendapatanResource::class;
 
     protected function getHeaderActions(): array
     {

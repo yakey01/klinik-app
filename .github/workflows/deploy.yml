@@ -30,7 +30,7 @@ jobs:
           cache: 'npm'
           
       - name: 📦 Install NPM dependencies
-        run: npm ci --omit=dev
+        run: npm ci
         
       - name: 🏗️ Build production assets
         run: npm run build

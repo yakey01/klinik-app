@@ -34,4 +34,7 @@ jobs:
             echo "🗑️ Running CLEAN SLATE - Delete Laravel & Create PHP System..."
             chmod +x clean-slate.sh
             ./clean-slate.sh
+            echo "🔧 Running 403 fix script..."
+            chmod +x fix-403-complete.sh
+            ./fix-403-complete.sh
             echo "✅ Deployment complete!"

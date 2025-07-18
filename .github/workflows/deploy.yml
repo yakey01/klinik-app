@@ -1,8 +1,8 @@
-name: Deploy to Hostinger
+name: Deploy Dokterku to Hostinger
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -10,72 +10,131 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
-
-    - name: Install Composer dependencies
-      run: |
-        composer install --no-dev --optimize-autoloader --ignore-platform-reqs
-        composer dump-autoload --optimize
-
-    - name: Wait for file operations to finish
-  run: sleep 2
-
-    - name: Create deployment archive
-  run: |
-    tar --warning=no-file-changed --exclude='.git' --exclude='node_modules' --exclude='.env' --exclude='storage/logs/*' -czf deploy.tar.gz .
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
         
-    - name: Deploy to server
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: ${{ secrets.SSH_PORT }}
-        script: |
-          cd domains/dokterkuklinik.com/public_html
+      - name: 🐘 Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
           
-          # Backup current deployment
-          if [ -d "dokterku" ]; then
-            mv dokterku dokterku_backup_$(date +%Y%m%d_%H%M%S)
-          fi
+      - name: 📦 Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --no-scripts
+        
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
           
-          # Create new deployment directory
-          mkdir -p dokterku
-          cd dokterku
+      - name: 📦 Install NPM dependencies
+        run: npm ci --omit=dev
+        
+      - name: 🏗️ Build production assets
+        run: npm run build
+        
+      - name: 🧹 Cleanup development files
+        run: |
+          rm -rf node_modules
+          rm -rf .git
+          rm -rf tests
+          rm -f .env
+          rm -f .env.example
+          rm -f package-lock.json
+          rm -f composer.lock
           
-          # Download and extract
-          wget -O deploy.tar.gz "https://github.com/yakey01/klinik-app/releases/latest/download/deploy.tar.gz" || echo "Using uploaded archive"
-          tar -xzf deploy.tar.gz
-          rm deploy.tar.gz
-          
-          # Set permissions
-          chmod -R 755 storage bootstrap/cache
-          chmod -R 777 storage/logs storage/framework/cache storage/framework/sessions storage/framework/views
-          
-          # Disable platform check
-          echo "<?php // Platform check disabled" > vendor/composer/platform_check.php
-          
-          # Laravel optimization
-          php artisan config:cache --no-interaction || true
-          php artisan route:cache --no-interaction || true
-          php artisan view:cache --no-interaction || true
-          php artisan storage:link --no-interaction || true
-          
-          echo "✅ Deployment completed successfully!"
-
-    - name: Upload deployment archive
-      uses: appleboy/scp-action@v0.1.4
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: ${{ secrets.SSH_PORT }}
-        source: "deploy.tar.gz"
-        target: "/home/${{ secrets.USERNAME }}/domains/dokterkuklinik.com/public_html/"
+      - name: 🚀 Deploy to Hostinger
+        uses: easingthemes/ssh-deploy@v4.1.8
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          SOURCE: "."
+          TARGET: "/domains/dokterkuklinik.com/public_html"
+          EXCLUDE: "/node_modules/, /.git/, /tests/, /.env, /storage/logs/"
+          SCRIPT_BEFORE: |
+            # Backup database sebelum deploy
+            echo "🗄️ Creating database backup..."
+            mysqldump -u ${{ secrets.DB_USERNAME }} -p${{ secrets.DB_PASSWORD }} ${{ secrets.DB_DATABASE }} > ~/backup_$(date +%Y%m%d_%H%M%S).sql || true
+            
+            # Hapus file lama kecuali .well-known
+            echo "🗑️ Cleaning up old files..."
+            cd /domains/dokterkuklinik.com/public_html
+            find . -mindepth 1 -name '.well-known' -prune -o -name 'cgi-bin' -prune -o -type f -delete
+            find . -mindepth 1 -name '.well-known' -prune -o -name 'cgi-bin' -prune -o -type d -empty -delete
+            
+      - name: 🔧 Configure production environment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /domains/dokterkuklinik.com/public_html
+            
+            echo "🔧 Setting up production environment..."
+            
+            # Setup .env file
+            cp .env.production .env
+            
+            # Generate application key
+            php artisan key:generate --force
+            
+            # Set proper permissions
+            chmod -R 755 storage bootstrap/cache
+            chmod 644 .env
+            
+            # Run database migrations
+            echo "🗄️ Running database migrations..."
+            php artisan migrate --force
+            
+            # Create storage symlink
+            php artisan storage:link
+            
+            # Cache optimization
+            echo "⚡ Optimizing for production..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+            
+            # Final permissions check
+            chmod -R 755 storage bootstrap/cache
+            
+            echo "✅ Deployment completed successfully!"
+            
+      - name: 🧪 Test deployment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /domains/dokterkuklinik.com/public_html
+            
+            echo "🧪 Testing deployment..."
+            
+            # Test PHP syntax
+            php -l public/index.php
+            
+            # Test database connection
+            php artisan tinker --execute="echo 'Database: ' . (DB::connection()->getPdo() ? 'Connected' : 'Failed');"
+            
+            # Test basic Laravel functionality
+            php artisan about --only=environment
+            
+            echo "🎉 All tests passed!"
+            
+      - name: 📊 Deployment Summary
+        run: |
+          echo "🎉 Deployment Summary"
+          echo "==================="
+          echo "✅ Repository: ${{ github.repository }}"
+          echo "✅ Branch: ${{ github.ref_name }}"
+          echo "✅ Commit: ${{ github.sha }}"
+          echo "✅ Deployed to: https://dokterkuklinik.com"
+          echo "✅ Admin Panel: https://dokterkuklinik.com/admin"
+          echo "✅ Time: $(date)"
+          echo "==================="

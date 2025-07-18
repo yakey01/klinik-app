@@ -6,6 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Laravel 11 healthcare management system called "Dokterku" that uses Filament v3 for admin panels. The system manages medical clinic operations including staff management, patient records, financial tracking, and role-based dashboards.
 
+## Environment Configuration
+
+### Database Setup
+- **Local Development**: MySQL (as configured in .env)
+- **Production Hosting**: SQLite (due to shared hosting limitations)
+- Use `.env.production` for hosting deployment with SQLite configuration
+
+### Deployment Notes
+- Hosting uses Composer 1 (requires vendor upload from local)
+- Database credentials may differ - use SQLite for reliability
+- Run `scripts/deploy-hosting.sh` for automated deployment
+
+### GitHub Workflows
+- **Enhanced Deploy** (`.github/workflows/enhanced-deploy.yml`): Full production deployment with testing, backup, and rollback
+- **Feature Preview** (`.github/workflows/feature-branch-preview.yml`): Automated builds for feature/design/content branches
+- **Development Tools** (`.github/workflows/development-tools.yml`): Manual utilities (backup, restore, cache clear, asset rebuild)
+
+### Workflow Usage
+- `git push origin main` - Triggers full deployment to production
+- `git push origin feature/branch-name` - Triggers preview build and validation
+- Manual workflows available in GitHub Actions for database backup, cache clearing, vendor sync
+
 ## Development Commands
 
 ### Essential Commands

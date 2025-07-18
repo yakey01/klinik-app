@@ -3,75 +3,79 @@
 echo "🔧 Comprehensive Laravel Fix"
 echo "============================"
 
-cd domains/dokterkuklinik.com/public_html
-
-echo "1. Fixing .htaccess files..."
-# Create root .htaccess
-cat > .htaccess << 'EOF'
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteRule ^(.*)$ public/$1 [L]
-</IfModule>
-EOF
-
-# Update public/.htaccess
-cat > public/.htaccess << 'EOF'
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
-    RewriteEngine On
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
-</IfModule>
-EOF
-
-echo "2. Fixing Pail service provider error..."
-# Remove Pail service provider from config/app.php
-sed -i '/Laravel\\Pail\\PailServiceProvider/d' config/app.php
-
-echo "3. Setting permissions..."
-chmod -R 755 storage/
-chmod -R 755 bootstrap/cache/
-chmod 644 public/.htaccess
-chmod 644 .env
-
-echo "4. Checking .env file..."
-if [ ! -f .env ]; then
-    cp .env.example .env
-    php artisan key:generate
+# Check if we're in the right directory
+if [ ! -f "artisan" ]; then
+    echo "❌ Not in Laravel directory. Please run this from Laravel root."
+    exit 1
 fi
 
-echo "5. Installing dependencies..."
-composer install --no-dev --optimize-autoloader
+echo "1. 🔧 Fixing Database Issues..."
+echo "=============================="
+# Create database file
+mkdir -p database
+touch database/database.sqlite
+chmod 664 database/database.sqlite
 
-echo "6. Clearing all caches..."
+# Update .env with correct database path
+sed -i '/DB_CONNECTION=/d' .env
+sed -i '/DB_DATABASE=/d' .env
+echo "DB_CONNECTION=sqlite" >> .env
+echo "DB_DATABASE=$(pwd)/database/database.sqlite" >> .env
+
+echo "2. 🧹 Clearing All Caches..."
+echo "============================"
 php artisan config:clear
 php artisan cache:clear
 php artisan route:clear
 php artisan view:clear
+php artisan optimize:clear
 
-echo "7. Regenerating autoload..."
+echo "3. 🔧 Fixing Pail Issues..."
+echo "=========================="
+if composer show laravel/pail > /dev/null 2>&1; then
+    echo "✅ Laravel Pail is installed"
+else
+    echo "Installing Laravel Pail..."
+    composer require --dev laravel/pail
+fi
+
+echo "4. 🔄 Regenerating Autoload..."
+echo "============================="
 composer dump-autoload
 
-echo "8. Testing Laravel..."
+echo "5. 🗄️ Running Database Migrations..."
+echo "==================================="
+php artisan migrate --force
+
+echo "6. 🔐 Fixing Permissions..."
+echo "=========================="
+chmod -R 755 storage
+chmod -R 755 database
+chmod -R 755 bootstrap/cache
+
+echo "7. 🧪 Testing Everything..."
+echo "=========================="
+echo "Testing Laravel:"
 php artisan --version
 
-echo "9. Creating test file..."
-cat > public/test.php << 'EOF'
-<?php
-echo "PHP is working!<br>";
-echo "PHP version: " . phpversion() . "<br>";
-echo "Laravel should be working now!";
-?>
-EOF
+echo "Testing Database:"
+php artisan migrate:status
 
+echo "Testing Pail:"
+php artisan pail --help > /dev/null 2>&1 && echo "✅ Pail works" || echo "❌ Pail has issues"
+
+echo "8. 📋 Final Configuration Check..."
+echo "================================="
+echo "Database path: $(grep DB_DATABASE .env | cut -d'=' -f2)"
+echo "Database file exists: $(test -f database/database.sqlite && echo 'Yes' || echo 'No')"
+echo "Storage permissions: $(ls -ld storage | awk '{print $1}')"
+echo "Cache permissions: $(ls -ld bootstrap/cache | awk '{print $1}')"
+
+echo ""
 echo "✅ Comprehensive fix completed!"
-echo "🌐 Test your website: https://dokterkuklinik.com"
-echo "🧪 Test PHP: https://dokterkuklinik.com/test.php" 
+echo ""
+echo "🎯 Next Steps:"
+echo "=============="
+echo "1. Test your website: https://dokterkuklinik.com"
+echo "2. Check Laravel logs: tail -f storage/logs/laravel.log"
+echo "3. If issues persist, run: ./troubleshoot.sh" 

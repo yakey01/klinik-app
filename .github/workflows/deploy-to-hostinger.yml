@@ -4,15 +4,36 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy via SSH
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+
+      - name: Install Composer dependencies
+        run: composer install --ignore-platform-reqs --no-scripts --no-dev
+
+      - name: Setup environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Deploy to Hostinger
         uses: appleboy/ssh-action@v0.1.5
         with:
           host: ${{ secrets.HOST }}
@@ -21,10 +42,26 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           debug: true
           script: |
+            echo "🚀 Starting deployment to Hostinger..."
             cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            echo "📥 Pulling latest changes..."
             git pull origin main
-            composer install --no-dev --ignore-platform-reqs
+            
+            echo "📦 Installing dependencies..."
+            composer install --no-dev --ignore-platform-reqs --optimize-autoloader
+            
+            echo "🗄️ Running database migrations..."
             php artisan migrate --force
+            
+            echo "⚡ Clearing and caching..."
             php artisan config:cache
             php artisan route:cache
-            echo "✅ Deployment complete!"
+            php artisan view:cache
+            
+            echo "🔧 Setting permissions..."
+            chmod -R 755 storage bootstrap/cache
+            chown -R www-data:www-data storage bootstrap/cache
+            
+            echo "✅ Deployment completed successfully!"
+            echo "🌐 Your application is now live at: https://dokterkuklinik.com"

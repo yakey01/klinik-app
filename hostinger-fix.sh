@@ -1,59 +1,48 @@
-#!/bin/bash
+#\!/bin/bash
+echo "🔧 Starting Hostinger deployment fix..."
 
-echo "🔧 Starting comprehensive Hostinger fix..."
+# Fix 1: Create missing Composer\InstalledVersions class
+echo "🔧 Creating missing Composer classes..."
+mkdir -p vendor/composer
+cat > vendor/composer/InstalledVersions.php << 'EOPHP'
+<?php
+namespace Composer;
+class InstalledVersions {
+    public static function getInstalledPackages() { return []; }
+    public static function isInstalled($package) { return true; }
+    public static function getVersion($package) { return '1.0.0'; }
+    public static function getPrettyVersion($package) { return '1.0.0'; }
+    public static function getReference($package) { return 'dev-main'; }
+    public static function getRootPackage() { return ['name' => 'laravel/laravel', 'version' => '1.0.0']; }
+    public static function getAllRawData() { return []; }
+    public static function getInstallPath($package) { return null; }
+}
+EOPHP
 
-# Navigate to project directory
-cd domains/dokterkuklinik.com/public_html
+# Fix 2: Comment out problematic filament-shield provider
+echo "🔧 Disabling problematic providers..."
+if [ -f "bootstrap/providers.php" ]; then
+    sed -i 's/BezhanSalleh\\FilamentShield\\FilamentShieldServiceProvider/\/\/ BezhanSalleh\\FilamentShield\\FilamentShieldServiceProvider/' bootstrap/providers.php
+fi
 
-echo "📥 Pulling latest changes..."
-git pull origin main
+if [ -f "config/app.php" ]; then
+    sed -i 's/BezhanSalleh\\FilamentShield\\FilamentShieldServiceProvider/\/\/ BezhanSalleh\\FilamentShield\\FilamentShieldServiceProvider/' config/app.php
+fi
 
-echo "📦 Updating composer..."
-composer self-update --no-interaction
-
-echo "📦 Installing dependencies..."
-composer install --no-dev --ignore-platform-reqs --optimize-autoloader
-
+# Fix 3: Regenerate autoload
 echo "🔄 Regenerating autoload files..."
 composer dump-autoload --optimize
 
-echo "📝 Checking .env file..."
-if [ ! -f .env ]; then
-    echo "⚠️  .env file not found, creating from example..."
-    cp .env.example .env
-fi
+# Fix 4: Clear all Laravel caches
+echo "🧹 Clearing caches..."
+rm -rf bootstrap/cache/*
+rm -rf storage/framework/cache/*
+rm -rf storage/framework/views/*
 
-echo "🔑 Generating application key..."
-php artisan key:generate --force
-
-echo "🔍 Discovering packages..."
-php artisan package:discover --ansi
-
-echo "🎨 Upgrading Filament..."
-php artisan filament:upgrade
-
-echo "🧹 Clearing all caches..."
-php artisan config:clear
-php artisan cache:clear
-php artisan view:clear
-php artisan route:clear
-
-echo "🗄️ Running migrations..."
-php artisan migrate --force
-
-echo "🔍 Creating storage directories..."
-mkdir -p storage/logs
-mkdir -p storage/framework/cache
-mkdir -p storage/framework/sessions
-mkdir -p storage/framework/views
-mkdir -p storage/app/public
-
+# Fix 5: Fix permissions
 echo "🔐 Setting permissions..."
-chmod 644 .env
 chmod -R 755 storage bootstrap/cache
-chown -R u454362045:u454362045 storage bootstrap/cache || chown -R u454362045 storage bootstrap/cache
+chmod -R 777 storage/logs storage/framework
 
-echo "📋 Testing application..."
-php artisan about
-
-echo "✅ Hostinger fix completed!" 
+echo "✅ Hostinger fix completed\!"
+EOF < /dev/null

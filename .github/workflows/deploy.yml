@@ -52,7 +52,7 @@ jobs:
           REMOTE_HOST: ${{ secrets.HOST }}
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
           SOURCE: "."
-          TARGET: "/domains/dokterkuklinik.com/public_html"
+          TARGET: "~/public_html"
           EXCLUDE: "/node_modules/, /.git/, /tests/, /.env, /storage/logs/"
           SCRIPT_BEFORE: |
             # Backup database sebelum deploy
@@ -61,7 +61,7 @@ jobs:
             
             # Hapus file lama kecuali .well-known
             echo "🗑️ Cleaning up old files..."
-            cd /domains/dokterkuklinik.com/public_html
+            cd ~/public_html
             find . -mindepth 1 -name '.well-known' -prune -o -name 'cgi-bin' -prune -o -type f -delete
             find . -mindepth 1 -name '.well-known' -prune -o -name 'cgi-bin' -prune -o -type d -empty -delete
             
@@ -72,7 +72,7 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /domains/dokterkuklinik.com/public_html
+            cd ~/public_html
             
             echo "🔧 Setting up production environment..."
             
@@ -156,7 +156,7 @@ EOF
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /domains/dokterkuklinik.com/public_html
+            cd ~/public_html
             
             echo "🧪 Testing deployment..."
             

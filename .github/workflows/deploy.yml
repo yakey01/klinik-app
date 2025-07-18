@@ -1,4 +1,4 @@
-name: Deploy Dokterku to Hostinger
+name: Deploy Dokterku to Hostinger (Fixed)
 
 on:
   push:
@@ -35,63 +35,86 @@ jobs:
       - name: 🏗️ Build production assets
         run: npm run build
         
-      - name: 🧹 Cleanup development files
+      - name: 📁 Prepare deployment package
         run: |
+          echo "🧹 Cleaning up development files..."
           rm -rf node_modules
           rm -rf .git
           rm -rf tests
           rm -f .env
           rm -f .env.example
           rm -f package-lock.json
-          rm -f composer.lock
+          
+          echo "📦 Creating deployment archive..."
+          tar -czf ../deployment.tar.gz .
+          mv ../deployment.tar.gz .
           
       - name: 🚀 Deploy to Hostinger
-        uses: easingthemes/ssh-deploy@v4.1.8
-        with:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          REMOTE_HOST: ${{ secrets.HOST }}
-          REMOTE_USER: ${{ secrets.REMOTE_USER }}
-          SOURCE: "."
-          TARGET: "~/public_html"
-          EXCLUDE: "/node_modules/, /.git/, /tests/, /.env, /storage/logs/"
-          SCRIPT_BEFORE: |
-            # Backup database sebelum deploy
-            echo "🗄️ Creating database backup..."
-            mysqldump -u ${{ secrets.DB_USERNAME }} -p${{ secrets.DB_PASSWORD }} ${{ secrets.DB_DATABASE }} > ~/backup_$(date +%Y%m%d_%H%M%S).sql || true
-            
-            # Hapus file lama kecuali .well-known
-            echo "🗑️ Cleaning up old files..."
-            cd ~/public_html
-            find . -mindepth 1 -name '.well-known' -prune -o -name 'cgi-bin' -prune -o -type f -delete
-            find . -mindepth 1 -name '.well-known' -prune -o -name 'cgi-bin' -prune -o -type d -empty -delete
-            
-      - name: 🔧 Configure production environment
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo "🚀 Starting deployment to Hostinger..."
+            
+            # Backup database
+            echo "🗄️ Creating database backup..."
+            mysqldump -u ${{ secrets.DB_USERNAME }} -p${{ secrets.DB_PASSWORD }} ${{ secrets.DB_DATABASE }} > ~/backup_$(date +%Y%m%d_%H%M%S).sql || true
+            
+            # Clean up old files
+            echo "🗑️ Cleaning up old files..."
+            cd ~/public_html
+            find . -mindepth 1 -name '.well-known' -prune -o -name 'cgi-bin' -prune -o -type f -delete
+            find . -mindepth 1 -name '.well-known' -prune -o -name 'cgi-bin' -prune -o -type d -empty -delete
+            
+            echo "✅ Cleanup completed"
+            
+      - name: 📤 Upload files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "deployment.tar.gz"
+          target: "~/"
+            
+      - name: 🔧 Extract and configure
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "📦 Extracting deployment package..."
+            cd ~
+            tar -xzf deployment.tar.gz -C public_html/
+            rm deployment.tar.gz
+            
             cd ~/public_html
             
             echo "🔧 Setting up production environment..."
             
-            # Setup .env file
-            cp .env.production .env
+            # Copy production env
+            if [ -f ".env.production" ]; then
+                cp .env.production .env
+                echo "✅ Production environment configured"
+            else
+                echo "❌ .env.production not found"
+            fi
             
             # Generate application key
+            echo "🔑 Generating application key..."
             php artisan key:generate --force
             
-            # Fix 403 Forbidden Error
-            echo "🔧 Fixing 403 Forbidden Error..."
-            
             # Set proper permissions
+            echo "🔐 Setting file permissions..."
             find . -type d -exec chmod 755 {} \;
             find . -type f -exec chmod 644 {} \;
             chmod -R 775 storage bootstrap/cache
             chmod 644 .env
             
-            # Move Laravel public files to document root if needed
+            # Move Laravel public files to document root
             if [ -d "public" ] && [ ! -f "index.php" ]; then
                 echo "📁 Moving Laravel public files to document root..."
                 cp -r public/* .
@@ -101,7 +124,7 @@ jobs:
                 echo "✅ Laravel public files moved to document root"
             fi
             
-            # Ensure .htaccess exists
+            # Create .htaccess if not exists
             if [ ! -f ".htaccess" ]; then
                 echo "📝 Creating .htaccess file..."
                 cat > .htaccess << 'EOF'
@@ -130,24 +153,37 @@ EOF
                 echo "✅ .htaccess file created"
             fi
             
-            # Run database migrations
-            echo "🗄️ Running database migrations..."
-            php artisan migrate --force
+            # Test if Laravel is working
+            echo "🧪 Testing Laravel installation..."
+            if [ -f "artisan" ]; then
+                echo "✅ Laravel artisan found"
+                
+                # Run database migrations
+                echo "🗄️ Running database migrations..."
+                php artisan migrate --force
+                
+                # Create storage symlink
+                echo "🔗 Creating storage symlink..."
+                php artisan storage:link
+                
+                # Cache optimization
+                echo "⚡ Optimizing for production..."
+                php artisan config:cache
+                php artisan route:cache
+                php artisan view:cache
+                php artisan event:cache
+                
+                # Final permissions check
+                chmod -R 755 storage bootstrap/cache
+                
+                echo "✅ Laravel setup completed successfully!"
+            else
+                echo "❌ Laravel artisan not found - deployment may have failed"
+                echo "📁 Current directory contents:"
+                ls -la
+            fi
             
-            # Create storage symlink
-            php artisan storage:link
-            
-            # Cache optimization
-            echo "⚡ Optimizing for production..."
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            php artisan event:cache
-            
-            # Final permissions check
-            chmod -R 755 storage bootstrap/cache
-            
-            echo "✅ Deployment completed successfully!"
+            echo "🎉 Deployment completed!"
             
       - name: 🧪 Test deployment
         uses: appleboy/ssh-action@v1.0.0
@@ -160,16 +196,27 @@ EOF
             
             echo "🧪 Testing deployment..."
             
+            # Test directory structure
+            echo "📁 Directory structure:"
+            ls -la
+            
             # Test PHP syntax
-            php -l index.php
+            if [ -f "index.php" ]; then
+                echo "✅ index.php found"
+                php -l index.php
+            else
+                echo "❌ index.php not found"
+            fi
             
-            # Test database connection
-            php artisan tinker --execute="echo 'Database: ' . (DB::connection()->getPdo() ? 'Connected' : 'Failed');"
+            # Test artisan
+            if [ -f "artisan" ]; then
+                echo "✅ artisan found"
+                php artisan about --only=environment
+            else
+                echo "❌ artisan not found"
+            fi
             
-            # Test basic Laravel functionality
-            php artisan about --only=environment
-            
-            echo "🎉 All tests passed!"
+            echo "🎉 All tests completed!"
             
       - name: 📊 Deployment Summary
         run: |

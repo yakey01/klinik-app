@@ -32,7 +32,7 @@ jobs:
             cd domains/dokterkuklinik.com/public_html
             echo "🔧 Starting deployment..."
             git pull origin main
-            echo "🔧 Running SIMPLE WORKING FIX - PHP Website yang Pasti Bekerja..."
-            chmod +x simple-working-fix.sh
-            ./simple-working-fix.sh
+            echo "🚨 Running EMERGENCY OVERRIDE - Bypass Semua Masalah..."
+            chmod +x emergency-override.sh
+            ./emergency-override.sh
             echo "✅ Deployment complete!"

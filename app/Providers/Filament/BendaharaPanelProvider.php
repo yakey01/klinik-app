@@ -25,9 +25,8 @@ class BendaharaPanelProvider extends PanelProvider
         return $panel
             ->id('bendahara')
             ->path('bendahara')
-            ->login(false)
+            ->login(CustomLogin::class)
             ->brandName('Bendahara Dashboard')
-            ->viteTheme('resources/css/filament/bendahara/theme.css')
             ->colors([
                 'primary' => Color::Amber,
                 'success' => Color::Green,
@@ -40,39 +39,35 @@ class BendaharaPanelProvider extends PanelProvider
                 \App\Filament\Bendahara\Pages\BendaharaDashboard::class,
             ])
             ->resources([
-                // NEW: Unified Validation Centers (World-Class)
+                // RESTORED: Unified Validation Centers (PURE FILAMENT)
                 \App\Filament\Bendahara\Resources\ValidationCenterResource::class,
                 \App\Filament\Bendahara\Resources\UnifiedFinancialValidationResource::class,
                 
-                // Legacy Financial Management (can be deprecated)
-                // \App\Filament\Bendahara\Resources\ValidasiPendapatanResource::class,
-                // \App\Filament\Bendahara\Resources\ValidasiPengeluaranResource::class,
+                // RESTORED: Legacy Financial Management (PURE FILAMENT)
+                \App\Filament\Bendahara\Resources\ValidasiPendapatanResource::class,
+                \App\Filament\Bendahara\Resources\ValidasiPengeluaranResource::class,
                 
-                // Manajemen Jaspel Group
+                // RESTORED: Manajemen Jaspel Group (PURE FILAMENT)
                 \App\Filament\Bendahara\Resources\ValidasiJaspelResource::class,
-                \App\Filament\Bendahara\Resources\BudgetPlanningResource::class,
+                // \App\Filament\Bendahara\Resources\BudgetPlanningResource::class, // SKIP: Missing budget_plans table
                 
-                // Laporan Keuangan Group
+                // RESTORED: Laporan Keuangan Group (PURE FILAMENT)
                 \App\Filament\Bendahara\Resources\LaporanKeuanganResource::class,
                 
-                // Audit & Kontrol Group
+                // RESTORED: Audit & Kontrol Group (PURE FILAMENT)
                 \App\Filament\Bendahara\Resources\AuditTrailResource::class,
                 \App\Filament\Bendahara\Resources\FinancialAlertResource::class,
                 
-                // Validasi Data Group
+                // RESTORED: Validasi Data Group (PURE FILAMENT)
                 \App\Filament\Bendahara\Resources\ValidasiJumlahPasienResource::class,
             ])
             ->widgets([
-                \Filament\Widgets\AccountWidget::class,
-                \App\Filament\Bendahara\Widgets\ValidationMetricsWidget::class,
-                \App\Filament\Bendahara\Widgets\FinancialOverviewWidget::class,
-                \App\Filament\Bendahara\Widgets\InteractiveDashboardWidget::class,
-                \App\Filament\Bendahara\Widgets\BudgetTrackingWidget::class,
-                \App\Filament\Bendahara\Widgets\LanguageSwitcherWidget::class,
+                // NO CUSTOM WIDGETS - Pure Filament only
             ])
             ->navigationGroups([
                 NavigationGroup::make('Dashboard')
                     ->collapsed(false),
+                // RESTORED: All navigation groups (PURE FILAMENT)
                 NavigationGroup::make('Validasi Transaksi')
                     ->collapsed(true)
                     ->collapsible(),

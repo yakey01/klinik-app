@@ -21,6 +21,7 @@
         "laravel/sanctum": "*",
         "laravel/tinker": "^2.10.1",
         "leandrocfe/filament-apex-charts": "^3.1",
+        "openspout/openspout": "^4.24",
         "saade/filament-fullcalendar": "^3.2",
         "solution-forest/filament-access-management": "^2.2",
         "spatie/laravel-permission": "^6.20"

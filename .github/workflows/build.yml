@@ -1,9 +1,14 @@
 name: Laravel Build
+<<<<<<< HEAD
+=======
+
+>>>>>>> 63c9c19efb84722a8853128d20cdf7155b36030a
 on: push
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+<<<<<<< HEAD
     - uses: actions/checkout@v3
     - uses: shivammathur/setup-php@v2
       with:
@@ -15,3 +20,16 @@ jobs:
     - run: npm install
     - run: npm run build
     - run: echo "✅ Laravel build completed successfully!"
+=======
+      - uses: actions/checkout@v3
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+      - run: composer install --ignore-platform-reqs --no-scripts
+      - run: cp .env.example .env
+      - run: php artisan key:generate
+      - run: npm install
+      - run: npm run build
+      - run: echo "✅ Laravel build completed successfully!"
+>>>>>>> 63c9c19efb84722a8853128d20cdf7155b36030a

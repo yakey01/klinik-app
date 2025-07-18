@@ -14,7 +14,6 @@ export default defineConfig({
                 'resources/js/dokter-mobile-app.tsx',
                 'resources/js/paramedis/modern-dashboard.tsx',
                 'resources/css/filament/admin/theme.css',
-                'resources/css/filament/bendahara/theme.css',
                 'resources/css/filament/manajer/theme.css',
                 'resources/css/filament/petugas/theme.css',
                 'resources/css/filament/paramedis-mobile.css',

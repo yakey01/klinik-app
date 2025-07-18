@@ -211,7 +211,7 @@ class ListFinancialValidations extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
-            \App\Filament\Bendahara\Widgets\FinancialOverviewWidget::class,
+            // NO WIDGETS - Pure Filament only
         ];
     }
 

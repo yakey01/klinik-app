@@ -24,9 +24,12 @@ jobs:
         composer install --no-dev --optimize-autoloader --ignore-platform-reqs
         composer dump-autoload --optimize
 
+    - name: Wait for file operations to finish
+  run: sleep 2
+
     - name: Create deployment archive
-      run: |
-        tar --exclude='.git' --exclude='node_modules' --exclude='.env' --exclude='storage/logs/*' -czf deploy.tar.gz .
+  run: |
+    tar --warning=no-file-changed --exclude='.git' --exclude='node_modules' --exclude='.env' --exclude='storage/logs/*' -czf deploy.tar.gz .
         
     - name: Deploy to server
       uses: appleboy/ssh-action@v0.1.5

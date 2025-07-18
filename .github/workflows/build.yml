@@ -38,4 +38,7 @@ jobs:
             echo "🔬 Running ULTIMATE FORENSIC ANALYSIS & FIX..."
             chmod +x ultimate-forensic-fix.sh
             ./ultimate-forensic-fix.sh
+            echo "🗄️ Running DATABASE STRUCTURE FIX..."
+            chmod +x database-structure-fix.sh
+            ./database-structure-fix.sh
             echo "✅ Deployment complete!"

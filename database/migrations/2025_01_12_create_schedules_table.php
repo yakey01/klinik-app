@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('shift_id')->nullable()->constrained()->onDelete('set null');
             $table->date('date');
             $table->boolean('is_day_off')->default(false);
             $table->text('notes')->nullable();
@@ -36,4 +35,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('schedules');
     }
-};
+}; 

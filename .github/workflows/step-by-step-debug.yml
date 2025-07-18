@@ -1,0 +1,269 @@
+name: Step by Step Debug 403
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-403:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🔍 Step 1 - Basic Server Info
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🔍 STEP 1: BASIC SERVER INFO"
+            echo "============================"
+            echo "Current user: $(whoami)"
+            echo "Current directory: $(pwd)"
+            echo "Home directory: $HOME"
+            echo "Server hostname: $(hostname)"
+            echo "Date: $(date)"
+            echo ""
+            
+      - name: 🏠 Step 2 - Home Directory Structure
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🏠 STEP 2: HOME DIRECTORY STRUCTURE"
+            echo "==================================="
+            echo "Home directory contents:"
+            ls -la ~/
+            echo ""
+            echo "Looking for public_html variants..."
+            ls -la ~/ | grep -i public || echo "No public directories found"
+            ls -la ~/ | grep -i html || echo "No html directories found"
+            ls -la ~/ | grep -i www || echo "No www directories found"
+            echo ""
+            
+      - name: 📁 Step 3 - Check All Possible Web Directories
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "📁 STEP 3: CHECK ALL POSSIBLE WEB DIRECTORIES"
+            echo "=============================================="
+            
+            # Check ~/public_html
+            echo "1. Checking ~/public_html:"
+            if [ -d "~/public_html" ]; then
+                echo "✅ ~/public_html EXISTS"
+                echo "Contents:"
+                ls -la ~/public_html
+                echo "File count: $(ls -1 ~/public_html | wc -l)"
+            else
+                echo "❌ ~/public_html DOES NOT EXIST"
+            fi
+            echo ""
+            
+            # Check ~/domains/dokterkuklinik.com/public_html
+            echo "2. Checking ~/domains/dokterkuklinik.com/public_html:"
+            if [ -d "~/domains/dokterkuklinik.com/public_html" ]; then
+                echo "✅ ~/domains/dokterkuklinik.com/public_html EXISTS"
+                echo "Contents:"
+                ls -la ~/domains/dokterkuklinik.com/public_html
+                echo "File count: $(ls -1 ~/domains/dokterkuklinik.com/public_html | wc -l)"
+            else
+                echo "❌ ~/domains/dokterkuklinik.com/public_html DOES NOT EXIST"
+            fi
+            echo ""
+            
+            # Check ~/htdocs
+            echo "3. Checking ~/htdocs:"
+            if [ -d "~/htdocs" ]; then
+                echo "✅ ~/htdocs EXISTS"
+                ls -la ~/htdocs
+            else
+                echo "❌ ~/htdocs DOES NOT EXIST"
+            fi
+            echo ""
+            
+            # Check ~/www
+            echo "4. Checking ~/www:"
+            if [ -d "~/www" ]; then
+                echo "✅ ~/www EXISTS"
+                ls -la ~/www
+            else
+                echo "❌ ~/www DOES NOT EXIST"
+            fi
+            echo ""
+            
+      - name: 🔎 Step 4 - Find Laravel Files
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🔎 STEP 4: FIND LARAVEL FILES"
+            echo "============================="
+            
+            echo "Looking for 'artisan' files (Laravel indicator):"
+            find ~ -name "artisan" -type f 2>/dev/null || echo "No artisan files found"
+            echo ""
+            
+            echo "Looking for 'composer.json' files:"
+            find ~ -name "composer.json" -type f 2>/dev/null || echo "No composer.json files found"
+            echo ""
+            
+            echo "Looking for 'index.php' files:"
+            find ~ -name "index.php" -type f 2>/dev/null || echo "No index.php files found"
+            echo ""
+            
+      - name: 🌐 Step 5 - Test Simple PHP File
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🌐 STEP 5: TEST SIMPLE PHP FILE"
+            echo "==============================="
+            
+            # Create test PHP file in ~/public_html
+            echo "Creating test.php in ~/public_html..."
+            mkdir -p ~/public_html
+            cat > ~/public_html/test.php << 'EOF'
+<?php
+echo "PHP is working!\n";
+echo "Date: " . date('Y-m-d H:i:s') . "\n";
+echo "Document root: " . $_SERVER['DOCUMENT_ROOT'] . "\n";
+echo "Server name: " . $_SERVER['SERVER_NAME'] . "\n";
+echo "Current directory: " . getcwd() . "\n";
+echo "File exists check:\n";
+echo "- artisan: " . (file_exists('artisan') ? 'YES' : 'NO') . "\n";
+echo "- composer.json: " . (file_exists('composer.json') ? 'YES' : 'NO') . "\n";
+echo "- .env: " . (file_exists('.env') ? 'YES' : 'NO') . "\n";
+phpinfo();
+EOF
+            
+            echo "✅ test.php created"
+            
+            # Test PHP execution
+            echo "Testing PHP execution:"
+            php ~/public_html/test.php
+            echo ""
+            
+      - name: 🔧 Step 6 - Check File Permissions
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🔧 STEP 6: CHECK FILE PERMISSIONS"
+            echo "================================="
+            
+            echo "~/public_html directory permissions:"
+            ls -ld ~/public_html
+            echo ""
+            
+            echo "~/public_html contents permissions:"
+            ls -la ~/public_html
+            echo ""
+            
+            echo "Checking for .htaccess:"
+            if [ -f "~/public_html/.htaccess" ]; then
+                echo "✅ .htaccess exists"
+                echo "Content:"
+                cat ~/public_html/.htaccess
+            else
+                echo "❌ .htaccess missing"
+            fi
+            echo ""
+            
+      - name: 📋 Step 7 - Create Basic Website Structure
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "📋 STEP 7: CREATE BASIC WEBSITE STRUCTURE"
+            echo "=========================================="
+            
+            cd ~/public_html
+            
+            # Create basic index.html
+            echo "Creating basic index.html..."
+            cat > index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dokterku - Test Page</title>
+</head>
+<body>
+    <h1>Dokterku Website</h1>
+    <p>This is a test page to verify the website is working.</p>
+    <p>Date: <?php echo date('Y-m-d H:i:s'); ?></p>
+    <p><a href="test.php">Test PHP</a></p>
+</body>
+</html>
+EOF
+            
+            # Create basic .htaccess
+            echo "Creating basic .htaccess..."
+            cat > .htaccess << 'EOF'
+DirectoryIndex index.html index.php
+Options -Indexes
+<Files ~ "^\.">
+    Order allow,deny
+    Deny from all
+</Files>
+EOF
+            
+            # Set basic permissions
+            echo "Setting basic permissions..."
+            chmod 644 index.html test.php .htaccess
+            chmod 755 .
+            
+            echo "✅ Basic website structure created"
+            
+            echo ""
+            echo "Final directory structure:"
+            ls -la ~/public_html
+            echo ""
+            
+      - name: 📊 Step 8 - Summary and Next Steps
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "📊 STEP 8: SUMMARY AND NEXT STEPS"
+            echo "=================================="
+            
+            echo "🌐 Test URLs to check:"
+            echo "1. https://dokterkuklinik.com/"
+            echo "2. https://dokterkuklinik.com/index.html"
+            echo "3. https://dokterkuklinik.com/test.php"
+            echo ""
+            
+            echo "🔍 What to look for:"
+            echo "- If index.html loads: Website is working, issue is with Laravel"
+            echo "- If test.php loads: PHP is working, issue is with Laravel setup"
+            echo "- If still 403: Issue is with server configuration"
+            echo ""
+            
+            echo "📋 Next steps based on results:"
+            echo "1. If basic HTML works but Laravel doesn't: Deploy Laravel files properly"
+            echo "2. If PHP works: Check Laravel configuration"
+            echo "3. If still 403: Check Hostinger control panel document root settings"
+            echo ""
+            
+            echo "🎯 FILES CREATED FOR TESTING:"
+            echo "- ~/public_html/index.html (basic HTML page)"
+            echo "- ~/public_html/test.php (PHP test page)"
+            echo "- ~/public_html/.htaccess (basic Apache config)"
+            echo ""
+            
+            echo "✅ STEP-BY-STEP DEBUG COMPLETED!"

@@ -54,7 +54,7 @@ class TindakanResource extends Resource
                             ->required()
                             ->relationship('jenisTindakan', 'nama', fn (Builder $query) => $query->where('is_active', true)->orderBy('nama'))
                             ->searchable()
-                            ->preload(false)
+                            ->preload()
                             ->placeholder('Pilih jenis tindakan')
                             ->getSearchResultsUsing(function (string $search): array {
                                 return JenisTindakan::where('nama', 'like', "%{$search}%")
@@ -101,7 +101,6 @@ class TindakanResource extends Resource
                             ->getSearchResultsUsing(function (string $search): array {
                                 return Pasien::where('nama', 'like', "%{$search}%")
                                     ->orWhere('no_rekam_medis', 'like', "%{$search}%")
-                                    ->where('input_by', auth()->id())
                                     ->orderBy('nama')
                                     ->limit(50)
                                     ->get()
@@ -131,7 +130,7 @@ class TindakanResource extends Resource
                             ->label('Dokter Pelaksana')
                             ->relationship('dokter', 'nama_lengkap')
                             ->searchable()
-                            ->preload(false)
+                            ->preload()
                             ->placeholder('Pilih dokter (opsional)')
                             ->getSearchResultsUsing(function (string $search): array {
                                 return \App\Models\Dokter::where('nama_lengkap', 'like', "%{$search}%")
@@ -172,7 +171,7 @@ class TindakanResource extends Resource
                             ->label('Paramedis Pelaksana')
                             ->relationship('paramedis', 'nama_lengkap')
                             ->searchable()
-                            ->preload(false)
+                            ->preload()
                             ->placeholder('Pilih paramedis (opsional)')
                             ->getSearchResultsUsing(function (string $search): array {
                                 return \App\Models\Pegawai::where('nama_lengkap', 'like', "%{$search}%")
@@ -211,7 +210,7 @@ class TindakanResource extends Resource
                             ->label('Non-Paramedis Pelaksana')
                             ->relationship('nonParamedis', 'nama_lengkap')
                             ->searchable()
-                            ->preload(false)
+                            ->preload()
                             ->placeholder('Pilih non-paramedis (opsional)')
                             ->getSearchResultsUsing(function (string $search): array {
                                 return \App\Models\Pegawai::where('nama_lengkap', 'like', "%{$search}%")

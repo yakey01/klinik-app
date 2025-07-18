@@ -40,10 +40,13 @@ class BendaharaPanelProvider extends PanelProvider
                 \App\Filament\Bendahara\Pages\BendaharaDashboard::class,
             ])
             ->resources([
-                // Validasi Transaksi Group
-                \App\Filament\Bendahara\Resources\ValidasiPendapatanResource::class,
-                \App\Filament\Bendahara\Resources\ValidasiPengeluaranResource::class,
-                \App\Filament\Bendahara\Resources\ValidasiTindakanResource::class,
+                // NEW: Unified Validation Centers (World-Class)
+                \App\Filament\Bendahara\Resources\ValidationCenterResource::class,
+                \App\Filament\Bendahara\Resources\UnifiedFinancialValidationResource::class,
+                
+                // Legacy Financial Management (can be deprecated)
+                // \App\Filament\Bendahara\Resources\ValidasiPendapatanResource::class,
+                // \App\Filament\Bendahara\Resources\ValidasiPengeluaranResource::class,
                 
                 // Manajemen Jaspel Group
                 \App\Filament\Bendahara\Resources\ValidasiJaspelResource::class,
@@ -61,6 +64,7 @@ class BendaharaPanelProvider extends PanelProvider
             ])
             ->widgets([
                 \Filament\Widgets\AccountWidget::class,
+                \App\Filament\Bendahara\Widgets\ValidationMetricsWidget::class,
                 \App\Filament\Bendahara\Widgets\InteractiveDashboardWidget::class,
                 \App\Filament\Bendahara\Widgets\BudgetTrackingWidget::class,
                 \App\Filament\Bendahara\Widgets\LanguageSwitcherWidget::class,

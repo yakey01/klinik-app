@@ -15,11 +15,13 @@ class ValidasiTindakanResource extends Resource
 {
     protected static ?string $model = Tindakan::class;
 
-    protected static ?string $navigationIcon = null;
+    protected static ?string $navigationIcon = 'heroicon-o-clock';
     
-    protected static ?string $navigationLabel = 'Validasi Tindakan';
+    protected static ?string $navigationLabel = 'Validasi Pending';
     
     protected static ?string $navigationGroup = 'Validasi Transaksi';
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -71,23 +73,30 @@ class ValidasiTindakanResource extends Resource
                     ->money('IDR')
                     ->sortable(),
                     
-                Tables\Columns\TextColumn::make('status')
-                    ->label('Status')
+                Tables\Columns\TextColumn::make('status_validasi')
+                    ->label('Status Validasi')
+                    ->badge()
                     ->colors([
                         'warning' => 'pending',
                         'success' => 'approved',
                         'danger' => 'rejected',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'pending' => 'Menunggu Validasi',
+                        'approved' => 'Disetujui',
+                        'rejected' => 'Ditolak',
+                        default => ucfirst($state),
+                    }),
                     
-                Tables\Columns\TextColumn::make('user.name')
+                Tables\Columns\TextColumn::make('inputBy.name')
                     ->label('Input Oleh')
                     ->searchable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
-                    ->label('Status')
+                Tables\Filters\SelectFilter::make('status_validasi')
+                    ->label('Status Validasi')
                     ->options([
-                        'pending' => 'Pending',
+                        'pending' => 'Menunggu Validasi',
                         'approved' => 'Disetujui',
                         'rejected' => 'Ditolak',
                     ]),
@@ -101,7 +110,8 @@ class ValidasiTindakanResource extends Resource
                         ->action(function (Tindakan $record) {
                             try {
                                 $record->update([
-                                    'status' => 'approved',
+                                    'status_validasi' => 'approved',
+                                    'status' => 'selesai',
                                     'validated_by' => auth()->id(),
                                     'validated_at' => now(),
                                 ]);
@@ -117,7 +127,7 @@ class ValidasiTindakanResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn (Tindakan $record) => $record->status === 'pending'),
+                        ->visible(fn (Tindakan $record) => $record->status_validasi === 'pending'),
                         
                     Action::make('tolak')
                         ->label('❌ Tolak')
@@ -126,7 +136,8 @@ class ValidasiTindakanResource extends Resource
                         ->action(function (Tindakan $record) {
                             try {
                                 $record->update([
-                                    'status' => 'rejected',
+                                    'status_validasi' => 'rejected',
+                                    'status' => 'batal',
                                     'validated_by' => auth()->id(),
                                     'validated_at' => now(),
                                 ]);
@@ -142,7 +153,7 @@ class ValidasiTindakanResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn (Tindakan $record) => $record->status === 'pending'),
+                        ->visible(fn (Tindakan $record) => $record->status_validasi === 'pending'),
                         
                     Tables\Actions\ViewAction::make()->label('👁️ Lihat'),
                     Tables\Actions\EditAction::make()->label('✏️ Edit'),
@@ -176,5 +187,15 @@ class ValidasiTindakanResource extends Resource
         return [
             'index' => \App\Filament\Bendahara\Resources\ValidasiTindakanResource\Pages\ListValidasiTindakan::route('/'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('status_validasi', 'pending')->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
     }
 }

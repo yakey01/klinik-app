@@ -59,7 +59,7 @@ class PreventDuplicateAccounts implements ValidationRule
                 }
                 
                 // If different role but critical roles, still flag it
-                $criticalRoles = ['petugas', 'bendahara', 'pegawai'];
+                $criticalRoles = ['petugas', 'bendahara', 'paramedis'];
                 if (in_array($role->name, $criticalRoles) && 
                     $user->role && in_array($user->role->name, $criticalRoles)) {
                     $fail("Peringatan: Nama '{$name}' sangat mirip dengan user existing '{$user->name}' (role: {$user->role->display_name}). Pastikan ini bukan akun duplikat untuk orang yang sama.");

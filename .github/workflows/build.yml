@@ -32,7 +32,7 @@ jobs:
             cd domains/dokterkuklinik.com/public_html
             echo "🔧 Starting deployment..."
             git pull origin main
-            echo "🔧 Running comprehensive server fix..."
-            chmod +x fix-server.sh
-            ./fix-server.sh
+            echo "🎯 Running FINAL TARGETED FIX for specific errors..."
+            chmod +x final-targeted-fix.sh
+            ./final-targeted-fix.sh
             echo "✅ Deployment complete!"

@@ -48,12 +48,25 @@ jobs:
             echo "📥 Pulling latest changes..."
             git pull origin main
             
-            echo "🔧 Running PHP compatibility fix..."
-            chmod +x scripts/fix-php-compatibility.sh
-            ./scripts/fix-php-compatibility.sh
+            echo "📦 Installing dependencies without scripts..."
+            composer install --no-dev --ignore-platform-reqs --no-scripts --optimize-autoloader
+            
+            echo "🔧 Running Laravel setup manually..."
+            php artisan package:discover --ansi
+            php artisan filament:upgrade
             
             echo "🗄️ Running database migrations..."
             php artisan migrate --force
+            
+            echo "🧹 Clearing all caches..."
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan view:clear
+            php artisan route:clear
+            
+            echo "🔐 Setting permissions..."
+            chmod -R 755 storage bootstrap/cache
+            chown -R www-data:www-data storage bootstrap/cache
             
             echo "✅ Deployment completed successfully!"
             echo "🌐 Your application is now live at: https://dokterkuklinik.com"

@@ -8,6 +8,9 @@ cd domains/dokterkuklinik.com/public_html
 echo "📥 Pulling latest changes..."
 git pull origin main
 
+echo "📦 Updating composer..."
+composer self-update --no-interaction
+
 echo "📦 Installing composer dependencies..."
 composer install --no-dev --ignore-platform-reqs --optimize-autoloader
 

@@ -31,6 +31,7 @@ jobs:
           script: |
             cd domains/dokterkuklinik.com/public_html
             git pull origin main
+            composer self-update --no-interaction
             composer install --no-dev --ignore-platform-reqs --optimize-autoloader
             composer dump-autoload --optimize
             php artisan package:discover --ansi

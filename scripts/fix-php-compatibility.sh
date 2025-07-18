@@ -22,6 +22,11 @@ EOF
 echo "📦 Installing dependencies with platform requirements ignored..."
 composer install --no-dev --ignore-platform-reqs --optimize-autoloader --no-scripts
 
+# Run artisan commands manually (since post-autoload-dump is disabled)
+echo "🔧 Running Laravel artisan commands..."
+php artisan package:discover --ansi
+php artisan filament:upgrade
+
 # Clear all caches
 echo "🧹 Clearing all caches..."
 php artisan config:clear

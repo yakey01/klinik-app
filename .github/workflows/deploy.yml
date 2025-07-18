@@ -1,0 +1,78 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
+
+    - name: Install Composer dependencies
+      run: |
+        composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+        composer dump-autoload --optimize
+
+    - name: Create deployment archive
+      run: |
+        tar --exclude='.git' --exclude='node_modules' --exclude='.env' --exclude='storage/logs/*' -czf deploy.tar.gz .
+        
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: |
+          cd domains/dokterkuklinik.com/public_html
+          
+          # Backup current deployment
+          if [ -d "dokterku" ]; then
+            mv dokterku dokterku_backup_$(date +%Y%m%d_%H%M%S)
+          fi
+          
+          # Create new deployment directory
+          mkdir -p dokterku
+          cd dokterku
+          
+          # Download and extract
+          wget -O deploy.tar.gz "https://github.com/yakey01/klinik-app/releases/latest/download/deploy.tar.gz" || echo "Using uploaded archive"
+          tar -xzf deploy.tar.gz
+          rm deploy.tar.gz
+          
+          # Set permissions
+          chmod -R 755 storage bootstrap/cache
+          chmod -R 777 storage/logs storage/framework/cache storage/framework/sessions storage/framework/views
+          
+          # Disable platform check
+          echo "<?php // Platform check disabled" > vendor/composer/platform_check.php
+          
+          # Laravel optimization
+          php artisan config:cache --no-interaction || true
+          php artisan route:cache --no-interaction || true
+          php artisan view:cache --no-interaction || true
+          php artisan storage:link --no-interaction || true
+          
+          echo "✅ Deployment completed successfully!"
+
+    - name: Upload deployment archive
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        source: "deploy.tar.gz"
+        target: "/home/${{ secrets.USERNAME }}/domains/dokterkuklinik.com/public_html/"

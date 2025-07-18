@@ -23,7 +23,7 @@ class ValidationCenterResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
     
-    protected static ?string $navigationLabel = 'Validation Center';
+    protected static ?string $navigationLabel = 'Validasi Tindakan';
     
     protected static ?string $navigationGroup = 'Validasi Transaksi';
 

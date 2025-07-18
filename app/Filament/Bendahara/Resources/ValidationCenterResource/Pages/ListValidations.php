@@ -20,28 +20,28 @@ class ListValidations extends ListRecords
     {
         return [
             Action::make('validation_statistics')
-                ->label('📊 Statistics')
+                ->label('📊 Statistik')
                 ->icon('heroicon-o-chart-bar-square')
                 ->color('info')
-                ->modalHeading('📊 Validation Statistics')
+                ->modalHeading('📊 Statistik Validasi')
                 ->modalContent(view('filament.bendahara.validation-stats', [
                     'stats' => $this->getValidationStats()
                 ]))
                 ->modalWidth('3xl'),
                 
             Action::make('quick_actions')
-                ->label('⚡ Quick Actions')
+                ->label('⚡ Aksi Cepat')
                 ->icon('heroicon-o-bolt')
                 ->color('warning')
-                ->modalHeading('⚡ Quick Validation Actions')
-                ->modalDescription('Perform batch operations on pending validations')
+                ->modalHeading('⚡ Aksi Validasi Cepat')
+                ->modalDescription('Lakukan operasi batch pada validasi yang tertunda')
                 ->form([
                     Forms\Components\Select::make('action_type')
-                        ->label('Action Type')
+                        ->label('Jenis Aksi')
                         ->options([
-                            'approve_low_value' => 'Auto-approve all < 100K',
-                            'approve_routine' => 'Auto-approve routine procedures',
-                            'flag_high_value' => 'Flag high value items (>1M)',
+                            'approve_low_value' => 'Setujui otomatis < 100K',
+                            'approve_routine' => 'Setujui prosedur rutin',
+                            'flag_high_value' => 'Tandai nilai tinggi (>1M)',
                         ])
                         ->required(),
                 ])
@@ -50,12 +50,12 @@ class ListValidations extends ListRecords
                 }),
                 
             Action::make('export_current_view')
-                ->label('📤 Export Current View')
+                ->label('📤 Ekspor Tampilan')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('success')
                 ->form([
                     Forms\Components\Select::make('export_format')
-                        ->label('Format')
+                        ->label('Format Ekspor')
                         ->options([
                             'xlsx' => 'Excel',
                             'csv' => 'CSV',
@@ -69,7 +69,7 @@ class ListValidations extends ListRecords
                 }),
                 
             Action::make('refresh')
-                ->label('🔄 Refresh')
+                ->label('🔄 Muat Ulang')
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->action(fn () => redirect(request()->header('Referer'))),
@@ -114,7 +114,7 @@ class ListValidations extends ListRecords
 
     public function getTitle(): string
     {
-        return '🛡️ Validation Center';
+        return '🛡️ Pusat Validasi Tindakan';
     }
 
     public function getSubheading(): ?string

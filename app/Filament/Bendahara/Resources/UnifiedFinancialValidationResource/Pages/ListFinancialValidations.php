@@ -10,6 +10,7 @@ use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
@@ -20,97 +21,130 @@ class ListFinancialValidations extends ListRecords
 
     protected $activeFinancialTab = 'pendapatan'; // Track which financial model is active
 
+    public function mount(): void
+    {
+        parent::mount();
+        
+        // Only update session if activeTab is explicitly passed in URL
+        if (request()->has('activeTab')) {
+            session(['financial_validation_active_tab' => request()->get('activeTab')]);
+        }
+        
+        // Get the active tab from session or default to pendapatan
+        $this->activeFinancialTab = session('financial_validation_active_tab', 'pendapatan');
+    }
+
+    protected function getActiveTab(): string
+    {
+        return $this->activeFinancialTab;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
+            // Model switch buttons (only show when needed)
             Action::make('switch_to_pendapatan')
-                ->label('💰 View Income')
+                ->label('Penerimaan')
                 ->icon('heroicon-o-plus-circle')
                 ->color('success')
+                ->tooltip('Beralih ke Validasi Penerimaan')
+                ->size('sm')
                 ->url(fn () => static::getResource()::getUrl('index', ['activeTab' => 'pendapatan']))
-                ->visible(fn () => request()->get('activeTab', 'pendapatan') !== 'pendapatan'),
+                ->visible(fn () => $this->getActiveTab() !== 'pendapatan'),
                 
             Action::make('switch_to_pengeluaran')
-                ->label('💸 View Expenses')
+                ->label('Pengeluaran')
                 ->icon('heroicon-o-minus-circle')
                 ->color('danger')
+                ->tooltip('Beralih ke Validasi Pengeluaran')
+                ->size('sm')
                 ->url(fn () => static::getResource()::getUrl('index', ['activeTab' => 'pengeluaran']))
-                ->visible(fn () => request()->get('activeTab', 'pendapatan') !== 'pengeluaran'),
+                ->visible(fn () => $this->getActiveTab() !== 'pengeluaran'),
                 
-            Action::make('financial_statistics')
-                ->label('📊 Financial Statistics')
-                ->icon('heroicon-o-chart-bar-square')
-                ->color('info')
-                ->modalHeading('📊 Financial Validation Statistics')
-                ->modalContent(view('filament.bendahara.financial-validation-stats', [
-                    'stats' => $this->getFinancialStats()
-                ]))
-                ->modalWidth('4xl'),
-                
-            Action::make('quick_actions')
-                ->label('⚡ Quick Actions')
-                ->icon('heroicon-o-bolt')
-                ->color('warning')
-                ->modalHeading('⚡ Quick Financial Validation Actions')
-                ->modalDescription('Perform batch operations on pending validations')
-                ->form([
-                    Forms\Components\Select::make('transaction_type')
-                        ->label('Transaction Type')
-                        ->options([
-                            'pendapatan' => 'Pendapatan (Income)',
-                            'pengeluaran' => 'Pengeluaran (Expenses)',
-                            'both' => 'Both Types',
-                        ])
-                        ->default($this->activeFinancialTab)
-                        ->required(),
-                        
-                    Forms\Components\Select::make('action_type')
-                        ->label('Action Type')
-                        ->options([
-                            'approve_low_value' => 'Auto-approve all < 500K',
-                            'approve_routine' => 'Auto-approve routine transactions',
-                            'flag_high_value' => 'Flag high value items (>5M)',
-                            'categorize_by_amount' => 'Auto-categorize by amount ranges',
-                        ])
-                        ->required(),
-                ])
-                ->action(function (array $data) {
-                    $this->performQuickFinancialAction($data['transaction_type'], $data['action_type']);
-                }),
-                
-            Action::make('export_current_view')
-                ->label('📤 Export Current View')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('success')
-                ->form([
-                    Forms\Components\Select::make('export_format')
-                        ->label('Format')
-                        ->options([
-                            'xlsx' => 'Excel (.xlsx)',
-                            'csv' => 'CSV (.csv)',
-                            'pdf' => 'Financial Report PDF'
-                        ])
-                        ->default('xlsx')
-                        ->required(),
-                        
-                    Forms\Components\Select::make('export_scope')
-                        ->label('Export Scope')
-                        ->options([
-                            'current_tab' => 'Current Tab Only',
-                            'both_types' => 'Both Income & Expenses',
-                            'pending_only' => 'Pending Validations Only',
-                        ])
-                        ->default('current_tab')
-                        ->required(),
-                ])
-                ->action(function (array $data) {
-                    $this->exportFinancialView($data['export_format'], $data['export_scope']);
-                }),
-                
+            // Action group for quick access
+            Actions\ActionGroup::make([
+                Action::make('financial_statistics')
+                    ->label('Statistik')
+                    ->icon('heroicon-o-chart-bar-square')
+                    ->color('info')
+                    ->modalHeading('📊 Statistik Validasi Keuangan')
+                    ->modalContent(view('filament.bendahara.financial-validation-stats', [
+                        'stats' => $this->getFinancialStats()
+                    ]))
+                    ->modalWidth('4xl'),
+                    
+                Action::make('quick_actions')
+                    ->label('Aksi Cepat')
+                    ->icon('heroicon-o-bolt')
+                    ->color('warning')
+                    ->modalHeading('⚡ Aksi Validasi Keuangan Cepat')
+                    ->modalDescription('Lakukan operasi batch pada validasi yang tertunda')
+                    ->form([
+                        Forms\Components\Select::make('transaction_type')
+                            ->label('Jenis Transaksi')
+                            ->options([
+                                'pendapatan' => 'Penerimaan',
+                                'pengeluaran' => 'Pengeluaran', 
+                                'both' => 'Keduanya',
+                            ])
+                            ->default($this->getActiveTab())
+                            ->required(),
+                            
+                        Forms\Components\Select::make('action_type')
+                            ->label('Jenis Aksi')
+                            ->options([
+                                'approve_low_value' => 'Setujui otomatis < 500K',
+                                'approve_routine' => 'Setujui transaksi rutin',
+                                'flag_high_value' => 'Tandai nilai tinggi (>5M)',
+                                'categorize_by_amount' => 'Kategorisasi otomatis berdasarkan jumlah',
+                            ])
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        $this->performQuickFinancialAction($data['transaction_type'], $data['action_type']);
+                    }),
+                    
+                Action::make('export_current_view')
+                    ->label('Ekspor')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->form([
+                        Forms\Components\Select::make('export_format')
+                            ->label('Format Ekspor')
+                            ->options([
+                                'xlsx' => 'Excel (.xlsx)',
+                                'csv' => 'CSV (.csv)',
+                                'pdf' => 'Financial Report PDF'
+                            ])
+                            ->default('xlsx')
+                            ->required(),
+                            
+                        Forms\Components\Select::make('export_scope')
+                            ->label('Cakupan Ekspor')
+                            ->options([
+                                'current_tab' => 'Tab Aktif Saja',
+                                'both_types' => 'Penerimaan & Pengeluaran',
+                                'pending_only' => 'Hanya Yang Pending',
+                            ])
+                            ->default('current_tab')
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        $this->exportFinancialView($data['export_format'], $data['export_scope']);
+                    }),
+            ])
+            ->label('Aksi')
+            ->icon('heroicon-o-ellipsis-vertical')
+            ->size('sm')
+            ->color('gray')
+            ->button(),
+            
+            // Refresh button - standalone icon
             Action::make('refresh')
-                ->label('🔄 Refresh')
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
+                ->size('sm')
+                ->tooltip('Muat Ulang')
                 ->action(fn () => redirect(request()->header('Referer'))),
         ];
     }
@@ -118,41 +152,41 @@ class ListFinancialValidations extends ListRecords
     public function getTabs(): array
     {
         $stats = $this->getFinancialStats();
-        $activeTab = request()->get('activeTab', 'pendapatan');
+        $activeTab = $this->getActiveTab();
         $currentStats = $activeTab === 'pengeluaran' ? $stats['pengeluaran'] : $stats['pendapatan'];
         
         return [
             // Status-based filtering tabs
-            'all' => Tab::make('All Records')
+            'all' => Tab::make('Semua Data')
                 ->badge($currentStats['total'])
                 ->badgeColor('gray'),
                 
-            'pending' => Tab::make('🕐 Pending')
+            'pending' => Tab::make('🕐 Tertunda')
                 ->badge($currentStats['pending'])
                 ->badgeColor('warning')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status_validasi', 'pending')),
                 
-            'approved' => Tab::make('✅ Approved')
+            'approved' => Tab::make('✅ Disetujui')
                 ->badge($currentStats['approved'])
                 ->badgeColor('success')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status_validasi', 'disetujui')),
                 
-            'rejected' => Tab::make('❌ Rejected')
+            'rejected' => Tab::make('❌ Ditolak')
                 ->badge($currentStats['rejected'])
                 ->badgeColor('danger')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status_validasi', 'ditolak')),
                 
-            'revision' => Tab::make('📝 Need Revision')
+            'revision' => Tab::make('📝 Perlu Revisi')
                 ->badge($currentStats['revision'])
                 ->badgeColor('info')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status_validasi', 'need_revision')),
                 
-            'today' => Tab::make('📅 Today')
+            'today' => Tab::make('📅 Hari Ini')
                 ->badge($currentStats['today'])
                 ->badgeColor('purple')
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereDate('tanggal', today())),
                 
-            'high_value' => Tab::make('💎 High Value')
+            'high_value' => Tab::make('💎 Nilai Tinggi')
                 ->badge($currentStats['high_value'])
                 ->badgeColor('orange')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('nominal', '>', 5000000)),
@@ -163,28 +197,28 @@ class ListFinancialValidations extends ListRecords
     public function getSubheading(): ?string
     {
         $stats = $this->getFinancialStats();
-        $activeTab = request()->get('activeTab', 'pendapatan');
+        $activeTab = $this->getActiveTab();
         
         if ($activeTab === 'pengeluaran') {
             $currentStats = $stats['pengeluaran'];
-            return "Expenses: {$currentStats['total']} | Pending: {$currentStats['pending']} | Today: {$currentStats['today']}";
+            return "Pengeluaran: {$currentStats['total']} | Pending: {$currentStats['pending']} | Hari Ini: {$currentStats['today']}";
         } else {
             $currentStats = $stats['pendapatan'];
-            return "Income: {$currentStats['total']} | Pending: {$currentStats['pending']} | Today: {$currentStats['today']}";
+            return "Penerimaan: {$currentStats['total']} | Pending: {$currentStats['pending']} | Hari Ini: {$currentStats['today']}";
         }
     }
 
     protected function getHeaderWidgets(): array
     {
         return [
-            \App\Filament\Bendahara\Widgets\FinancialValidationMetricsWidget::class,
+            \App\Filament\Bendahara\Widgets\FinancialOverviewWidget::class,
         ];
     }
 
     // Override the table query to handle model switching
     protected function getTableQuery(): Builder
     {
-        $activeTab = request()->get('activeTab', 'pendapatan');
+        $activeTab = $this->getActiveTab();
         
         if ($activeTab === 'pengeluaran') {
             return Pengeluaran::query()
@@ -199,9 +233,9 @@ class ListFinancialValidations extends ListRecords
 
     public function getTitle(): string
     {
-        $activeTab = request()->get('activeTab', 'pendapatan');
-        $type = $activeTab === 'pengeluaran' ? 'Expense' : 'Income';
-        return "🏦 Financial Validation Center - {$type}";
+        $activeTab = $this->getActiveTab();
+        $type = $activeTab === 'pengeluaran' ? 'Pengeluaran' : 'Penerimaan';
+        return "🏦 Pusat Validasi Keuangan - {$type}";
     }
 
     private function getFinancialStats(): array

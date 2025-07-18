@@ -65,6 +65,7 @@ class BendaharaPanelProvider extends PanelProvider
             ->widgets([
                 \Filament\Widgets\AccountWidget::class,
                 \App\Filament\Bendahara\Widgets\ValidationMetricsWidget::class,
+                \App\Filament\Bendahara\Widgets\FinancialOverviewWidget::class,
                 \App\Filament\Bendahara\Widgets\InteractiveDashboardWidget::class,
                 \App\Filament\Bendahara\Widgets\BudgetTrackingWidget::class,
                 \App\Filament\Bendahara\Widgets\LanguageSwitcherWidget::class,

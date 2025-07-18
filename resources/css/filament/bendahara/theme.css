@@ -322,3 +322,194 @@
     background: rgba(31, 41, 55, 0.95);
     border-color: rgba(75, 85, 99, 0.3);
 }
+
+/* Modal and Action Styling - Enhanced for Financial Validation Center */
+[data-filament-panel-id="bendahara"] .fi-modal {
+    backdrop-filter: blur(8px);
+}
+
+[data-filament-panel-id="bendahara"] .fi-modal-content {
+    border-radius: 0.875rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Action Group Styling - Fix for Header Actions */
+[data-filament-panel-id="bendahara"] .fi-ac-grouped-action {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(229, 231, 235, 0.5);
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+[data-filament-panel-id="bendahara"] .fi-ac-grouped-action:hover {
+    background: rgba(251, 189, 35, 0.1);
+    border-color: var(--panel-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Action Button Variants */
+[data-filament-panel-id="bendahara"] .fi-btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    color: white;
+}
+
+[data-filament-panel-id="bendahara"] .fi-btn-success:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+}
+
+[data-filament-panel-id="bendahara"] .fi-btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border: none;
+    color: white;
+}
+
+[data-filament-panel-id="bendahara"] .fi-btn-danger:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+}
+
+[data-filament-panel-id="bendahara"] .fi-btn-info {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    color: white;
+}
+
+[data-filament-panel-id="bendahara"] .fi-btn-info:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-1px);
+}
+
+[data-filament-panel-id="bendahara"] .fi-btn-gray {
+    background: rgba(107, 114, 128, 0.1);
+    border: 1px solid rgba(107, 114, 128, 0.2);
+    color: rgb(107, 114, 128);
+}
+
+[data-filament-panel-id="bendahara"] .fi-btn-gray:hover {
+    background: rgba(107, 114, 128, 0.15);
+    border-color: rgb(107, 114, 128);
+}
+
+/* Tab Styling - For Financial Validation Center */
+[data-filament-panel-id="bendahara"] .fi-tabs {
+    border-bottom: 2px solid rgba(229, 231, 235, 0.5);
+    margin-bottom: 1.5rem;
+}
+
+[data-filament-panel-id="bendahara"] .fi-tabs-item {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+}
+
+[data-filament-panel-id="bendahara"] .fi-tabs-item:hover {
+    background: rgba(251, 189, 35, 0.1);
+}
+
+[data-filament-panel-id="bendahara"] .fi-tabs-item.fi-active {
+    background: rgba(251, 189, 35, 0.15);
+    border-bottom-color: var(--panel-primary);
+    color: var(--panel-primary-dark);
+    font-weight: 600;
+}
+
+/* Filter Styling - Enhanced */
+[data-filament-panel-id="bendahara"] .fi-ta-filters {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(229, 231, 235, 0.3);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    backdrop-filter: blur(10px);
+}
+
+[data-filament-panel-id="bendahara"] .fi-ta-filter {
+    margin-bottom: 0.75rem;
+}
+
+/* Summary Styling - For Financial Validation */
+[data-filament-panel-id="bendahara"] .fi-ta-summary {
+    background: rgba(251, 189, 35, 0.05);
+    border: 1px solid rgba(251, 189, 35, 0.1);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--panel-primary-dark);
+}
+
+/* Loading State Styling */
+[data-filament-panel-id="bendahara"] .fi-loading {
+    background: linear-gradient(90deg, 
+        rgba(251, 189, 35, 0.1) 0%, 
+        rgba(251, 189, 35, 0.2) 50%, 
+        rgba(251, 189, 35, 0.1) 100%);
+    background-size: 200% 100%;
+    animation: bendahara-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes bendahara-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Notification Styling */
+[data-filament-panel-id="bendahara"] .fi-no {
+    border-radius: 0.75rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+[data-filament-panel-id="bendahara"] .fi-no-success {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-filament-panel-id="bendahara"] .fi-no-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+[data-filament-panel-id="bendahara"] .fi-no-danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Enhanced Dark Mode for New Components */
+[data-filament-panel-id="bendahara"] .dark .fi-ac-grouped-action {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(75, 85, 99, 0.5);
+    color: rgba(229, 231, 235, 1);
+}
+
+[data-filament-panel-id="bendahara"] .dark .fi-ac-grouped-action:hover {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: var(--panel-primary);
+}
+
+[data-filament-panel-id="bendahara"] .dark .fi-ta-filters {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(75, 85, 99, 0.3);
+}
+
+[data-filament-panel-id="bendahara"] .dark .fi-tabs-item.fi-active {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--panel-primary-light);
+}
+
+[data-filament-panel-id="bendahara"] .dark .fi-ta-summary {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: var(--panel-primary-light);
+}

@@ -27,6 +27,7 @@ class ParamedisPanelProvider extends PanelProvider
         return $panel
             ->id('paramedis')
             ->path('paramedis')
+            ->viteTheme('resources/css/filament/paramedis-mobile.css')
             ->login(false)
             ->default(\App\Filament\Paramedis\Pages\ModernDashboard::class)
             ->brandName('👨‍⚕️ Dokterku - Paramedis')

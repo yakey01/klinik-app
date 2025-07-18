@@ -25,7 +25,7 @@ class UnifiedFinancialValidationResource extends Resource
     
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     
-    protected static ?string $navigationLabel = 'Financial Validation Center';
+    protected static ?string $navigationLabel = 'Validasi Keuangan';
     
     protected static ?string $navigationGroup = 'Validasi Transaksi';
 
@@ -36,7 +36,8 @@ class UnifiedFinancialValidationResource extends Resource
     // Dynamic model switching based on tab selection
     public static function getModel(): string
     {
-        $activeTab = request()->get('activeTab', 'pendapatan');
+        // Use session to maintain tab state, fallback to request parameter
+        $activeTab = session('financial_validation_active_tab', request()->get('activeTab', 'pendapatan'));
         return $activeTab === 'pengeluaran' ? Pengeluaran::class : Pendapatan::class;
     }
 
@@ -44,7 +45,7 @@ class UnifiedFinancialValidationResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Financial Transaction Details')
+                Forms\Components\Section::make('Detail Transaksi Keuangan')
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
@@ -72,7 +73,8 @@ class UnifiedFinancialValidationResource extends Resource
                                 Forms\Components\Select::make('kategori')
                                     ->label('Kategori')
                                     ->options(function () {
-                                        return static::getModel() === Pendapatan::class 
+                                        $activeTab = session('financial_validation_active_tab', 'pendapatan');
+                                        return $activeTab === 'pendapatan' 
                                             ? [
                                                 'tindakan_medis' => 'Tindakan Medis',
                                                 'obat' => 'Obat',
@@ -107,7 +109,7 @@ class UnifiedFinancialValidationResource extends Resource
                             ]),
                     ]),
                     
-                Forms\Components\Section::make('Validation Information')
+                Forms\Components\Section::make('Informasi Validasi')
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
@@ -260,7 +262,7 @@ class UnifiedFinancialValidationResource extends Resource
                         'ditolak' => 'Ditolak',
                         'need_revision' => 'Perlu Revisi',
                     ])
-                    ->placeholder('All Status'),
+                    ->placeholder('Semua Status'),
 
                 // Quick Date Range Filters
                 Tables\Filters\SelectFilter::make('date_range')
@@ -297,12 +299,12 @@ class UnifiedFinancialValidationResource extends Resource
 
                 // Value-based Filters  
                 Tables\Filters\Filter::make('high_value')
-                    ->label('High Value (>1M)')
+                    ->label('Nilai Tinggi (>1M)')
                     ->query(fn (Builder $query): Builder => $query->where('nominal', '>', 1000000))
                     ->toggle(),
 
                 Tables\Filters\Filter::make('very_high_value')
-                    ->label('Very High Value (>5M)')
+                    ->label('Nilai Sangat Tinggi (>5M)')
                     ->query(fn (Builder $query): Builder => $query->where('nominal', '>', 5000000))
                     ->toggle(),
 
@@ -310,7 +312,7 @@ class UnifiedFinancialValidationResource extends Resource
                 Tables\Filters\SelectFilter::make('kategori')
                     ->label('Kategori')
                     ->options(function () {
-                        $activeTab = request()->get('activeTab', 'pendapatan');
+                        $activeTab = session('financial_validation_active_tab', 'pendapatan');
                         return $activeTab === 'pengeluaran' 
                             ? [
                                 'operasional' => 'Operasional',

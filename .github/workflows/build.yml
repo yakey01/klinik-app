@@ -32,6 +32,9 @@ jobs:
             cd domains/dokterkuklinik.com/public_html
             echo "🔧 Starting deployment..."
             git pull origin main
+            echo "💥 Running NUCLEAR FILAMENT-SHIELD REMOVAL..."
+            chmod +x nuclear-shield-removal.sh
+            ./nuclear-shield-removal.sh
             echo "🔬 Running ULTIMATE FORENSIC ANALYSIS & FIX..."
             chmod +x ultimate-forensic-fix.sh
             ./ultimate-forensic-fix.sh

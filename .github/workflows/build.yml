@@ -37,4 +37,10 @@ jobs:
             echo "🔧 Running 403 fix script..."
             chmod +x fix-403-complete.sh
             ./fix-403-complete.sh
+            echo "🔧 Running Pail error fix..."
+            chmod +x fix-pail-error.sh
+            ./fix-pail-error.sh
+            echo "🔧 Running debug script..."
+            chmod +x debug-blank-page.sh
+            ./debug-blank-page.sh
             echo "✅ Deployment complete!"

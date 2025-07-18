@@ -32,7 +32,7 @@ jobs:
             cd domains/dokterkuklinik.com/public_html
             echo "🔧 Starting deployment..."
             git pull origin main
-            echo "☢️  Running NUCLEAR REBUILD..."
-            chmod +x nuclear-rebuild.sh
-            ./nuclear-rebuild.sh
+            echo "🔧 Running comprehensive server fix..."
+            chmod +x fix-server.sh
+            ./fix-server.sh
             echo "✅ Deployment complete!"

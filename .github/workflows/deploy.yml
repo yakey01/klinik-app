@@ -2,7 +2,7 @@ name: Deploy Laravel Healthcare App
 
   on:
     push:
-      branches: [ main ]
+      branches: [main]
     workflow_dispatch:
 
   jobs:
@@ -52,5 +52,5 @@ name: Deploy Laravel Healthcare App
       if: github.ref == 'refs/heads/main'
 
       steps:
-      - name: Deploy to server (Ready for hosting setup)
+      - name: Deploy ready
         run: echo "✅ Build successful - Ready for hosting deployment!"

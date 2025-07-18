@@ -96,53 +96,55 @@ class BendaharaStatsService
             $cacheKey = "bendahara_daily_stats_{$date->format('Y-m-d')}";
             
             return Cache::remember($cacheKey, now()->addMinutes($this->dailyStatsCacheMinutes), function () use ($date) {
-                // Optimized single query using raw SQL with subqueries
-                $results = DB::select("
-                    SELECT 
-                        COALESCE(pd.pendapatan_sum, 0) as pendapatan_sum,
-                        COALESCE(pd.pendapatan_approved, 0) as pendapatan_approved,
-                        COALESCE(pd.pendapatan_pending, 0) as pendapatan_pending,
-                        COALESCE(pg.pengeluaran_sum, 0) as pengeluaran_sum,
-                        COALESCE(pg.pengeluaran_approved, 0) as pengeluaran_approved,
-                        COALESCE(pg.pengeluaran_pending, 0) as pengeluaran_pending,
-                        COALESCE(t.tindakan_count, 0) as tindakan_count,
-                        COALESCE(t.tindakan_pending, 0) as tindakan_pending,
-                        COALESCE(j.jaspel_pending, 0) as jaspel_pending,
-                        (COALESCE(pd.pendapatan_approved, 0) - COALESCE(pg.pengeluaran_approved, 0)) as net_income
-                    FROM (
-                        SELECT 
-                            SUM(nominal) as pendapatan_sum,
-                            SUM(CASE WHEN status_validasi = 'disetujui' THEN nominal ELSE 0 END) as pendapatan_approved,
-                            SUM(CASE WHEN status_validasi = 'pending' THEN nominal ELSE 0 END) as pendapatan_pending
-                        FROM pendapatan_harian 
-                        WHERE tanggal_input = ?
-                    ) pd
-                    LEFT JOIN (
-                        SELECT 
-                            SUM(nominal) as pengeluaran_sum,
-                            SUM(CASE WHEN status_validasi = 'disetujui' THEN nominal ELSE 0 END) as pengeluaran_approved,
-                            SUM(CASE WHEN status_validasi = 'pending' THEN nominal ELSE 0 END) as pengeluaran_pending
-                        FROM pengeluaran_harian 
-                        WHERE tanggal_input = ?
-                    ) pg ON 1=1
-                    LEFT JOIN (
-                        SELECT 
-                            COUNT(*) as tindakan_count,
-                            COUNT(CASE WHEN status = 'pending' THEN 1 ELSE NULL END) as tindakan_pending
-                        FROM tindakan 
-                        WHERE DATE(tanggal_tindakan) = ?
-                    ) t ON 1=1
-                    LEFT JOIN (
-                        SELECT SUM(total_jaspel) as jaspel_pending
-                        FROM jaspel 
-                        WHERE DATE(created_at) = ? AND status_pembayaran != 'paid'
-                    ) j ON 1=1
-                ", [
-                    $date->format('Y-m-d'),
-                    $date->format('Y-m-d'),
-                    $date->format('Y-m-d'),
-                    $date->format('Y-m-d')
-                ]);
+                // Use database-agnostic Eloquent queries instead of raw SQL
+                $dateString = $date->format('Y-m-d');
+                
+                // Income stats
+                $pendapatanStats = PendapatanHarian::where('tanggal_input', $dateString)
+                    ->selectRaw('
+                        SUM(nominal) as pendapatan_sum,
+                        SUM(CASE WHEN status_validasi = "disetujui" THEN nominal ELSE 0 END) as pendapatan_approved,
+                        SUM(CASE WHEN status_validasi = "pending" THEN nominal ELSE 0 END) as pendapatan_pending
+                    ')
+                    ->first();
+                
+                // Expense stats
+                $pengeluaranStats = PengeluaranHarian::where('tanggal_input', $dateString)
+                    ->selectRaw('
+                        SUM(nominal) as pengeluaran_sum,
+                        SUM(CASE WHEN status_validasi = "disetujui" THEN nominal ELSE 0 END) as pengeluaran_approved,
+                        SUM(CASE WHEN status_validasi = "pending" THEN nominal ELSE 0 END) as pengeluaran_pending
+                    ')
+                    ->first();
+                
+                // Treatment stats  
+                $tindakanStats = Tindakan::whereDate('tanggal_tindakan', $date)
+                    ->selectRaw('
+                        COUNT(*) as tindakan_count,
+                        COUNT(CASE WHEN status = "pending" THEN 1 ELSE NULL END) as tindakan_pending
+                    ')
+                    ->first();
+                
+                // JASPEL stats
+                $jaspelPending = Jaspel::whereDate('created_at', $date)
+                    ->where('status_pembayaran', '!=', 'paid')
+                    ->sum('total_jaspel');
+                
+                // Combine results
+                $result = (object)[
+                    'pendapatan_sum' => $pendapatanStats->pendapatan_sum ?? 0,
+                    'pendapatan_approved' => $pendapatanStats->pendapatan_approved ?? 0,
+                    'pendapatan_pending' => $pendapatanStats->pendapatan_pending ?? 0,
+                    'pengeluaran_sum' => $pengeluaranStats->pengeluaran_sum ?? 0,
+                    'pengeluaran_approved' => $pengeluaranStats->pengeluaran_approved ?? 0,
+                    'pengeluaran_pending' => $pengeluaranStats->pengeluaran_pending ?? 0,
+                    'tindakan_count' => $tindakanStats->tindakan_count ?? 0,
+                    'tindakan_pending' => $tindakanStats->tindakan_pending ?? 0,
+                    'jaspel_pending' => $jaspelPending ?? 0,
+                    'net_income' => ($pendapatanStats->pendapatan_approved ?? 0) - ($pengeluaranStats->pengeluaran_approved ?? 0)
+                ];
+                
+                $results = [$result];
                 
                 $result = $results[0] ?? null;
                 
@@ -397,16 +399,22 @@ class BendaharaStatsService
                 ->get()
                 ->keyBy('date');
             
-            $tindakanStats = DB::table('tindakan')
-                ->selectRaw('
-                    DATE(tanggal_tindakan) as date, 
-                    COUNT(*) as tindakan_count,
-                    COUNT(CASE WHEN status = "pending" THEN 1 ELSE NULL END) as tindakan_pending
-                ')
-                ->whereBetween(DB::raw('DATE(tanggal_tindakan)'), [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                ->groupBy(DB::raw('DATE(tanggal_tindakan)'))
+            // Use a more database-agnostic approach for grouping by date
+            $tindakanData = Tindakan::whereDate('tanggal_tindakan', '>=', $startDate)
+                ->whereDate('tanggal_tindakan', '<=', $endDate)
                 ->get()
-                ->keyBy('date');
+                ->groupBy(function($item) {
+                    return $item->tanggal_tindakan->format('Y-m-d');
+                });
+            
+            $tindakanStats = collect();
+            foreach ($tindakanData as $date => $items) {
+                $tindakanStats->put($date, (object)[
+                    'date' => $date,
+                    'tindakan_count' => $items->count(),
+                    'tindakan_pending' => $items->where('status', 'pending')->count()
+                ]);
+            }
             
             // Combine data for each date
             return $dateRange->map(function ($date) use ($pendapatanStats, $pengeluaranStats, $tindakanStats) {

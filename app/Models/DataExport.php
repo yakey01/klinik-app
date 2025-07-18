@@ -122,7 +122,7 @@ class DataExport extends Model
     /**
      * Fail the export process
      */
-    public function fail(string $error = null): void
+    public function fail(?string $error = null): void
     {
         $this->update([
             'status' => self::STATUS_FAILED,

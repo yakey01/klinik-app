@@ -117,7 +117,7 @@ class DataImport extends Model
     /**
      * Fail the import process
      */
-    public function fail(string $error = null): void
+    public function fail(?string $error = null): void
     {
         $this->update([
             'status' => self::STATUS_FAILED,
@@ -141,7 +141,7 @@ class DataImport extends Model
     /**
      * Update progress
      */
-    public function updateProgress(int $processedRows, int $successfulRows = null, int $failedRows = null, int $skippedRows = null): void
+    public function updateProgress(int $processedRows, ?int $successfulRows = null, ?int $failedRows = null, ?int $skippedRows = null): void
     {
         $data = [
             'processed_rows' => $processedRows,

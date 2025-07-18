@@ -93,69 +93,74 @@ class PetugasStatsService
             $cacheKey = "petugas_daily_stats_{$userId}_{$date->format('Y-m-d')}";
             
             return Cache::remember($cacheKey, now()->addMinutes($this->dailyStatsCacheMinutes), function () use ($userId, $date) {
-                // Enhanced query with better performance and more accurate calculations
-                $results = DB::select("
-                    SELECT 
-                        COALESCE(p.pasien_count, 0) as pasien_count,
-                        COALESCE(pd.pendapatan_sum, 0) as pendapatan_sum,
-                        COALESCE(pd.pendapatan_count, 0) as pendapatan_count,
-                        COALESCE(pg.pengeluaran_sum, 0) as pengeluaran_sum,
-                        COALESCE(pg.pengeluaran_count, 0) as pengeluaran_count,
-                        COALESCE(t.tindakan_count, 0) as tindakan_count,
-                        COALESCE(t.tindakan_sum, 0) as tindakan_sum,
-                        COALESCE(t.avg_tarif, 0) as avg_tindakan_tarif,
-                        (COALESCE(pd.pendapatan_sum, 0) - COALESCE(pg.pengeluaran_sum, 0)) as net_income,
-                        COALESCE(jp.jumlah_pasien, 0) as reported_patient_count,
-                        COALESCE(jp.status_validasi, 'pending') as validation_status
-                    FROM (
-                        SELECT 
-                            COUNT(*) as pasien_count,
-                            COUNT(CASE WHEN jenis_kelamin = 'L' THEN 1 END) as male_count,
-                            COUNT(CASE WHEN jenis_kelamin = 'P' THEN 1 END) as female_count
-                        FROM pasien 
-                        WHERE DATE(created_at) = ? AND input_by = ?
-                    ) p
-                    LEFT JOIN (
-                        SELECT 
-                            SUM(nominal) as pendapatan_sum,
-                            COUNT(*) as pendapatan_count,
-                            AVG(nominal) as avg_pendapatan
-                        FROM pendapatan_harian 
-                        WHERE tanggal_input = ? AND user_id = ?
-                    ) pd ON 1=1
-                    LEFT JOIN (
-                        SELECT 
-                            SUM(nominal) as pengeluaran_sum,
-                            COUNT(*) as pengeluaran_count,
-                            AVG(nominal) as avg_pengeluaran
-                        FROM pengeluaran_harian 
-                        WHERE tanggal_input = ? AND user_id = ?
-                    ) pg ON 1=1
-                    LEFT JOIN (
-                        SELECT 
-                            COUNT(*) as tindakan_count, 
-                            SUM(tarif) as tindakan_sum,
-                            AVG(tarif) as avg_tarif,
-                            COUNT(DISTINCT pasien_id) as unique_patients,
-                            COUNT(CASE WHEN status_validasi = 'approved' THEN 1 END) as approved_count
-                        FROM tindakan 
-                        WHERE DATE(tanggal_tindakan) = ? AND input_by = ?
-                    ) t ON 1=1
-                    LEFT JOIN (
-                        SELECT 
-                            jumlah_pasien,
-                            status_validasi
-                        FROM jumlah_pasien_harian
-                        WHERE tanggal = ? AND user_id = ?
-                        LIMIT 1
-                    ) jp ON 1=1
-                ", [
-                    $date->format('Y-m-d'), $userId,
-                    $date->format('Y-m-d'), $userId,
-                    $date->format('Y-m-d'), $userId,
-                    $date->format('Y-m-d'), $userId,
-                    $date->format('Y-m-d'), $userId
-                ]);
+                // Use database-agnostic Eloquent queries instead of raw SQL
+                $dateString = $date->format('Y-m-d');
+                
+                // Patient stats
+                $pasienStats = Pasien::whereDate('created_at', $date)
+                    ->where('input_by', $userId)
+                    ->selectRaw('
+                        COUNT(*) as pasien_count,
+                        COUNT(CASE WHEN jenis_kelamin = "L" THEN 1 END) as male_count,
+                        COUNT(CASE WHEN jenis_kelamin = "P" THEN 1 END) as female_count
+                    ')
+                    ->first();
+                
+                // Income stats
+                $pendapatanStats = PendapatanHarian::where('tanggal_input', $dateString)
+                    ->where('user_id', $userId)
+                    ->selectRaw('
+                        SUM(nominal) as pendapatan_sum,
+                        COUNT(*) as pendapatan_count,
+                        AVG(nominal) as avg_pendapatan
+                    ')
+                    ->first();
+                
+                // Expense stats
+                $pengeluaranStats = PengeluaranHarian::where('tanggal_input', $dateString)
+                    ->where('user_id', $userId)
+                    ->selectRaw('
+                        SUM(nominal) as pengeluaran_sum,
+                        COUNT(*) as pengeluaran_count,
+                        AVG(nominal) as avg_pengeluaran
+                    ')
+                    ->first();
+                
+                // Treatment stats
+                $tindakanStats = Tindakan::whereDate('tanggal_tindakan', $date)
+                    ->where('input_by', $userId)
+                    ->selectRaw('
+                        COUNT(*) as tindakan_count,
+                        SUM(tarif) as tindakan_sum,
+                        AVG(tarif) as avg_tarif,
+                        COUNT(DISTINCT pasien_id) as unique_patients,
+                        COUNT(CASE WHEN status_validasi = "approved" THEN 1 END) as approved_count
+                    ')
+                    ->first();
+                
+                // Patient count report
+                $jumlahPasienStats = DB::table('jumlah_pasien_harian')
+                    ->select('jumlah_pasien', 'status_validasi')
+                    ->where('tanggal', $dateString)
+                    ->where('user_id', $userId)
+                    ->first();
+                
+                // Combine results
+                $result = (object)[
+                    'pasien_count' => $pasienStats->pasien_count ?? 0,
+                    'pendapatan_sum' => $pendapatanStats->pendapatan_sum ?? 0,
+                    'pendapatan_count' => $pendapatanStats->pendapatan_count ?? 0,
+                    'pengeluaran_sum' => $pengeluaranStats->pengeluaran_sum ?? 0,
+                    'pengeluaran_count' => $pengeluaranStats->pengeluaran_count ?? 0,
+                    'tindakan_count' => $tindakanStats->tindakan_count ?? 0,
+                    'tindakan_sum' => $tindakanStats->tindakan_sum ?? 0,
+                    'avg_tindakan_tarif' => $tindakanStats->avg_tarif ?? 0,
+                    'net_income' => ($pendapatanStats->pendapatan_sum ?? 0) - ($pengeluaranStats->pengeluaran_sum ?? 0),
+                    'reported_patient_count' => $jumlahPasienStats->jumlah_pasien ?? 0,
+                    'validation_status' => $jumlahPasienStats->status_validasi ?? 'pending'
+                ];
+                
+                $results = [$result];
                 
                 $result = $results[0] ?? null;
                 
@@ -431,13 +436,22 @@ class PetugasStatsService
             }
             
             // Get all data in bulk queries
-            $pasienStats = DB::table('pasien')
-                ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                ->where('input_by', $userId)
-                ->whereBetween(DB::raw('DATE(created_at)'), [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                ->groupBy(DB::raw('DATE(created_at)'))
+            // Use a more database-agnostic approach for grouping by date
+            $pasienData = Pasien::where('input_by', $userId)
+                ->whereDate('created_at', '>=', $startDate)
+                ->whereDate('created_at', '<=', $endDate)
                 ->get()
-                ->keyBy('date');
+                ->groupBy(function($item) {
+                    return $item->created_at->format('Y-m-d');
+                });
+            
+            $pasienStats = collect();
+            foreach ($pasienData as $date => $items) {
+                $pasienStats->put($date, (object)[
+                    'date' => $date,
+                    'count' => $items->count()
+                ]);
+            }
             
             $pendapatanStats = DB::table('pendapatan_harian')
                 ->selectRaw('tanggal_input as date, SUM(nominal) as sum')
@@ -455,13 +469,23 @@ class PetugasStatsService
                 ->get()
                 ->keyBy('date');
             
-            $tindakanStats = DB::table('tindakan')
-                ->selectRaw('DATE(tanggal_tindakan) as date, COUNT(*) as count, SUM(tarif) as sum')
-                ->where('input_by', $userId)
-                ->whereBetween(DB::raw('DATE(tanggal_tindakan)'), [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                ->groupBy(DB::raw('DATE(tanggal_tindakan)'))
+            // Use a more database-agnostic approach for grouping by date
+            $tindakanData = Tindakan::where('input_by', $userId)
+                ->whereDate('tanggal_tindakan', '>=', $startDate)
+                ->whereDate('tanggal_tindakan', '<=', $endDate)
                 ->get()
-                ->keyBy('date');
+                ->groupBy(function($item) {
+                    return $item->tanggal_tindakan->format('Y-m-d');
+                });
+            
+            $tindakanStats = collect();
+            foreach ($tindakanData as $date => $items) {
+                $tindakanStats->put($date, (object)[
+                    'date' => $date,
+                    'count' => $items->count(),
+                    'sum' => $items->sum('tarif')
+                ]);
+            }
             
             // Combine data for each date
             return $dateRange->map(function ($date) use ($pasienStats, $pendapatanStats, $pengeluaranStats, $tindakanStats) {
@@ -634,16 +658,36 @@ class PetugasStatsService
                 $shiftStart = $shiftStart->subDay();
             }
             
-            $stats = DB::select("
-                SELECT 
-                    COUNT(DISTINCT p.id) as patients_this_shift,
-                    COUNT(DISTINCT t.id) as procedures_this_shift,
-                    SUM(CASE WHEN t.created_at >= ? THEN t.tarif ELSE 0 END) as revenue_this_shift,
-                    AVG(TIMESTAMPDIFF(MINUTE, p.created_at, t.created_at)) as avg_processing_time
-                FROM pasien p
-                LEFT JOIN tindakan t ON p.id = t.pasien_id
-                WHERE p.input_by = ? AND p.created_at >= ?
-            ", [$shiftStart->format('Y-m-d H:i:s'), $userId, $shiftStart->format('Y-m-d H:i:s')]);
+            // Use database-agnostic approach for shift stats
+            $patients = Pasien::where('input_by', $userId)
+                ->where('created_at', '>=', $shiftStart)
+                ->get();
+            
+            $procedures = Tindakan::whereIn('pasien_id', $patients->pluck('id'))
+                ->where('created_at', '>=', $shiftStart)
+                ->get();
+            
+            $revenue = $procedures->sum('tarif');
+            
+            // Calculate average processing time using Carbon
+            $processingTimes = [];
+            foreach ($patients as $patient) {
+                $firstTindakan = $procedures->where('pasien_id', $patient->id)->first();
+                if ($firstTindakan) {
+                    $processingTimes[] = $patient->created_at->diffInMinutes($firstTindakan->created_at);
+                }
+            }
+            
+            $avgProcessingTime = count($processingTimes) > 0 ? array_sum($processingTimes) / count($processingTimes) : 0;
+            
+            $result = (object)[
+                'patients_this_shift' => $patients->count(),
+                'procedures_this_shift' => $procedures->count(),
+                'revenue_this_shift' => $revenue,
+                'avg_processing_time' => $avgProcessingTime
+            ];
+            
+            $stats = [$result];
             
             $result = $stats[0] ?? null;
             
@@ -691,23 +735,35 @@ class PetugasStatsService
      */
     protected function getWeekStats(int $userId, Carbon $start, Carbon $end): array
     {
-        $stats = DB::select("
-            SELECT 
-                COUNT(DISTINCT p.id) as patients,
-                COUNT(DISTINCT t.id) as procedures,
-                SUM(ph.nominal) as revenue,
-                SUM(pg.nominal) as expenses,
-                COUNT(DISTINCT DATE(p.created_at)) as active_days
-            FROM pasien p
-            LEFT JOIN tindakan t ON p.id = t.pasien_id
-            LEFT JOIN pendapatan_harian ph ON ph.user_id = ? AND ph.tanggal_input BETWEEN ? AND ?
-            LEFT JOIN pengeluaran_harian pg ON pg.user_id = ? AND pg.tanggal_input BETWEEN ? AND ?
-            WHERE p.input_by = ? AND p.created_at BETWEEN ? AND ?
-        ", [
-            $userId, $start->format('Y-m-d'), $end->format('Y-m-d'),
-            $userId, $start->format('Y-m-d'), $end->format('Y-m-d'),
-            $userId, $start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')
-        ]);
+        // Use database-agnostic approach
+        $patients = Pasien::where('input_by', $userId)
+            ->whereBetween('created_at', [$start, $end])
+            ->get();
+        
+        $procedures = Tindakan::whereIn('pasien_id', $patients->pluck('id'))
+            ->get();
+        
+        $revenue = PendapatanHarian::where('user_id', $userId)
+            ->whereBetween('tanggal_input', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->sum('nominal');
+        
+        $expenses = PengeluaranHarian::where('user_id', $userId)
+            ->whereBetween('tanggal_input', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->sum('nominal');
+        
+        $activeDays = $patients->groupBy(function($patient) {
+            return $patient->created_at->format('Y-m-d');
+        })->count();
+        
+        $result = (object)[
+            'patients' => $patients->count(),
+            'procedures' => $procedures->count(),
+            'revenue' => $revenue,
+            'expenses' => $expenses,
+            'active_days' => $activeDays
+        ];
+        
+        $stats = [$result];
         
         $result = $stats[0] ?? null;
         
@@ -751,21 +807,23 @@ class PetugasStatsService
         try {
             $weekStart = Carbon::now()->startOfWeek();
             
-            $procedures = DB::select("
-                SELECT 
-                    jt.nama_tindakan,
-                    COUNT(t.id) as frequency,
-                    SUM(t.tarif) as total_revenue,
-                    AVG(t.tarif) as avg_tarif,
-                    COUNT(DISTINCT t.pasien_id) as unique_patients
-                FROM tindakan t
-                JOIN jenis_tindakan jt ON t.jenis_tindakan_id = jt.id
-                WHERE t.input_by = ? 
-                AND t.tanggal_tindakan >= ?
-                GROUP BY jt.id, jt.nama_tindakan
-                ORDER BY frequency DESC, total_revenue DESC
-                LIMIT 5
-            ", [$userId, $weekStart->format('Y-m-d')]);
+            $procedures = DB::table('tindakan as t')
+                ->join('jenis_tindakan as jt', 't.jenis_tindakan_id', '=', 'jt.id')
+                ->select([
+                    'jt.nama_tindakan',
+                    DB::raw('COUNT(t.id) as frequency'),
+                    DB::raw('SUM(t.tarif) as total_revenue'),
+                    DB::raw('AVG(t.tarif) as avg_tarif'),
+                    DB::raw('COUNT(DISTINCT t.pasien_id) as unique_patients')
+                ])
+                ->where('t.input_by', $userId)
+                ->whereDate('t.tanggal_tindakan', '>=', $weekStart)
+                ->groupBy('jt.id', 'jt.nama_tindakan')
+                ->orderBy('frequency', 'desc')
+                ->orderBy('total_revenue', 'desc')
+                ->limit(5)
+                ->get()
+                ->toArray();
             
             return array_map(function($proc) {
                 return [

@@ -79,7 +79,7 @@ class PermohonanCuti extends Model
             ->exists();
     }
 
-    public function getUsedLeaveDays(int $year = null): int
+    public function getUsedLeaveDays(?int $year = null): int
     {
         $year = $year ?? date('Y');
         
@@ -89,13 +89,13 @@ class PermohonanCuti extends Model
             ->sum('durasicuti');
     }
 
-    public function getRemainingLeaveDays(int $year = null): int
+    public function getRemainingLeaveDays(?int $year = null): int
     {
         $annualLeaveQuota = 12; // Standard annual leave quota
         return $annualLeaveQuota - $this->getUsedLeaveDays($year);
     }
 
-    public function exceedsLeaveQuota(int $year = null): bool
+    public function exceedsLeaveQuota(?int $year = null): bool
     {
         $year = $year ?? date('Y');
         $currentUsed = static::where('pegawai_id', $this->pegawai_id)

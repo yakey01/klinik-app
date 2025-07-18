@@ -146,7 +146,7 @@ class BulkOperation extends Model
         ]);
     }
 
-    public function updateProgress(int $processed, int $successful = null, int $failed = null): void
+    public function updateProgress(int $processed, ?int $successful = null, ?int $failed = null): void
     {
         $successful = $successful ?? $this->successful_records;
         $failed = $failed ?? $this->failed_records;

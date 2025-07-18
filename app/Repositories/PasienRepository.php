@@ -64,7 +64,10 @@ class PasienRepository
 
     public function getPatientsByAge(int $minAge, int $maxAge): Collection
     {
-        return Pasien::whereRaw('TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN ? AND ?', [$minAge, $maxAge])
+        $maxDate = now()->subYears($minAge)->endOfYear();
+        $minDate = now()->subYears($maxAge + 1)->startOfYear();
+        
+        return Pasien::whereBetween('tanggal_lahir', [$minDate, $maxDate])
             ->get();
     }
 
@@ -81,19 +84,26 @@ class PasienRepository
             ->get()
             ->keyBy('jenis_kelamin');
 
-        $byAgeGroup = Pasien::selectRaw('
-            CASE 
-                WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) < 18 THEN "0-17"
-                WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 18 AND 30 THEN "18-30"
-                WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 31 AND 50 THEN "31-50"
-                WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 51 AND 65 THEN "51-65"
-                ELSE "65+"
-            END as age_group,
-            COUNT(*) as count
-        ')
-            ->groupBy('age_group')
-            ->get()
-            ->keyBy('age_group');
+        // Calculate age groups using Laravel's date handling
+        $allPatients = Pasien::select('tanggal_lahir')->get();
+        $byAgeGroup = collect();
+        
+        foreach ($allPatients as $patient) {
+            $age = now()->diffInYears($patient->tanggal_lahir);
+            $ageGroup = match(true) {
+                $age < 18 => '0-17',
+                $age >= 18 && $age <= 30 => '18-30',
+                $age >= 31 && $age <= 50 => '31-50',
+                $age >= 51 && $age <= 65 => '51-65',
+                default => '65+'
+            };
+            
+            $byAgeGroup->push((object)['age_group' => $ageGroup]);
+        }
+        
+        $byAgeGroup = $byAgeGroup->groupBy('age_group')->map(function ($group) {
+            return (object)['age_group' => $group->first()->age_group, 'count' => $group->count()];
+        })->keyBy('age_group');
 
         return [
             'total' => $total,

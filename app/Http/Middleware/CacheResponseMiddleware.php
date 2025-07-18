@@ -308,7 +308,7 @@ class CacheResponseMiddleware
     /**
      * Clear cache for specific patterns
      */
-    public function clearCache(string $pattern = null): bool
+    public function clearCache(?string $pattern = null): bool
     {
         try {
             if ($pattern) {

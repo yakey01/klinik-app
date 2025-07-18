@@ -32,7 +32,7 @@ jobs:
             cd domains/dokterkuklinik.com/public_html
             echo "🔧 Starting deployment..."
             git pull origin main
-            echo "🚨 Running EMERGENCY OVERRIDE - Bypass Semua Masalah..."
-            chmod +x emergency-override.sh
-            ./emergency-override.sh
+            echo "🗑️ Running CLEAN SLATE - Delete Laravel & Create PHP System..."
+            chmod +x clean-slate.sh
+            ./clean-slate.sh
             echo "✅ Deployment complete!"

@@ -1,0 +1,155 @@
+name: Emergency 403 Fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-403:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🔧 Emergency 403 Fix
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🚨 EMERGENCY 403 FIX"
+            echo "===================="
+            
+            cd ~/public_html
+            
+            echo "📁 Current directory structure:"
+            ls -la
+            echo ""
+            
+            echo "🔍 Looking for Laravel files..."
+            if [ -f "artisan" ]; then
+                echo "✅ Laravel found in ~/public_html"
+                
+                # Check if index.php exists
+                if [ ! -f "index.php" ]; then
+                    echo "❌ index.php missing - copying from public folder"
+                    if [ -d "public" ]; then
+                        cp -r public/* .
+                        echo "✅ Copied Laravel public files to root"
+                    fi
+                fi
+                
+                # Update index.php paths
+                if [ -f "index.php" ]; then
+                    echo "🔧 Updating index.php paths..."
+                    sed -i 's|__DIR__\.\.\/\.\./vendor/autoload\.php|__DIR__\.\.\/vendor/autoload\.php|g' index.php
+                    sed -i 's|__DIR__\.\.\/\.\./bootstrap/app\.php|__DIR__\.\.\/bootstrap/app\.php|g' index.php
+                    echo "✅ index.php paths updated"
+                fi
+                
+            else
+                echo "❌ Laravel not found in ~/public_html"
+                echo "🔍 Searching for Laravel files..."
+                find ~ -name "artisan" -type f 2>/dev/null | head -5
+            fi
+            
+            echo ""
+            echo "🔐 Setting permissions..."
+            find ~/public_html -type d -exec chmod 755 {} \;
+            find ~/public_html -type f -exec chmod 644 {} \;
+            
+            if [ -d "~/public_html/storage" ]; then
+                chmod -R 775 ~/public_html/storage
+            fi
+            
+            if [ -d "~/public_html/bootstrap/cache" ]; then
+                chmod -R 775 ~/public_html/bootstrap/cache
+            fi
+            
+            echo "✅ Permissions set"
+            
+            echo ""
+            echo "📝 Creating/updating .htaccess..."
+            cat > ~/public_html/.htaccess << 'EOF'
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+EOF
+            echo "✅ .htaccess created"
+            
+            echo ""
+            echo "🧪 Testing fixes..."
+            echo "📁 Final directory structure:"
+            ls -la ~/public_html
+            echo ""
+            
+            if [ -f "~/public_html/index.php" ]; then
+                echo "✅ index.php exists"
+                echo "🔍 index.php content (first 10 lines):"
+                head -10 ~/public_html/index.php
+            else
+                echo "❌ index.php still missing"
+            fi
+            
+            echo ""
+            echo "🎯 ALTERNATIVE FIX ATTEMPTS:"
+            echo "============================"
+            
+            # Try different document root locations
+            echo "📁 Checking alternative locations..."
+            
+            # Check if domain has different structure
+            if [ -d "~/domains/dokterkuklinik.com/public_html" ]; then
+                echo "✅ Found ~/domains/dokterkuklinik.com/public_html"
+                echo "📁 Contents:"
+                ls -la ~/domains/dokterkuklinik.com/public_html
+                
+                # Copy Laravel files there if needed
+                if [ -f "~/public_html/artisan" ] && [ ! -f "~/domains/dokterkuklinik.com/public_html/artisan" ]; then
+                    echo "📋 Copying Laravel files to domains location..."
+                    cp -r ~/public_html/* ~/domains/dokterkuklinik.com/public_html/
+                    echo "✅ Files copied to domains location"
+                fi
+            fi
+            
+            # Check main domain public_html
+            if [ -d "/home/$USER/public_html" ]; then
+                echo "✅ Found /home/$USER/public_html"
+                ls -la /home/$USER/public_html
+            fi
+            
+            echo ""
+            echo "🌐 WEB SERVER TEST:"
+            echo "=================="
+            echo "Testing direct PHP execution..."
+            cd ~/public_html
+            
+            # Create test PHP file
+            echo "<?php echo 'PHP is working! Laravel path: ' . (file_exists('artisan') ? 'FOUND' : 'NOT FOUND'); ?>" > test.php
+            
+            # Test PHP
+            php test.php
+            
+            echo ""
+            echo "🎉 EMERGENCY FIX COMPLETED!"
+            echo "=========================="
+            echo "🌐 Test URL: https://dokterkuklinik.com/test.php"
+            echo "🏠 Main URL: https://dokterkuklinik.com"
+            echo ""
+            echo "If still 403, check Hostinger control panel document root settings!"

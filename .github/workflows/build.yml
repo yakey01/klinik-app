@@ -7,7 +7,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.2
+          php-version: 8.3
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
       - run: composer install --ignore-platform-reqs --no-scripts
       - run: cp .env.example .env
@@ -31,8 +31,14 @@ jobs:
           script: |
             cd domains/dokterkuklinik.com/public_html/dokterku
             git pull origin main
-            composer install --no-dev --ignore-platform-reqs
+            composer install --no-dev --ignore-platform-reqs --no-scripts
+            php artisan package:discover --ansi
+            php artisan filament:upgrade
             php artisan migrate --force
-            php artisan config:cache
-            php artisan route:cache
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan view:clear
+            php artisan route:clear
+            chmod -R 755 storage bootstrap/cache
+            chown -R www-data:www-data storage bootstrap/cache
             echo "✅ Deployment complete!"

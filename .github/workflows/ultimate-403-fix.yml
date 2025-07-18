@@ -1,0 +1,249 @@
+name: Ultimate 403 Fix - Document Root Issue
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ultimate-fix:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🔍 Check Real Document Root Location
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🔍 ULTIMATE 403 FIX - DOCUMENT ROOT INVESTIGATION"
+            echo "================================================"
+            
+            echo "📍 Current location check:"
+            echo "pwd: $(pwd)"
+            echo "whoami: $(whoami)"
+            echo "hostname: $(hostname)"
+            echo ""
+            
+            echo "🏠 Home directory structure:"
+            ls -la ~/
+            echo ""
+            
+            echo "📁 Checking ALL possible web directories:"
+            echo "1. ~/public_html"
+            if [ -d ~/public_html ]; then
+                echo "✅ EXISTS"
+                ls -la ~/public_html | head -10
+            else
+                echo "❌ DOES NOT EXIST"
+            fi
+            echo ""
+            
+            echo "2. ~/domains/dokterkuklinik.com/public_html"
+            if [ -d ~/domains/dokterkuklinik.com/public_html ]; then
+                echo "✅ EXISTS"
+                ls -la ~/domains/dokterkuklinik.com/public_html | head -10
+            else
+                echo "❌ DOES NOT EXIST"
+            fi
+            echo ""
+            
+            echo "3. ~/htdocs"
+            if [ -d ~/htdocs ]; then
+                echo "✅ EXISTS"
+                ls -la ~/htdocs | head -10
+            else
+                echo "❌ DOES NOT EXIST"
+            fi
+            echo ""
+            
+            echo "4. ~/www"
+            if [ -d ~/www ]; then
+                echo "✅ EXISTS"
+                ls -la ~/www | head -10
+            else
+                echo "❌ DOES NOT EXIST"
+            fi
+            echo ""
+            
+            echo "5. /var/www/html"
+            if [ -d /var/www/html ]; then
+                echo "✅ EXISTS"
+                ls -la /var/www/html | head -10
+            else
+                echo "❌ DOES NOT EXIST"
+            fi
+            echo ""
+            
+      - name: 🌐 Create Test Files in ALL Locations
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🌐 CREATING TEST FILES IN ALL POSSIBLE LOCATIONS"
+            echo "==============================================="
+            
+            # Create test content
+            TEST_HTML='<!DOCTYPE html>
+<html>
+<head>
+    <title>Dokterku Test</title>
+</head>
+<body>
+    <h1>🎉 SUCCESS! Website is working!</h1>
+    <p>Location: %LOCATION%</p>
+    <p>Time: %TIME%</p>
+    <p>User: %USER%</p>
+</body>
+</html>'
+            
+            TEST_PHP='<?php
+echo "🎉 PHP is working!\n";
+echo "Location: %LOCATION%\n";
+echo "Time: " . date("Y-m-d H:i:s") . "\n";
+echo "User: " . get_current_user() . "\n";
+echo "Document Root: " . $_SERVER["DOCUMENT_ROOT"] . "\n";
+echo "Script Name: " . $_SERVER["SCRIPT_NAME"] . "\n";
+echo "Server Name: " . $_SERVER["SERVER_NAME"] . "\n";
+phpinfo();
+?>'
+            
+            # Function to create test files
+            create_test_files() {
+                local location=$1
+                local dir=$2
+                
+                echo "📁 Creating test files in: $dir"
+                mkdir -p "$dir"
+                
+                # Create HTML file
+                echo "$TEST_HTML" | sed "s/%LOCATION%/$location/g" | sed "s/%TIME%/$(date)/g" | sed "s/%USER%/$(whoami)/g" > "$dir/test.html"
+                
+                # Create PHP file
+                echo "$TEST_PHP" | sed "s/%LOCATION%/$location/g" > "$dir/test.php"
+                
+                # Create index.html
+                echo "$TEST_HTML" | sed "s/%LOCATION%/$location/g" | sed "s/%TIME%/$(date)/g" | sed "s/%USER%/$(whoami)/g" > "$dir/index.html"
+                
+                # Set permissions
+                chmod 644 "$dir/test.html" "$dir/test.php" "$dir/index.html"
+                chmod 755 "$dir"
+                
+                echo "✅ Test files created in $location"
+            }
+            
+            # Create test files in all possible locations
+            create_test_files "public_html" ~/public_html
+            create_test_files "domains" ~/domains/dokterkuklinik.com/public_html
+            create_test_files "htdocs" ~/htdocs
+            create_test_files "www" ~/www
+            
+            # Also try creating in root if possible
+            if [ -w /var/www/html ]; then
+                create_test_files "var_www_html" /var/www/html
+            fi
+            
+            echo "✅ All test files created"
+            
+      - name: 🔧 Fix Permissions and .htaccess
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🔧 FIXING PERMISSIONS AND .HTACCESS"
+            echo "===================================="
+            
+            # Function to fix directory
+            fix_directory() {
+                local dir=$1
+                if [ -d "$dir" ]; then
+                    echo "🔧 Fixing: $dir"
+                    
+                    # Set permissions
+                    find "$dir" -type d -exec chmod 755 {} \;
+                    find "$dir" -type f -exec chmod 644 {} \;
+                    
+                    # Create .htaccess
+                    cat > "$dir/.htaccess" << 'EOF'
+DirectoryIndex index.html index.php
+Options -Indexes
+<Files ~ "^\.">
+    Order allow,deny
+    Deny from all
+</Files>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+EOF
+                    
+                    chmod 644 "$dir/.htaccess"
+                    echo "✅ Fixed: $dir"
+                else
+                    echo "❌ Not found: $dir"
+                fi
+            }
+            
+            # Fix all directories
+            fix_directory ~/public_html
+            fix_directory ~/domains/dokterkuklinik.com/public_html
+            fix_directory ~/htdocs
+            fix_directory ~/www
+            
+            echo "✅ All directories fixed"
+            
+      - name: 📊 Test Results Summary
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "📊 TEST RESULTS SUMMARY"
+            echo "======================="
+            echo ""
+            echo "🌐 TEST THESE URLs:"
+            echo "1. https://dokterkuklinik.com/"
+            echo "2. https://dokterkuklinik.com/index.html"
+            echo "3. https://dokterkuklinik.com/test.html"
+            echo "4. https://dokterkuklinik.com/test.php"
+            echo ""
+            echo "📋 WHAT TO LOOK FOR:"
+            echo "- If ANY of these URLs work: Note which location is working"
+            echo "- If test.html loads: HTML is working"
+            echo "- If test.php loads: PHP is working"
+            echo "- If still 403: Server configuration issue"
+            echo ""
+            echo "🔍 DIRECTORIES WITH TEST FILES:"
+            echo "1. ~/public_html"
+            if [ -d ~/public_html ]; then
+                echo "   Files: $(ls ~/public_html | tr '\n' ' ')"
+            fi
+            echo ""
+            echo "2. ~/domains/dokterkuklinik.com/public_html"
+            if [ -d ~/domains/dokterkuklinik.com/public_html ]; then
+                echo "   Files: $(ls ~/domains/dokterkuklinik.com/public_html | tr '\n' ' ')"
+            fi
+            echo ""
+            echo "3. ~/htdocs"
+            if [ -d ~/htdocs ]; then
+                echo "   Files: $(ls ~/htdocs | tr '\n' ' ')"
+            fi
+            echo ""
+            echo "4. ~/www"
+            if [ -d ~/www ]; then
+                echo "   Files: $(ls ~/www | tr '\n' ' ')"
+            fi
+            echo ""
+            echo "🎯 NEXT STEPS:"
+            echo "1. Test all URLs above"
+            echo "2. If any URL works: Copy working directory structure"
+            echo "3. If none work: Check Hostinger control panel document root"
+            echo "4. Contact Hostinger support if needed"
+            echo ""
+            echo "✅ ULTIMATE 403 FIX COMPLETED!"

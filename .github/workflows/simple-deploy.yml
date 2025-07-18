@@ -1,0 +1,56 @@
+name: Simple Deploy to Hosting
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Hosting
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          debug: true
+          script: |
+            echo "🚀 Starting deployment..."
+            
+            # Navigate to project directory
+            cd domains/dokterkuklinik.com/public_html
+            
+            # Pull latest changes
+            echo "📥 Pulling latest changes..."
+            git pull origin main
+            
+            # Check if scripts exist and run them
+            if [ -f "fix-pail-error.sh" ]; then
+                echo "🔧 Running Pail fix..."
+                chmod +x fix-pail-error.sh
+                ./fix-pail-error.sh
+            fi
+            
+            if [ -f "hosting-troubleshoot.sh" ]; then
+                echo "🔍 Running troubleshooting..."
+                chmod +x hosting-troubleshoot.sh
+                ./hosting-troubleshoot.sh
+            fi
+            
+            # Clear Laravel caches
+            echo "🧹 Clearing caches..."
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan route:clear
+            php artisan view:clear
+            
+            # Regenerate autoload
+            echo "🔄 Regenerating autoload..."
+            composer dump-autoload
+            
+            # Test Laravel
+            echo "🧪 Testing Laravel..."
+            php artisan --version
+            
+            echo "✅ Deployment completed successfully!" 

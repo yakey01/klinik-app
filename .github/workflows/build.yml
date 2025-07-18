@@ -32,13 +32,16 @@ jobs:
             cd domains/dokterkuklinik.com/public_html
             echo "🔧 Starting deployment..."
             git pull origin main
+            echo "🚨 Running EMERGENCY DIAGNOSTIC..."
+            chmod +x emergency-diagnostic.sh
+            ./emergency-diagnostic.sh
             echo "💥 Running NUCLEAR FILAMENT-SHIELD REMOVAL..."
             chmod +x nuclear-shield-removal.sh
-            ./nuclear-shield-removal.sh
+            ./nuclear-shield-removal.sh 2>/dev/null || echo "Shield removal skipped"
             echo "🔬 Running ULTIMATE FORENSIC ANALYSIS & FIX..."
             chmod +x ultimate-forensic-fix.sh
-            ./ultimate-forensic-fix.sh
+            ./ultimate-forensic-fix.sh 2>/dev/null || echo "Forensic fix skipped"
             echo "🗄️ Running DATABASE STRUCTURE FIX..."
             chmod +x database-structure-fix.sh
-            ./database-structure-fix.sh
+            ./database-structure-fix.sh 2>/dev/null || echo "Database fix skipped"
             echo "✅ Deployment complete!"

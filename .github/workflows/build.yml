@@ -1,19 +1,16 @@
-name: Laravel Build
-
-on: push
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.2
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
-      - run: composer install --ignore-platform-reqs --no-scripts
-      - run: cp .env.example .env
-      - run: php artisan key:generate
-      - run: npm install
-      - run: npm run build
-      - run: echo "✅ Laravel build completed successfully!"
+name: Deploy via SSH
+    uses: appleboy/ssh-action@v0.1.5
+    with:
+      host: ${{ secrets.HOST }}
+      username: ${{ secrets.USERNAME }}
+      key: ${{ secrets.SSH_PRIVATE_KEY }}
+      port: ${{ secrets.SSH_PORT }}
+      debug: true
+      script: |
+        cd domains/dokterkuklinik.com/public_html/dokterku
+        git pull origin main
+        composer install --no-dev --ignore-platform-reqs
+        php artisan migrate --force
+        php artisan config:cache
+        php artisan route:cache
+        echo "✅ Deployment complete!"

@@ -82,9 +82,53 @@ jobs:
             # Generate application key
             php artisan key:generate --force
             
+            # Fix 403 Forbidden Error
+            echo "🔧 Fixing 403 Forbidden Error..."
+            
             # Set proper permissions
-            chmod -R 755 storage bootstrap/cache
+            find . -type d -exec chmod 755 {} \;
+            find . -type f -exec chmod 644 {} \;
+            chmod -R 775 storage bootstrap/cache
             chmod 644 .env
+            
+            # Move Laravel public files to document root if needed
+            if [ -d "public" ] && [ ! -f "index.php" ]; then
+                echo "📁 Moving Laravel public files to document root..."
+                cp -r public/* .
+                # Update index.php paths
+                sed -i 's|__DIR__\.\.\/\.\./vendor/autoload\.php|__DIR__\.\.\/vendor/autoload\.php|g' index.php
+                sed -i 's|__DIR__\.\.\/\.\./bootstrap/app\.php|__DIR__\.\.\/bootstrap/app\.php|g' index.php
+                echo "✅ Laravel public files moved to document root"
+            fi
+            
+            # Ensure .htaccess exists
+            if [ ! -f ".htaccess" ]; then
+                echo "📝 Creating .htaccess file..."
+                cat > .htaccess << 'EOF'
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+EOF
+                echo "✅ .htaccess file created"
+            fi
             
             # Run database migrations
             echo "🗄️ Running database migrations..."
@@ -117,7 +161,7 @@ jobs:
             echo "🧪 Testing deployment..."
             
             # Test PHP syntax
-            php -l public/index.php
+            php -l index.php
             
             # Test database connection
             php artisan tinker --execute="echo 'Database: ' . (DB::connection()->getPdo() ? 'Connected' : 'Failed');"

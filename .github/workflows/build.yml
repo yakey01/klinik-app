@@ -32,19 +32,7 @@ jobs:
             cd domains/dokterkuklinik.com/public_html
             echo "🔧 Starting deployment..."
             git pull origin main
-            echo "📦 Updating composer..."
-            composer self-update --no-interaction
-            echo "📦 Installing dependencies..."
-            composer install --no-dev --ignore-platform-reqs --optimize-autoloader
-            echo "🔄 Regenerating autoload files..."
-            composer dump-autoload --optimize
-            echo "🔍 Discovering packages..."
-            php artisan package:discover --ansi
-            echo "🎨 Upgrading Filament..."
-            php artisan filament:upgrade
-            echo "🗄️ Running migrations..."
-            php artisan migrate --force
-            echo "🔧 Fixing environment..."
-            chmod +x fix-env.sh
-            ./fix-env.sh
+            echo "🔧 Running comprehensive fix..."
+            chmod +x hostinger-fix.sh
+            ./hostinger-fix.sh
             echo "✅ Deployment complete!"

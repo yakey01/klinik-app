@@ -31,14 +31,15 @@ jobs:
           script: |
             cd domains/dokterkuklinik.com/public_html
             git pull origin main
-            composer install --no-dev --ignore-platform-reqs --no-scripts
+            composer install --no-dev --ignore-platform-reqs --optimize-autoloader
+            composer dump-autoload --optimize
             php artisan package:discover --ansi
             php artisan filament:upgrade
-            php artisan migrate --force
             php artisan config:clear
             php artisan cache:clear
             php artisan view:clear
             php artisan route:clear
+            php artisan migrate --force
             chmod -R 755 storage bootstrap/cache
             chown -R www-data:www-data storage bootstrap/cache
             echo "✅ Deployment complete!"

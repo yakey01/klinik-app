@@ -11,6 +11,16 @@ class CreateTindakan extends CreateRecord
 {
     protected static string $resource = TindakanResource::class;
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        // Pre-fill pasien_id if passed via URL parameter
+        if (request()->has('pasien_id')) {
+            $data['pasien_id'] = request('pasien_id');
+        }
+        
+        return $data;
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['input_by'] = Auth::id();

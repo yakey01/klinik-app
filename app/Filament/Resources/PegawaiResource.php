@@ -374,7 +374,6 @@ class PegawaiResource extends Resource
                                         'Paramedis' => 'Paramedis (role: paramedis)',
                                         'Petugas' => 'Petugas (role: petugas)',
                                         'Bendahara' => 'Bendahara (role: bendahara)',
-                                        'Pegawai' => 'Pegawai (role: pegawai)',
                                     ];
                                     
                                     // Filter out existing roles
@@ -396,7 +395,7 @@ class PegawaiResource extends Resource
                                     if (count($existingRoles) > 0) {
                                         return 'Role yang sudah ada: ' . implode(', ', $existingRoles) . '. Pilih role baru yang belum ada.';
                                     }
-                                    return 'Admin bisa membuat satu pegawai memiliki multiple role sebagai Bendahara, Pegawai atau Petugas';
+                                    return 'Admin bisa membuat satu pegawai memiliki multiple role sebagai Bendahara, Paramedis atau Petugas';
                                 }),
                                 
                             Forms\Components\TextInput::make('custom_username')
@@ -418,7 +417,6 @@ class PegawaiResource extends Resource
                                         'Paramedis' => 'paramedis',
                                         'Petugas' => 'petugas',
                                         'Bendahara' => 'bendahara',
-                                        'Pegawai' => 'pegawai',
                                         default => 'petugas'
                                     };
                                     
@@ -468,7 +466,6 @@ class PegawaiResource extends Resource
                                     'Paramedis' => 'paramedis',
                                     'Petugas' => 'petugas',
                                     'Bendahara' => 'bendahara',
-                                    'Pegawai' => 'pegawai',
                                     default => 'petugas'
                                 };
                                 
@@ -503,7 +500,6 @@ class PegawaiResource extends Resource
                                         'paramedis' => 'pm',
                                         'petugas' => 'pt',
                                         'bendahara' => 'bd',
-                                        'pegawai' => 'pg',
                                         default => 'usr'
                                     };
                                     

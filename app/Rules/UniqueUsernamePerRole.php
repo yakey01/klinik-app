@@ -59,7 +59,7 @@ class UniqueUsernamePerRole implements ValidationRule
         }
         
         // Additional check: prevent same username across different critical roles
-        $criticalRoles = ['petugas', 'bendahara', 'pegawai'];
+        $criticalRoles = ['petugas', 'bendahara', 'paramedis'];
         $currentRole = $role->name;
         
         if (in_array($currentRole, $criticalRoles)) {
@@ -77,7 +77,7 @@ class UniqueUsernamePerRole implements ValidationRule
             $duplicateUser = $duplicateQuery->with('role')->first();
             
             if ($duplicateUser) {
-                $fail("Username '{$value}' sudah digunakan oleh {$duplicateUser->role->display_name}. Username tidak boleh sama antara Petugas, Bendahara, dan Pegawai.");
+                $fail("Username '{$value}' sudah digunakan oleh {$duplicateUser->role->display_name}. Username tidak boleh sama antara Petugas, Bendahara, dan Paramedis.");
                 return;
             }
         }

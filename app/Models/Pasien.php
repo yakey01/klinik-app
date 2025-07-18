@@ -26,6 +26,7 @@ class Pasien extends Model
         'status_pernikahan',
         'kontak_darurat_nama',
         'kontak_darurat_telepon',
+        'input_by',
     ];
 
     protected $casts = [

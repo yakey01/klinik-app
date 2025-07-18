@@ -3,6 +3,7 @@
 namespace App\Filament\Petugas\Resources;
 
 use App\Filament\Petugas\Resources\PasienResource\Pages;
+use App\Filament\Petugas\Resources\TindakanResource;
 use App\Models\Pasien;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -424,9 +425,26 @@ class PasienResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('create_tindakan')
+                        ->label('🏥 Buat Tindakan')
+                        ->icon('heroicon-o-plus-circle')
+                        ->color('primary')
+                        ->url(fn (Pasien $record): string => TindakanResource::getUrl('create', [], panel: 'petugas') . '?pasien_id=' . $record->id)
+                        ->tooltip('Buat tindakan untuk pasien ini'),
+                    
+                    Tables\Actions\ViewAction::make()
+                        ->label('👁️ Lihat'),
+                    Tables\Actions\EditAction::make()
+                        ->label('✏️ Edit'),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('🗑️ Hapus'),
+                ])
+                ->label('⚙️ Aksi')
+                ->icon('heroicon-o-ellipsis-vertical')
+                ->size('sm')
+                ->color('gray')
+                ->button(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

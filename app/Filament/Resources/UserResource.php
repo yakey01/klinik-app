@@ -127,7 +127,7 @@ class UserResource extends Resource
                                         $roleId = $get('role_id') ?? request()->get('role_id');
                                         if ($roleId) {
                                             $role = \App\Models\Role::find($roleId);
-                                            return $role && in_array($role->name, ['petugas', 'bendahara', 'pegawai']);
+                                            return $role && in_array($role->name, ['petugas', 'bendahara', 'paramedis']);
                                         }
                                         return false;
                                     })
@@ -204,7 +204,7 @@ class UserResource extends Resource
                             ->options(function () use ($source) {
                                 // For user management and staff management, focus on the three main roles
                                 if (!$source || $source === 'user_management' || $source === 'staff_management') {
-                                    return \App\Models\Role::whereIn('name', ['petugas', 'bendahara', 'pegawai'])
+                                    return \App\Models\Role::whereIn('name', ['petugas', 'bendahara', 'paramedis'])
                                         ->where('is_active', true)
                                         ->pluck('display_name', 'id');
                                 }
@@ -221,7 +221,7 @@ class UserResource extends Resource
                             ->visible(fn () => $source !== 'dokter' && $source !== 'pegawai')
                             ->hint(function () use ($source) {
                                 if (!$source || $source === 'user_management' || $source === 'staff_management') {
-                                    return 'Admin bisa membuat satu pegawai memiliki role sebagai Bendahara, Pegawai atau Petugas';
+                                    return 'Admin bisa membuat satu pegawai memiliki role sebagai Bendahara, Paramedis atau Petugas';
                                 }
                                 return 'Pilih role untuk user ini';
                             })
@@ -286,9 +286,9 @@ class UserResource extends Resource
                                         
                                         <h4 class="font-semibold mb-2 text-blue-800 dark:text-blue-200">📋 Aturan Username:</h4>
                                         <ul class="space-y-1 mb-3">
-                                            <li>• <strong>Username WAJIB</strong> untuk role: Petugas, Bendahara, Pegawai</li>
+                                            <li>• <strong>Username WAJIB</strong> untuk role: Petugas, Bendahara, Paramedis</li>
                                             <li>• Username harus <strong>unik per role</strong></li>
-                                            <li>• Username <strong>tidak boleh sama</strong> antar Petugas, Bendahara, dan Pegawai</li>
+                                            <li>• Username <strong>tidak boleh sama</strong> antar Petugas, Bendahara, dan Paramedis</li>
                                             <li>• Minimal 3 karakter, maksimal 50 karakter</li>
                                             <li>• Boleh menggunakan huruf, angka, spasi, titik, dan koma</li>
                                         </ul>
@@ -367,10 +367,10 @@ class UserResource extends Resource
                     ->searchable()
                     ->preload(),
                 Tables\Filters\Filter::make('user_management_roles')
-                    ->label('Role Management (Petugas/Bendahara/Pegawai)')
+                    ->label('Role Management (Petugas/Bendahara/Paramedis)')
                     ->query(fn (Builder $query): Builder => 
                         $query->whereHas('role', fn ($q) => 
-                            $q->whereIn('name', ['petugas', 'bendahara', 'pegawai'])
+                            $q->whereIn('name', ['petugas', 'bendahara', 'paramedis'])
                         )
                     )
                     ->toggle(),

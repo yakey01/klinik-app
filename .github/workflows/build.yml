@@ -32,7 +32,10 @@ jobs:
             cd domains/dokterkuklinik.com/public_html
             echo "🔧 Starting deployment..."
             git pull origin main
-            echo "🎯 Running ERROR HUNTER to find the real error..."
-            chmod +x error-hunter.sh
-            ./error-hunter.sh
+            echo "🕵️ Running RAW ERROR DETECTIVE..."
+            chmod +x raw-error-detective.sh
+            ./raw-error-detective.sh
+            echo "🎯 Running TARGETED FIX..."
+            chmod +x targeted-fix.sh
+            ./targeted-fix.sh
             echo "✅ Deployment complete!"

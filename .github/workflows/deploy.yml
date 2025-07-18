@@ -1,4 +1,4 @@
-name: Deploy Laravel Healthcare App
+ name: Deploy Laravel Healthcare App
 
   on:
     push:

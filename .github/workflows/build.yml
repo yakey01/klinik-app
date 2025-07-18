@@ -29,7 +29,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           debug: true
           script: |
-            cd domains/dokterkuklinik.com/public_html/dokterku
+            cd domains/dokterkuklinik.com/public_html
             git pull origin main
             composer install --no-dev --ignore-platform-reqs --no-scripts
             php artisan package:discover --ansi

@@ -99,16 +99,13 @@ return new class extends Migration
 
         // Indexes for users table
         Schema::table('users', function (Blueprint $table) {
-            $table->index('role', 'idx_users_role');
-            $table->index('role_id', 'idx_users_role_id');
-            $table->index('is_active', 'idx_users_is_active');
+            // Note: role_id, is_active, and nip indexes already exist in enhance_users_table_complete.php
+            // Only add additional indexes that don't conflict
             $table->index('created_at', 'idx_users_created_at');
             $table->index('last_login_at', 'idx_users_last_login_at');
             $table->index('deleted_at', 'idx_users_deleted_at');
-            $table->index('nip', 'idx_users_nip');
             
             // Composite indexes
-            $table->index(['role', 'is_active'], 'idx_users_role_active');
             $table->index(['is_active', 'created_at'], 'idx_users_active_created');
             $table->index(['role_id', 'is_active'], 'idx_users_role_id_active');
         });
@@ -288,14 +285,10 @@ return new class extends Migration
 
         // Drop indexes from users table
         Schema::table('users', function (Blueprint $table) {
-            $table->dropIndex('idx_users_role');
-            $table->dropIndex('idx_users_role_id');
-            $table->dropIndex('idx_users_is_active');
+            // Only drop indexes that we actually created in up() method
             $table->dropIndex('idx_users_created_at');
             $table->dropIndex('idx_users_last_login_at');
             $table->dropIndex('idx_users_deleted_at');
-            $table->dropIndex('idx_users_nip');
-            $table->dropIndex('idx_users_role_active');
             $table->dropIndex('idx_users_active_created');
             $table->dropIndex('idx_users_role_id_active');
         });

@@ -198,21 +198,29 @@ return new class extends Migration
         }
 
         // Step 5: Migrate user role assignments from custom system to Spatie
-        $users = User::whereNotNull('role_id')->with('customRole')->get();
+        // Use query builder to avoid soft delete issues if users table doesn't have deleted_at
+        $users = DB::table('users')
+            ->whereNotNull('role_id')
+            ->get();
         
         foreach ($users as $user) {
-            if ($user->customRole) {
-                // Find corresponding Spatie role
-                $spatieRole = SpatieRole::where('name', $user->customRole->name)->first();
+            if ($user->role_id) {
+                // Get the custom role by ID using query builder
+                $customRole = DB::table('roles')->where('id', $user->role_id)->first();
                 
-                if ($spatieRole) {
-                    // Use direct database insert to avoid ORM conflicts
-                    DB::table('model_has_roles')->insertOrIgnore([
-                        'role_id' => $spatieRole->id,
-                        'model_type' => 'App\\Models\\User',
-                        'model_id' => $user->id
-                    ]);
-                    echo "Assigned role '{$spatieRole->name}' to user: {$user->email}\n";
+                if ($customRole) {
+                    // Find corresponding Spatie role
+                    $spatieRole = SpatieRole::where('name', $customRole->name)->first();
+                    
+                    if ($spatieRole) {
+                        // Use direct database insert to avoid ORM conflicts
+                        DB::table('model_has_roles')->insertOrIgnore([
+                            'role_id' => $spatieRole->id,
+                            'model_type' => 'App\\Models\\User',
+                            'model_id' => $user->id
+                        ]);
+                        echo "Assigned role '{$spatieRole->name}' to user: {$user->email}\n";
+                    }
                 }
             }
         }

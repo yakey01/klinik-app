@@ -50,7 +50,17 @@ This is a Laravel 11 healthcare management system called "Dokterku" that uses Fi
 
 ### Database Management
 - `php artisan migrate` - Run database migrations
+- `php artisan db:seed` - Run all seeders (includes new users)
+- `php artisan users:sync` - Sync only new users added via admin
+- `php artisan users:export-seeder` - Export existing users to seeder file
 - Touch `database/database.sqlite` if using SQLite (default setup)
+
+### User Management Workflow
+1. **Add users via admin panel** - Use Filament admin interface
+2. **Export to seeder** - `php artisan users:export-seeder --exclude-admin`
+3. **Update NewUsersSeeder.php** - Copy exported data to seeder file
+4. **Commit & push** - `git add . && git commit -m "Add new users" && git push`
+5. **Team sync** - Other developers run `php artisan users:sync`
 
 ## Architecture Overview
 

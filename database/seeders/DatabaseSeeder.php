@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             UserSeeder::class,
             
+            // Additional users added via admin
+            NewUsersSeeder::class,
+            
             // Location and GPS validation
             LocationValidationSeeder::class,
             GpsSpoofingDetectionSeeder::class,

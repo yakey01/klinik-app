@@ -3,7 +3,7 @@
 namespace Tests\Feature\Workflows;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +29,7 @@ use Spatie\Permission\Models\Role;
 
 class PerformanceIntegrationTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     protected User $petugas;
     protected PetugasStatsService $statsService;

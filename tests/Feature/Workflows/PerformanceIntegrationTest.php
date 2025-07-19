@@ -40,7 +40,7 @@ class PerformanceIntegrationTest extends TestCase
         parent::setUp();
         
         // Create roles and users
-        Role::create(['name' => 'petugas']);
+        Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
         $this->petugas = User::factory()->create(['name' => 'Performance Test User']);
         $this->petugas->assignRole('petugas');
         

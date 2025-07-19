@@ -25,8 +25,8 @@ class PasienResourceTest extends TestCase
         parent::setUp();
         
         // Create roles
-        Role::create(['name' => 'petugas']);
-        Role::create(['name' => 'supervisor']);
+        Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
+        Role::create(['name' => 'supervisor', 'display_name' => 'Supervisor']);
         
         $this->user = User::factory()->create();
         $this->user->assignRole('petugas');

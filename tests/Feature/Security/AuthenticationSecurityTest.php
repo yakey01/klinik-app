@@ -26,8 +26,8 @@ class AuthenticationSecurityTest extends TestCase
         parent::setUp();
         
         // Create roles
-        Role::create(['name' => 'petugas']);
-        Role::create(['name' => 'supervisor']);
+        Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
+        Role::create(['name' => 'supervisor', 'display_name' => 'Supervisor']);
         
         // Create test users
         $this->validUser = User::factory()->create([

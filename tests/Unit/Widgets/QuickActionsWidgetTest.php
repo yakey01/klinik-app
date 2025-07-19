@@ -155,7 +155,7 @@ class QuickActionsWidgetTest extends TestCase
     public function test_it_provides_supervisor_specific_tips()
     {
         // Arrange
-        $supervisorRole = Role::create(['name' => 'supervisor']);
+        $supervisorRole = Role::create(['name' => 'supervisor', 'display_name' => 'Supervisor']);
         $this->user->assignRole($supervisorRole);
         
         // Act
@@ -170,7 +170,7 @@ class QuickActionsWidgetTest extends TestCase
     public function test_it_provides_admin_specific_tips()
     {
         // Arrange
-        $adminRole = Role::create(['name' => 'admin']);
+        $adminRole = Role::create(['name' => 'admin', 'display_name' => 'Admin']);
         $this->user->assignRole($adminRole);
         
         // Act

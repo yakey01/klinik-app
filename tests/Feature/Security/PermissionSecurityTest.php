@@ -42,10 +42,10 @@ class PermissionSecurityTest extends TestCase
         parent::setUp();
         
         // Create roles
-        $petugasRole = Role::create(['name' => 'petugas']);
-        $supervisorRole = Role::create(['name' => 'supervisor']);
-        $managerRole = Role::create(['name' => 'manager']);
-        $adminRole = Role::create(['name' => 'admin']);
+        $petugasRole = Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
+        $supervisorRole = Role::create(['name' => 'supervisor', 'display_name' => 'Supervisor']);
+        $managerRole = Role::create(['name' => 'manager', 'display_name' => 'Manager']);
+        $adminRole = Role::create(['name' => 'admin', 'display_name' => 'Admin']);
         
         // Create permissions
         $this->createPermissions();

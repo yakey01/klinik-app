@@ -3,7 +3,7 @@
 namespace Tests\Feature\Workflows;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +27,7 @@ use Spatie\Permission\Models\Role;
 
 class ErrorHandlingIntegrationTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     protected User $petugas;
     protected User $supervisor;
@@ -40,8 +40,8 @@ class ErrorHandlingIntegrationTest extends TestCase
         parent::setUp();
         
         // Create roles
-        Role::create(['name' => 'petugas']);
-        Role::create(['name' => 'supervisor']);
+        Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
+        Role::create(['name' => 'supervisor', 'display_name' => 'Supervisor']);
         
         // Create users
         $this->petugas = User::factory()->create(['name' => 'Test Petugas']);

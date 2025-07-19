@@ -34,7 +34,7 @@ class InputValidationSecurityTest extends TestCase
         parent::setUp();
         
         // Create role and user
-        Role::create(['name' => 'petugas']);
+        Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
         $this->petugas = User::factory()->create(['name' => 'Test Petugas']);
         $this->petugas->assignRole('petugas');
         

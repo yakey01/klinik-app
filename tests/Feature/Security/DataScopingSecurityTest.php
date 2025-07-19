@@ -42,10 +42,10 @@ class DataScopingSecurityTest extends TestCase
         parent::setUp();
         
         // Create roles
-        Role::create(['name' => 'petugas']);
-        Role::create(['name' => 'supervisor']);
-        Role::create(['name' => 'manager']);
-        Role::create(['name' => 'admin']);
+        Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
+        Role::create(['name' => 'supervisor', 'display_name' => 'Supervisor']);
+        Role::create(['name' => 'manager', 'display_name' => 'Manager']);
+        Role::create(['name' => 'admin', 'display_name' => 'Admin']);
         
         // Create users with different roles
         $this->petugasA = User::factory()->create(['name' => 'Petugas A']);

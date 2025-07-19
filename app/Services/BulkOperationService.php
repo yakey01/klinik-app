@@ -98,8 +98,6 @@ class BulkOperationService
             
             $this->logBulkOperation('update', $modelClass, count($results), count($errors));
             
-            DB::commit();
-            
             return [
                 'success' => true,
                 'updated' => count($results),
@@ -107,25 +105,14 @@ class BulkOperationService
                 'data' => $results,
                 'error_details' => $errors,
             ];
-            
-        } catch (Exception $e) {
-            DB::rollBack();
-            Log::error('Bulk update operation failed', [
-                'model' => $modelClass,
-                'error' => $e->getMessage(),
-            ]);
-            
-            throw $e;
-        }
+        });
     }
 
     public function bulkDelete(string $modelClass, array $ids, array $options = []): array
     {
         $this->validateModel($modelClass);
         
-        DB::beginTransaction();
-        
-        try {
+        return $this->safeTransaction(function() use ($modelClass, $ids, $options) {
             $softDelete = $options['soft_delete'] ?? true;
             $batchSize = $options['batch_size'] ?? $this->getBatchSize($ids);
             
@@ -155,24 +142,13 @@ class BulkOperationService
             
             $this->logBulkOperation('delete', $modelClass, $deleted, count($errors));
             
-            DB::commit();
-            
             return [
                 'success' => true,
                 'deleted' => $deleted,
                 'errors' => count($errors),
                 'error_details' => $errors,
             ];
-            
-        } catch (Exception $e) {
-            DB::rollBack();
-            Log::error('Bulk delete operation failed', [
-                'model' => $modelClass,
-                'error' => $e->getMessage(),
-            ]);
-            
-            throw $e;
-        }
+        });
     }
 
     protected function processBatch(

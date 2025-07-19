@@ -39,6 +39,7 @@ return new class extends Migration
             $table->text('validation_notes')->nullable();
             
             $table->timestamps();
+            $table->softDeletes(); // Add deleted_at column for SoftDeletes trait
             
             // Indexes
             $table->index('jenis_tindakan_id');
@@ -48,6 +49,7 @@ return new class extends Migration
             $table->index('validated_by');
             $table->index('validation_status');
             $table->index('created_at');
+            $table->index('deleted_at');
             
             // Foreign keys - only add ones for tables that exist at this point
             $table->foreign('jenis_tindakan_id')->references('id')->on('jenis_tindakan');

@@ -15,8 +15,22 @@ jobs:
   preview-build:
     name: Build Preview
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/design/') || startsWith(github.ref, 'refs/heads/content/')
-    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: klinik_testing
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: klinik
+          MYSQL_PASSWORD: klinik123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,12 +56,34 @@ jobs:
         run: |
           cp .env.example .env.testing
           php artisan key:generate --env=testing
-          touch database/testing.sqlite
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: klinik_testing
+          DB_USERNAME: klinik
+          DB_PASSWORD: klinik123
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h127.0.0.1 -uklinik -pklinik123 && exit 0
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+          echo "MySQL did not start in time" && exit 1
 
       - name: Run tests
         run: |
           php artisan migrate --env=testing --force
           ./vendor/bin/pest
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: klinik_testing
+          DB_USERNAME: klinik
+          DB_PASSWORD: klinik123
 
       - name: Build assets
         run: npm run build
@@ -83,7 +119,6 @@ jobs:
           script: |
             const fs = require('fs');
             const report = fs.readFileSync('preview-report.md', 'utf8');
-            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -95,7 +130,6 @@ jobs:
     name: Design Validation
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/design/') || contains(github.event.pull_request.title, '[design]')
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -112,26 +146,20 @@ jobs:
       - name: Build and validate assets
         run: |
           npm run build
-          
-          # Check for design-related files
           echo "## 🎨 Design Validation Report" > design-report.md
           echo "" >> design-report.md
-          
           if [ -d "resources/css" ]; then
             echo "### CSS Files:" >> design-report.md
             find resources/css -name "*.css" -exec echo "- {}" \; >> design-report.md
           fi
-          
           if [ -d "resources/js" ]; then
             echo "### JS Files:" >> design-report.md
             find resources/js -name "*.js" -exec echo "- {}" \; >> design-report.md
           fi
-          
           if [ -d "resources/views" ]; then
             echo "### Blade Templates:" >> design-report.md
             find resources/views -name "*.blade.php" -exec echo "- {}" \; >> design-report.md
           fi
-          
           echo "" >> design-report.md
           echo "### Build Output:" >> design-report.md
           echo "\`\`\`" >> design-report.md
@@ -141,7 +169,6 @@ jobs:
       - name: Validate Tailwind classes
         run: |
           echo "### 🎯 Tailwind Validation:" >> design-report.md
-          # Check for custom Tailwind classes
           grep -r "class=" resources/views/ | grep -o 'class="[^"]*"' | head -10 >> design-report.md || echo "No Tailwind classes found" >> design-report.md
 
       - name: Upload design artifacts
@@ -157,7 +184,6 @@ jobs:
     name: Content Validation
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/content/') || contains(github.event.pull_request.title, '[content]')
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -166,24 +192,18 @@ jobs:
         run: |
           echo "## 📝 Content Validation Report" > content-report.md
           echo "" >> content-report.md
-          
-          # Check for blade template changes
           if git diff --name-only HEAD~1 | grep -q "\.blade\.php$"; then
             echo "### Modified Blade Templates:" >> content-report.md
             git diff --name-only HEAD~1 | grep "\.blade\.php$" | while read file; do
               echo "- $file" >> content-report.md
             done
           fi
-          
-          # Check for language files
           if git diff --name-only HEAD~1 | grep -q "lang/"; then
             echo "### Modified Language Files:" >> content-report.md
             git diff --name-only HEAD~1 | grep "lang/" | while read file; do
               echo "- $file" >> content-report.md
             done
           fi
-          
-          # Check for configuration changes
           if git diff --name-only HEAD~1 | grep -q "config/"; then
             echo "### Modified Config Files:" >> content-report.md
             git diff --name-only HEAD~1 | grep "config/" | while read file; do

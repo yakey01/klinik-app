@@ -10,12 +10,13 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\AuditLog;
 use Exception;
 use App\Traits\HandlesErrors;
+use App\Traits\SafeTransaction;
 use App\Exceptions\ValidationException;
 use App\Exceptions\SystemException;
 
 class BulkOperationService
 {
-    use HandlesErrors;
+    use HandlesErrors, SafeTransaction;
     protected array $supportedModels = [
         'PendapatanHarian',
         'PengeluaranHarian', 
@@ -37,9 +38,7 @@ class BulkOperationService
     {
         $this->validateModel($modelClass);
         
-        DB::beginTransaction();
-        
-        try {
+        return $this->safeTransaction(function() use ($modelClass, $data, $options) {
             $results = [];
             $errors = [];
             $batchSize = $options['batch_size'] ?? $this->getBatchSize($data);
@@ -62,8 +61,6 @@ class BulkOperationService
             
             $this->logBulkOperation('create', $modelClass, count($results), count($errors));
             
-            DB::commit();
-            
             return [
                 'success' => true,
                 'created' => count($results),
@@ -71,25 +68,14 @@ class BulkOperationService
                 'data' => $results,
                 'error_details' => $errors,
             ];
-            
-        } catch (Exception $e) {
-            DB::rollBack();
-            Log::error('Bulk create operation failed', [
-                'model' => $modelClass,
-                'error' => $e->getMessage(),
-            ]);
-            
-            throw $e;
-        }
+        });
     }
 
     public function bulkUpdate(string $modelClass, array $updates, string $keyField = 'id', array $options = []): array
     {
         $this->validateModel($modelClass);
         
-        DB::beginTransaction();
-        
-        try {
+        return $this->safeTransaction(function() use ($modelClass, $updates, $keyField, $options) {
             $results = [];
             $errors = [];
             $batchSize = $options['batch_size'] ?? $this->getBatchSize($updates);

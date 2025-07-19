@@ -40,9 +40,11 @@ jobs:
       - name: Setup test environment
         run: |
           cp .env.example .env.testing
-          # Set up SQLite for testing to avoid foreign key timing issues
+          # Set up file-based SQLite for testing to avoid transaction conflicts
+          mkdir -p database
+          touch database/testing.sqlite
           echo "DB_CONNECTION=sqlite" >> .env.testing
-          echo "DB_DATABASE=:memory:" >> .env.testing
+          echo "DB_DATABASE=$(pwd)/database/testing.sqlite" >> .env.testing
           php artisan key:generate --env=testing
 
       - name: Run tests

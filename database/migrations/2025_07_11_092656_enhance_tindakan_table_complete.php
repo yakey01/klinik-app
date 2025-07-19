@@ -25,18 +25,30 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('jenis_tindakan_id');
             $table->unsignedBigInteger('pasien_id');
-            $table->unsignedBigInteger('dokter_id')->nullable(); // Made nullable
-            $table->text('keterangan')->nullable();
-            $table->decimal('harga', 10, 2);
+            $table->unsignedBigInteger('dokter_id')->nullable();
+            $table->unsignedBigInteger('paramedis_id')->nullable();
+            $table->unsignedBigInteger('non_paramedis_id')->nullable();
+            $table->unsignedBigInteger('shift_id')->nullable();
+            $table->dateTime('tanggal_tindakan');
+            $table->decimal('tarif', 10, 2);
+            $table->decimal('jasa_dokter', 10, 2)->nullable();
+            $table->decimal('jasa_paramedis', 10, 2)->nullable();
+            $table->decimal('jasa_non_paramedis', 10, 2)->nullable();
+            $table->text('catatan')->nullable();
+            $table->string('status')->default('pending');
+            $table->text('keterangan')->nullable(); // Legacy field
+            $table->decimal('harga', 10, 2)->nullable(); // Legacy field
             
             // From: add_input_by_to_tindakan_table.php
             $table->unsignedBigInteger('input_by')->nullable();
             
             // From: add_validation_fields_to_tindakan_table.php
+            $table->string('status_validasi')->default('pending'); // Use string instead of enum for compatibility
             $table->unsignedBigInteger('validated_by')->nullable();
             $table->timestamp('validated_at')->nullable();
             $table->enum('validation_status', ['pending', 'validated', 'rejected'])->default('pending');
             $table->text('validation_notes')->nullable();
+            $table->text('komentar_validasi')->nullable();
             
             $table->timestamps();
             $table->softDeletes(); // Add deleted_at column for SoftDeletes trait
@@ -45,6 +57,12 @@ return new class extends Migration
             $table->index('jenis_tindakan_id');
             $table->index('pasien_id');
             $table->index('dokter_id');
+            $table->index('paramedis_id');
+            $table->index('non_paramedis_id');
+            $table->index('shift_id');
+            $table->index('tanggal_tindakan');
+            $table->index('status');
+            $table->index('status_validasi');
             $table->index('input_by');
             $table->index('validated_by');
             $table->index('validation_status');

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -12,33 +13,38 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 1. Clean up dummy pendapatan from FinancialTestSeeder
-        DB::table('pendapatan')
-            ->whereIn('nama_pendapatan', [
-                'Konsultasi Umum',
-                'Pemeriksaan Gigi', 
-                'Tindakan Medis',
-                'Laboratorium',
-                'Radiologi'
-            ])
-            ->where('input_by', 1) // Admin user
-            ->delete();
+        // Only run cleanup if tables exist to avoid errors in testing
+        if (Schema::hasTable('pendapatan')) {
+            // 1. Clean up dummy pendapatan from FinancialTestSeeder
+            DB::table('pendapatan')
+                ->whereIn('nama_pendapatan', [
+                    'Konsultasi Umum',
+                    'Pemeriksaan Gigi', 
+                    'Tindakan Medis',
+                    'Laboratorium',
+                    'Radiologi'
+                ])
+                ->where('input_by', 1) // Admin user
+                ->delete();
+        }
 
-        // 2. Clean up dummy pengeluaran from FinancialTestSeeder
-        DB::table('pengeluaran')
-            ->whereIn('nama_pengeluaran', [
-                'Alat Tulis Kantor',
-                'Obat-obatan',
-                'Maintenance AC'
-            ])
-            ->where('input_by', 1) // Admin user
-            ->delete();
+        if (Schema::hasTable('pengeluaran')) {
+            // 2. Clean up dummy pengeluaran from FinancialTestSeeder
+            DB::table('pengeluaran')
+                ->whereIn('nama_pengeluaran', [
+                    'Alat Tulis Kantor',
+                    'Obat-obatan',
+                    'Maintenance AC'
+                ])
+                ->where('input_by', 1) // Admin user
+                ->delete();
 
-        // 3. Clean up master pengeluaran templates with nominal = 0
-        DB::table('pengeluaran')
-            ->where('nominal', 0)
-            ->where('input_by', 1) // Admin user
-            ->delete();
+            // 3. Clean up master pengeluaran templates with nominal = 0
+            DB::table('pengeluaran')
+                ->where('nominal', 0)
+                ->where('input_by', 1) // Admin user
+                ->delete();
+        }
 
         // 4. Clean up dummy tindakan from DokterTindakanSeeder (optional)
         // Only remove if you want to clean all dummy medical actions

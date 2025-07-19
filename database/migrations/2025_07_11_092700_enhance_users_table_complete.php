@@ -29,16 +29,28 @@ return new class extends Migration
             
             // From: add_username_to_users_table.php
             $table->string('username')->unique()->nullable()->after('name');
+            $table->string('nip')->unique()->nullable()->after('username');
             $table->index('username', 'users_username_index');
+            $table->index('nip', 'users_nip_index');
             
             // From: add_profile_settings_to_users_table.php
+            $table->string('no_telepon', 20)->nullable()->after('nip');
+            $table->date('tanggal_bergabung')->nullable()->after('no_telepon');
             $table->json('preferences')->nullable()->after('remember_token');
             $table->string('phone', 20)->nullable()->after('email');
             $table->text('address')->nullable()->after('phone');
-            $table->boolean('is_active')->default(true)->after('address');
+            $table->text('bio')->nullable()->after('address');
+            $table->date('date_of_birth')->nullable()->after('bio');
+            $table->enum('gender', ['male', 'female'])->nullable()->after('date_of_birth');
+            $table->string('emergency_contact_name')->nullable()->after('gender');
+            $table->string('emergency_contact_phone', 20)->nullable()->after('emergency_contact_name');
+            $table->string('profile_photo_path')->nullable()->after('emergency_contact_phone');
+            $table->boolean('is_active')->default(true)->after('profile_photo_path');
             $table->timestamp('last_login_at')->nullable()->after('is_active');
             $table->index('is_active', 'users_is_active_index');
             $table->index('phone', 'users_phone_index');
+            $table->index('no_telepon', 'users_no_telepon_index');
+            $table->index('tanggal_bergabung', 'users_tanggal_bergabung_index');
             
             // From: add_pegawai_id_to_users_table.php
             // NOTE: Removed foreign key constraint to avoid circular dependency
@@ -52,8 +64,11 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             // Remove indexes first
             $table->dropIndex('users_pegawai_id_index');
+            $table->dropIndex('users_tanggal_bergabung_index');
+            $table->dropIndex('users_no_telepon_index');
             $table->dropIndex('users_phone_index');
             $table->dropIndex('users_is_active_index');
+            $table->dropIndex('users_nip_index');
             $table->dropIndex('users_username_index');
             $table->dropIndex('users_role_id_index');
             
@@ -65,9 +80,18 @@ return new class extends Migration
                 'pegawai_id',
                 'last_login_at',
                 'is_active',
+                'profile_photo_path',
+                'emergency_contact_phone',
+                'emergency_contact_name',
+                'gender',
+                'date_of_birth',
+                'bio',
                 'address',
                 'phone',
                 'preferences',
+                'tanggal_bergabung',
+                'no_telepon',
+                'nip',
                 'username',
                 'role_id'
             ]);

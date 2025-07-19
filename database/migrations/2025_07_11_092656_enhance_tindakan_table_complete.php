@@ -49,12 +49,11 @@ return new class extends Migration
             $table->index('validation_status');
             $table->index('created_at');
             
-            // Foreign keys (updated to reference correct tables)
+            // Foreign keys - only add ones for tables that exist at this point
             $table->foreign('jenis_tindakan_id')->references('id')->on('jenis_tindakan');
             $table->foreign('pasien_id')->references('id')->on('pasien');
-            $table->foreign('dokter_id')->references('id')->on('dokters')->onDelete('set null');
-            $table->foreign('input_by')->references('id')->on('pegawais')->onDelete('set null');
-            $table->foreign('validated_by')->references('id')->on('pegawais')->onDelete('set null');
+            // Note: dokters and pegawais foreign keys will be added in a later migration
+            // after those tables are created
         });
     }
 

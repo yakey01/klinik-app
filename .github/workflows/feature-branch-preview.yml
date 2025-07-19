@@ -15,21 +15,6 @@ jobs:
   preview-build:
     name: Build Preview
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_DATABASE: klinik_testing
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_USER: klinik
-          MYSQL_PASSWORD: klinik123
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
 
     steps:
       - name: Checkout code
@@ -55,35 +40,15 @@ jobs:
       - name: Setup test environment
         run: |
           cp .env.example .env.testing
+          # Set up SQLite for testing to avoid foreign key timing issues
+          echo "DB_CONNECTION=sqlite" >> .env.testing
+          echo "DB_DATABASE=:memory:" >> .env.testing
           php artisan key:generate --env=testing
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: klinik_testing
-          DB_USERNAME: klinik
-          DB_PASSWORD: klinik123
-
-      - name: Wait for MySQL
-        run: |
-          for i in {1..30}; do
-            mysqladmin ping -h127.0.0.1 -uklinik -pklinik123 && exit 0
-            echo "Waiting for MySQL..."
-            sleep 2
-          done
-          echo "MySQL did not start in time" && exit 1
 
       - name: Run tests
         run: |
           php artisan migrate --env=testing --force
           ./vendor/bin/pest
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: klinik_testing
-          DB_USERNAME: klinik
-          DB_PASSWORD: klinik123
 
       - name: Build assets
         run: npm run build

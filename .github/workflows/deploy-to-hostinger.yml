@@ -26,6 +26,7 @@ jobs:
           coverage: none
 
       - name: Download Composer 2 locally
+        working-directory: ${{ env.APP_DIR }}
         run: |
           echo "📦 Downloading Composer 2 locally..."
           php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -42,15 +43,18 @@ jobs:
           restore-keys: composer-
 
       - name: Install Composer dependencies
+        working-directory: ${{ env.APP_DIR }}
         run: ./composer2 install --no-dev --optimize-autoloader --no-progress --no-interaction
 
       - name: Setup test environment
+        working-directory: ${{ env.APP_DIR }}
         run: |
           cp .env.example .env
           php artisan key:generate
           touch database/database.sqlite
           
       - name: Configure SQLite for testing
+        working-directory: ${{ env.APP_DIR }}
         run: |
           echo "# Override database config for CI testing" >> .env
           echo "DB_CONNECTION=sqlite" >> .env
@@ -60,6 +64,7 @@ jobs:
           echo "QUEUE_CONNECTION=sync" >> .env
 
       - name: Prepare test database
+        working-directory: ${{ env.APP_DIR }}
         run: |
           rm -f database/database.sqlite
           rm -f database/testing.sqlite
@@ -68,6 +73,7 @@ jobs:
           php artisan migrate:fresh --force
 
       - name: Run tests
+        working-directory: ${{ env.APP_DIR }}
         run: |
           echo "✅ Database prepared for testing"
           echo "🧪 Tests would run here: php artisan test"
@@ -88,6 +94,7 @@ jobs:
           coverage: none
 
       - name: Download Composer 2 locally
+        working-directory: ${{ env.APP_DIR }}
         run: |
           echo "📦 Downloading Composer 2 locally..."
           php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -104,12 +111,14 @@ jobs:
           restore-keys: composer-build-
 
       - name: Configure Composer authentication for GitHub
+        working-directory: ${{ env.APP_DIR }}
         run: |
           echo "🔐 Configuring Composer GitHub authentication..."
           ./composer2 config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
           echo "✅ GitHub authentication configured"
 
       - name: Install dependencies with Composer 2
+        working-directory: ${{ env.APP_DIR }}
         run: |
           echo "🚀 Installing Composer dependencies for deployment..."
           ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts || {
@@ -119,11 +128,13 @@ jobs:
           echo "✅ Composer dependencies installed successfully"
 
       - name: Setup minimal environment for asset publishing
+        working-directory: ${{ env.APP_DIR }}
         run: |
           cp .env.example .env
           php artisan key:generate
 
       - name: Publish Filament assets
+        working-directory: ${{ env.APP_DIR }}
         run: php artisan vendor:publish --tag=filament-assets --force
 
       - name: Setup Node.js
@@ -133,9 +144,11 @@ jobs:
           cache: 'npm'
 
       - name: Install NPM dependencies
+        working-directory: ${{ env.APP_DIR }}
         run: npm ci
 
       - name: Build assets
+        working-directory: ${{ env.APP_DIR }}
         run: npm run build
 
       - name: Deploy to Hostinger
@@ -151,7 +164,7 @@ jobs:
             set -e
             echo "🚀 Starting deployment to Hostinger..."
             echo "📅 Deployment started at: $(date)"
-            # ... (kode lain tetap sama sampai sebelum proses Composer)
+            cd domains/dokterkuklinik.com/public_html/dokterku
             echo "📦 Downloading Composer 2 for server deployment..."
             php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
             php composer-setup.php --2 --install-dir=. --filename=composer2

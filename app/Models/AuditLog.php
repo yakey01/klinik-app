@@ -11,20 +11,29 @@ class AuditLog extends Model
 {
     protected $fillable = [
         'user_id',
+        'user_name',
+        'user_email',
+        'user_role',
         'action',
         'model_type',
         'model_id',
+        'description',
+        'properties',
         'old_values',
         'new_values',
         'ip_address',
         'user_agent',
         'url',
         'method',
+        'session_id',
+        'model_data',
     ];
 
     protected $casts = [
+        'properties' => 'array',
         'old_values' => 'array',
         'new_values' => 'array',
+        'model_data' => 'array',
     ];
 
     // Action constants

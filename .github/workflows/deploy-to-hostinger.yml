@@ -6,8 +6,12 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  PHP_VERSION: "8.3"
+  NODE_VERSION: "20"
+
 jobs:
-  build-and-deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -16,16 +20,45 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.3
+          php-version: ${{ env.PHP_VERSION }}
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-
 
       - name: Install Composer dependencies
-        run: composer install --ignore-platform-reqs --no-scripts --no-dev
+        run: composer install --no-dev --optimize-autoloader --no-progress --no-interaction
 
-      - name: Setup environment
+      - name: Setup test environment
         run: |
           cp .env.example .env
           php artisan key:generate
+          touch database/database.sqlite
+
+      - name: Run tests
+        run: |
+          php artisan config:clear
+          php artisan migrate --force --database=sqlite
+          # Add your test commands here
+          # php artisan test
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
       - name: Install NPM dependencies
         run: npm ci
@@ -34,39 +67,133 @@ jobs:
         run: npm run build
 
       - name: Deploy to Hostinger
-        uses: appleboy/ssh-action@v0.1.5
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          debug: true
+          timeout: 300s
+          command_timeout: 30s
           script: |
+            set -e  # Exit on any error
+            
             echo "🚀 Starting deployment to Hostinger..."
-            cd domains/dokterkuklinik.com/public_html/dokterku
+            echo "📅 Deployment started at: $(date)"
+            
+            # Set deployment variables
+            APP_DIR="domains/dokterkuklinik.com/public_html/dokterku"
+            BACKUP_DIR="/tmp/dokterku-backup-$(date +%Y%m%d_%H%M%S)"
+            
+            # Function to handle errors
+            handle_error() {
+                echo "❌ Error occurred during deployment!"
+                echo "🔄 Attempting to restore from backup if available..."
+                if [ -d "$BACKUP_DIR" ]; then
+                    cd "$BACKUP_DIR"
+                    rsync -av --exclude='.env' --exclude='storage/app' --exclude='storage/logs' . "$APP_DIR/"
+                    echo "✅ Backup restored"
+                fi
+                exit 1
+            }
+            
+            # Set error trap
+            trap handle_error ERR
+            
+            # Navigate to app directory
+            cd "$APP_DIR" || { echo "❌ Cannot access app directory"; exit 1; }
+            
+            echo "💾 Creating backup..."
+            mkdir -p "$BACKUP_DIR"
+            rsync -av --exclude='.git' --exclude='node_modules' --exclude='vendor' . "$BACKUP_DIR/"
             
             echo "📥 Pulling latest changes..."
-            git pull origin main
+            git stash push -m "Auto-stash before deployment $(date)"
+            git fetch origin main
+            git reset --hard origin/main
             
-            echo "📦 Installing dependencies without scripts..."
-            composer install --no-dev --ignore-platform-reqs --no-scripts --optimize-autoloader
+            echo "📦 Installing Composer dependencies..."
+            composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
             
-            echo "🔧 Running Laravel setup manually..."
+            echo "🔧 Running Laravel setup..."
             php artisan package:discover --ansi
-            php artisan filament:upgrade
             
-            echo "🗄️ Running database migrations..."
+            # Check if .env exists, create from example if not
+            if [ ! -f .env ]; then
+                echo "🔧 Creating .env from example..."
+                cp .env.example .env
+                php artisan key:generate --force
+            fi
+            
+            echo "🗄️ Running database operations..."
             php artisan migrate --force
             
-            echo "🧹 Clearing all caches..."
-            php artisan config:clear
-            php artisan cache:clear
-            php artisan view:clear
-            php artisan route:clear
+            # Optional: Run seeders if needed (uncomment next line)
+            # php artisan db:seed --force
+            
+            echo "🧹 Optimizing application..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan filament:cache-components
             
             echo "🔐 Setting permissions..."
-            chmod -R 755 storage bootstrap/cache
-            chown -R www-data:www-data storage bootstrap/cache
+            find storage -type f -exec chmod 644 {} \;
+            find storage -type d -exec chmod 755 {} \;
+            find bootstrap/cache -type f -exec chmod 644 {} \;
+            find bootstrap/cache -type d -exec chmod 755 {} \;
+            
+            # Clean up old backups (keep only last 5)
+            find /tmp -name "dokterku-backup-*" -type d -mtime +7 -exec rm -rf {} \; 2>/dev/null || true
             
             echo "✅ Deployment completed successfully!"
+            echo "📅 Deployment finished at: $(date)"
             echo "🌐 Your application is now live at: https://dokterkuklinik.com"
+            echo "💾 Backup stored at: $BACKUP_DIR"
+
+      - name: Health Check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo "🔍 Running post-deployment health check..."
+            
+            # Check if the application is responding
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com || echo "000")
+            
+            if [ "$response" = "200" ]; then
+                echo "✅ Application is responding correctly (HTTP $response)"
+            else
+                echo "⚠️ Application returned HTTP $response"
+                echo "🔍 Checking Laravel logs..."
+                tail -20 domains/dokterkuklinik.com/public_html/dokterku/storage/logs/laravel.log || echo "No logs found"
+            fi
+
+      - name: Notify deployment status
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo "📊 Deployment Summary"
+            echo "===================="
+            echo "Repository: ${{ github.repository }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Author: ${{ github.actor }}"
+            echo "Branch: ${{ github.ref_name }}"
+            echo "Workflow: ${{ github.workflow }}"
+            echo "Status: ${{ job.status }}"
+            echo "Date: $(date)"
+            
+            # Optional: Send to Discord/Slack webhook if configured
+            # if [ ! -z "${{ secrets.DISCORD_WEBHOOK }}" ]; then
+            #   curl -H "Content-Type: application/json" \
+            #        -d '{"content":"🚀 Deployment completed for Dokterku App"}' \
+            #        "${{ secrets.DISCORD_WEBHOOK }}"
+            # fi

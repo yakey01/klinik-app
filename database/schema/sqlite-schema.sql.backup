@@ -65,24 +65,6 @@ CREATE TABLE IF NOT EXISTS "failed_jobs"(
   "failed_at" datetime not null default CURRENT_TIMESTAMP
 );
 CREATE UNIQUE INDEX "failed_jobs_uuid_unique" on "failed_jobs"("uuid");
-CREATE TABLE IF NOT EXISTS "schedules"(
-  "id" integer primary key autoincrement not null,
-  "user_id" integer not null,
-  "shift_id" integer,
-  "date" date not null,
-  "is_day_off" tinyint(1) not null default '0',
-  "notes" text,
-  "created_at" datetime,
-  "updated_at" datetime,
-  foreign key("user_id") references "users"("id") on delete cascade,
-  foreign key("shift_id") references "shifts"("id") on delete set null
-);
-CREATE INDEX "schedules_user_id_date_index" on "schedules"("user_id", "date");
-CREATE INDEX "schedules_date_index" on "schedules"("date");
-CREATE UNIQUE INDEX "schedules_user_id_date_unique" on "schedules"(
-  "user_id",
-  "date"
-);
 CREATE TABLE IF NOT EXISTS "jenis_tindakan"(
   "id" integer primary key autoincrement not null,
   "kode" varchar not null,
@@ -2279,10 +2261,34 @@ CREATE INDEX "performance_logs_created_at_index" on "performance_logs"(
 CREATE INDEX "performance_logs_operation_index" on "performance_logs"(
   "operation"
 );
+CREATE UNIQUE INDEX "pegawais_email_unique" on "pegawais"("email");
+CREATE TABLE IF NOT EXISTS "dokter_umum_jaspels"(
+  "id" integer primary key autoincrement not null,
+  "jenis_shift" varchar not null,
+  "ambang_pasien" integer not null default '0',
+  "fee_pasien_umum" numeric not null default '0',
+  "fee_pasien_bpjs" numeric not null default '0',
+  "status_aktif" tinyint(1) not null default '1',
+  "keterangan" text,
+  "created_by" integer,
+  "updated_by" integer,
+  "created_at" datetime,
+  "updated_at" datetime,
+  "deleted_at" datetime,
+  foreign key("created_by") references "users"("id") on delete set null,
+  foreign key("updated_by") references "users"("id") on delete set null
+);
+CREATE INDEX "dokter_umum_jaspels_jenis_shift_status_aktif_index" on "dokter_umum_jaspels"(
+  "jenis_shift",
+  "status_aktif"
+);
+CREATE INDEX "dokter_umum_jaspels_jenis_shift_index" on "dokter_umum_jaspels"(
+  "jenis_shift"
+);
 CREATE TABLE IF NOT EXISTS "users"(
   "id" integer primary key autoincrement not null,
   "name" varchar not null,
-  "email" varchar not null,
+  "email" varchar,
   "email_verified_at" datetime,
   "password" varchar not null,
   "remember_token" varchar,
@@ -2317,15 +2323,31 @@ CREATE TABLE IF NOT EXISTS "users"(
   "timezone" varchar not null default('Asia/Jakarta'),
   "theme" varchar not null default('light'),
   "pegawai_id" integer,
-  foreign key("role_id") references roles("id") on delete cascade on update no action,
+  foreign key("pegawai_id") references pegawais("id") on delete cascade on update no action,
   foreign key("default_work_location_id") references work_locations("id") on delete set null on update no action,
-  foreign key("pegawai_id") references "pegawais"("id") on delete cascade
+  foreign key("role_id") references roles("id") on delete cascade on update no action
 );
 CREATE INDEX "idx_users_active_created" on "users"("is_active", "created_at");
 CREATE INDEX "idx_users_created_at" on "users"("created_at");
 CREATE INDEX "idx_users_deleted_at" on "users"("deleted_at");
 CREATE INDEX "idx_users_is_active" on "users"("is_active");
-CREATE UNIQUE INDEX "pegawais_email_unique" on "pegawais"("email");
+CREATE TABLE IF NOT EXISTS "schedules"(
+  "id" integer primary key autoincrement not null,
+  "user_id" integer not null,
+  "shift_id" integer,
+  "date" date not null,
+  "is_day_off" tinyint(1) not null default('0'),
+  "notes" text,
+  "created_at" datetime,
+  "updated_at" datetime,
+  foreign key("user_id") references users("id") on delete cascade on update no action
+);
+CREATE INDEX "schedules_date_index" on "schedules"("date");
+CREATE INDEX "schedules_user_id_date_index" on "schedules"("user_id", "date");
+CREATE UNIQUE INDEX "schedules_user_id_date_unique" on "schedules"(
+  "user_id",
+  "date"
+);
 
 INSERT INTO migrations VALUES(1,'0001_01_01_000000_create_users_table',1);
 INSERT INTO migrations VALUES(2,'0001_01_01_000001_create_cache_table',1);
@@ -2424,3 +2446,18 @@ INSERT INTO migrations VALUES(94,'2025_07_15_create_error_logs_table',1);
 INSERT INTO migrations VALUES(95,'2025_07_15_create_performance_logs_table',1);
 INSERT INTO migrations VALUES(97,'2025_07_15_231720_add_pegawai_id_to_users_table',2);
 INSERT INTO migrations VALUES(98,'2025_07_16_000000_add_email_to_pegawais_table',3);
+INSERT INTO migrations VALUES(99,'2025_07_11_092653_create_shifts_table',1);
+INSERT INTO migrations VALUES(100,'2025_07_16_074949_create_dokter_umum_jaspels_table',4);
+INSERT INTO migrations VALUES(101,'2025_07_11_092654_create_jenis_tindakan_table',1);
+INSERT INTO migrations VALUES(102,'2025_07_11_092655_create_pasien_table',1);
+INSERT INTO migrations VALUES(103,'2025_07_11_092656_enhance_tindakan_table_complete',1);
+INSERT INTO migrations VALUES(104,'2025_07_11_092700_enhance_pendapatan_table_complete',1);
+INSERT INTO migrations VALUES(105,'2025_07_11_092700_enhance_users_table_complete',1);
+INSERT INTO migrations VALUES(106,'2025_07_11_163901_enhance_attendances_table_complete',1);
+INSERT INTO migrations VALUES(107,'2025_07_11_230305_enhance_pegawais_table_complete',1);
+INSERT INTO migrations VALUES(108,'2025_07_15_create_security_logs_table',1);
+INSERT INTO migrations VALUES(109,'2025_07_16_140000_create_performance_alerts_table',1);
+INSERT INTO migrations VALUES(110,'2025_07_17_111607_make_email_nullable_in_users_table',5);
+INSERT INTO migrations VALUES(111,'2025_01_18_cleanup_dummy_data',6);
+INSERT INTO migrations VALUES(112,'2025_07_11_092657_create_schedules_table',6);
+INSERT INTO migrations VALUES(113,'2025_07_11_092659_add_shift_foreign_key_to_schedules_table',7);

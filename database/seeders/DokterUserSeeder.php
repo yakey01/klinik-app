@@ -116,6 +116,19 @@ class DokterUserSeeder extends Seeder
         $licenseNumber = $userData['license_number'] ?? null;
         unset($userData['role_name'], $userData['specialty'], $userData['license_number']);
 
+        // Generate unique NIP for user
+        $baseNip = $userData['nip'];
+        $nip = $baseNip;
+        $nipCounter = 1;
+        
+        // Check if NIP already exists in users table (excluding current user)
+        while (User::where('nip', $nip)->where('email', '!=', $userData['email'])->exists()) {
+            $nip = $baseNip . '_' . $nipCounter;
+            $nipCounter++;
+        }
+        
+        $userData['nip'] = $nip;
+
         // Create or update user
         $user = User::updateOrCreate(
             ['email' => $userData['email']],
@@ -127,10 +140,21 @@ class DokterUserSeeder extends Seeder
             $user->assignRole($roleName);
         }
 
+        // Generate unique NIK
+        $baseNik = 'DOK' . date('Y') . str_pad($user->id, 4, '0', STR_PAD_LEFT);
+        $nik = $baseNik;
+        $counter = 1;
+        
+        // Check if NIK already exists in the database
+        while (Dokter::where('nik', $nik)->exists()) {
+            $nik = $baseNik . '_' . $counter;
+            $counter++;
+        }
+
         // Create or update Dokter record
         $dokterData = [
             'user_id' => $user->id,
-            'nik' => 'DOK' . date('Y') . str_pad($user->id, 4, '0', STR_PAD_LEFT),
+            'nik' => $nik,
             'nama_lengkap' => $user->name,
             'email' => $user->email,
             'username' => $userData['username'],
@@ -144,10 +168,18 @@ class DokterUserSeeder extends Seeder
             'nomor_sip' => $licenseNumber ?? 'SIP/' . date('Y') . '/' . $user->id,
         ];
 
-        $dokter = Dokter::updateOrCreate(
-            ['user_id' => $user->id],
-            $dokterData
-        );
+        // Check if dokter already exists for this user
+        $existingDokter = Dokter::where('user_id', $user->id)->first();
+        
+        if ($existingDokter) {
+            // Update existing record, but keep the original NIK
+            $dokterData['nik'] = $existingDokter->nik;
+            $existingDokter->update($dokterData);
+            $dokter = $existingDokter;
+        } else {
+            // Create new record with unique NIK
+            $dokter = Dokter::create($dokterData);
+        }
 
         $this->command->info("✅ Created dokter: {$user->name} ({$user->email})");
     }

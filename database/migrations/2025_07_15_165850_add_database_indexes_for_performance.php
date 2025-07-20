@@ -12,153 +12,148 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Helper function to safely add index
+        $addIndexIfNotExists = function($table, $columns, $indexName) {
+            if (!Schema::hasIndex($table, $indexName)) {
+                Schema::table($table, function (Blueprint $blueprint) use ($columns, $indexName) {
+                    if (is_array($columns)) {
+                        $blueprint->index($columns, $indexName);
+                    } else {
+                        $blueprint->index($columns, $indexName);
+                    }
+                });
+            }
+        };
+
         // Indexes for pasien table
-        Schema::table('pasien', function (Blueprint $table) {
-            $table->index('created_at', 'idx_pasien_created_at');
-            $table->index('jenis_kelamin', 'idx_pasien_jenis_kelamin');
-            $table->index('tanggal_lahir', 'idx_pasien_tanggal_lahir');
-            $table->index(['jenis_kelamin', 'created_at'], 'idx_pasien_gender_created');
-            $table->index('no_rekam_medis', 'idx_pasien_no_rekam_medis');
-            $table->index('nama', 'idx_pasien_nama');
-            $table->index('deleted_at', 'idx_pasien_deleted_at');
-        });
+        $addIndexIfNotExists('pasien', 'created_at', 'idx_pasien_created_at');
+        $addIndexIfNotExists('pasien', 'jenis_kelamin', 'idx_pasien_jenis_kelamin');
+        $addIndexIfNotExists('pasien', 'tanggal_lahir', 'idx_pasien_tanggal_lahir');
+        $addIndexIfNotExists('pasien', ['jenis_kelamin', 'created_at'], 'idx_pasien_gender_created');
+        $addIndexIfNotExists('pasien', 'no_rekam_medis', 'idx_pasien_no_rekam_medis');
+        $addIndexIfNotExists('pasien', 'nama', 'idx_pasien_nama');
+        $addIndexIfNotExists('pasien', 'deleted_at', 'idx_pasien_deleted_at');
 
         // Indexes for tindakan table
-        Schema::table('tindakan', function (Blueprint $table) {
-            $table->index('pasien_id', 'idx_tindakan_pasien_id');
-            $table->index('dokter_id', 'idx_tindakan_dokter_id');
-            $table->index('jenis_tindakan_id', 'idx_tindakan_jenis_tindakan_id');
-            $table->index('tanggal_tindakan', 'idx_tindakan_tanggal');
-            $table->index('status', 'idx_tindakan_status');
-            $table->index('status_validasi', 'idx_tindakan_status_validasi');
-            $table->index('created_at', 'idx_tindakan_created_at');
-            $table->index('validated_at', 'idx_tindakan_validated_at');
-            $table->index('input_by', 'idx_tindakan_input_by');
-            $table->index('validated_by', 'idx_tindakan_validated_by');
-            $table->index('deleted_at', 'idx_tindakan_deleted_at');
-            
-            // Composite indexes for common query patterns
-            $table->index(['pasien_id', 'tanggal_tindakan'], 'idx_tindakan_pasien_tanggal');
-            $table->index(['dokter_id', 'tanggal_tindakan'], 'idx_tindakan_dokter_tanggal');
-            $table->index(['status', 'tanggal_tindakan'], 'idx_tindakan_status_tanggal');
-            $table->index(['status_validasi', 'created_at'], 'idx_tindakan_validasi_created');
-            $table->index(['jenis_tindakan_id', 'status'], 'idx_tindakan_jenis_status');
-        });
+        $addIndexIfNotExists('tindakan', 'pasien_id', 'idx_tindakan_pasien_id');
+        $addIndexIfNotExists('tindakan', 'dokter_id', 'idx_tindakan_dokter_id');
+        $addIndexIfNotExists('tindakan', 'jenis_tindakan_id', 'idx_tindakan_jenis_tindakan_id');
+        $addIndexIfNotExists('tindakan', 'tanggal_tindakan', 'idx_tindakan_tanggal');
+        $addIndexIfNotExists('tindakan', 'status', 'idx_tindakan_status');
+        $addIndexIfNotExists('tindakan', 'status_validasi', 'idx_tindakan_status_validasi');
+        $addIndexIfNotExists('tindakan', 'created_at', 'idx_tindakan_created_at');
+        $addIndexIfNotExists('tindakan', 'validated_at', 'idx_tindakan_validated_at');
+        $addIndexIfNotExists('tindakan', 'input_by', 'idx_tindakan_input_by');
+        $addIndexIfNotExists('tindakan', 'validated_by', 'idx_tindakan_validated_by');
+        $addIndexIfNotExists('tindakan', 'deleted_at', 'idx_tindakan_deleted_at');
+        
+        // Composite indexes for common query patterns
+        $addIndexIfNotExists('tindakan', ['pasien_id', 'tanggal_tindakan'], 'idx_tindakan_pasien_tanggal');
+        $addIndexIfNotExists('tindakan', ['dokter_id', 'tanggal_tindakan'], 'idx_tindakan_dokter_tanggal');
+        $addIndexIfNotExists('tindakan', ['status', 'tanggal_tindakan'], 'idx_tindakan_status_tanggal');
+        $addIndexIfNotExists('tindakan', ['status_validasi', 'created_at'], 'idx_tindakan_validasi_created');
+        $addIndexIfNotExists('tindakan', ['jenis_tindakan_id', 'status'], 'idx_tindakan_jenis_status');
 
         // Indexes for pendapatan table
-        Schema::table('pendapatan', function (Blueprint $table) {
-            $table->index('tindakan_id', 'idx_pendapatan_tindakan_id');
-            $table->index('kategori', 'idx_pendapatan_kategori');
-            $table->index('status_validasi', 'idx_pendapatan_status_validasi');
-            $table->index('created_at', 'idx_pendapatan_created_at');
-            $table->index('input_by', 'idx_pendapatan_input_by');
-            $table->index('validasi_by', 'idx_pendapatan_validasi_by');
-            $table->index('validasi_at', 'idx_pendapatan_validasi_at');
-            $table->index('deleted_at', 'idx_pendapatan_deleted_at');
-            
-            // Composite indexes for financial queries
-            $table->index(['status_validasi', 'created_at'], 'idx_pendapatan_status_created');
-            $table->index(['kategori', 'status_validasi'], 'idx_pendapatan_kategori_status');
-            $table->index(['created_at', 'nominal'], 'idx_pendapatan_created_nominal');
-            $table->index(['tindakan_id', 'status_validasi'], 'idx_pendapatan_tindakan_status');
-        });
+        $addIndexIfNotExists('pendapatan', 'tindakan_id', 'idx_pendapatan_tindakan_id');
+        $addIndexIfNotExists('pendapatan', 'kategori', 'idx_pendapatan_kategori');
+        $addIndexIfNotExists('pendapatan', 'status_validasi', 'idx_pendapatan_status_validasi');
+        $addIndexIfNotExists('pendapatan', 'created_at', 'idx_pendapatan_created_at');
+        $addIndexIfNotExists('pendapatan', 'input_by', 'idx_pendapatan_input_by');
+        $addIndexIfNotExists('pendapatan', 'validasi_by', 'idx_pendapatan_validasi_by');
+        $addIndexIfNotExists('pendapatan', 'validasi_at', 'idx_pendapatan_validasi_at');
+        $addIndexIfNotExists('pendapatan', 'deleted_at', 'idx_pendapatan_deleted_at');
+        
+        // Composite indexes for financial queries
+        $addIndexIfNotExists('pendapatan', ['status_validasi', 'created_at'], 'idx_pendapatan_status_created');
+        $addIndexIfNotExists('pendapatan', ['kategori', 'status_validasi'], 'idx_pendapatan_kategori_status');
+        $addIndexIfNotExists('pendapatan', ['created_at', 'nominal'], 'idx_pendapatan_created_nominal');
+        $addIndexIfNotExists('pendapatan', ['tindakan_id', 'status_validasi'], 'idx_pendapatan_tindakan_status');
 
         // Indexes for pengeluaran table
-        Schema::table('pengeluaran', function (Blueprint $table) {
-            $table->index('kategori', 'idx_pengeluaran_kategori');
-            $table->index('status_validasi', 'idx_pengeluaran_status_validasi');
-            $table->index('created_at', 'idx_pengeluaran_created_at');
-            $table->index('input_by', 'idx_pengeluaran_input_by');
-            $table->index('validasi_by', 'idx_pengeluaran_validasi_by');
-            $table->index('validasi_at', 'idx_pengeluaran_validasi_at');
-            $table->index('deleted_at', 'idx_pengeluaran_deleted_at');
-            
-            // Composite indexes for financial queries
-            $table->index(['status_validasi', 'created_at'], 'idx_pengeluaran_status_created');
-            $table->index(['kategori', 'status_validasi'], 'idx_pengeluaran_kategori_status');
-            $table->index(['created_at', 'nominal'], 'idx_pengeluaran_created_nominal');
-        });
+        $addIndexIfNotExists('pengeluaran', 'kategori', 'idx_pengeluaran_kategori');
+        $addIndexIfNotExists('pengeluaran', 'status_validasi', 'idx_pengeluaran_status_validasi');
+        $addIndexIfNotExists('pengeluaran', 'created_at', 'idx_pengeluaran_created_at');
+        $addIndexIfNotExists('pengeluaran', 'input_by', 'idx_pengeluaran_input_by');
+        $addIndexIfNotExists('pengeluaran', 'validasi_by', 'idx_pengeluaran_validasi_by');
+        $addIndexIfNotExists('pengeluaran', 'validasi_at', 'idx_pengeluaran_validasi_at');
+        $addIndexIfNotExists('pengeluaran', 'deleted_at', 'idx_pengeluaran_deleted_at');
+        
+        // Composite indexes for financial queries
+        $addIndexIfNotExists('pengeluaran', ['status_validasi', 'created_at'], 'idx_pengeluaran_status_created');
+        $addIndexIfNotExists('pengeluaran', ['kategori', 'status_validasi'], 'idx_pengeluaran_kategori_status');
+        $addIndexIfNotExists('pengeluaran', ['created_at', 'nominal'], 'idx_pengeluaran_created_nominal');
 
         // Indexes for dokters table
-        Schema::table('dokters', function (Blueprint $table) {
-            $table->index('user_id', 'idx_dokters_user_id');
-            $table->index('spesialisasi', 'idx_dokters_spesialisasi');
-            $table->index('aktif', 'idx_dokters_aktif');
-            $table->index('status_akun', 'idx_dokters_status_akun');
-            $table->index('created_at', 'idx_dokters_created_at');
-            $table->index('input_by', 'idx_dokters_input_by');
-            $table->index('deleted_at', 'idx_dokters_deleted_at');
-            $table->index('nomor_sip', 'idx_dokters_nomor_sip');
-            $table->index('nik', 'idx_dokters_nik');
-            $table->index('nama_lengkap', 'idx_dokters_nama_lengkap');
-            
-            // Composite indexes
-            $table->index(['aktif', 'spesialisasi'], 'idx_dokters_aktif_spesialisasi');
-            $table->index(['user_id', 'aktif'], 'idx_dokters_user_aktif');
-        });
+        $addIndexIfNotExists('dokters', 'user_id', 'idx_dokters_user_id');
+        $addIndexIfNotExists('dokters', 'spesialisasi', 'idx_dokters_spesialisasi');
+        $addIndexIfNotExists('dokters', 'aktif', 'idx_dokters_aktif');
+        $addIndexIfNotExists('dokters', 'status_akun', 'idx_dokters_status_akun');
+        $addIndexIfNotExists('dokters', 'created_at', 'idx_dokters_created_at');
+        $addIndexIfNotExists('dokters', 'input_by', 'idx_dokters_input_by');
+        $addIndexIfNotExists('dokters', 'deleted_at', 'idx_dokters_deleted_at');
+        $addIndexIfNotExists('dokters', 'nomor_sip', 'idx_dokters_nomor_sip');
+        $addIndexIfNotExists('dokters', 'nik', 'idx_dokters_nik');
+        $addIndexIfNotExists('dokters', 'nama_lengkap', 'idx_dokters_nama_lengkap');
+        
+        // Composite indexes
+        $addIndexIfNotExists('dokters', ['aktif', 'spesialisasi'], 'idx_dokters_aktif_spesialisasi');
+        $addIndexIfNotExists('dokters', ['user_id', 'aktif'], 'idx_dokters_user_aktif');
 
         // Indexes for users table
-        Schema::table('users', function (Blueprint $table) {
-            $table->index('role', 'idx_users_role');
-            $table->index('role_id', 'idx_users_role_id');
-            $table->index('is_active', 'idx_users_is_active');
-            $table->index('created_at', 'idx_users_created_at');
-            $table->index('last_login_at', 'idx_users_last_login_at');
-            $table->index('deleted_at', 'idx_users_deleted_at');
-            $table->index('nip', 'idx_users_nip');
-            
-            // Composite indexes
-            $table->index(['role', 'is_active'], 'idx_users_role_active');
-            $table->index(['is_active', 'created_at'], 'idx_users_active_created');
-            $table->index(['role_id', 'is_active'], 'idx_users_role_id_active');
-        });
+        $addIndexIfNotExists('users', 'role', 'idx_users_role');
+        $addIndexIfNotExists('users', 'role_id', 'idx_users_role_id');
+        $addIndexIfNotExists('users', 'is_active', 'idx_users_is_active');
+        $addIndexIfNotExists('users', 'created_at', 'idx_users_created_at');
+        $addIndexIfNotExists('users', 'last_login_at', 'idx_users_last_login_at');
+        $addIndexIfNotExists('users', 'deleted_at', 'idx_users_deleted_at');
+        $addIndexIfNotExists('users', 'nip', 'idx_users_nip');
+        
+        // Composite indexes
+        $addIndexIfNotExists('users', ['role', 'is_active'], 'idx_users_role_active');
+        $addIndexIfNotExists('users', ['is_active', 'created_at'], 'idx_users_active_created');
+        $addIndexIfNotExists('users', ['role_id', 'is_active'], 'idx_users_role_id_active');
 
         // Indexes for jenis_tindakan table
-        Schema::table('jenis_tindakan', function (Blueprint $table) {
-            $table->index('nama', 'idx_jenis_tindakan_nama');
-            $table->index('kategori', 'idx_jenis_tindakan_kategori');
-            $table->index('is_active', 'idx_jenis_tindakan_is_active');
-            $table->index('created_at', 'idx_jenis_tindakan_created_at');
-            $table->index('deleted_at', 'idx_jenis_tindakan_deleted_at');
-            
-            // Composite indexes
-            $table->index(['kategori', 'is_active'], 'idx_jenis_tindakan_kategori_active');
-            $table->index(['is_active', 'tarif'], 'idx_jenis_tindakan_active_tarif');
-        });
+        $addIndexIfNotExists('jenis_tindakan', 'nama', 'idx_jenis_tindakan_nama');
+        $addIndexIfNotExists('jenis_tindakan', 'kategori', 'idx_jenis_tindakan_kategori');
+        $addIndexIfNotExists('jenis_tindakan', 'is_active', 'idx_jenis_tindakan_is_active');
+        $addIndexIfNotExists('jenis_tindakan', 'created_at', 'idx_jenis_tindakan_created_at');
+        $addIndexIfNotExists('jenis_tindakan', 'deleted_at', 'idx_jenis_tindakan_deleted_at');
+        
+        // Composite indexes
+        $addIndexIfNotExists('jenis_tindakan', ['kategori', 'is_active'], 'idx_jenis_tindakan_kategori_active');
+        $addIndexIfNotExists('jenis_tindakan', ['is_active', 'tarif'], 'idx_jenis_tindakan_active_tarif');
 
         // Indexes for jaspel table
-        Schema::table('jaspel', function (Blueprint $table) {
-            $table->index('tindakan_id', 'idx_jaspel_tindakan_id');
-            $table->index('user_id', 'idx_jaspel_user_id');
-            $table->index('jenis_jaspel', 'idx_jaspel_jenis_jaspel');
-            $table->index('periode', 'idx_jaspel_periode');
-            $table->index('status', 'idx_jaspel_status');
-            $table->index('created_at', 'idx_jaspel_created_at');
-            $table->index('deleted_at', 'idx_jaspel_deleted_at');
-            
-            // Composite indexes
-            $table->index(['user_id', 'periode'], 'idx_jaspel_user_periode');
-            $table->index(['tindakan_id', 'jenis_jaspel'], 'idx_jaspel_tindakan_jenis');
-            $table->index(['status', 'periode'], 'idx_jaspel_status_periode');
-            $table->index(['user_id', 'status'], 'idx_jaspel_user_status');
-        });
+        $addIndexIfNotExists('jaspel', 'tindakan_id', 'idx_jaspel_tindakan_id');
+        $addIndexIfNotExists('jaspel', 'user_id', 'idx_jaspel_user_id');
+        $addIndexIfNotExists('jaspel', 'jenis_jaspel', 'idx_jaspel_jenis_jaspel');
+        $addIndexIfNotExists('jaspel', 'periode', 'idx_jaspel_periode');
+        $addIndexIfNotExists('jaspel', 'status', 'idx_jaspel_status');
+        $addIndexIfNotExists('jaspel', 'created_at', 'idx_jaspel_created_at');
+        $addIndexIfNotExists('jaspel', 'deleted_at', 'idx_jaspel_deleted_at');
+        
+        // Composite indexes
+        $addIndexIfNotExists('jaspel', ['user_id', 'periode'], 'idx_jaspel_user_periode');
+        $addIndexIfNotExists('jaspel', ['tindakan_id', 'jenis_jaspel'], 'idx_jaspel_tindakan_jenis');
+        $addIndexIfNotExists('jaspel', ['status', 'periode'], 'idx_jaspel_status_periode');
+        $addIndexIfNotExists('jaspel', ['user_id', 'status'], 'idx_jaspel_user_status');
 
         // Indexes for audit_logs table
-        Schema::table('audit_logs', function (Blueprint $table) {
-            $table->index('user_id', 'idx_audit_logs_user_id');
-            $table->index('action', 'idx_audit_logs_action');
-            $table->index('model_type', 'idx_audit_logs_model_type');
-            $table->index('model_id', 'idx_audit_logs_model_id');
-            $table->index('created_at', 'idx_audit_logs_created_at');
-            $table->index('user_role', 'idx_audit_logs_user_role');
-            $table->index('ip_address', 'idx_audit_logs_ip_address');
-            
-            // Composite indexes
-            $table->index(['model_type', 'model_id'], 'idx_audit_logs_model');
-            $table->index(['user_id', 'action'], 'idx_audit_logs_user_action');
-            $table->index(['action', 'created_at'], 'idx_audit_logs_action_created');
-            $table->index(['user_role', 'created_at'], 'idx_audit_logs_role_created');
-        });
+        $addIndexIfNotExists('audit_logs', 'user_id', 'idx_audit_logs_user_id');
+        $addIndexIfNotExists('audit_logs', 'action', 'idx_audit_logs_action');
+        $addIndexIfNotExists('audit_logs', 'model_type', 'idx_audit_logs_model_type');
+        $addIndexIfNotExists('audit_logs', 'model_id', 'idx_audit_logs_model_id');
+        $addIndexIfNotExists('audit_logs', 'created_at', 'idx_audit_logs_created_at');
+        $addIndexIfNotExists('audit_logs', 'user_role', 'idx_audit_logs_user_role');
+        $addIndexIfNotExists('audit_logs', 'ip_address', 'idx_audit_logs_ip_address');
+        
+        // Composite indexes
+        $addIndexIfNotExists('audit_logs', ['model_type', 'model_id'], 'idx_audit_logs_model');
+        $addIndexIfNotExists('audit_logs', ['user_id', 'action'], 'idx_audit_logs_user_action');
+        $addIndexIfNotExists('audit_logs', ['action', 'created_at'], 'idx_audit_logs_action_created');
+        $addIndexIfNotExists('audit_logs', ['user_role', 'created_at'], 'idx_audit_logs_role_created');
 
         // Indexes for error_logs table (commented out - table doesn't exist)
         // Schema::table('error_logs', function (Blueprint $table) {
@@ -190,17 +185,29 @@ return new class extends Migration
 
         // Full-text indexes for search functionality
         if (config('database.default') === 'mysql') {
+            // Helper function to safely add fulltext index
+            $addFulltextIfNotExists = function($table, $columns, $indexName) {
+                try {
+                    DB::statement("ALTER TABLE $table ADD FULLTEXT $indexName ($columns)");
+                } catch (\Exception $e) {
+                    // Index might already exist, ignore error
+                    if (!str_contains($e->getMessage(), 'Duplicate key name')) {
+                        throw $e;
+                    }
+                }
+            };
+            
             // Full-text search on pasien
-            DB::statement('ALTER TABLE pasien ADD FULLTEXT idx_pasien_fulltext (nama, no_rekam_medis, alamat)');
+            $addFulltextIfNotExists('pasien', 'nama, no_rekam_medis, alamat', 'idx_pasien_fulltext');
             
             // Full-text search on dokters
-            DB::statement('ALTER TABLE dokters ADD FULLTEXT idx_dokters_fulltext (nama_lengkap, spesialisasi)');
+            $addFulltextIfNotExists('dokters', 'nama_lengkap, spesialisasi', 'idx_dokters_fulltext');
             
             // Full-text search on jenis_tindakan
-            DB::statement('ALTER TABLE jenis_tindakan ADD FULLTEXT idx_jenis_tindakan_fulltext (nama, deskripsi)');
+            $addFulltextIfNotExists('jenis_tindakan', 'nama, deskripsi', 'idx_jenis_tindakan_fulltext');
             
             // Full-text search on users
-            DB::statement('ALTER TABLE users ADD FULLTEXT idx_users_fulltext (name, email)');
+            $addFulltextIfNotExists('users', 'name, email', 'idx_users_fulltext');
         }
     }
 

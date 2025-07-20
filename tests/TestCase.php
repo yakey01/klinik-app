@@ -23,19 +23,51 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         
-        // Ensure we're using in-memory database for tests
-        config(['database.default' => 'sqlite']);
-        config(['database.connections.sqlite.database' => ':memory:']);
-        
-        // Force a fresh database connection to prevent "table already exists" errors
-        \DB::purge('sqlite');
-        \DB::reconnect('sqlite');
+        // Create unique SQLite database file for each test process to avoid conflicts
+        $this->setupUniqueTestDatabase();
         
         // Clear any existing permission cache
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         
         // Setup roles for all tests
         $this->setupRoles();
+    }
+    
+    /**
+     * Setup unique SQLite database for each test process
+     */
+    protected function setupUniqueTestDatabase(): void
+    {
+        // Generate unique database file name for each process
+        $processId = getmypid();
+        $testToken = env('GITHUB_RUN_ID', 'local');
+        $workerId = env('PHPUNIT_WORKER_ID', '0');
+        
+        $databasePath = "database/testing_{$testToken}_{$workerId}_{$processId}.sqlite";
+        
+        // Ensure database directory exists
+        if (!is_dir(dirname($databasePath))) {
+            mkdir(dirname($databasePath), 0755, true);
+        }
+        
+        // Create empty database file if it doesn't exist
+        if (!file_exists($databasePath)) {
+            touch($databasePath);
+        }
+        
+        // Configure database connection
+        config(['database.default' => 'sqlite']);
+        config(['database.connections.sqlite.database' => $databasePath]);
+        
+        // Force a fresh database connection
+        \DB::purge('sqlite');
+        \DB::reconnect('sqlite');
+        
+        // Run migrations fresh for this database
+        $this->artisan('migrate:fresh', [
+            '--drop-views' => true,
+            '--quiet' => true,
+        ]);
     }
 
     /**
@@ -50,16 +82,43 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Refresh the in-memory database.
+     * Refresh the test database.
      */
-    protected function refreshInMemoryDatabase()
+    protected function refreshTestDatabase()
     {
         $this->artisan('migrate:fresh', [
             '--drop-views' => true,
-            '--drop-types' => true,
             '--quiet' => true,
         ]);
 
         $this->app[Kernel::class]->setArtisan(null);
+    }
+    
+    /**
+     * Clean up test database files after tests
+     */
+    protected function tearDown(): void
+    {
+        // Clean up test database files
+        $this->cleanupTestDatabases();
+        
+        parent::tearDown();
+    }
+    
+    /**
+     * Clean up test database files
+     */
+    protected function cleanupTestDatabases(): void
+    {
+        $databaseDir = 'database';
+        if (is_dir($databaseDir)) {
+            $files = glob($databaseDir . '/testing_*.sqlite');
+            foreach ($files as $file) {
+                // Only delete files older than 1 hour to avoid conflicts with running tests
+                if (filemtime($file) < (time() - 3600)) {
+                    unlink($file);
+                }
+            }
+        }
     }
 }

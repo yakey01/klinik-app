@@ -162,24 +162,54 @@ jobs:
               ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-reqs --no-scripts
             }
             
-            echo "🗄️ Setting up production database configuration..."
-            
-            # Ensure we have the correct production .env file
-            if [ -f .env.production ]; then
-              echo "📄 Using production environment configuration"
-              cp .env.production .env
-            elif [ ! -f .env ]; then
-              echo "⚠️ .env file missing, copying from .env.example"
-              cp .env.example .env
-              echo "🔧 Configuring for production database..."
-              # Ensure MySQL production settings
-              sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
-              sed -i 's/DB_HOST=.*/DB_HOST=localhost/' .env
-              sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
-              sed -i 's/DB_DATABASE=.*/DB_DATABASE=u454362045_u45436245_kli/' .env
-              sed -i 's/DB_USERNAME=.*/DB_USERNAME=u454362045_u45436245_kli/' .env
-              sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=LaTahzan@01/' .env
-            fi
+                         echo "🗄️ Setting up production database configuration..."
+             
+             # Create proper .env file for production
+             if [ ! -f .env ]; then
+               echo "📄 Creating .env file from example..."
+               cp .env.example .env 2>/dev/null || {
+                 echo "⚠️ .env.example not found, creating basic .env..."
+                 echo 'APP_NAME="Dokterku Klinik"' > .env
+                 echo 'APP_ENV=production' >> .env
+                 echo 'APP_KEY=' >> .env
+                 echo 'APP_DEBUG=false' >> .env
+                 echo 'APP_URL=https://dokterkuklinik.com' >> .env
+                 echo 'LOG_CHANNEL=stack' >> .env
+                 echo 'LOG_DEPRECATIONS_CHANNEL=null' >> .env
+                 echo 'LOG_LEVEL=debug' >> .env
+                 echo 'DB_CONNECTION=mysql' >> .env
+                 echo 'DB_HOST=localhost' >> .env
+                 echo 'DB_PORT=3306' >> .env
+                 echo 'DB_DATABASE=u454362045_u45436245_kli' >> .env
+                 echo 'DB_USERNAME=u454362045_u45436245_kli' >> .env
+                 echo 'DB_PASSWORD=LaTahzan@01' >> .env
+                 echo 'BROADCAST_DRIVER=log' >> .env
+                 echo 'CACHE_DRIVER=file' >> .env
+                 echo 'FILESYSTEM_DISK=local' >> .env
+                 echo 'QUEUE_CONNECTION=sync' >> .env
+                 echo 'SESSION_DRIVER=file' >> .env
+                 echo 'SESSION_LIFETIME=120' >> .env
+                 echo 'MEMCACHED_HOST=127.0.0.1' >> .env
+                 echo 'REDIS_HOST=127.0.0.1' >> .env
+                 echo 'REDIS_PASSWORD=null' >> .env
+                 echo 'REDIS_PORT=6379' >> .env
+                 echo 'MAIL_MAILER=smtp' >> .env
+                 echo 'MAIL_HOST=mailpit' >> .env
+                 echo 'MAIL_PORT=1025' >> .env
+                 echo 'MAIL_USERNAME=null' >> .env
+                 echo 'MAIL_PASSWORD=null' >> .env
+                 echo 'MAIL_ENCRYPTION=null' >> .env
+                 echo 'MAIL_FROM_ADDRESS="hello@example.com"' >> .env
+                 echo 'MAIL_FROM_NAME="${APP_NAME}"' >> .env
+                 echo 'VITE_APP_NAME="${APP_NAME}"' >> .env
+               }
+             fi
+             
+             # Generate application key if not set
+             if ! grep -q "APP_KEY=base64:" .env; then
+               echo "🔑 Generating application key..."
+               php artisan key:generate --force
+             fi
             
             # Verify database connection settings
             echo "📋 Production database configuration:"
@@ -188,22 +218,25 @@ jobs:
             echo "🔍 Testing database connection..."
             php artisan config:clear
             
-            # Test database connection with error handling for special characters in password
-            CONNECTION_TEST=$(php -r "
-              require 'vendor/autoload.php';
-              \$app = require_once 'bootstrap/app.php';
-              \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
-              \$kernel->bootstrap();
-              try {
-                \$pdo = DB::connection()->getPdo();
-                echo 'SUCCESS: Database connection established\n';
-                echo 'Database: ' . DB::connection()->getDatabaseName() . '\n';
-                exit(0);
-              } catch (Exception \$e) {
-                echo 'ERROR: ' . \$e->getMessage() . '\n';
-                exit(1);
-              }
-            " 2>&1)
+                         # Test database connection with better error handling
+             echo "🔍 Testing database connection..."
+             php artisan config:clear
+             
+             CONNECTION_TEST=$(php -r "
+               require 'vendor/autoload.php';
+               \$app = require_once 'bootstrap/app.php';
+               \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
+               \$kernel->bootstrap();
+               try {
+                 \$pdo = DB::connection()->getPdo();
+                 echo 'SUCCESS: Database connection established';
+                 echo 'Database: ' . DB::connection()->getDatabaseName();
+                 exit(0);
+               } catch (Exception \$e) {
+                 echo 'ERROR: ' . \$e->getMessage();
+                 exit(1);
+               }
+             " 2>&1)
             
             if echo "$CONNECTION_TEST" | grep -q "SUCCESS"; then
               echo "✅ Database connection successful"

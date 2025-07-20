@@ -135,103 +135,50 @@ jobs:
             echo "Current directory: $(pwd)"
             echo "Home directory: $HOME"
             
-            # Debug: List available directories
-            echo "📁 Available directories:"
+            # Debug: Show full directory structure
+            echo "📁 Directory structure from home:"
+            cd $HOME
+            find . -maxdepth 3 -type d -name "*html*" -o -name "*www*" -o -name "*htdocs*" 2>/dev/null | head -20 || echo "No web directories found"
+            
+            # Show current location
+            echo "📍 Current location contents:"
             ls -la
             
             # Use APP_DIR from environment variable with validation
             RAW_APP_DIR="${{ env.APP_DIR }}"
             echo "🔍 DEBUG: Raw APP_DIR from environment: '$RAW_APP_DIR'"
             
-            # Define possible base paths for Hostinger
-            POSSIBLE_BASE_PATHS=(
-                "domains/dokterkuklinik.com/public_html/dokterku"
-                "public_html/dokterku"
-                "htdocs/dokterku"
-                "www/dokterku"
-            )
-            CORRECT_BASE_PATH="domains/dokterkuklinik.com/public_html/dokterku"
-            
-            # Validate and sanitize APP_DIR to prevent recursive paths
-            if [ -n "$RAW_APP_DIR" ]; then
-                # Check for recursive patterns and fix them
-                if [[ "$RAW_APP_DIR" == *"$CORRECT_BASE_PATH/$CORRECT_BASE_PATH"* ]]; then
-                    echo "❌ Detected recursive APP_DIR pattern: $RAW_APP_DIR"
-                    echo "🔧 Fixing to: $CORRECT_BASE_PATH"
-                    APP_DIR="$CORRECT_BASE_PATH"
-                else
-                    # Count occurrences of the base path to detect recursion
-                    COUNT=$(echo "$RAW_APP_DIR" | grep -o "$CORRECT_BASE_PATH" | wc -l)
-                    if [ "$COUNT" -gt 1 ]; then
-                        echo "❌ Detected $COUNT occurrences of base path in APP_DIR: $RAW_APP_DIR"
-                        echo "🔧 Resetting to single occurrence: $CORRECT_BASE_PATH"
-                        APP_DIR="$CORRECT_BASE_PATH"
-                    else
-                        # Check if the path is too long (indicates recursion)
-                        if [ ${#RAW_APP_DIR} -gt 100 ]; then
-                            echo "❌ APP_DIR seems too long (${#RAW_APP_DIR} chars), possible recursion: $RAW_APP_DIR"
-                            echo "🔧 Resetting to: $CORRECT_BASE_PATH"
-                            APP_DIR="$CORRECT_BASE_PATH"
-                        else
-                            APP_DIR="$RAW_APP_DIR"
-                        fi
-                    fi
-                fi
-                
-                echo "🎯 Sanitized deployment directory: $APP_DIR"
+            # Determine correct base path based on what exists
+            APP_DIR=""
+            if [ -d "$HOME/domains/dokterkuklinik.com" ]; then
+                APP_DIR="$HOME/domains/dokterkuklinik.com/public_html/dokterku"
+                echo "✅ Found domains structure"
+            elif [ -d "$HOME/public_html" ]; then
+                APP_DIR="$HOME/public_html/dokterku"
+                echo "✅ Found public_html structure"
+            elif [ -d "$HOME/htdocs" ]; then
+                APP_DIR="$HOME/htdocs/dokterku"
+                echo "✅ Found htdocs structure"
+            elif [ -d "$HOME/www" ]; then
+                APP_DIR="$HOME/www/dokterku"
+                echo "✅ Found www structure"
             else
-                echo "⚠️ APP_DIR not set, trying common Hostinger paths..."
-                POSSIBLE_PATHS=(
-                    "$CORRECT_BASE_PATH"
-                    "public_html/dokterku"
-                    "htdocs/dokterku"
-                    "$HOME/$CORRECT_BASE_PATH"
-                    "$HOME/public_html/dokterku"
-                )
-                
-                APP_DIR=""
-                for path in "${POSSIBLE_PATHS[@]}"; do
-                    echo "🧪 Trying path: $path"
-                    parent_dir=$(dirname "$path")
-                    if [ -d "$parent_dir" ] || mkdir -p "$parent_dir" 2>/dev/null; then
-                        echo "✅ Found/created parent directory: $parent_dir"
-                        APP_DIR="$path"
-                        break
-                    else
-                        echo "❌ Cannot access/create: $parent_dir"
-                    fi
-                done
-                
-                if [ -z "$APP_DIR" ]; then
-                    echo "❌ Could not find suitable deployment path"
-                    echo "🔍 Available directories from root:"
-                    find . -maxdepth 3 -type d -name "*html*" 2>/dev/null || echo "No public_html directories found"
-                    exit 1
-                fi
+                echo "⚠️ No standard web directory found, creating default structure"
+                APP_DIR="$HOME/domains/dokterkuklinik.com/public_html/dokterku"
             fi
             
-            # Final validation and safety checks
-            echo "🔍 DEBUG: Final APP_DIR is '$APP_DIR'"
+            echo "🎯 Selected deployment path: $APP_DIR"
             
-            # Final sanity check - ensure APP_DIR is not empty and is reasonable
+            # Backup directory
+            BACKUP_DIR="/tmp/dokterku-backup-$(date +%Y%m%d_%H%M%S)"
+            
+            # Final validation
             if [ -z "$APP_DIR" ]; then
-                echo "❌ APP_DIR is empty after validation"
+                echo "❌ APP_DIR is empty after detection"
                 exit 1
             fi
             
-            # Ensure APP_DIR doesn't contain itself recursively
-            if [[ "$APP_DIR" == *"$APP_DIR"* ]] && [[ ${#APP_DIR} -gt 50 ]]; then
-                echo "❌ APP_DIR contains itself recursively: $APP_DIR"
-                echo "🔧 Resetting to: $CORRECT_BASE_PATH"
-                APP_DIR="$CORRECT_BASE_PATH"
-            fi
-            
-            # Ensure APP_DIR doesn't start with a slash (relative path)
-            APP_DIR=$(echo "$APP_DIR" | sed 's|^/||')
-            
-            BACKUP_DIR="/tmp/dokterku-backup-$(date +%Y%m%d_%H%M%S)"
-            
-            echo "🎯 Selected deployment directory: $APP_DIR"
+            echo "📁 Creating deployment directory: $APP_DIR"
             
             # Function to handle errors
             handle_error() {
@@ -250,91 +197,64 @@ jobs:
             # Set error trap
             trap handle_error ERR
             
-            # Ensure parent directories exist first
+            # Create parent directories with better error handling
             echo "📁 Creating parent directories..."
             PARENT_DIR=$(dirname "$APP_DIR")
-            echo "🔨 Creating parent: $PARENT_DIR"
             
-            # Create parent directories step by step
-            mkdir -p domains 2>/dev/null || true
-            mkdir -p domains/dokterkuklinik.com 2>/dev/null || true
-            mkdir -p domains/dokterkuklinik.com/public_html 2>/dev/null || true
-            
-            # Set permissions on parent directories
-            chmod 755 domains 2>/dev/null || true
-            chmod 755 domains/dokterkuklinik.com 2>/dev/null || true
-            chmod 755 domains/dokterkuklinik.com/public_html 2>/dev/null || true
-            
-            # Verify parent directory exists, try alternatives if failed
+            # Ensure parent directory exists
             if [ ! -d "$PARENT_DIR" ]; then
-                echo "⚠️ Primary parent directory failed: $PARENT_DIR"
-                echo "🔄 Trying alternative paths..."
-                
-                for alt_path in "${POSSIBLE_BASE_PATHS[@]}"; do
-                    echo "🧪 Trying: $alt_path"
-                    alt_parent=$(dirname "$alt_path")
-                    
-                    # Try to create this alternative path
-                    if mkdir -p "$alt_parent" 2>/dev/null && [ -d "$alt_parent" ]; then
-                        echo "✅ Successfully created: $alt_parent"
-                        APP_DIR="$alt_path"
-                        PARENT_DIR="$alt_parent"
-                        break
-                    fi
-                done
-                
-                # Final check
-                if [ ! -d "$PARENT_DIR" ]; then
-                    echo "❌ All parent directory attempts failed"
-                    echo "🔍 Current working directory: $(pwd)"
-                    echo "🔍 Available directories:"
-                    ls -la . 2>/dev/null || echo "Cannot list current directory"
-                    find . -maxdepth 2 -type d 2>/dev/null | head -10 || echo "Cannot find directories"
+                echo "🔨 Creating parent directory: $PARENT_DIR"
+                if ! mkdir -p "$PARENT_DIR"; then
+                    echo "❌ Failed to create parent directory: $PARENT_DIR"
+                    echo "🔍 Current permissions:"
+                    ls -la $(dirname "$PARENT_DIR") 2>/dev/null || echo "Cannot access parent of parent"
                     exit 1
                 fi
             fi
             
+            # Check write permissions
+            if [ ! -w "$PARENT_DIR" ]; then
+                echo "❌ No write permission for parent directory: $PARENT_DIR"
+                echo "🔍 Directory permissions:"
+                ls -ld "$PARENT_DIR"
+                exit 1
+            fi
+            
             # Now create the app directory
             echo "📁 Creating app directory: $APP_DIR"
-            echo "🔨 Running: mkdir -p \"$APP_DIR\""
-            
-            # Check for any obvious issues before mkdir
-            if [[ "$APP_DIR" == *"$APP_DIR"* ]] && [[ ${#APP_DIR} -gt 50 ]]; then
-                echo "❌ APP_DIR contains itself: $APP_DIR"
-                echo "🔧 Resetting to: $CORRECT_BASE_PATH"
-                APP_DIR="$CORRECT_BASE_PATH"
-            fi
-            
-            # Create app directory
-            if ! mkdir -p "$APP_DIR" 2>&1; then
-                echo "❌ mkdir failed for: $APP_DIR"
-                echo "🔍 Current working directory: $(pwd)"
-                echo "🔍 Parent directory status:"
-                ls -la "$PARENT_DIR" 2>/dev/null || echo "Parent directory not accessible"
+            if ! mkdir -p "$APP_DIR"; then
+                echo "❌ Failed to create app directory: $APP_DIR"
+                echo "🔍 Parent directory contents:"
+                ls -la "$PARENT_DIR"
                 exit 1
             fi
+            
+            # Set proper permissions
+            chmod 755 "$APP_DIR"
             
             # Verify directory was created and is accessible
-            echo "🔍 Checking if directory exists: $APP_DIR"
+            echo "🔍 Verifying directory access..."
             if [ ! -d "$APP_DIR" ]; then
-                echo "❌ Directory does not exist after mkdir: $APP_DIR"
-                echo "🔍 Listing parent directory contents:"
-                ls -la "$(dirname "$APP_DIR")" 2>/dev/null || echo "Parent directory not accessible"
+                echo "❌ Directory does not exist after creation: $APP_DIR"
                 exit 1
             fi
             
-            echo "✅ App directory verified: $APP_DIR"
-            echo "🔍 Directory permissions:"
-            ls -ld "$APP_DIR"
+            if [ ! -w "$APP_DIR" ]; then
+                echo "❌ No write permission for app directory: $APP_DIR"
+                ls -ld "$APP_DIR"
+                exit 1
+            fi
+            
+            echo "✅ App directory ready: $APP_DIR"
             
             # Navigate to app directory
-            echo "🚶 Changing to app directory: $APP_DIR"
+            echo "🚶 Changing to app directory..."
             cd "$APP_DIR" || { 
-                echo "❌ Cannot access app directory: $APP_DIR"
-                echo "🔍 Final directory check:"
-                ls -ld "$APP_DIR" 2>/dev/null || echo "Directory not accessible for listing"
+                echo "❌ Cannot change to app directory: $APP_DIR"
                 exit 1
             }
+            
+            echo "✅ Successfully changed to: $(pwd)"
             
             echo "💾 Creating backup..."
             mkdir -p "$BACKUP_DIR"

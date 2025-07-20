@@ -1,0 +1,34 @@
+name: Test Attendance Fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-attendance:
+    name: Test Attendance Endpoint Fix
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Upload test scripts
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "scripts/test-attendance-endpoint.sh,scripts/find-correct-database-password.sh"
+          target: "/home/u454362045/"
+          
+      - name: Test attendance endpoint
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            chmod +x /home/u454362045/scripts/test-attendance-endpoint.sh
+            bash /home/u454362045/scripts/test-attendance-endpoint.sh

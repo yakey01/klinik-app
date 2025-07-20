@@ -130,26 +130,43 @@ jobs:
             RAW_APP_DIR="${{ env.APP_DIR }}"
             echo "🔍 DEBUG: Raw APP_DIR from environment: '$RAW_APP_DIR'"
             
+            # Define the correct base path
+            CORRECT_BASE_PATH="domains/dokterkuklinik.com/public_html/dokterku"
+            
             # Validate and sanitize APP_DIR to prevent recursive paths
             if [ -n "$RAW_APP_DIR" ]; then
-                # Remove any recursive/duplicate directory patterns
-                APP_DIR=$(echo "$RAW_APP_DIR" | sed 's|\(domains/dokterkuklinik\.com/public_html/dokterku\)\(.*\)\1|\1|g')
-                
-                # Check for obvious recursive patterns
-                if [[ "$APP_DIR" == *"domains/dokterkuklinik.com/public_html/dokterku/domains/dokterkuklinik.com/public_html/dokterku"* ]]; then
-                    echo "❌ Detected recursive APP_DIR pattern: $APP_DIR"
-                    echo "🔧 Fixing to: domains/dokterkuklinik.com/public_html/dokterku"
-                    APP_DIR="domains/dokterkuklinik.com/public_html/dokterku"
+                # Check for recursive patterns and fix them
+                if [[ "$RAW_APP_DIR" == *"$CORRECT_BASE_PATH/$CORRECT_BASE_PATH"* ]]; then
+                    echo "❌ Detected recursive APP_DIR pattern: $RAW_APP_DIR"
+                    echo "🔧 Fixing to: $CORRECT_BASE_PATH"
+                    APP_DIR="$CORRECT_BASE_PATH"
+                else
+                    # Count occurrences of the base path to detect recursion
+                    COUNT=$(echo "$RAW_APP_DIR" | grep -o "$CORRECT_BASE_PATH" | wc -l)
+                    if [ "$COUNT" -gt 1 ]; then
+                        echo "❌ Detected $COUNT occurrences of base path in APP_DIR: $RAW_APP_DIR"
+                        echo "🔧 Resetting to single occurrence: $CORRECT_BASE_PATH"
+                        APP_DIR="$CORRECT_BASE_PATH"
+                    else
+                        # Check if the path is too long (indicates recursion)
+                        if [ ${#RAW_APP_DIR} -gt 100 ]; then
+                            echo "❌ APP_DIR seems too long (${#RAW_APP_DIR} chars), possible recursion: $RAW_APP_DIR"
+                            echo "🔧 Resetting to: $CORRECT_BASE_PATH"
+                            APP_DIR="$CORRECT_BASE_PATH"
+                        else
+                            APP_DIR="$RAW_APP_DIR"
+                        fi
+                    fi
                 fi
                 
                 echo "🎯 Sanitized deployment directory: $APP_DIR"
             else
                 echo "⚠️ APP_DIR not set, trying common Hostinger paths..."
                 POSSIBLE_PATHS=(
-                    "domains/dokterkuklinik.com/public_html/dokterku"
+                    "$CORRECT_BASE_PATH"
                     "public_html/dokterku"
                     "htdocs/dokterku"
-                    "$HOME/domains/dokterkuklinik.com/public_html/dokterku"
+                    "$HOME/$CORRECT_BASE_PATH"
                     "$HOME/public_html/dokterku"
                 )
                 
@@ -177,19 +194,17 @@ jobs:
             # Final validation and safety checks
             echo "🔍 DEBUG: Final APP_DIR is '$APP_DIR'"
             
-            # Check for suspicious patterns
-            if [ ${#APP_DIR} -gt 100 ]; then
-                echo "❌ APP_DIR seems too long (${#APP_DIR} chars), possible recursion: $APP_DIR"
+            # Final sanity check - ensure APP_DIR is not empty and is reasonable
+            if [ -z "$APP_DIR" ]; then
+                echo "❌ APP_DIR is empty after validation"
                 exit 1
             fi
             
-            # Count occurrences of the base path to detect recursion
-            BASE_PATH="domains/dokterkuklinik.com/public_html/dokterku"
-            COUNT=$(echo "$APP_DIR" | grep -o "$BASE_PATH" | wc -l)
-            if [ "$COUNT" -gt 1 ]; then
-                echo "❌ Detected $COUNT occurrences of base path in APP_DIR: $APP_DIR"
-                echo "🔧 Resetting to single occurrence: $BASE_PATH"
-                APP_DIR="$BASE_PATH"
+            # Ensure APP_DIR doesn't contain itself recursively
+            if [[ "$APP_DIR" == *"$APP_DIR"* ]] && [[ ${#APP_DIR} -gt 50 ]]; then
+                echo "❌ APP_DIR contains itself recursively: $APP_DIR"
+                echo "🔧 Resetting to: $CORRECT_BASE_PATH"
+                APP_DIR="$CORRECT_BASE_PATH"
             fi
             
             # Ensure APP_DIR doesn't start with a slash (relative path)
@@ -223,7 +238,8 @@ jobs:
             # Check for any obvious issues before mkdir
             if [[ "$APP_DIR" == *"$APP_DIR"* ]] && [[ ${#APP_DIR} -gt 50 ]]; then
                 echo "❌ APP_DIR contains itself: $APP_DIR"
-                exit 1
+                echo "🔧 Resetting to: $CORRECT_BASE_PATH"
+                APP_DIR="$CORRECT_BASE_PATH"
             fi
             
             # Create directory with detailed error reporting

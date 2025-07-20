@@ -63,6 +63,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-build-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-build-
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Setup minimal environment for asset publishing
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Publish Filament assets
+        run: php artisan vendor:publish --tag=filament-assets --force
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

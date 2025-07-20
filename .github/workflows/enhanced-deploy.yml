@@ -45,13 +45,25 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: pcov
 
+      - name: Download Composer 2 locally
+        run: |
+          echo "📦 Downloading Composer 2 locally..."
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php composer-setup.php --2 --install-dir=. --filename=composer2
+          php -r "unlink('composer-setup.php');"
+          ./composer2 --version
+          echo "✅ Local Composer 2 ready"
+
       - name: Configure Composer authentication for GitHub
-        run: composer config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔐 Configuring Composer GitHub authentication..."
+          ./composer2 config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+          echo "✅ GitHub authentication configured"
 
       - name: Install Composer dependencies
         run: |
           echo "🚀 Installing Composer dependencies with Claude Code optimization..."
-          composer install --prefer-dist --no-interaction --optimize-autoloader --no-scripts
+          ./composer2 install --prefer-dist --no-interaction --optimize-autoloader --no-scripts
           echo "✅ Dependencies installed successfully"
 
       - name: Setup environment

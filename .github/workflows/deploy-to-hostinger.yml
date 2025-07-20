@@ -25,18 +25,14 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: none
 
-      - name: Install Composer 2
+      - name: Download Composer 2 locally
         run: |
-          echo "🔧 Installing Composer 2..."
-          composer --version || true
-          if composer --version | grep -q 'Composer version 1'; then
-            echo "📦 Upgrading from Composer 1 to Composer 2..."
-            php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-            php composer-setup.php --2 --install-dir=/usr/local/bin --filename=composer
-            php -r "unlink('composer-setup.php');"
-          fi
-          composer --version
-          echo "✅ Composer 2 ready"
+          echo "📦 Downloading Composer 2 locally..."
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php composer-setup.php --2 --install-dir=. --filename=composer2
+          php -r "unlink('composer-setup.php');"
+          ./composer2 --version
+          echo "✅ Local Composer 2 ready"
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -97,18 +93,14 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: none
 
-      - name: Install Composer 2
+      - name: Download Composer 2 locally
         run: |
-          echo "🔧 Installing Composer 2..."
-          composer --version || true
-          if composer --version | grep -q 'Composer version 1'; then
-            echo "📦 Upgrading from Composer 1 to Composer 2..."
-            php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-            php composer-setup.php --2 --install-dir=/usr/local/bin --filename=composer
-            php -r "unlink('composer-setup.php');"
-          fi
-          composer --version
-          echo "✅ Composer 2 ready"
+          echo "📦 Downloading Composer 2 locally..."
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php composer-setup.php --2 --install-dir=. --filename=composer2
+          php -r "unlink('composer-setup.php');"
+          ./composer2 --version
+          echo "✅ Local Composer 2 ready"
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -120,15 +112,15 @@ jobs:
       - name: Configure Composer authentication for GitHub
         run: |
           echo "🔐 Configuring Composer GitHub authentication..."
-          composer config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+          ./composer2 config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
           echo "✅ GitHub authentication configured"
 
-      - name: Install Composer dependencies
+      - name: Install dependencies with Composer 2
         run: |
           echo "🚀 Installing Composer dependencies for deployment..."
-          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist || {
+          ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts || {
             echo "❌ Composer install failed, trying with verbose output..."
-            composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --verbose
+            ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts --verbose
           }
           echo "✅ Composer dependencies installed successfully"
 
@@ -323,21 +315,17 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
-            echo "🔧 Ensuring Composer 2 is installed on server..."
-            composer --version || true
-            if composer --version | grep -q 'Composer version 1'; then
-                echo "📦 Upgrading server Composer from 1 to 2..."
-                php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-                php composer-setup.php --2 --install-dir=/usr/local/bin --filename=composer
-                php -r "unlink('composer-setup.php');"
-            fi
-            composer --version
+            echo "📦 Downloading Composer 2 for server deployment..."
+            php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+            php composer-setup.php --2 --install-dir=. --filename=composer2
+            php -r "unlink('composer-setup.php');"
+            ./composer2 --version
             
-            echo "📦 Installing Composer dependencies..."
+            echo "📦 Installing Composer dependencies with local Composer 2..."
             # Install dependencies (minimum-stability is already set in composer.json)
-            composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts || {
+            ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts || {
                 echo "❌ Composer install failed, trying alternative approach..."
-                composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-reqs --no-scripts
+                ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-reqs --no-scripts
             }
             
             echo "🔧 Running Laravel setup..."

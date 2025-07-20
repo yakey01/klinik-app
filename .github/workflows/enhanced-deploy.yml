@@ -51,9 +51,9 @@ jobs:
       - name: Setup environment
         run: |
           cp .env.example .env.testing
-          # Use in-memory SQLite database for testing (matches TestCase configuration)
+          # Use file-based SQLite database for testing (matches TestCase and phpunit.xml configuration)
           sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=sqlite/' .env.testing
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=:memory:/' .env.testing
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=database\/testing.sqlite/' .env.testing
           sed -i 's/DB_HOST=.*/# DB_HOST=127.0.0.1/' .env.testing
           sed -i 's/DB_PORT=.*/# DB_PORT=3306/' .env.testing
           sed -i 's/DB_USERNAME=.*/# DB_USERNAME=/' .env.testing
@@ -65,17 +65,32 @@ jobs:
           echo "MAIL_MAILER=array" >> .env.testing
           php artisan key:generate --env=testing
 
+      - name: Create SQLite database file
+        run: |
+          # Create database directory and file (matches TestCase setupUniqueTestDatabase method)
+          mkdir -p database
+          touch database/testing.sqlite
+          echo "✅ Created SQLite database file: database/testing.sqlite"
+
       - name: Prepare test environment
         run: |
           # Verify test environment configuration
           echo "🔍 Verifying test environment configuration..."
           grep -E "^DB_" .env.testing || echo "No DB config found in .env.testing"
           
+          # Verify database file exists
+          if [ -f "database/testing.sqlite" ]; then
+            echo "✅ SQLite database file exists: database/testing.sqlite"
+          else
+            echo "❌ SQLite database file missing!"
+            exit 1
+          fi
+          
           # Clear any cached configurations
           php artisan config:clear --env=testing
           php artisan cache:clear --env=testing
           
-          # Run fresh migrations (in-memory database is automatically clean)
+          # Run fresh migrations on the SQLite database file
           php artisan migrate:fresh --env=testing --force
           
           echo "✅ Test environment prepared successfully"

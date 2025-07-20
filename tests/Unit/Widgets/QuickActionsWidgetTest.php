@@ -18,6 +18,7 @@ class QuickActionsWidgetTest extends TestCase
     protected User $user;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
@@ -155,7 +156,6 @@ class QuickActionsWidgetTest extends TestCase
     public function test_it_provides_supervisor_specific_tips()
     {
         // Arrange
-        $supervisorRole = Role::firstOrCreate(['name' => 'supervisor'], ['display_name' => 'Supervisor']);
         $this->user->assignRole($supervisorRole);
         
         // Act
@@ -170,7 +170,6 @@ class QuickActionsWidgetTest extends TestCase
     public function test_it_provides_admin_specific_tips()
     {
         // Arrange
-        $adminRole = Role::firstOrCreate(['name' => 'admin'], ['display_name' => 'Admin']);
         $this->user->assignRole($adminRole);
         
         // Act

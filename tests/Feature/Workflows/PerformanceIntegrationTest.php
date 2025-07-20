@@ -39,10 +39,7 @@ class PerformanceIntegrationTest extends TestCase
     {
         parent::setUp();
         
-        // Create roles and users
-        if (!Role::where('name', 'petugas')->exists()) {
-            Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
-        }
+        // Roles are already created by base TestCase via RoleSetupTrait
         $this->petugas = User::factory()->create(['name' => 'Performance Test User']);
         $this->petugas->assignRole('petugas');
         
@@ -58,6 +55,7 @@ class PerformanceIntegrationTest extends TestCase
     }
 
     protected function setUpPerformanceData(): void
+        // Roles are already created by base TestCase
     {
         // Create base data for performance testing
         $jenisTindakan = JenisTindakan::factory()->create(['tarif' => 150000]);

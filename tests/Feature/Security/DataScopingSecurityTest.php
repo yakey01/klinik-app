@@ -38,14 +38,11 @@ class DataScopingSecurityTest extends TestCase
     protected User $manager;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
         // Create roles
-        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
-        Role::firstOrCreate(['name' => 'supervisor'], ['display_name' => 'Supervisor']);
-        Role::firstOrCreate(['name' => 'manager'], ['display_name' => 'Manager']);
-        Role::firstOrCreate(['name' => 'admin'], ['display_name' => 'Admin']);
         
         // Create users with different roles
         $this->petugasA = User::factory()->create(['name' => 'Petugas A']);

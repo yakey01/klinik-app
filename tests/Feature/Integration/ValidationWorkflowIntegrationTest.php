@@ -30,14 +30,11 @@ class ValidationWorkflowIntegrationTest extends TestCase
     private JenisTindakan $jenisTindakan;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
         // Create roles first
-        $petugasRole = \App\Models\Role::firstOrCreate(['name' => 'petugas'], ['label' => 'Petugas']);
-        $bendaharaRole = \App\Models\Role::firstOrCreate(['name' => 'bendahara'], ['label' => 'Bendahara']);
-        $dokterRole = \App\Models\Role::firstOrCreate(['name' => 'dokter'], ['label' => 'Dokter']);
-        $adminRole = \App\Models\Role::firstOrCreate(['name' => 'admin'], ['label' => 'Admin']);
         
         // Create test users with proper roles
         $this->petugasUser = User::factory()->create([

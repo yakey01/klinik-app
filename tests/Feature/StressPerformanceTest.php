@@ -32,19 +32,10 @@ class StressPerformanceTest extends TestCase
     {
         parent::setUp();
         
-        // Create roles using firstOrCreate to avoid duplicates
-        $petugasRole = Role::firstOrCreate(
-            ['name' => 'petugas'],
-            ['display_name' => 'Petugas', 'description' => 'Staff Petugas']
-        );
-        $bendaharaRole = Role::firstOrCreate(
-            ['name' => 'bendahara'],
-            ['display_name' => 'Bendahara', 'description' => 'Staff Bendahara']
-        );
-        $adminRole = Role::firstOrCreate(
-            ['name' => 'admin'],
-            ['display_name' => 'Admin', 'description' => 'Administrator']
-        );
+        // Get roles that are already created by base TestCase
+        $petugasRole = $this->getRole('petugas');
+        $bendaharaRole = $this->getRole('bendahara');
+        $adminRole = $this->getRole('admin');
         
         // Create test users
         $this->petugasUser = User::create([
@@ -222,20 +213,21 @@ class StressPerformanceTest extends TestCase
             
             for ($i = 0; $i < $batchSize; $i++) {
                 $tindakanBatch[] = [
-                    'pasien_id' => $patientIds[array_rand($patientIds)],
-                    'jenis_tindakan_id' => $this->jenisTindakan->id,
-                    'dokter_id' => $this->petugasUser->id, // Use petugas as dokter for simplicity
-                    'tanggal_tindakan' => Carbon::now()->subDays(rand(0, 30)),
-                    'tarif' => $this->jenisTindakan->tarif,
-                    'jasa_dokter' => $this->jenisTindakan->jasa_dokter,
-                    'jasa_paramedis' => $this->jenisTindakan->jasa_paramedis,
-                    'jasa_non_paramedis' => $this->jenisTindakan->jasa_non_paramedis,
-                    'catatan' => "Stress test tindakan batch {$batch}",
-                    'status' => 'selesai',
-                    'status_validasi' => 'pending',
-                    'input_by' => $this->petugasUser->id,
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
+                                    'pasien_id' => $patientIds[array_rand($patientIds)],
+                'jenis_tindakan_id' => $this->jenisTindakan->id,
+                'dokter_id' => $this->petugasUser->id, // Use petugas as dokter for simplicity
+                'shift_id' => 1, // Add shift_id
+                'tanggal_tindakan' => Carbon::now()->subDays(rand(0, 30)),
+                'tarif' => $this->jenisTindakan->tarif,
+                'jasa_dokter' => $this->jenisTindakan->jasa_dokter,
+                'jasa_paramedis' => $this->jenisTindakan->jasa_paramedis,
+                'jasa_non_paramedis' => $this->jenisTindakan->jasa_non_paramedis,
+                'catatan' => "Stress test tindakan batch {$batch}",
+                'status' => 'selesai',
+                'status_validasi' => 'pending',
+                'input_by' => $this->petugasUser->id,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
                 ];
             }
             

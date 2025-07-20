@@ -29,26 +29,11 @@ class SecurityAccessControlTest extends TestCase
         parent::setUp();
         
         // Create roles
-        $petugasRole = Role::firstOrCreate(
-            ['name' => 'petugas'],
-            ['display_name' => 'Petugas', 'description' => 'Staff Petugas']
-        );
-        $bendaharaRole = Role::firstOrCreate(
-            ['name' => 'bendahara'],
-            ['display_name' => 'Bendahara', 'description' => 'Staff Bendahara']
-        );
-        $adminRole = Role::firstOrCreate(
-            ['name' => 'admin'],
-            ['display_name' => 'Admin', 'description' => 'Administrator']
-        );
-        $dokterRole = Role::firstOrCreate(
-            ['name' => 'dokter'],
-            ['display_name' => 'Dokter', 'description' => 'Medical Doctor']
-        );
-        $unauthorizedRole = Role::firstOrCreate(
-            ['name' => 'guest'],
-            ['display_name' => 'Guest', 'description' => 'Unauthorized User']
-        );
+        $petugasRole = $this->getRole('petugas');
+        $bendaharaRole = $this->getRole('bendahara');
+        $adminRole = $this->getRole('admin');
+        $dokterRole = $this->getRole('dokter');
+        $unauthorizedRole = $this->getRole('guest');
         
         // Create test users with different roles
         $this->petugasUser = User::create([

@@ -43,21 +43,7 @@ class PetugasWorkflowTest extends TestCase
     {
         parent::setUp();
         
-        // Create roles
-        if (!Role::where('name', 'petugas')->exists()) {
-            Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
-        }
-        if (!Role::where('name', 'supervisor')->exists()) {
-            Role::firstOrCreate(['name' => 'supervisor'], ['display_name' => 'Supervisor']);
-        }
-        if (!Role::where('name', 'manager')->exists()) {
-            Role::firstOrCreate(['name' => 'manager'], ['display_name' => 'Manager']);
-        }
-        if (!Role::where('name', 'admin')->exists()) {
-            Role::firstOrCreate(['name' => 'admin'], ['display_name' => 'Admin']);
-        }
-        
-        // Create users with roles
+        // Roles are already created by base TestCase via RoleSetupTrait
         $this->petugas = User::factory()->create(['name' => 'Test Petugas']);
         $this->petugas->assignRole('petugas');
         

@@ -21,12 +21,11 @@ class PasienResourceTest extends TestCase
     protected User $otherUser;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
         // Create roles
-        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
-        Role::firstOrCreate(['name' => 'supervisor'], ['display_name' => 'Supervisor']);
         
         $this->user = User::factory()->create();
         $this->user->assignRole('petugas');

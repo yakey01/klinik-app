@@ -30,11 +30,11 @@ class InputValidationSecurityTest extends TestCase
     protected BulkOperationService $bulkService;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
         // Create role and user
-        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
         $this->petugas = User::factory()->create(['name' => 'Test Petugas']);
         $this->petugas->assignRole('petugas');
         

@@ -36,11 +36,11 @@ class DashboardPerformanceTest extends TestCase
     protected array $baseData;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
         // Create role and user
-        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
         $this->petugas = User::factory()->create(['name' => 'Performance Test User']);
         $this->petugas->assignRole('petugas');
         

@@ -38,14 +38,11 @@ class PermissionSecurityTest extends TestCase
     protected User $unauthorized;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
         // Create roles
-        $petugasRole = Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
-        $supervisorRole = Role::firstOrCreate(['name' => 'supervisor'], ['display_name' => 'Supervisor']);
-        $managerRole = Role::firstOrCreate(['name' => 'manager'], ['display_name' => 'Manager']);
-        $adminRole = Role::firstOrCreate(['name' => 'admin'], ['display_name' => 'Admin']);
         
         // Create permissions
         $this->createPermissions();

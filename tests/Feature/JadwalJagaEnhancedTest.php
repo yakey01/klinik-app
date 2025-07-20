@@ -24,10 +24,7 @@ class JadwalJagaEnhancedTest extends TestCase
         parent::setUp();
         
         // Create admin role and user
-        $adminRole = Role::firstOrCreate(
-            ['name' => 'admin'],
-            ['display_name' => 'Administrator']
-        );
+        $adminRole = $this->getRole('admin');
         $this->adminUser = User::create([
             'name' => 'Admin Test',
             'email' => 'admin@test.com',
@@ -45,9 +42,7 @@ class JadwalJagaEnhancedTest extends TestCase
         ]);
         
         // Create required roles
-        Role::firstOrCreate(['name' => 'dokter'], ['display_name' => 'Dokter']);
-        Role::firstOrCreate(['name' => 'paramedis'], ['display_name' => 'Paramedis']);
-        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
+        // Roles are already created by base TestCase
     }
 
     /** @test */

@@ -212,6 +212,40 @@ class CacheService
             return false;
         }
     }
+
+    /**
+     * Invalidate cache by tag
+     */
+    public function invalidateByTag(string $tag): bool
+    {
+        try {
+            if (isset(self::CACHE_TAGS[$tag])) {
+                $cacheTag = self::CACHE_TAGS[$tag];
+                $result = Cache::tags($cacheTag)->flush();
+                
+                $this->loggingService->logActivity(
+                    'cache_tag_invalidated',
+                    null,
+                    ['cache_tag' => $tag, 'success' => $result],
+                    'Cache tag invalidated: ' . $tag
+                );
+                
+                return $result;
+            }
+            
+            return false;
+            
+        } catch (\Exception $e) {
+            $this->loggingService->logError(
+                'Cache tag invalidation failed',
+                $e,
+                ['cache_tag' => $tag],
+                'error'
+            );
+            
+            return false;
+        }
+    }
     
     /**
      * Invalidate cache by tag (fallback for non-Redis stores)

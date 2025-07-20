@@ -36,12 +36,11 @@ class ErrorHandlingIntegrationTest extends TestCase
     protected BulkOperationService $bulkService;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
         // Create roles
-        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
-        Role::firstOrCreate(['name' => 'supervisor'], ['display_name' => 'Supervisor']);
         
         // Create users
         $this->petugas = User::factory()->create(['name' => 'Test Petugas']);

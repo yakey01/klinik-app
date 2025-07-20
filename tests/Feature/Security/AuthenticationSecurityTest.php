@@ -22,12 +22,11 @@ class AuthenticationSecurityTest extends TestCase
     protected User $anotherUser;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
         // Create roles
-        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
-        Role::firstOrCreate(['name' => 'supervisor'], ['display_name' => 'Supervisor']);
         
         // Create test users
         $this->validUser = User::factory()->create([

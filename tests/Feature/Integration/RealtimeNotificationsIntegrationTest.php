@@ -29,14 +29,11 @@ class RealtimeNotificationsIntegrationTest extends TestCase
     private JenisTindakan $jenisTindakan;
 
     protected function setUp(): void
+        // Roles are already created by base TestCase
     {
         parent::setUp();
         
         // Create roles first
-        $petugasRole = Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas', 'description' => 'Staff Petugas']);
-        $bendaharaRole = Role::firstOrCreate(['name' => 'bendahara'], ['display_name' => 'Bendahara', 'description' => 'Staff Bendahara']);
-        $adminRole = Role::firstOrCreate(['name' => 'admin'], ['display_name' => 'Admin', 'description' => 'Administrator']);
-        $dokterRole = Role::firstOrCreate(['name' => 'dokter'], ['display_name' => 'Dokter', 'description' => 'Medical Doctor']);
         
         // Create test users
         $this->petugasUser = User::factory()->create([

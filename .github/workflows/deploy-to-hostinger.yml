@@ -39,11 +39,20 @@ jobs:
           cp .env.example .env
           php artisan key:generate
           touch database/database.sqlite
+          
+      - name: Configure SQLite for testing
+        run: |
+          echo "# Override database config for CI testing" >> .env
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_DATABASE=$(pwd)/database/database.sqlite" >> .env
+          echo "CACHE_STORE=array" >> .env
+          echo "SESSION_DRIVER=array" >> .env
+          echo "QUEUE_CONNECTION=sync" >> .env
 
       - name: Run tests
         run: |
           php artisan config:clear
-          php artisan migrate --force --database=sqlite
+          php artisan migrate --force
           # Add your test commands here
           # php artisan test
 

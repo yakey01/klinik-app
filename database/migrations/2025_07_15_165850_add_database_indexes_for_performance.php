@@ -49,34 +49,34 @@ return new class extends Migration
         Schema::table('pendapatan', function (Blueprint $table) {
             $table->index('tindakan_id', 'idx_pendapatan_tindakan_id');
             $table->index('kategori', 'idx_pendapatan_kategori');
-            $table->index('status', 'idx_pendapatan_status');
+            $table->index('status_validasi', 'idx_pendapatan_status_validasi');
             $table->index('created_at', 'idx_pendapatan_created_at');
             $table->index('input_by', 'idx_pendapatan_input_by');
             $table->index('validasi_by', 'idx_pendapatan_validasi_by');
-            $table->index('validated_at', 'idx_pendapatan_validated_at');
+            $table->index('validasi_at', 'idx_pendapatan_validasi_at');
             $table->index('deleted_at', 'idx_pendapatan_deleted_at');
             
             // Composite indexes for financial queries
-            $table->index(['status', 'created_at'], 'idx_pendapatan_status_created');
-            $table->index(['kategori', 'status'], 'idx_pendapatan_kategori_status');
-            $table->index(['created_at', 'jumlah'], 'idx_pendapatan_created_jumlah');
-            $table->index(['tindakan_id', 'status'], 'idx_pendapatan_tindakan_status');
+            $table->index(['status_validasi', 'created_at'], 'idx_pendapatan_status_created');
+            $table->index(['kategori', 'status_validasi'], 'idx_pendapatan_kategori_status');
+            $table->index(['created_at', 'nominal'], 'idx_pendapatan_created_nominal');
+            $table->index(['tindakan_id', 'status_validasi'], 'idx_pendapatan_tindakan_status');
         });
 
         // Indexes for pengeluaran table
         Schema::table('pengeluaran', function (Blueprint $table) {
             $table->index('kategori', 'idx_pengeluaran_kategori');
-            $table->index('status', 'idx_pengeluaran_status');
+            $table->index('status_validasi', 'idx_pengeluaran_status_validasi');
             $table->index('created_at', 'idx_pengeluaran_created_at');
             $table->index('input_by', 'idx_pengeluaran_input_by');
             $table->index('validasi_by', 'idx_pengeluaran_validasi_by');
-            $table->index('validated_at', 'idx_pengeluaran_validated_at');
+            $table->index('validasi_at', 'idx_pengeluaran_validasi_at');
             $table->index('deleted_at', 'idx_pengeluaran_deleted_at');
             
             // Composite indexes for financial queries
-            $table->index(['status', 'created_at'], 'idx_pengeluaran_status_created');
-            $table->index(['kategori', 'status'], 'idx_pengeluaran_kategori_status');
-            $table->index(['created_at', 'jumlah'], 'idx_pengeluaran_created_jumlah');
+            $table->index(['status_validasi', 'created_at'], 'idx_pengeluaran_status_created');
+            $table->index(['kategori', 'status_validasi'], 'idx_pengeluaran_kategori_status');
+            $table->index(['created_at', 'nominal'], 'idx_pengeluaran_created_nominal');
         });
 
         // Indexes for dokters table
@@ -193,8 +193,8 @@ return new class extends Migration
             // Full-text search on pasien
             DB::statement('ALTER TABLE pasien ADD FULLTEXT idx_pasien_fulltext (nama, no_rekam_medis, alamat)');
             
-            // Full-text search on dokter
-            DB::statement('ALTER TABLE dokter ADD FULLTEXT idx_dokter_fulltext (nama, spesialisasi)');
+            // Full-text search on dokters
+            DB::statement('ALTER TABLE dokters ADD FULLTEXT idx_dokters_fulltext (nama_lengkap, spesialisasi)');
             
             // Full-text search on jenis_tindakan
             DB::statement('ALTER TABLE jenis_tindakan ADD FULLTEXT idx_jenis_tindakan_fulltext (nama, deskripsi)');
@@ -212,7 +212,7 @@ return new class extends Migration
         // Drop full-text indexes first
         if (config('database.default') === 'mysql') {
             DB::statement('ALTER TABLE pasien DROP INDEX idx_pasien_fulltext');
-            DB::statement('ALTER TABLE dokter DROP INDEX idx_dokter_fulltext');
+            DB::statement('ALTER TABLE dokters DROP INDEX idx_dokters_fulltext');
             DB::statement('ALTER TABLE jenis_tindakan DROP INDEX idx_jenis_tindakan_fulltext');
             DB::statement('ALTER TABLE users DROP INDEX idx_users_fulltext');
         }
@@ -300,46 +300,35 @@ return new class extends Migration
             $table->dropIndex('idx_users_role_id_active');
         });
 
-        // Drop indexes from dokter table
-        Schema::table('dokter', function (Blueprint $table) {
-            $table->dropIndex('idx_dokter_user_id');
-            $table->dropIndex('idx_dokter_spesialisasi');
-            $table->dropIndex('idx_dokter_status');
-            $table->dropIndex('idx_dokter_created_at');
-            $table->dropIndex('idx_dokter_input_by');
-            $table->dropIndex('idx_dokter_deleted_at');
-            $table->dropIndex('idx_dokter_no_izin_praktek');
-            $table->dropIndex('idx_dokter_status_spesialisasi');
-            $table->dropIndex('idx_dokter_user_status');
-        });
+
 
         // Drop indexes from pengeluaran table
         Schema::table('pengeluaran', function (Blueprint $table) {
             $table->dropIndex('idx_pengeluaran_kategori');
-            $table->dropIndex('idx_pengeluaran_status');
+            $table->dropIndex('idx_pengeluaran_status_validasi');
             $table->dropIndex('idx_pengeluaran_created_at');
             $table->dropIndex('idx_pengeluaran_input_by');
             $table->dropIndex('idx_pengeluaran_validasi_by');
-            $table->dropIndex('idx_pengeluaran_validated_at');
+            $table->dropIndex('idx_pengeluaran_validasi_at');
             $table->dropIndex('idx_pengeluaran_deleted_at');
             $table->dropIndex('idx_pengeluaran_status_created');
             $table->dropIndex('idx_pengeluaran_kategori_status');
-            $table->dropIndex('idx_pengeluaran_created_jumlah');
+            $table->dropIndex('idx_pengeluaran_created_nominal');
         });
 
         // Drop indexes from pendapatan table
         Schema::table('pendapatan', function (Blueprint $table) {
             $table->dropIndex('idx_pendapatan_tindakan_id');
             $table->dropIndex('idx_pendapatan_kategori');
-            $table->dropIndex('idx_pendapatan_status');
+            $table->dropIndex('idx_pendapatan_status_validasi');
             $table->dropIndex('idx_pendapatan_created_at');
             $table->dropIndex('idx_pendapatan_input_by');
             $table->dropIndex('idx_pendapatan_validasi_by');
-            $table->dropIndex('idx_pendapatan_validated_at');
+            $table->dropIndex('idx_pendapatan_validasi_at');
             $table->dropIndex('idx_pendapatan_deleted_at');
             $table->dropIndex('idx_pendapatan_status_created');
             $table->dropIndex('idx_pendapatan_kategori_status');
-            $table->dropIndex('idx_pendapatan_created_jumlah');
+            $table->dropIndex('idx_pendapatan_created_nominal');
             $table->dropIndex('idx_pendapatan_tindakan_status');
         });
 

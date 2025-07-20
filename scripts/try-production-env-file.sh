@@ -13,7 +13,7 @@ if [ -f .env.production.updated ]; then
     grep "DB_" .env.production.updated
     
     # Extract password from production file
-    PRODUCTION_PASSWORD=$(grep "DB_PASSWORD" .env.production.updated | cut -d'=' -f2 | tr -d '"'"'"' | tr -d '"')
+    PRODUCTION_PASSWORD=$(grep "DB_PASSWORD" .env.production.updated | cut -d'=' -f2 | tr -d "'" | tr -d '"')
     echo "Extracted password: ${PRODUCTION_PASSWORD:0:3}***"
     
     echo ""
@@ -94,7 +94,7 @@ fi
 echo ""
 echo "📋 Alternative: Try updating from .env.example which might have working credentials:"
 if [ -f .env.example ]; then
-    EXAMPLE_PASSWORD=$(grep "DB_PASSWORD" .env.example | cut -d'=' -f2 | tr -d '"'"'"' | tr -d '"')
+    EXAMPLE_PASSWORD=$(grep "DB_PASSWORD" .env.example | cut -d'=' -f2 | tr -d "'" | tr -d '"')
     echo "Password from .env.example: ${EXAMPLE_PASSWORD:0:3}***"
     
     if mysql -h "127.0.0.1" -u "u454362045_klinik_app_usr" -p"$EXAMPLE_PASSWORD" -e "USE u454362045_klinik_app_db; SELECT 1;" 2>/dev/null >/dev/null; then

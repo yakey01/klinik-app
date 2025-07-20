@@ -124,6 +124,8 @@ jobs:
                 echo "❌ Error occurred during deployment!"
                 echo "🔄 Attempting to restore from backup if available..."
                 if [ -d "$BACKUP_DIR" ]; then
+                    echo "📁 Ensuring app directory exists for restore..."
+                    mkdir -p "$APP_DIR"
                     cd "$BACKUP_DIR"
                     rsync -av --exclude='.env' --exclude='storage/app' --exclude='storage/logs' . "$APP_DIR/"
                     echo "✅ Backup restored"
@@ -134,8 +136,20 @@ jobs:
             # Set error trap
             trap handle_error ERR
             
+            # Ensure app directory exists
+            echo "📁 Ensuring app directory exists..."
+            mkdir -p "$APP_DIR"
+            
+            # Verify directory was created and is accessible
+            if [ ! -d "$APP_DIR" ]; then
+                echo "❌ Failed to create app directory: $APP_DIR"
+                exit 1
+            fi
+            
+            echo "✅ App directory verified: $APP_DIR"
+            
             # Navigate to app directory
-            cd "$APP_DIR" || { echo "❌ Cannot access app directory"; exit 1; }
+            cd "$APP_DIR" || { echo "❌ Cannot access app directory: $APP_DIR"; exit 1; }
             
             echo "💾 Creating backup..."
             mkdir -p "$BACKUP_DIR"

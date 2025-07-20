@@ -29,7 +29,7 @@ abstract class TestCase extends BaseTestCase
         // Clear any existing permission cache
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         
-        // Setup roles for all tests
+        // Setup roles for all tests (with duplicate protection)
         $this->setupRoles();
     }
     

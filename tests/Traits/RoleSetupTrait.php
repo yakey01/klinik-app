@@ -16,6 +16,11 @@ trait RoleSetupTrait
             return;
         }
 
+        // Skip if roles already exist in database
+        if (Role::count() > 0) {
+            return;
+        }
+
         // Use database transaction for atomic role creation
         try {
             \DB::transaction(function () {
@@ -63,7 +68,16 @@ trait RoleSetupTrait
      */
     protected function getRole(string $name): Role
     {
-        return Role::where('name', $name)->firstOrFail();
+        // Ensure roles are setup before getting
+        $this->setupRoles();
+        
+        $role = Role::where('name', $name)->first();
+        
+        if (!$role) {
+            throw new \Exception("Role '{$name}' not found. Available roles: " . Role::pluck('name')->implode(', '));
+        }
+        
+        return $role;
     }
 
     /**

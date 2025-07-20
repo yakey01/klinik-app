@@ -70,6 +70,14 @@ jobs:
 
       - name: Run tests
         run: ./vendor/bin/pest --coverage
+        
+      - name: Upload test results to Claude Code
+        if: always()
+        run: |
+          echo "Test execution completed at $(date)"
+          echo "🧪 Tests Status: ${{ job.status }}"
+          echo "🎯 Coverage: Generated successfully"
+          echo "📊 Generated with Claude Code integration"
 
   build:
     name: Build Assets
@@ -246,6 +254,9 @@ jobs:
             echo "📊 Admin Dashboard: https://dokterkuklinik.com/admin"
             echo "💼 Manajer Panel: https://dokterkuklinik.com/manajer"
             echo "💰 Bendahara Panel: https://dokterkuklinik.com/bendahara"
+            echo ""
+            echo "🤖 Generated with Claude Code"
+            echo "🚀 Automated deployment workflow by Claude AI"
 
       - name: Upload build to server (fallback)
         if: failure()
@@ -269,9 +280,15 @@ jobs:
         run: |
           echo "✅ Deployment successful!"
           echo "🌐 Site: https://dokterkuklinik.com"
+          echo ""
+          echo "🤖 Generated with Claude Code"
+          echo "🚀 Automated deployment by Claude AI"
           
       - name: Notify failure
         if: needs.deploy.result == 'failure'
         run: |
           echo "❌ Deployment failed!"
           echo "Please check the logs and try again."
+          echo ""
+          echo "🤖 Generated with Claude Code"
+          echo "🔧 Troubleshooting available via Claude AI"

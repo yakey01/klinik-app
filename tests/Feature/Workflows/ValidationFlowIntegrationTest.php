@@ -41,10 +41,18 @@ class ValidationFlowIntegrationTest extends TestCase
         parent::setUp();
         
         // Create roles
-        Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
-        Role::create(['name' => 'supervisor', 'display_name' => 'Supervisor']);
-        Role::create(['name' => 'manager', 'display_name' => 'Manager']);
-        Role::create(['name' => 'admin', 'display_name' => 'Admin']);
+        if (!Role::where('name', 'petugas')->exists()) {
+            Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
+        }
+        if (!Role::where('name', 'supervisor')->exists()) {
+            Role::create(['name' => 'supervisor', 'display_name' => 'Supervisor']);
+        }
+        if (!Role::where('name', 'manager')->exists()) {
+            Role::create(['name' => 'manager', 'display_name' => 'Manager']);
+        }
+        if (!Role::where('name', 'admin')->exists()) {
+            Role::create(['name' => 'admin', 'display_name' => 'Admin']);
+        }
         
         // Create users with roles
         $this->petugas = User::factory()->create(['name' => 'Test Petugas']);

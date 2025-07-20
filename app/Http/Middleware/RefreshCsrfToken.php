@@ -17,8 +17,8 @@ class RefreshCsrfToken
     {
         $response = $next($request);
 
-        // Add CSRF token to all responses for admin panel
-        if ($request->is('admin*')) {
+        // Add CSRF token to all responses for Filament panels
+        if ($request->is('admin*') || $request->is('paramedis*') || $request->is('bendahara*') || $request->is('manajer*') || $request->is('petugas*')) {
             $token = csrf_token();
             
             // Add CSRF token to response headers for AJAX requests

@@ -162,81 +162,78 @@ jobs:
               ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-reqs --no-scripts
             }
             
-                         echo "🗄️ Setting up production database configuration..."
-             
-             # Create proper .env file for production
-             if [ ! -f .env ]; then
-               echo "📄 Creating .env file from example..."
-               cp .env.example .env 2>/dev/null || {
-                 echo "⚠️ .env.example not found, creating basic .env..."
-                 echo 'APP_NAME="Dokterku Klinik"' > .env
-                 echo 'APP_ENV=production' >> .env
-                 echo 'APP_KEY=' >> .env
-                 echo 'APP_DEBUG=false' >> .env
-                 echo 'APP_URL=https://dokterkuklinik.com' >> .env
-                 echo 'LOG_CHANNEL=stack' >> .env
-                 echo 'LOG_DEPRECATIONS_CHANNEL=null' >> .env
-                 echo 'LOG_LEVEL=debug' >> .env
-                 echo 'DB_CONNECTION=mysql' >> .env
-                 echo 'DB_HOST=localhost' >> .env
-                 echo 'DB_PORT=3306' >> .env
-                 echo 'DB_DATABASE=u454362045_u45436245_kli' >> .env
-                 echo 'DB_USERNAME=u454362045_u45436245_kli' >> .env
-                 echo 'DB_PASSWORD=LaTahzan@01' >> .env
-                 echo 'BROADCAST_DRIVER=log' >> .env
-                 echo 'CACHE_DRIVER=file' >> .env
-                 echo 'FILESYSTEM_DISK=local' >> .env
-                 echo 'QUEUE_CONNECTION=sync' >> .env
-                 echo 'SESSION_DRIVER=file' >> .env
-                 echo 'SESSION_LIFETIME=120' >> .env
-                 echo 'MEMCACHED_HOST=127.0.0.1' >> .env
-                 echo 'REDIS_HOST=127.0.0.1' >> .env
-                 echo 'REDIS_PASSWORD=null' >> .env
-                 echo 'REDIS_PORT=6379' >> .env
-                 echo 'MAIL_MAILER=smtp' >> .env
-                 echo 'MAIL_HOST=mailpit' >> .env
-                 echo 'MAIL_PORT=1025' >> .env
-                 echo 'MAIL_USERNAME=null' >> .env
-                 echo 'MAIL_PASSWORD=null' >> .env
-                 echo 'MAIL_ENCRYPTION=null' >> .env
-                 echo 'MAIL_FROM_ADDRESS="hello@example.com"' >> .env
-                 echo 'MAIL_FROM_NAME="${APP_NAME}"' >> .env
-                 echo 'VITE_APP_NAME="${APP_NAME}"' >> .env
-               }
-             fi
-             
-             # Generate application key if not set
-             if ! grep -q "APP_KEY=base64:" .env; then
-               echo "🔑 Generating application key..."
-               php artisan key:generate --force
-             fi
+            echo "🗄️ Setting up production database configuration..."
+            
+            # Create proper .env file for production
+            if [ ! -f .env ]; then
+              echo "📄 Creating .env file from example..."
+              cp .env.example .env 2>/dev/null || {
+                echo "⚠️ .env.example not found, creating basic .env..."
+                echo 'APP_NAME="Dokterku Klinik"' > .env
+                echo 'APP_ENV=production' >> .env
+                echo 'APP_KEY=' >> .env
+                echo 'APP_DEBUG=false' >> .env
+                echo 'APP_URL=https://dokterkuklinik.com' >> .env
+                echo 'LOG_CHANNEL=stack' >> .env
+                echo 'LOG_DEPRECATIONS_CHANNEL=null' >> .env
+                echo 'LOG_LEVEL=debug' >> .env
+                echo 'DB_CONNECTION=mysql' >> .env
+                echo 'DB_HOST=localhost' >> .env
+                echo 'DB_PORT=3306' >> .env
+                echo 'DB_DATABASE=u454362045_u45436245_kli' >> .env
+                echo 'DB_USERNAME=u454362045_u45436245_kli' >> .env
+                echo 'DB_PASSWORD=LaTahzan@01' >> .env
+                echo 'BROADCAST_DRIVER=log' >> .env
+                echo 'CACHE_DRIVER=file' >> .env
+                echo 'FILESYSTEM_DISK=local' >> .env
+                echo 'QUEUE_CONNECTION=sync' >> .env
+                echo 'SESSION_DRIVER=file' >> .env
+                echo 'SESSION_LIFETIME=120' >> .env
+                echo 'MEMCACHED_HOST=127.0.0.1' >> .env
+                echo 'REDIS_HOST=127.0.0.1' >> .env
+                echo 'REDIS_PASSWORD=null' >> .env
+                echo 'REDIS_PORT=6379' >> .env
+                echo 'MAIL_MAILER=smtp' >> .env
+                echo 'MAIL_HOST=mailpit' >> .env
+                echo 'MAIL_PORT=1025' >> .env
+                echo 'MAIL_USERNAME=null' >> .env
+                echo 'MAIL_PASSWORD=null' >> .env
+                echo 'MAIL_ENCRYPTION=null' >> .env
+                echo 'MAIL_FROM_ADDRESS="hello@example.com"' >> .env
+                echo 'MAIL_FROM_NAME="${APP_NAME}"' >> .env
+                echo 'VITE_APP_NAME="${APP_NAME}"' >> .env
+              }
+            fi
+            
+            # Generate application key if not set
+            if ! grep -q "APP_KEY=base64:" .env; then
+              echo "🔑 Generating application key..."
+              php artisan key:generate --force
+            fi
             
             # Verify database connection settings
             echo "📋 Production database configuration:"
             grep -E "^DB_" .env || echo "No DB config found"
             
+            # Test database connection with better error handling
             echo "🔍 Testing database connection..."
             php artisan config:clear
             
-                         # Test database connection with better error handling
-             echo "🔍 Testing database connection..."
-             php artisan config:clear
-             
-             CONNECTION_TEST=$(php -r "
-               require 'vendor/autoload.php';
-               \$app = require_once 'bootstrap/app.php';
-               \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
-               \$kernel->bootstrap();
-               try {
-                 \$pdo = DB::connection()->getPdo();
-                 echo 'SUCCESS: Database connection established';
-                 echo 'Database: ' . DB::connection()->getDatabaseName();
-                 exit(0);
-               } catch (Exception \$e) {
-                 echo 'ERROR: ' . \$e->getMessage();
-                 exit(1);
-               }
-             " 2>&1)
+            CONNECTION_TEST=$(php -r "
+              require 'vendor/autoload.php';
+              \$app = require_once 'bootstrap/app.php';
+              \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
+              \$kernel->bootstrap();
+              try {
+                \$pdo = DB::connection()->getPdo();
+                echo 'SUCCESS: Database connection established' . PHP_EOL;
+                echo 'Database: ' . DB::connection()->getDatabaseName() . PHP_EOL;
+                exit(0);
+              } catch (Exception \$e) {
+                echo 'ERROR: ' . \$e->getMessage() . PHP_EOL;
+                exit(1);
+              }
+            " 2>&1)
             
             if echo "$CONNECTION_TEST" | grep -q "SUCCESS"; then
               echo "✅ Database connection successful"
@@ -246,7 +243,8 @@ jobs:
               echo "$CONNECTION_TEST"
               
               # Try alternative database hosts
-              for HOST in "127.0.0.1" "mysql.dokterkuklinik.com" "mysql.hostinger.com"; do
+              WORKING_HOST=""
+              for HOST in "127.0.0.1" "mysql.dokterkuklinik.com" "mysql.hostinger.com" "mysql"; do
                 echo "🔄 Trying host: $HOST"
                 sed -i "s/DB_HOST=.*/DB_HOST=$HOST/" .env
                 php artisan config:clear
@@ -257,29 +255,79 @@ jobs:
                   \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
                   \$kernel->bootstrap();
                   try {
-                    DB::connection()->getPdo();
-                    echo 'SUCCESS\n';
+                    \$pdo = DB::connection()->getPdo();
+                    echo 'SUCCESS: Connected to ' . DB::connection()->getDatabaseName() . PHP_EOL;
                     exit(0);
                   } catch (Exception \$e) {
-                    echo 'FAILED: ' . \$e->getMessage() . '\n';
+                    echo 'FAILED: ' . \$e->getMessage() . PHP_EOL;
                     exit(1);
                   }
                 " 2>&1)
                 
                 if echo "$ALT_TEST" | grep -q "SUCCESS"; then
                   echo "✅ Database connection successful with host: $HOST"
+                  echo "$ALT_TEST"
+                  WORKING_HOST="$HOST"
                   break
                 else
                   echo "❌ Failed with host $HOST: $ALT_TEST"
                 fi
               done
               
-              # Final check
-              FINAL_TEST=$(php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'FINAL_SUCCESS'; } catch(Exception \$e) { echo 'FINAL_FAILED: ' . \$e->getMessage(); }" 2>&1)
-              if ! echo "$FINAL_TEST" | grep -q "FINAL_SUCCESS"; then
-                echo "❌ All database connection attempts failed"
-                echo "🔍 Final database settings:"
+              if [ -z "$WORKING_HOST" ]; then
+                echo "❌ All database hosts failed. Trying direct MySQL test..."
+                
+                # Test direct MySQL connection
+                echo "🔄 Testing direct MySQL connection..."
+                for HOST in "localhost" "127.0.0.1"; do
+                  echo "Testing MySQL direct connection to $HOST..."
+                  if mysql -h "$HOST" -u u454362045_u45436245_kli -p'LaTahzan@01' u454362045_u45436245_kli -e "SELECT 'Direct MySQL: SUCCESS' as result;" 2>/dev/null; then
+                    echo "✅ Direct MySQL connection works with $HOST"
+                    sed -i "s/DB_HOST=.*/DB_HOST=$HOST/" .env
+                    php artisan config:clear
+                    WORKING_HOST="$HOST"
+                    break
+                  else
+                    echo "❌ Direct MySQL failed with $HOST"
+                  fi
+                done
+              fi
+              
+              # Final verification
+              if [ -n "$WORKING_HOST" ]; then
+                echo "✅ Found working database host: $WORKING_HOST"
+                echo "🔍 Final verification..."
+                FINAL_TEST=$(php -r "
+                  require 'vendor/autoload.php';
+                  \$app = require_once 'bootstrap/app.php';
+                  \$kernel = \$app->make('Illuminate\Contracts\Console\Kernel');
+                  \$kernel->bootstrap();
+                  try {
+                    \$pdo = DB::connection()->getPdo();
+                    echo 'FINAL_SUCCESS: Connected to ' . DB::connection()->getDatabaseName();
+                    exit(0);
+                  } catch (Exception \$e) {
+                    echo 'FINAL_FAILED: ' . \$e->getMessage();
+                    exit(1);
+                  }
+                " 2>&1)
+                
+                if echo "$FINAL_TEST" | grep -q "FINAL_SUCCESS"; then
+                  echo "✅ Database connection verified: $FINAL_TEST"
+                else
+                  echo "❌ Final verification failed: $FINAL_TEST"
+                  exit 1
+                fi
+              else
+                echo "❌ CRITICAL: No working database host found!"
+                echo "🔍 Current database settings:"
                 grep -E "^DB_" .env
+                echo ""
+                echo "🆘 Please check:"
+                echo "1. Database credentials in cPanel"
+                echo "2. MySQL service status"
+                echo "3. Database user permissions"
+                echo "4. Network connectivity to database"
                 exit 1
               fi
             fi

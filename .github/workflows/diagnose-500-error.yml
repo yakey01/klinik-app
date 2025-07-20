@@ -1,0 +1,34 @@
+name: Diagnose 500 Server Error
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose-500-error:
+    name: Diagnose 500 Server Error
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Upload 500 error diagnostic script
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "scripts/diagnose-500-error.sh"
+          target: "/home/u454362045/"
+          
+      - name: Execute 500 error diagnosis
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            chmod +x /home/u454362045/scripts/diagnose-500-error.sh
+            bash /home/u454362045/scripts/diagnose-500-error.sh

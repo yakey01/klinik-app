@@ -30,6 +30,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'log.requests' => \App\Http\Middleware\LogRequestsMiddleware::class,
             // Authentication redirect middleware
             'redirect.unified.login' => \App\Http\Middleware\RedirectToUnifiedLogin::class,
+            // CSRF token refresh middleware
+            'refresh.csrf' => \App\Http\Middleware\RefreshCsrfToken::class,
+            // Session cleanup middleware
+            'session.cleanup' => \App\Http\Middleware\SessionCleanupMiddleware::class,
         ]);
         
         // Add security headers to all responses

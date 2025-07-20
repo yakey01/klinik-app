@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Unregister Service Worker</title>
+</head>
+<body>
+    <h1>Unregistering Service Workers...</h1>
+    <div id="status">Processing...</div>
+    
+    <script>
+        async function unregisterServiceWorkers() {
+            const statusDiv = document.getElementById('status');
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    statusDiv.innerHTML = `Found ${registrations.length} service workers<br>`;
+                    
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        statusDiv.innerHTML += `Unregistered: ${registration.scope}<br>`;
+                    }
+                    
+                    // Clear all caches
+                    const cacheNames = await caches.keys();
+                    statusDiv.innerHTML += `Found ${cacheNames.length} caches<br>`;
+                    
+                    for (let cacheName of cacheNames) {
+                        await caches.delete(cacheName);
+                        statusDiv.innerHTML += `Deleted cache: ${cacheName}<br>`;
+                    }
+                    
+                    statusDiv.innerHTML += '<br><strong>All service workers and caches cleared!</strong><br>';
+                    statusDiv.innerHTML += '<a href="/dokter/mobile-app">Try Doctor Dashboard Again</a>';
+                    
+                } catch (error) {
+                    statusDiv.innerHTML = `Error: ${error.message}`;
+                }
+            } else {
+                statusDiv.innerHTML = 'Service workers not supported';
+            }
+        }
+        
+        unregisterServiceWorkers();
+    </script>
+</body>
+</html>

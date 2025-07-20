@@ -18,6 +18,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\Pages\Auth\CustomLogin;
 
 class ManajerPanelProvider extends PanelProvider
 {
@@ -26,7 +27,7 @@ class ManajerPanelProvider extends PanelProvider
         return $panel
             ->id('manajer')
             ->path('manajer')
-            ->login(false)
+            ->login(CustomLogin::class)
             ->brandName('📊 Executive Dashboard')
             ->viteTheme('resources/css/filament/manajer/theme.css')
             ->colors([

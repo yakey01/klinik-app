@@ -29,7 +29,10 @@ class AdminPanelProvider extends PanelProvider
 {
     public function canAccessPanel(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->check() && (
+            auth()->user()?->hasRole('admin') || 
+            auth()->user()?->hasPermissionTo('access_admin_panel')
+        );
     }
 
     public function panel(Panel $panel): Panel
@@ -38,7 +41,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(false)
+            ->login(CustomLogin::class)
             ->brandName('🏥 Dokterku Admin Portal')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->colors([

@@ -256,8 +256,13 @@ Route::prefix('v2')->group(function () {
             // Paramedis dashboard
             Route::middleware(['role:paramedis'])->prefix('paramedis')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'index']);
-                Route::get('/schedule', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'schedule']);
-                Route::get('/performance', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'performance']);
+                Route::get('/jaspel', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getJaspel']);
+                Route::get('/jadwal-jaga', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getJadwalJaga']);
+                Route::get('/tindakan', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getTindakan']);
+                Route::get('/presensi', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getPresensi']);
+                Route::get('/schedules', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'schedules']);
+                Route::post('/checkin', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkIn']);
+                Route::post('/checkout', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkOut']);
             });
 
             // Dokter dashboard - Mobile app API endpoints

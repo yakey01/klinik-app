@@ -28,11 +28,18 @@ return Application::configure(basePath: dirname(__DIR__))
             // Performance middleware
             'cache.response' => \App\Http\Middleware\CacheResponseMiddleware::class,
             'log.requests' => \App\Http\Middleware\LogRequestsMiddleware::class,
+            // Authentication redirect middleware
+            'redirect.unified.login' => \App\Http\Middleware\RedirectToUnifiedLogin::class,
         ]);
         
         // Add security headers to all responses
         // Temporarily disabled for debugging
         // $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
+        
+        // Add redirect to unified login for Filament panels
+        $middleware->web(append: [
+            \App\Http\Middleware\RedirectToUnifiedLogin::class,
+        ]);
         
         // Add rate limiting to authentication routes
         $middleware->group('auth', [

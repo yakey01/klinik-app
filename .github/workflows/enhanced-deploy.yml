@@ -28,6 +28,7 @@ on:
 env:
   PHP_VERSION: 8.3
   NODE_VERSION: 20
+  ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
 
 jobs:
   test:

@@ -43,6 +43,512 @@
     font-weight: 600;
 }
 
+/* ================================
+   WORLD-CLASS CARD COMPONENTS - CUSTOM FILAMENT
+   ================================ */
+
+/* Premium Card System - Custom Filament Components */
+.fi-premium-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid rgb(229 231 235 / 0.8);
+    background-color: rgb(255 255 255);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+}
+
+.fi-premium-card:hover {
+    box-shadow: 0 25px 50px -12px rgb(245 158 11 / 0.1);
+    transform: translateY(-4px);
+}
+
+.dark .fi-premium-card {
+    border-color: rgb(75 85 99 / 0.5);
+    background-color: rgb(31 41 55 / 0.5);
+}
+
+.dark .fi-premium-card:hover {
+    box-shadow: 0 25px 50px -12px rgb(245 158 11 / 0.2);
+}
+
+/* Card Header */
+.fi-premium-card-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+}
+
+.fi-premium-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: rgb(17 24 39);
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.dark .fi-premium-card-title {
+    color: rgb(243 244 246);
+}
+
+.fi-premium-card-subtitle {
+    font-size: 0.875rem;
+    color: rgb(107 114 128);
+    margin-top: 0.25rem;
+}
+
+.dark .fi-premium-card-subtitle {
+    color: rgb(156 163 175);
+}
+
+/* Card Icon */
+.fi-premium-card-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 8px 32px rgba(245, 158, 11, 0.3);
+}
+
+.fi-premium-card:hover .fi-premium-card-icon {
+    transform: scale(1.1) rotate(3deg);
+    box-shadow: 0 12px 40px rgba(245, 158, 11, 0.4);
+}
+
+.fi-premium-card-icon svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: rgb(255 255 255);
+}
+
+/* Card Body */
+.fi-premium-card-body {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+}
+
+.fi-premium-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Premium Stats Cards */
+.fi-premium-stats-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+}
+
+.fi-premium-stats-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(217, 119, 6, 0.05) 100%);
+}
+
+.fi-premium-stats-card:hover::before {
+    opacity: 1;
+}
+
+.fi-premium-stats-card:hover {
+    box-shadow: 0 25px 50px -12px rgb(245 158 11 / 0.1);
+    transform: translateY(-4px);
+}
+
+.dark .fi-premium-stats-card {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.9) 0%, rgba(17, 24, 39, 0.7) 100%);
+    border-color: rgb(75 85 99 / 0.5);
+}
+
+.fi-premium-stats-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: rgb(17 24 39);
+    transition: all 0.3s;
+    line-height: 1.25;
+}
+
+.dark .fi-premium-stats-value {
+    color: rgb(243 244 246);
+}
+
+.fi-premium-stats-card:hover .fi-premium-stats-value {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transform: scale(1.05);
+}
+
+.fi-premium-stats-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(75 85 99);
+    margin-top: 0.25rem;
+}
+
+.dark .fi-premium-stats-label {
+    color: rgb(209 213 219);
+}
+
+.fi-premium-stats-trend {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+    transition: all 0.3s;
+}
+
+.fi-premium-stats-trend.positive {
+    background-color: rgb(220 252 231);
+    color: rgb(22 101 52);
+}
+
+.dark .fi-premium-stats-trend.positive {
+    background-color: rgba(34, 197, 94, 0.3);
+    color: rgb(74 222 128);
+}
+
+.fi-premium-stats-trend.negative {
+    background-color: rgb(254 226 226);
+    color: rgb(153 27 27);
+}
+
+.dark .fi-premium-stats-trend.negative {
+    background-color: rgba(239, 68, 68, 0.3);
+    color: rgb(248 113 113);
+}
+
+.fi-premium-stats-trend.neutral {
+    background-color: rgb(243 244 246);
+    color: rgb(31 41 55);
+}
+
+.dark .fi-premium-stats-trend.neutral {
+    background-color: rgb(55 65 81);
+    color: rgb(209 213 219);
+}
+
+/* Action Cards */
+.fi-premium-action-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid rgb(229 231 235 / 0.8);
+    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+}
+
+.fi-premium-action-card:hover {
+    transform: scale(1.02) translateY(-2px);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(217, 119, 6, 0.05) 100%);
+    box-shadow: 0 25px 50px -12px rgb(245 158 11 / 0.1);
+}
+
+.dark .fi-premium-action-card {
+    border-color: rgb(75 85 99 / 0.5);
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%);
+}
+
+.fi-premium-action-card:hover .fi-premium-card-icon {
+    transform: scale(1.1) rotate(6deg);
+}
+
+.fi-premium-action-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(17 24 39);
+    transition: color 0.3s;
+}
+
+.dark .fi-premium-action-title {
+    color: rgb(243 244 246);
+}
+
+.fi-premium-action-card:hover .fi-premium-action-title {
+    color: rgb(234 88 12);
+}
+
+.dark .fi-premium-action-card:hover .fi-premium-action-title {
+    color: rgb(251 146 60);
+}
+
+.fi-premium-action-description {
+    font-size: 0.875rem;
+    color: rgb(75 85 99);
+    margin-top: 0.25rem;
+}
+
+.dark .fi-premium-action-description {
+    color: rgb(156 163 175);
+}
+
+/* Data Cards */
+.fi-premium-data-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid rgb(229 231 235 / 0.8);
+    background-color: rgb(255 255 255);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+}
+
+.fi-premium-data-card:hover {
+    box-shadow: 0 25px 50px -12px rgb(245 158 11 / 0.1);
+    transform: translateY(-2px);
+}
+
+.dark .fi-premium-data-card {
+    border-color: rgb(75 85 99 / 0.5);
+    background-color: rgb(31 41 55 / 0.5);
+}
+
+.fi-premium-data-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.fi-premium-data-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: rgba(249, 250, 251, 0.5);
+    transition: all 0.2s;
+}
+
+.fi-premium-data-item:hover {
+    background-color: rgb(255 237 213);
+    transform: translateX(0.25rem);
+}
+
+.dark .fi-premium-data-item {
+    background-color: rgba(55, 65, 81, 0.3);
+}
+
+.dark .fi-premium-data-item:hover {
+    background-color: rgba(234, 88, 12, 0.2);
+}
+
+.fi-premium-data-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(55 65 81);
+}
+
+.dark .fi-premium-data-label {
+    color: rgb(209 213 219);
+}
+
+.fi-premium-data-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgb(17 24 39);
+}
+
+.dark .fi-premium-data-value {
+    color: rgb(243 244 246);
+}
+
+/* Progress Cards */
+.fi-premium-progress-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid rgb(229 231 235 / 0.8);
+    background-color: rgb(255 255 255);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+}
+
+.fi-premium-progress-card:hover {
+    box-shadow: 0 25px 50px -12px rgb(245 158 11 / 0.1);
+    transform: translateY(-2px);
+}
+
+.dark .fi-premium-progress-card {
+    border-color: rgb(75 85 99 / 0.5);
+    background-color: rgb(31 41 55 / 0.5);
+}
+
+.fi-premium-progress-bar {
+    width: 100%;
+    background-color: rgb(229 231 235);
+    border-radius: 9999px;
+    height: 0.5rem;
+    overflow: hidden;
+}
+
+.dark .fi-premium-progress-bar {
+    background-color: rgb(55 65 81);
+}
+
+.fi-premium-progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: all 0.5s ease-out;
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+.fi-premium-progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.fi-premium-progress-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(55 65 81);
+}
+
+.dark .fi-premium-progress-text {
+    color: rgb(209 213 219);
+}
+
+.fi-premium-progress-percent {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: rgb(234 88 12);
+}
+
+.dark .fi-premium-progress-percent {
+    color: rgb(251 146 60);
+}
+
+/* Notification Cards */
+.fi-premium-notification-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid rgb(229 231 235 / 0.8);
+    background-color: rgb(255 255 255);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+    border-left-width: 0.25rem;
+}
+
+.fi-premium-notification-card:hover {
+    box-shadow: 0 25px 50px -12px rgb(245 158 11 / 0.1);
+    transform: translateY(-2px);
+}
+
+.dark .fi-premium-notification-card {
+    border-color: rgb(75 85 99 / 0.5);
+    background-color: rgb(31 41 55 / 0.5);
+}
+
+.fi-premium-notification-card.info {
+    border-left-color: rgb(59 130 246);
+    background-color: rgba(219, 234, 254, 0.5);
+}
+
+.dark .fi-premium-notification-card.info {
+    background-color: rgba(30, 58, 138, 0.1);
+}
+
+.fi-premium-notification-card.success {
+    border-left-color: rgb(34 197 94);
+    background-color: rgba(220, 252, 231, 0.5);
+}
+
+.dark .fi-premium-notification-card.success {
+    background-color: rgba(20, 83, 45, 0.1);
+}
+
+.fi-premium-notification-card.warning {
+    border-left-color: rgb(234 179 8);
+    background-color: rgba(254, 249, 195, 0.5);
+}
+
+.dark .fi-premium-notification-card.warning {
+    background-color: rgba(133, 77, 14, 0.1);
+}
+
+.fi-premium-notification-card.error {
+    border-left-color: rgb(239 68 68);
+    background-color: rgba(254, 226, 226, 0.5);
+}
+
+.dark .fi-premium-notification-card.error {
+    background-color: rgba(153, 27, 27, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .fi-premium-card,
+    .fi-premium-stats-card,
+    .fi-premium-action-card,
+    .fi-premium-data-card,
+    .fi-premium-progress-card,
+    .fi-premium-notification-card {
+        border-radius: 0.75rem;
+    }
+    
+    .fi-premium-card-header {
+        padding: 1rem 1rem 0.75rem 1rem;
+    }
+    
+    .fi-premium-card-body {
+        padding: 0 1rem 1rem 1rem;
+    }
+    
+    .fi-premium-card-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}
+
+/* Animation Keyframes */
+@keyframes fi-premium-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+@keyframes fi-premium-bounce {
+    0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+    40%, 43% { transform: translate3d(0,-8px,0); }
+    70% { transform: translate3d(0,-4px,0); }
+    90% { transform: translate3d(0,-2px,0); }
+}
+
+.fi-premium-animate-pulse {
+    animation: fi-premium-pulse 2s infinite;
+}
+
+.fi-premium-animate-bounce {
+    animation: fi-premium-bounce 1s infinite;
+}
+
 /* Widget Styling - Fix for Stats Overview */
 [data-filament-panel-id="petugas"] .fi-wi-stats-overview-stat {
     background: rgba(251, 189, 35, 0.1);

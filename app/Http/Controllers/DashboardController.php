@@ -24,9 +24,9 @@ class DashboardController extends Controller
         } elseif ($user->hasRole('petugas')) {
             return redirect('/petugas'); // Redirect to Filament petugas panel
         } elseif ($user->hasRole('dokter')) {
-            return redirect()->route('dokter.mobile-app');
+            return redirect('/dokter'); // Redirect to Filament doctor panel
         } elseif ($user->hasRole('paramedis')) {
-            return redirect('/paramedis'); // Redirect to Filament paramedis panel
+            return redirect()->route('paramedis.mobile-app'); // Redirect directly to mobile app
         } elseif ($user->hasRole('non_paramedis')) {
             return redirect()->route('nonparamedis.app');
         } elseif ($user->hasRole('dokter_gigi')) {

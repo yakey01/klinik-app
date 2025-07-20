@@ -11,6 +11,9 @@ on:
       - 'design/*'
       - 'content/*'
 
+env:
+  ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+
 jobs:
   preview-build:
     name: Build Preview

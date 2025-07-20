@@ -85,7 +85,7 @@ export default {
             "light",
             "dark",
         ],
-        base: true,
+        base: false,  // Disable global CSS resets to prevent Filament conflicts
         styled: true,
         utils: true,
     },

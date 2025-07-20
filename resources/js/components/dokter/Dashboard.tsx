@@ -32,37 +32,48 @@ interface JadwalItem {
 
 export function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [jadwalMendatang] = useState<JadwalItem[]>([
-    {
-      id: '1',
-      tanggal: '2025-01-18',
-      waktu: '07:00 - 15:00',
-      lokasi: 'IGD',
-      jenis: 'pagi',
-      status: 'scheduled'
-    },
-    {
-      id: '2',
-      tanggal: '2025-01-19',
-      waktu: '15:00 - 23:00',
-      lokasi: 'Ruang Rawat Inap',
-      jenis: 'siang',
-      status: 'scheduled'
-    },
-    {
-      id: '3',
-      tanggal: '2025-01-20',
-      waktu: '23:00 - 07:00',
-      lokasi: 'ICU',
-      jenis: 'malam',
-      status: 'scheduled'
-    }
-  ]);
+  const [userData, setUserData] = useState<any>(null);
+  const [jadwalMendatang, setJadwalMendatang] = useState<JadwalItem[]>([]);
+  const [loadingSchedules, setLoadingSchedules] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
+    
+    // Get user data from meta tag
+    const userDataMeta = document.querySelector('meta[name="user-data"]');
+    if (userDataMeta) {
+      try {
+        const data = JSON.parse(userDataMeta.getAttribute('content') || '{}');
+        setUserData(data);
+      } catch (e) {
+        console.error('Failed to parse user data:', e);
+      }
+    }
+    
+    // Fetch real schedule data from API
+    const fetchSchedules = async () => {
+      try {
+        setLoadingSchedules(true);
+        const response = await fetch('/dokter/api/schedules');
+        if (response.ok) {
+          const schedules = await response.json();
+          setJadwalMendatang(schedules);
+        } else {
+          console.error('Failed to fetch schedules:', response.status);
+          // Keep empty array if fetch fails
+        }
+      } catch (error) {
+        console.error('Error fetching schedules:', error);
+        // Keep empty array if fetch fails
+      } finally {
+        setLoadingSchedules(false);
+      }
+    };
+    
+    fetchSchedules();
+    
     return () => clearInterval(timer);
   }, []);
 
@@ -92,7 +103,7 @@ export function Dashboard() {
     }
   };
 
-  const nextSchedule = jadwalMendatang[0];
+  const nextSchedule = jadwalMendatang.length > 0 ? jadwalMendatang[0] : null;
 
   const container = {
     hidden: { opacity: 0 },
@@ -144,7 +155,9 @@ export function Dashboard() {
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-white text-heading-mobile">Dashboard</h2>
-                  <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">Selamat datang kembali, Dr. Ahmad</p>
+                  <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">
+                    Selamat datang kembali, {userData?.name || 'Dokter'}
+                  </p>
                 </div>
               </div>
               
@@ -192,7 +205,19 @@ export function Dashboard() {
               </Badge>
             </div>
 
-            {nextSchedule && (
+            {loadingSchedules ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-gradient-to-r from-gray-400 to-gray-500 dark:from-gray-600 dark:to-gray-700 rounded-xl p-5 text-white relative overflow-hidden"
+              >
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm font-medium">Memuat jadwal...</span>
+                </div>
+              </motion.div>
+            ) : nextSchedule ? (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -230,6 +255,21 @@ export function Dashboard() {
                         {nextSchedule.lokasi}
                       </span>
                     </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-gradient-to-r from-amber-400 to-amber-500 dark:from-amber-500 dark:to-amber-600 rounded-xl p-5 text-white relative overflow-hidden"
+              >
+                <div className="flex items-center justify-center space-x-3">
+                  <AlertCircle className="w-6 h-6" />
+                  <div className="text-center">
+                    <p className="font-medium">Tidak ada jadwal jaga</p>
+                    <p className="text-sm text-amber-100 dark:text-amber-200">Hubungi admin untuk penjadwalan</p>
                   </div>
                 </div>
               </motion.div>
@@ -394,8 +434,20 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {jadwalMendatang.slice(0, 3).map((schedule, index) => (
+            {loadingSchedules ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+                <span className="text-sm text-medium-contrast">Memuat jadwal...</span>
+              </div>
+            ) : jadwalMendatang.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-sm font-medium text-high-contrast mb-1">Tidak ada jadwal</p>
+                <p className="text-xs text-medium-contrast">Hubungi admin untuk penjadwalan jaga</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {jadwalMendatang.slice(0, 3).map((schedule, index) => (
                 <motion.div
                   key={schedule.id}
                   initial={{ opacity: 0, x: -20 }}
@@ -424,8 +476,9 @@ export function Dashboard() {
                     </Badge>
                   </div>
                 </motion.div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

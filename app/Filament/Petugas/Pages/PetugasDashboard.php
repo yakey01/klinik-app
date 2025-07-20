@@ -7,18 +7,21 @@ use App\Models\PengeluaranHarian;
 use App\Models\JumlahPasienHarian;
 use App\Models\Tindakan;
 use App\Models\User;
-use Filament\Pages\Page;
-use Filament\Support\Colors\Color;
+use Filament\Pages\Dashboard;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Contracts\View\View;
-use Filament\Actions\Action;
-use Filament\Support\Enums\ActionSize;
 
-class PetugasDashboard extends Page
+class PetugasDashboard extends Dashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
     
     protected static string $view = 'filament.petugas.pages.petugas-dashboard';
+    
+    public function getWidgets(): array
+    {
+        return [
+            // Widgets are rendered directly in the view using @livewire
+        ];
+    }
     
     protected static ?string $title = 'Dashboard Petugas';
     
@@ -27,30 +30,6 @@ class PetugasDashboard extends Page
     protected static ?int $navigationSort = 1;
     
     protected static ?string $navigationGroup = 'Dashboard';
-    
-    public function mount(): void
-    {
-        // Initialize dashboard data
-    }
-    
-    public function getHeaderActions(): array
-    {
-        return [
-            Action::make('refresh')
-                ->label('Refresh Data')
-                ->icon('heroicon-o-arrow-path')
-                ->color('primary')
-                ->size(ActionSize::Small)
-                ->action(fn () => redirect()->to(request()->url())),
-                
-            Action::make('add_patient')
-                ->label('Tambah Pasien')
-                ->icon('heroicon-o-user-plus')
-                ->color('success')
-                ->size(ActionSize::Small)
-                ->url(route('filament.petugas.resources.pasiens.create')),
-        ];
-    }
     
     public function getOperationalSummary(): array
     {
@@ -293,4 +272,5 @@ class PetugasDashboard extends Page
         
         return round((($current - $previous) / $previous) * 100, 2);
     }
+    
 }

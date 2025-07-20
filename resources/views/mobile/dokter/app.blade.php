@@ -250,8 +250,8 @@
             }, 1000);
         });
         
-        // Register service worker for PWA capabilities
-        if ('serviceWorker' in navigator) {
+        // Register service worker for PWA capabilities (disabled temporarily)
+        if ('serviceWorker' in navigator && false) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {

@@ -25,7 +25,7 @@ Route::get('/', function () {
 // Unified authentication routes
 Route::get('/login', [UnifiedAuthController::class, 'create'])->name('login');
 Route::post('/login', [UnifiedAuthController::class, 'store'])
-    ->middleware('throttle:5,1')
+    ->middleware('throttle:20,1')
     ->name('unified.login');
 Route::post('/logout', [UnifiedAuthController::class, 'destroy'])->name('logout');
 
@@ -43,7 +43,7 @@ Route::get('/email/verify/{id}/{hash}', function (\Illuminate\Foundation\Auth\Em
 Route::post('/email/verification-notification', function (\Illuminate\Http\Request $request) {
     $request->user()->sendEmailVerificationNotification();
     return back()->with('message', 'Verification link sent!');
-})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+})->middleware(['auth', 'throttle:12,1'])->name('verification.send');
 
 // Main dashboard route that redirects based on role
 Route::get('/dashboard', DashboardController::class)->middleware(['auth'])->name('dashboard');
@@ -176,7 +176,54 @@ Route::middleware(['auth'])->group(function () {
             ];
             
             return view('mobile.dokter.app', compact('token', 'userData'));
-        })->name('mobile-app');
+        })->name('mobile-app')->middleware('throttle:1000,1');
+        
+        // API endpoint for doctor schedules
+        Route::get('/api/schedules', function () {
+            $user = auth()->user();
+            $userId = $user->id;
+            
+            // Get current and upcoming schedules for this doctor
+            $schedules = \App\Models\JadwalJaga::where('pegawai_id', $userId)
+                ->where('unit_kerja', 'Dokter Jaga')
+                ->where('tanggal_jaga', '>=', now()->subDays(1)) // Include yesterday for overnight shifts
+                ->with(['shiftTemplate'])
+                ->orderBy('tanggal_jaga')
+                ->orderBy('shift_template_id')
+                ->take(10)
+                ->get()
+                ->map(function ($jadwal) {
+                    // Determine shift type based on time
+                    $jamMasuk = \Carbon\Carbon::parse($jadwal->shiftTemplate->jam_masuk)->hour;
+                    $jenis = match(true) {
+                        $jamMasuk >= 6 && $jamMasuk < 14 => 'pagi',
+                        $jamMasuk >= 14 && $jamMasuk < 22 => 'siang', 
+                        default => 'malam'
+                    };
+                    
+                    // Determine location based on shift and unit
+                    $lokasi = match($jenis) {
+                        'pagi' => 'IGD',
+                        'siang' => 'Ruang Rawat Inap',
+                        'malam' => 'ICU',
+                        default => 'Klinik'
+                    };
+                    
+                    return [
+                        'id' => (string) $jadwal->id,
+                        'tanggal' => $jadwal->tanggal_jaga->format('Y-m-d'),
+                        'waktu' => $jadwal->shiftTemplate->jam_masuk_format . ' - ' . $jadwal->shiftTemplate->jam_pulang_format,
+                        'lokasi' => $lokasi,
+                        'jenis' => $jenis,
+                        'status' => $jadwal->tanggal_jaga->isPast() ? 'completed' : 'scheduled',
+                        'shift_nama' => $jadwal->shiftTemplate->nama_shift,
+                        'status_jaga' => $jadwal->status_jaga,
+                        'keterangan' => $jadwal->keterangan
+                    ];
+                });
+            
+            return response()->json($schedules);
+        })->name('api.schedules')->middleware('throttle:1000,1');
         
         // Legacy routes - redirect to new mobile app
         Route::get('/dashboard', function () {
@@ -197,6 +244,109 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('dokter.mobile-app');
         });
     });
+    
+    // PARAMEDIS Mobile App Routes (Replaces Filament dashboard)
+    Route::middleware(['auth', 'role:paramedis'])->prefix('paramedis')->name('paramedis.')->group(function () {
+        // Base paramedis route - redirect to mobile app
+        Route::get('/', function () {
+            return redirect()->route('paramedis.mobile-app');
+        })->name('index');
+        
+        Route::get('/mobile-app', function () {
+            $user = auth()->user();
+            $token = $user->createToken('mobile-app-paramedis-' . now()->timestamp)->plainTextToken;
+            
+            $userData = [
+                'name' => $user->name,
+                'email' => $user->email,
+                'initials' => strtoupper(substr($user->name ?? 'PA', 0, 2))
+            ];
+            
+            return view('mobile.paramedis.app', compact('token', 'userData'));
+        })->name('mobile-app')->middleware('throttle:1000,1');
+        
+        // API endpoint for paramedis schedules
+        Route::get('/api/schedules', function () {
+            try {
+                $user = auth()->user();
+                $userId = $user->id;
+                
+                // Get current and upcoming schedules for this paramedis
+                $schedules = \App\Models\JadwalJaga::where('pegawai_id', $userId)
+                    ->where('tanggal_jaga', '>=', now()->subDays(1)) // Include yesterday for overnight shifts
+                    ->with(['shiftTemplate'])
+                    ->orderBy('tanggal_jaga')
+                    ->orderBy('shift_template_id')
+                    ->take(10)
+                    ->get()
+                    ->map(function ($jadwal) {
+                        // Handle missing shiftTemplate with fallbacks
+                        if ($jadwal->shiftTemplate) {
+                            // Determine shift type based on time
+                            $jamMasuk = \Carbon\Carbon::parse($jadwal->shiftTemplate->jam_masuk)->hour;
+                            $jenis = match(true) {
+                                $jamMasuk >= 6 && $jamMasuk < 14 => 'pagi',
+                                $jamMasuk >= 14 && $jamMasuk < 22 => 'siang', 
+                                default => 'malam'
+                            };
+                            $waktu = ($jadwal->shiftTemplate->jam_masuk_format ?? '08:00') . ' - ' . ($jadwal->shiftTemplate->jam_pulang_format ?? '16:00');
+                            $shiftNama = $jadwal->shiftTemplate->nama_shift ?? 'Shift';
+                        } else {
+                            // Fallback when no shiftTemplate
+                            $jenis = 'pagi'; // Default fallback
+                            $waktu = '08:00 - 16:00'; // Default fallback
+                            $shiftNama = 'Shift Regular';
+                        }
+                        
+                        // Determine location based on shift and paramedis role
+                        $lokasi = match($jenis) {
+                            'pagi' => 'Ruang Tindakan',
+                            'siang' => 'IGD',
+                            'malam' => 'Ruang Rawat Inap',
+                            default => 'Klinik'
+                        };
+                        
+                        return [
+                            'id' => (string) $jadwal->id,
+                            'tanggal' => $jadwal->tanggal_jaga->format('Y-m-d'),
+                            'waktu' => $waktu,
+                            'lokasi' => $lokasi,
+                            'jenis' => $jenis,
+                            'status' => $jadwal->tanggal_jaga->isPast() ? 'completed' : 'scheduled',
+                            'shift_nama' => $shiftNama,
+                            'status_jaga' => $jadwal->status_jaga ?? 'scheduled',
+                            'keterangan' => $jadwal->keterangan ?? ''
+                        ];
+                    });
+                
+                return response()->json($schedules);
+            } catch (\Exception $e) {
+                // Return empty array if there's any error
+                \Log::error('Paramedis schedules API error: ' . $e->getMessage());
+                return response()->json([]);
+            }
+        })->name('api.schedules')->middleware('throttle:1000,1');
+        
+        // Legacy routes - redirect to new mobile app
+        Route::get('/dashboard', function () {
+            return redirect()->route('paramedis.mobile-app');
+        })->name('dashboard');
+        Route::get('/presensi', function () {
+            return redirect()->route('paramedis.mobile-app');
+        })->name('presensi');
+        Route::get('/jaspel', function () {
+            return redirect()->route('paramedis.mobile-app');
+        })->name('jaspel');
+        Route::get('/tindakan', function () {
+            return redirect()->route('paramedis.mobile-app');
+        })->name('tindakan');
+        Route::get('/jadwal-jaga', function () {
+            return redirect()->route('paramedis.mobile-app');
+        })->name('jadwal-jaga');
+        
+        // Removed fallback route to prevent infinite redirects
+    });
+    
     // Non-Paramedis Mobile App Routes (Replaces old dashboard)
     Route::middleware(['auth', 'role:non_paramedis'])->prefix('nonparamedis')->name('nonparamedis.')->group(function () {
         Route::get('/app', function () {
@@ -318,7 +468,7 @@ Route::middleware(['auth'])->group(function () {
     })->middleware('auth');
 });
 
-// Legacy Admin routes (moved from /admin to /legacy-admin)
+// DEPRECATED: Legacy Admin routes - Use modern Filament admin panel at /admin instead
 Route::middleware(['auth', 'role:admin'])->prefix('legacy-admin')->name('legacy-admin.')->group(function () {
     // User management routes
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class);

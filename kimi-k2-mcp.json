@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "kimi-k2": {
+      "command": "curl",
+      "args": [
+        "-X",
+        "POST",
+        "https://api.moonshot.cn/v1/chat/completions",
+        "-H",
+        "Content-Type: application/json",
+        "-H",
+        "Authorization: Bearer ${KIMI_API_KEY}",
+        "-d",
+        "{\"model\":\"kimi\",\"messages\":[{\"role\":\"user\",\"content\":\"${PROMPT}\"}],\"stream\":false}"
+      ],
+      "env": {
+        "KIMI_API_KEY": "sk-2H1sxcNJf6X8vTtru6kClVlFfSOKLVInUJeeIAicQE8aQn7l"
+      }
+    }
+  }
+} 

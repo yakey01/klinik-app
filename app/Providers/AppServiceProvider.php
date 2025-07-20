@@ -22,6 +22,12 @@ class AppServiceProvider extends ServiceProvider
         
         // Register biometric service
         $this->app->singleton(\App\Services\BiometricService::class);
+        
+        // Register custom logout response for all Filament panels
+        $this->app->bind(
+            \Filament\Http\Responses\Auth\Contracts\LogoutResponse::class,
+            \App\Http\Responses\Auth\LogoutResponse::class
+        );
     }
 
     /**
@@ -29,6 +35,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Set Carbon locale to Indonesian
+        \Carbon\Carbon::setLocale(config('app.locale', 'id'));
+        
+        // Set default timezone for Carbon
+        date_default_timezone_set(config('app.timezone', 'Asia/Jakarta'));
+        
         // Add CSRF token to Filament views
         \Filament\Support\Facades\FilamentView::registerRenderHook(
             'panels::head.end',

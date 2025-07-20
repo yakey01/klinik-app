@@ -1,4 +1,8 @@
 <x-filament-panels::page>
+    @livewire(\App\Filament\Petugas\Widgets\PremiumStatsWidget::class)
+    @livewire(\App\Filament\Petugas\Widgets\PremiumProgressWidget::class)
+    @livewire(\App\Filament\Petugas\Widgets\PremiumActivitiesWidget::class)
+
     @php
         $operationalSummary = $this->getOperationalSummary();
         $dataEntryStats = $this->getDataEntryStats();
@@ -7,7 +11,7 @@
         $topPerformers = $this->getTopPerformers();
     @endphp
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 hidden">
         <!-- Current Month Revenue -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-lg border dark:border-gray-700 p-6 transition-all duration-200">
             <div class="flex items-center">

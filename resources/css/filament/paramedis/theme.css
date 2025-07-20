@@ -1,0 +1,138 @@
+@import '/vendor/filament/filament/resources/css/theme.css';
+
+/* Paramedis Theme - Emerald Green Medical Theme */
+:root {
+    --primary-50: rgb(236, 253, 245);
+    --primary-100: rgb(209, 250, 229);
+    --primary-200: rgb(167, 243, 208);
+    --primary-300: rgb(110, 231, 183);
+    --primary-400: rgb(52, 211, 153);
+    --primary-500: rgb(16, 185, 129);
+    --primary-600: rgb(5, 150, 105);
+    --primary-700: rgb(4, 120, 87);
+    --primary-800: rgb(6, 95, 70);
+    --primary-900: rgb(6, 78, 59);
+    --primary-950: rgb(2, 44, 34);
+}
+
+/* Panel branding */
+.fi-sidebar-header {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+}
+
+.fi-sidebar-header .fi-logo {
+    filter: brightness(0) invert(1);
+}
+
+/* Navigation styling */
+.fi-sidebar-nav {
+    border-right: 1px solid var(--primary-100);
+}
+
+.fi-sidebar-nav-item-active {
+    background: linear-gradient(90deg, var(--primary-100) 0%, transparent 100%);
+    border-right: 3px solid var(--primary-600);
+}
+
+/* Widget customizations */
+.fi-wi-stats-overview-stat {
+    border-left: 4px solid var(--primary-500);
+}
+
+.fi-wi-stats-overview-stat-label {
+    color: var(--primary-700);
+    font-weight: 600;
+}
+
+/* Dashboard specific styling */
+[data-filament-panel-id="paramedis"] {
+    /* Primary color overrides */
+    --primary-50: rgb(236, 253, 245);
+    --primary-500: rgb(16, 185, 129);
+    --primary-600: rgb(5, 150, 105);
+    --primary-700: rgb(4, 120, 87);
+}
+
+/* Header actions styling */
+.fi-header-actions .fi-btn {
+    --c-50: var(--primary-50);
+    --c-500: var(--primary-500);
+    --c-600: var(--primary-600);
+}
+
+/* Table styling */
+.fi-ta-table {
+    border: 1px solid var(--primary-100);
+}
+
+.fi-ta-header-cell {
+    background: var(--primary-50);
+    color: var(--primary-800);
+    font-weight: 600;
+}
+
+/* Form styling */
+.fi-fo-field-wrp-label {
+    color: var(--primary-700);
+    font-weight: 600;
+}
+
+.fi-input:focus {
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 1px var(--primary-500);
+}
+
+/* Badge styling */
+.fi-badge-color-success {
+    background: var(--primary-100);
+    color: var(--primary-800);
+}
+
+/* Chart colors */
+.fi-wi-chart canvas {
+    --chart-primary: var(--primary-500);
+    --chart-secondary: var(--primary-300);
+}
+
+/* Dark mode adjustments */
+.dark [data-filament-panel-id="paramedis"] {
+    --primary-50: rgb(2, 44, 34);
+    --primary-100: rgb(6, 78, 59);
+    --primary-500: rgb(52, 211, 153);
+    --primary-600: rgb(16, 185, 129);
+}
+
+.dark .fi-sidebar-header {
+    background: linear-gradient(135deg, var(--primary-800) 0%, var(--primary-900) 100%);
+}
+
+/* Medical theme icons */
+.fi-sidebar-nav-item[data-group="Medical Procedures"] .fi-sidebar-nav-item-icon {
+    color: var(--primary-600);
+}
+
+.fi-sidebar-nav-item[data-group="Patient Management"] .fi-sidebar-nav-item-icon {
+    color: var(--primary-500);
+}
+
+.fi-sidebar-nav-item[data-group="Attendance & Schedule"] .fi-sidebar-nav-item-icon {
+    color: var(--primary-700);
+}
+
+/* Widget specific styling */
+.fi-section {
+    border: 1px solid var(--primary-100);
+    border-radius: 8px;
+}
+
+.fi-section-header {
+    background: var(--primary-50);
+    border-bottom: 1px solid var(--primary-100);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .fi-sidebar {
+        background: linear-gradient(180deg, var(--primary-600) 0%, var(--primary-700) 100%);
+    }
+}

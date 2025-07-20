@@ -27,7 +27,7 @@ class PetugasPanelProvider extends PanelProvider
         return $panel
             ->id('petugas')
             ->path('petugas')
-            ->login(false)
+            ->login(CustomLogin::class)
             ->brandName('Petugas Dashboard')
             ->viteTheme('resources/css/filament/petugas/theme.css')
             ->colors([

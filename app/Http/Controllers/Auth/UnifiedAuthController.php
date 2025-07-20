@@ -75,7 +75,73 @@ class UnifiedAuthController extends Controller
         // Find user by email or username from User table first
         $user = \App\Models\User::findForAuth($identifier);
         
-        // If not found in User table, try to find in Pegawai table
+        // If not found in User table, try to find in Dokter table
+        if (!$user) {
+            $dokter = \App\Models\Dokter::where('username', $identifier)
+                ->whereNotNull('username')
+                ->whereNotNull('password')
+                ->where('status_akun', 'Aktif')
+                ->first();
+                
+            if ($dokter) {
+                // Check password for dokter
+                if (Hash::check($password, $dokter->password)) {
+                    // Create or get associated User for the dokter
+                    if ($dokter->user_id && $dokter->user) {
+                        $user = $dokter->user;
+                        Log::info('Debug: Dokter login - using linked User account', [
+                            'dokter_id' => $dokter->id,
+                            'user_id' => $user->id,
+                            'username' => $dokter->username
+                        ]);
+                    } else {
+                        // Create User object for dokter login
+                        $role = \App\Models\Role::where('name', 'dokter')->first();
+                        
+                        if ($role) {
+                            // Create a real User record in database for dokter
+                            $userEmail = $dokter->nik . '@dokter.local';
+                            
+                            // Check if user already exists
+                            $existingUser = \App\Models\User::where('email', $userEmail)->first();
+                            
+                            if (!$existingUser) {
+                                // Create real user record in database
+                                $user = \App\Models\User::create([
+                                    'name' => $dokter->nama_lengkap,
+                                    'username' => $dokter->username,
+                                    'email' => $userEmail,
+                                    'role_id' => $role->id,
+                                    'is_active' => $dokter->aktif,
+                                    'password' => $dokter->password,
+                                ]);
+                                
+                                // Update dokter with user_id
+                                $dokter->update(['user_id' => $user->id]);
+                            } else {
+                                $user = $existingUser;
+                                // Update existing user data
+                                $user->update([
+                                    'name' => $dokter->nama_lengkap,
+                                    'username' => $dokter->username,
+                                    'role_id' => $role->id,
+                                    'is_active' => $dokter->aktif,
+                                ]);
+                            }
+                            
+                            Log::info('Debug: Dokter login - created virtual User', [
+                                'dokter_id' => $dokter->id,
+                                'virtual_user_id' => $user->id,
+                                'role' => $role->name,
+                                'username' => $dokter->username
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // If not found in User or Dokter table, try to find in Pegawai table
         if (!$user) {
             $pegawai = \App\Models\Pegawai::where('username', $identifier)
                 ->whereNotNull('username')
@@ -181,8 +247,20 @@ class UnifiedAuthController extends Controller
         $loginSuccessful = false;
         
         if ($user) {
+            // Check if this is a dokter user (password already verified above)
+            if (isset($dokter)) {
+                // Manual login for dokter - password already verified
+                Auth::login($user, $remember);
+                $loginSuccessful = true;
+                
+                Log::info('Debug: Dokter manual login successful', [
+                    'dokter_id' => $dokter->id,
+                    'virtual_user_id' => $user->id,
+                    'username' => $dokter->username
+                ]);
+            }
             // Check if this is a pegawai user (password already verified above)
-            if (isset($pegawai)) {
+            elseif (isset($pegawai)) {
                 // Manual login for pegawai - password already verified
                 Auth::login($user, $remember);
                 $loginSuccessful = true;
@@ -304,12 +382,38 @@ class UnifiedAuthController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        // Log the logout event for audit purposes
+        $user = Auth::user();
+        if ($user) {
+            Log::info('User logout initiated via UnifiedAuthController', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role ? $user->role->name : 'no_role',
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'session_id' => $request->session()->getId()
+            ]);
+        }
+
+        // Logout from web guard to ensure complete session cleanup
         Auth::guard('web')->logout();
 
+        // Invalidate the session completely
         $request->session()->invalidate();
 
+        // Regenerate CSRF token to prevent token reuse
         $request->session()->regenerateToken();
+        
+        // Clear any cached user data or remember me tokens
+        $request->session()->flush();
 
-        return redirect('/login');
+        // Log successful logout
+        Log::info('User logout completed successfully', [
+            'ip' => $request->ip(),
+            'session_cleared' => true
+        ]);
+
+        // Redirect to unified login page for consistency
+        return redirect('/login')->with('status', 'Anda telah berhasil logout.');
     }
 }

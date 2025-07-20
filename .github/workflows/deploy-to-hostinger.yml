@@ -115,9 +115,50 @@ jobs:
             echo "🚀 Starting deployment to Hostinger..."
             echo "📅 Deployment started at: $(date)"
             
-            # Set deployment variables
-            APP_DIR="domains/dokterkuklinik.com/public_html/dokterku"
+            # Debug: Show current user and working directory
+            echo "🔍 Debug Information:"
+            echo "Current user: $(whoami)"
+            echo "Current directory: $(pwd)"
+            echo "Home directory: $HOME"
+            
+            # Debug: List available directories
+            echo "📁 Available directories:"
+            ls -la
+            
+            # Set deployment variables - try common Hostinger paths
+            POSSIBLE_PATHS=(
+                "domains/dokterkuklinik.com/public_html/dokterku"
+                "public_html/dokterku"
+                "htdocs/dokterku"
+                "$HOME/domains/dokterkuklinik.com/public_html/dokterku"
+                "$HOME/public_html/dokterku"
+            )
+            
+            APP_DIR=""
+            echo "🔍 Searching for correct deployment path..."
+            
+            for path in "${POSSIBLE_PATHS[@]}"; do
+                echo "🧪 Trying path: $path"
+                parent_dir=$(dirname "$path")
+                if [ -d "$parent_dir" ] || mkdir -p "$parent_dir" 2>/dev/null; then
+                    echo "✅ Found/created parent directory: $parent_dir"
+                    APP_DIR="$path"
+                    break
+                else
+                    echo "❌ Cannot access/create: $parent_dir"
+                fi
+            done
+            
+            if [ -z "$APP_DIR" ]; then
+                echo "❌ Could not find suitable deployment path"
+                echo "🔍 Available directories from root:"
+                find . -maxdepth 3 -type d -name "*html*" 2>/dev/null || echo "No public_html directories found"
+                exit 1
+            fi
+            
             BACKUP_DIR="/tmp/dokterku-backup-$(date +%Y%m%d_%H%M%S)"
+            
+            echo "🎯 Selected deployment directory: $APP_DIR"
             
             # Function to handle errors
             handle_error() {
@@ -138,25 +179,53 @@ jobs:
             
             # Ensure app directory exists
             echo "📁 Ensuring app directory exists..."
-            mkdir -p "$APP_DIR"
+            echo "🔨 Running: mkdir -p \"$APP_DIR\""
+            mkdir -p "$APP_DIR" 2>&1 || {
+                echo "❌ mkdir failed with exit code: $?"
+                echo "🔍 Checking parent directories:"
+                ls -la domains/ 2>/dev/null || echo "domains/ directory not found"
+                ls -la domains/dokterkuklinik.com/ 2>/dev/null || echo "domains/dokterkuklinik.com/ directory not found"
+                ls -la domains/dokterkuklinik.com/public_html/ 2>/dev/null || echo "domains/dokterkuklinik.com/public_html/ directory not found"
+                exit 1
+            }
             
             # Verify directory was created and is accessible
+            echo "🔍 Checking if directory exists: $APP_DIR"
             if [ ! -d "$APP_DIR" ]; then
-                echo "❌ Failed to create app directory: $APP_DIR"
+                echo "❌ Directory does not exist after mkdir: $APP_DIR"
+                echo "🔍 Listing parent directory contents:"
+                ls -la "$(dirname "$APP_DIR")" 2>/dev/null || echo "Parent directory not accessible"
                 exit 1
             fi
             
             echo "✅ App directory verified: $APP_DIR"
+            echo "🔍 Directory permissions:"
+            ls -ld "$APP_DIR"
             
             # Navigate to app directory
-            cd "$APP_DIR" || { echo "❌ Cannot access app directory: $APP_DIR"; exit 1; }
+            echo "🚶 Changing to app directory: $APP_DIR"
+            cd "$APP_DIR" || { 
+                echo "❌ Cannot access app directory: $APP_DIR"
+                echo "🔍 Final directory check:"
+                ls -ld "$APP_DIR" 2>/dev/null || echo "Directory not accessible for listing"
+                exit 1
+            }
             
             echo "💾 Creating backup..."
             mkdir -p "$BACKUP_DIR"
             rsync -av --exclude='.git' --exclude='node_modules' --exclude='vendor' . "$BACKUP_DIR/"
             
             echo "📥 Pulling latest changes..."
-            git stash push -m "Auto-stash before deployment $(date)"
+            
+            # Initialize git repository if it doesn't exist
+            if [ ! -d ".git" ]; then
+                echo "🔧 Initializing git repository..."
+                git init
+                git remote add origin https://github.com/yakey01/klinik-app.git
+            fi
+            
+            # Ensure we have the latest from origin
+            git stash push -m "Auto-stash before deployment $(date)" 2>/dev/null || echo "No changes to stash"
             git fetch origin main
             git reset --hard origin/main
             

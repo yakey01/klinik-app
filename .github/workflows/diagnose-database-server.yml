@@ -1,0 +1,170 @@
+name: Diagnose Database on Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'diagnose'
+        type: choice
+        options:
+          - diagnose
+          - manual-fix
+          - test-connection
+
+jobs:
+  diagnose-database:
+    name: Database Server Diagnosis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Upload diagnosis scripts to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "scripts/diagnose-fix-database-server.sh,scripts/manual-database-fix.sh"
+          target: "/home/u454362045/scripts/"
+
+      - name: Run database diagnosis
+        if: github.event.inputs.action == 'diagnose'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 300s
+          script: |
+            echo "🔍 STARTING DATABASE DIAGNOSIS ON SERVER"
+            echo "========================================"
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            # Make script executable
+            chmod +x /home/u454362045/scripts/diagnose-fix-database-server.sh
+            
+            # Run diagnosis
+            bash /home/u454362045/scripts/diagnose-fix-database-server.sh
+            
+            echo ""
+            echo "🎯 DIAGNOSIS COMPLETED"
+            echo "📊 Check the output above for database connection status"
+            echo ""
+            echo "🤖 Generated with [Claude Code](https://claude.ai/code)"
+
+      - name: Run manual database fix
+        if: github.event.inputs.action == 'manual-fix'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 300s
+          script: |
+            echo "🔧 STARTING MANUAL DATABASE FIX ON SERVER"
+            echo "========================================="
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            # Make script executable
+            chmod +x /home/u454362045/scripts/manual-database-fix.sh
+            
+            # Run manual fix
+            bash /home/u454362045/scripts/manual-database-fix.sh
+            
+            echo ""
+            echo "🎯 MANUAL FIX COMPLETED"
+            echo "📊 Check the output above for fix results"
+            echo ""
+            echo "🤖 Generated with [Claude Code](https://claude.ai/code)"
+
+      - name: Test database connection only
+        if: github.event.inputs.action == 'test-connection'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo "🔍 QUICK DATABASE CONNECTION TEST"
+            echo "================================"
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            echo "📋 Current .env database settings:"
+            grep -E "^DB_" .env | while read line; do
+                key=$(echo $line | cut -d'=' -f1)
+                if [[ $key == "DB_PASSWORD" ]]; then
+                    echo "$key=****HIDDEN****"
+                else
+                    echo "$line"
+                fi
+            done
+            
+            echo ""
+            echo "🔄 Testing MySQL direct connection..."
+            mysql -h localhost -u u454362045_u45436245_kli -p'LaTahzan@01' u454362045_u45436245_kli -e "SELECT 'MySQL Connection: SUCCESS' as result;" 2>/dev/null || {
+                echo "❌ MySQL direct connection failed"
+                echo "🔄 Trying with 127.0.0.1..."
+                mysql -h 127.0.0.1 -u u454362045_u45436245_kli -p'LaTahzan@01' u454362045_u45436245_kli -e "SELECT 'MySQL Connection: SUCCESS' as result;" 2>/dev/null || {
+                    echo "❌ MySQL connection failed with both localhost and 127.0.0.1"
+                }
+            }
+            
+            echo ""
+            echo "🔄 Testing Laravel database connection..."
+            php -r "
+                require_once 'vendor/autoload.php';
+                try {
+                    \$app = require_once 'bootstrap/app.php';
+                    \$kernel = \$app->make('Illuminate\Contracts\Console\Kernel');
+                    \$kernel->bootstrap();
+                    \$pdo = DB::connection()->getPdo();
+                    echo '✅ Laravel DB Connection: SUCCESS\n';
+                    echo 'Database: ' . DB::connection()->getDatabaseName() . '\n';
+                } catch (Exception \$e) {
+                    echo '❌ Laravel DB Connection: FAILED\n';
+                    echo 'Error: ' . \$e->getMessage() . '\n';
+                }
+            "
+            
+            echo ""
+            echo "📊 Migration status check..."
+            php artisan migrate:status 2>/dev/null | head -5 || echo "⚠️ Cannot check migration status"
+            
+            echo ""
+            echo "🤖 Generated with [Claude Code](https://claude.ai/code)"
+
+      - name: Summary
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo ""
+            echo "📊 DATABASE DIAGNOSIS SUMMARY"
+            echo "============================"
+            echo "Action performed: ${{ github.event.inputs.action }}"
+            echo "Timestamp: $(date)"
+            echo "Server: Hostinger"
+            echo "Application: Dokterku Healthcare System"
+            echo ""
+            echo "📁 Scripts location: /home/u454362045/scripts/"
+            echo "   - diagnose-fix-database-server.sh"
+            echo "   - manual-database-fix.sh"
+            echo ""
+            echo "💡 Next steps if database still fails:"
+            echo "1. Check cPanel -> MySQL Databases"
+            echo "2. Verify database credentials manually"
+            echo "3. Check MySQL service status in Hostinger"
+            echo "4. Contact Hostinger support if needed"
+            echo ""
+            echo "🤖 Generated with [Claude Code](https://claude.ai/code)"

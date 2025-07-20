@@ -126,12 +126,24 @@ jobs:
             echo "📁 Available directories:"
             ls -la
             
-            # Use APP_DIR from environment variable
-            APP_DIR="${{ env.APP_DIR }}"
-            echo "🎯 Using deployment directory from environment: $APP_DIR"
+            # Use APP_DIR from environment variable with validation
+            RAW_APP_DIR="${{ env.APP_DIR }}"
+            echo "🔍 DEBUG: Raw APP_DIR from environment: '$RAW_APP_DIR'"
             
-            # Fallback to common paths if APP_DIR is not set
-            if [ -z "$APP_DIR" ]; then
+            # Validate and sanitize APP_DIR to prevent recursive paths
+            if [ -n "$RAW_APP_DIR" ]; then
+                # Remove any recursive/duplicate directory patterns
+                APP_DIR=$(echo "$RAW_APP_DIR" | sed 's|\(domains/dokterkuklinik\.com/public_html/dokterku\)\(.*\)\1|\1|g')
+                
+                # Check for obvious recursive patterns
+                if [[ "$APP_DIR" == *"domains/dokterkuklinik.com/public_html/dokterku/domains/dokterkuklinik.com/public_html/dokterku"* ]]; then
+                    echo "❌ Detected recursive APP_DIR pattern: $APP_DIR"
+                    echo "🔧 Fixing to: domains/dokterkuklinik.com/public_html/dokterku"
+                    APP_DIR="domains/dokterkuklinik.com/public_html/dokterku"
+                fi
+                
+                echo "🎯 Sanitized deployment directory: $APP_DIR"
+            else
                 echo "⚠️ APP_DIR not set, trying common Hostinger paths..."
                 POSSIBLE_PATHS=(
                     "domains/dokterkuklinik.com/public_html/dokterku"
@@ -141,6 +153,7 @@ jobs:
                     "$HOME/public_html/dokterku"
                 )
                 
+                APP_DIR=""
                 for path in "${POSSIBLE_PATHS[@]}"; do
                     echo "🧪 Trying path: $path"
                     parent_dir=$(dirname "$path")
@@ -160,6 +173,27 @@ jobs:
                     exit 1
                 fi
             fi
+            
+            # Final validation and safety checks
+            echo "🔍 DEBUG: Final APP_DIR is '$APP_DIR'"
+            
+            # Check for suspicious patterns
+            if [ ${#APP_DIR} -gt 100 ]; then
+                echo "❌ APP_DIR seems too long (${#APP_DIR} chars), possible recursion: $APP_DIR"
+                exit 1
+            fi
+            
+            # Count occurrences of the base path to detect recursion
+            BASE_PATH="domains/dokterkuklinik.com/public_html/dokterku"
+            COUNT=$(echo "$APP_DIR" | grep -o "$BASE_PATH" | wc -l)
+            if [ "$COUNT" -gt 1 ]; then
+                echo "❌ Detected $COUNT occurrences of base path in APP_DIR: $APP_DIR"
+                echo "🔧 Resetting to single occurrence: $BASE_PATH"
+                APP_DIR="$BASE_PATH"
+            fi
+            
+            # Ensure APP_DIR doesn't start with a slash (relative path)
+            APP_DIR=$(echo "$APP_DIR" | sed 's|^/||')
             
             BACKUP_DIR="/tmp/dokterku-backup-$(date +%Y%m%d_%H%M%S)"
             
@@ -182,17 +216,28 @@ jobs:
             # Set error trap
             trap handle_error ERR
             
-            # Ensure app directory exists
+            # Ensure app directory exists with additional validation
             echo "📁 Ensuring app directory exists..."
             echo "🔨 Running: mkdir -p \"$APP_DIR\""
-            mkdir -p "$APP_DIR" 2>&1 || {
-                echo "❌ mkdir failed with exit code: $?"
+            
+            # Check for any obvious issues before mkdir
+            if [[ "$APP_DIR" == *"$APP_DIR"* ]] && [[ ${#APP_DIR} -gt 50 ]]; then
+                echo "❌ APP_DIR contains itself: $APP_DIR"
+                exit 1
+            fi
+            
+            # Create directory with detailed error reporting
+            if ! mkdir -p "$APP_DIR" 2>&1; then
+                echo "❌ mkdir failed for: $APP_DIR"
+                echo "🔍 Current working directory: $(pwd)"
                 echo "🔍 Checking parent directories:"
                 ls -la domains/ 2>/dev/null || echo "domains/ directory not found"
                 ls -la domains/dokterkuklinik.com/ 2>/dev/null || echo "domains/dokterkuklinik.com/ directory not found"
                 ls -la domains/dokterkuklinik.com/public_html/ 2>/dev/null || echo "domains/dokterkuklinik.com/public_html/ directory not found"
+                echo "🔍 Available directories:"
+                find . -maxdepth 2 -type d 2>/dev/null | head -20
                 exit 1
-            }
+            fi
             
             # Verify directory was created and is accessible
             echo "🔍 Checking if directory exists: $APP_DIR"

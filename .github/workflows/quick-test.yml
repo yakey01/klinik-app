@@ -24,6 +24,9 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
           coverage: none
 
+      - name: Configure Composer authentication for GitHub
+        run: composer config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --optimize-autoloader
 

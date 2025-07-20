@@ -91,6 +91,9 @@ jobs:
           key: composer-build-${{ hashFiles('**/composer.lock') }}
           restore-keys: composer-build-
 
+      - name: Configure Composer authentication for GitHub
+        run: composer config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction
 

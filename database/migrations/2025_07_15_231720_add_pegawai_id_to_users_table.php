@@ -25,8 +25,15 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropIndex('users_pegawai_id_index');
-            $table->dropColumn('pegawai_id');
+            // Check if index exists before dropping
+            if (Schema::hasColumn('users', 'pegawai_id')) {
+                try {
+                    $table->dropIndex('users_pegawai_id_index');
+                } catch (\Exception $e) {
+                    // Index might not exist, continue
+                }
+                $table->dropColumn('pegawai_id');
+            }
         });
     }
 };

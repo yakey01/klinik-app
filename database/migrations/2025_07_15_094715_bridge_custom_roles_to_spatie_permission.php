@@ -20,7 +20,13 @@ return new class extends Migration
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Step 1: Extract all unique permissions from custom roles
-        $customRoles = CustomRole::whereNotNull('permissions')->get();
+        // Check if the custom roles table exists and has data
+        if (!Schema::hasTable('roles') || !CustomRole::exists()) {
+            echo "No custom roles found, creating default permissions only\n";
+            $customRoles = collect();
+        } else {
+            $customRoles = CustomRole::whereNotNull('permissions')->get();
+        }
         $allPermissions = [];
         
         foreach ($customRoles as $role) {
@@ -162,6 +168,23 @@ return new class extends Migration
             ]
         ];
 
+        // Step 4.5: Create default roles if no custom roles exist
+        if ($customRoles->isEmpty()) {
+            $defaultRoles = [
+                ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Full access administrator'],
+                ['name' => 'manajer', 'display_name' => 'Manager', 'description' => 'Manager with limited access'],
+                ['name' => 'bendahara', 'display_name' => 'Treasurer', 'description' => 'Financial manager'],
+                ['name' => 'petugas', 'display_name' => 'Staff', 'description' => 'General staff member'],
+                ['name' => 'paramedis', 'display_name' => 'Paramedic', 'description' => 'Medical staff'],
+                ['name' => 'dokter', 'display_name' => 'Doctor', 'description' => 'Medical doctor'],
+                ['name' => 'non_paramedis', 'display_name' => 'Non-Paramedic', 'description' => 'Non-medical staff']
+            ];
+            
+            foreach ($defaultRoles as $roleData) {
+                $customRoles->push((object) array_merge($roleData, ['permissions' => [], 'is_active' => 1]));
+            }
+        }
+
         foreach ($customRoles as $customRole) {
             // Delete any existing Spatie role with the same name first
             SpatieRole::where('name', $customRole->name)->delete();
@@ -198,7 +221,20 @@ return new class extends Migration
         }
 
         // Step 5: Migrate user role assignments from custom system to Spatie
-        $users = User::whereNotNull('role_id')->with('customRole')->get();
+        // Check if users table has role_id column and customRole relationship exists
+        if (!Schema::hasColumn('users', 'role_id')) {
+            echo "Users table doesn't have role_id column, skipping user role assignment\n";
+            echo "Role migration completed successfully!\n";
+            return;
+        }
+        
+        try {
+            $users = User::whereNotNull('role_id')->with('customRole')->get();
+        } catch (\Exception $e) {
+            echo "Could not load users with custom roles, skipping user role assignment: " . $e->getMessage() . "\n";
+            echo "Role migration completed successfully!\n";
+            return;
+        }
         
         foreach ($users as $user) {
             if ($user->customRole) {

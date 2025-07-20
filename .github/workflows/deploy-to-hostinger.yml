@@ -25,6 +25,19 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: none
 
+      - name: Install Composer 2
+        run: |
+          echo "🔧 Installing Composer 2..."
+          composer --version || true
+          if composer --version | grep -q 'Composer version 1'; then
+            echo "📦 Upgrading from Composer 1 to Composer 2..."
+            php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+            php composer-setup.php --2 --install-dir=/usr/local/bin --filename=composer
+            php -r "unlink('composer-setup.php');"
+          fi
+          composer --version
+          echo "✅ Composer 2 ready"
+
       - name: Cache Composer dependencies
         uses: actions/cache@v4
         with:
@@ -83,6 +96,19 @@ jobs:
           php-version: ${{ env.PHP_VERSION }}
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: none
+
+      - name: Install Composer 2
+        run: |
+          echo "🔧 Installing Composer 2..."
+          composer --version || true
+          if composer --version | grep -q 'Composer version 1'; then
+            echo "📦 Upgrading from Composer 1 to Composer 2..."
+            php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+            php composer-setup.php --2 --install-dir=/usr/local/bin --filename=composer
+            php -r "unlink('composer-setup.php');"
+          fi
+          composer --version
+          echo "✅ Composer 2 ready"
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -296,6 +322,16 @@ jobs:
             git stash push -m "Auto-stash before deployment $(date)" 2>/dev/null || echo "No changes to stash"
             git fetch origin main
             git reset --hard origin/main
+            
+            echo "🔧 Ensuring Composer 2 is installed on server..."
+            composer --version || true
+            if composer --version | grep -q 'Composer version 1'; then
+                echo "📦 Upgrading server Composer from 1 to 2..."
+                php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+                php composer-setup.php --2 --install-dir=/usr/local/bin --filename=composer
+                php -r "unlink('composer-setup.php');"
+            fi
+            composer --version
             
             echo "📦 Installing Composer dependencies..."
             # Install dependencies (minimum-stability is already set in composer.json)

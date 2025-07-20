@@ -92,10 +92,19 @@ jobs:
           restore-keys: composer-build-
 
       - name: Configure Composer authentication for GitHub
-        run: composer config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔐 Configuring Composer GitHub authentication..."
+          composer config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+          echo "✅ GitHub authentication configured"
 
       - name: Install Composer dependencies
-        run: composer install --no-dev --optimize-autoloader --no-interaction
+        run: |
+          echo "🚀 Installing Composer dependencies for deployment..."
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts || {
+            echo "❌ Composer install failed, trying with verbose output..."
+            composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts --verbose
+          }
+          echo "✅ Composer dependencies installed successfully"
 
       - name: Setup minimal environment for asset publishing
         run: |
@@ -326,6 +335,10 @@ jobs:
             echo "📅 Deployment finished at: $(date)"
             echo "🌐 Your application is now live at: https://dokterkuklinik.com"
             echo "💾 Backup stored at: $BACKUP_DIR"
+            echo ""
+            echo "🤖 Generated with [Claude Code](https://claude.ai/code)"
+            echo "🚀 Automated deployment workflow by Claude AI Assistant"
+            echo "⚡ Optimized for Hostinger hosting platform"
 
       - name: Health Check
         uses: appleboy/ssh-action@v1.0.3
@@ -366,6 +379,9 @@ jobs:
             echo "Workflow: ${{ github.workflow }}"
             echo "Status: ${{ job.status }}"
             echo "Date: $(date)"
+            echo ""
+            echo "🤖 Generated with [Claude Code](https://claude.ai/code)"
+            echo "🚀 Automated deployment by Claude AI Assistant"
             
             # Optional: Send to Discord/Slack webhook if configured
             # if [ ! -z "${{ secrets.DISCORD_WEBHOOK }}" ]; then

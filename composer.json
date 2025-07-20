@@ -82,7 +82,10 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
-        }
+        },
+        "github-protocols": ["https"],
+        "secure-http": false,
+        "disable-tls": false
     },
     "minimum-stability": "dev",
     "prefer-stable": true

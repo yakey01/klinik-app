@@ -143,7 +143,13 @@ jobs:
             RAW_APP_DIR="${{ env.APP_DIR }}"
             echo "🔍 DEBUG: Raw APP_DIR from environment: '$RAW_APP_DIR'"
             
-            # Define the correct base path
+            # Define possible base paths for Hostinger
+            POSSIBLE_BASE_PATHS=(
+                "domains/dokterkuklinik.com/public_html/dokterku"
+                "public_html/dokterku"
+                "htdocs/dokterku"
+                "www/dokterku"
+            )
             CORRECT_BASE_PATH="domains/dokterkuklinik.com/public_html/dokterku"
             
             # Validate and sanitize APP_DIR to prevent recursive paths
@@ -244,8 +250,52 @@ jobs:
             # Set error trap
             trap handle_error ERR
             
-            # Ensure app directory exists with additional validation
-            echo "📁 Ensuring app directory exists..."
+            # Ensure parent directories exist first
+            echo "📁 Creating parent directories..."
+            PARENT_DIR=$(dirname "$APP_DIR")
+            echo "🔨 Creating parent: $PARENT_DIR"
+            
+            # Create parent directories step by step
+            mkdir -p domains 2>/dev/null || true
+            mkdir -p domains/dokterkuklinik.com 2>/dev/null || true
+            mkdir -p domains/dokterkuklinik.com/public_html 2>/dev/null || true
+            
+            # Set permissions on parent directories
+            chmod 755 domains 2>/dev/null || true
+            chmod 755 domains/dokterkuklinik.com 2>/dev/null || true
+            chmod 755 domains/dokterkuklinik.com/public_html 2>/dev/null || true
+            
+            # Verify parent directory exists, try alternatives if failed
+            if [ ! -d "$PARENT_DIR" ]; then
+                echo "⚠️ Primary parent directory failed: $PARENT_DIR"
+                echo "🔄 Trying alternative paths..."
+                
+                for alt_path in "${POSSIBLE_BASE_PATHS[@]}"; do
+                    echo "🧪 Trying: $alt_path"
+                    alt_parent=$(dirname "$alt_path")
+                    
+                    # Try to create this alternative path
+                    if mkdir -p "$alt_parent" 2>/dev/null && [ -d "$alt_parent" ]; then
+                        echo "✅ Successfully created: $alt_parent"
+                        APP_DIR="$alt_path"
+                        PARENT_DIR="$alt_parent"
+                        break
+                    fi
+                done
+                
+                # Final check
+                if [ ! -d "$PARENT_DIR" ]; then
+                    echo "❌ All parent directory attempts failed"
+                    echo "🔍 Current working directory: $(pwd)"
+                    echo "🔍 Available directories:"
+                    ls -la . 2>/dev/null || echo "Cannot list current directory"
+                    find . -maxdepth 2 -type d 2>/dev/null | head -10 || echo "Cannot find directories"
+                    exit 1
+                fi
+            fi
+            
+            # Now create the app directory
+            echo "📁 Creating app directory: $APP_DIR"
             echo "🔨 Running: mkdir -p \"$APP_DIR\""
             
             # Check for any obvious issues before mkdir
@@ -255,16 +305,12 @@ jobs:
                 APP_DIR="$CORRECT_BASE_PATH"
             fi
             
-            # Create directory with detailed error reporting
+            # Create app directory
             if ! mkdir -p "$APP_DIR" 2>&1; then
                 echo "❌ mkdir failed for: $APP_DIR"
                 echo "🔍 Current working directory: $(pwd)"
-                echo "🔍 Checking parent directories:"
-                ls -la domains/ 2>/dev/null || echo "domains/ directory not found"
-                ls -la domains/dokterkuklinik.com/ 2>/dev/null || echo "domains/dokterkuklinik.com/ directory not found"
-                ls -la domains/dokterkuklinik.com/public_html/ 2>/dev/null || echo "domains/dokterkuklinik.com/public_html/ directory not found"
-                echo "🔍 Available directories:"
-                find . -maxdepth 2 -type d 2>/dev/null | head -20
+                echo "🔍 Parent directory status:"
+                ls -la "$PARENT_DIR" 2>/dev/null || echo "Parent directory not accessible"
                 exit 1
             fi
             

@@ -83,9 +83,7 @@
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
         },
-        "github-protocols": ["https"],
-        "secure-http": false,
-        "disable-tls": false
+        "github-protocols": ["https"]
     },
     "minimum-stability": "dev",
     "prefer-stable": true

@@ -95,10 +95,7 @@ jobs:
         run: |
           echo "🔐 Configuring Composer GitHub authentication..."
           composer config --global github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
-          composer config --global minimum-stability dev
-          composer config --global prefer-stable true
-          composer config --global secure-http false
-          echo "✅ GitHub authentication and Composer config configured"
+          echo "✅ GitHub authentication configured"
 
       - name: Install Composer dependencies
         run: |
@@ -301,14 +298,10 @@ jobs:
             git reset --hard origin/main
             
             echo "📦 Installing Composer dependencies..."
-            # Configure Composer for deployment
-            composer config minimum-stability dev
-            composer config prefer-stable true
-            composer config secure-http false
-            
+            # Install dependencies (minimum-stability is already set in composer.json)
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts || {
                 echo "❌ Composer install failed, trying alternative approach..."
-                composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-reqs
+                composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-reqs --no-scripts
             }
             
             echo "🔧 Running Laravel setup..."

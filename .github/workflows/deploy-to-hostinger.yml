@@ -183,13 +183,16 @@ jobs:
             # Function to handle errors
             handle_error() {
                 echo "❌ Error occurred during deployment!"
+                echo "🔍 Error details: $1"
                 echo "🔄 Attempting to restore from backup if available..."
-                if [ -d "$BACKUP_DIR" ]; then
-                    echo "📁 Ensuring app directory exists for restore..."
+                if [ -d "$BACKUP_DIR" ] && [ "$(ls -A $BACKUP_DIR 2>/dev/null)" ]; then
+                    echo "📁 Restoring from backup..."
                     mkdir -p "$APP_DIR"
                     cd "$BACKUP_DIR"
                     rsync -av --exclude='.env' --exclude='storage/app' --exclude='storage/logs' . "$APP_DIR/"
                     echo "✅ Backup restored"
+                else
+                    echo "ℹ️ No backup available to restore"
                 fi
                 exit 1
             }
@@ -256,19 +259,27 @@ jobs:
             
             echo "✅ Successfully changed to: $(pwd)"
             
-            echo "💾 Creating backup..."
-            mkdir -p "$BACKUP_DIR"
-            rsync -av --exclude='.git' --exclude='node_modules' --exclude='vendor' . "$BACKUP_DIR/"
-            
-            echo "📥 Pulling latest changes..."
-            
             # Initialize git repository if it doesn't exist
             if [ ! -d ".git" ]; then
                 echo "🔧 Initializing git repository..."
                 git init
                 git remote add origin https://github.com/yakey01/klinik-app.git
+                git fetch origin main
+                git checkout -b main origin/main
             fi
             
+            # Create backup only if there are existing files
+            if [ -f "composer.json" ] || [ -f ".env" ]; then
+                echo "💾 Creating backup of existing deployment..."
+                mkdir -p "$BACKUP_DIR"
+                rsync -av --exclude='.git' --exclude='node_modules' --exclude='vendor' . "$BACKUP_DIR/" || {
+                    echo "⚠️ Backup failed, but continuing deployment"
+                }
+            else
+                echo "ℹ️ No existing deployment to backup, proceeding with fresh deployment"
+            fi
+            
+            echo "📥 Pulling latest changes..."
             # Ensure we have the latest from origin
             git stash push -m "Auto-stash before deployment $(date)" 2>/dev/null || echo "No changes to stash"
             git fetch origin main

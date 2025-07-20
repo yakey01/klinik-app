@@ -1,0 +1,51 @@
+name: Force Deploy to Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  force-deploy:
+    name: Force Deploy (Resolve Conflicts)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Upload force deploy script
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "scripts/force-deploy.sh"
+          target: "/home/u454362045/"
+          
+      - name: Execute force deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            chmod +x /home/u454362045/scripts/force-deploy.sh
+            bash /home/u454362045/scripts/force-deploy.sh
+            
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /home/u454362045/domains/dokterkuklinik.com/public_html
+            echo "🔍 Verifying deployment..."
+            echo "Current git commit:"
+            git rev-parse HEAD
+            echo "Routes file check:"
+            grep -A 5 "attendance" routes/api.php || echo "Attendance route not found"
+            echo "Controller method check:"
+            grep -A 10 "getAttendance" app/Http/Controllers/Api/V2/Dashboards/DokterDashboardController.php || echo "getAttendance method not found"

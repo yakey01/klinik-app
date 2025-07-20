@@ -45,16 +45,29 @@ jobs:
         run: |
           echo "# Override database config for CI testing" >> .env
           echo "DB_CONNECTION=sqlite" >> .env
-          echo "DB_DATABASE=$(pwd)/database/database.sqlite" >> .env
+          echo "DB_DATABASE=:memory:" >> .env
           echo "CACHE_STORE=array" >> .env
           echo "SESSION_DRIVER=array" >> .env
           echo "QUEUE_CONNECTION=sync" >> .env
 
+      - name: Prepare test database
+        run: |
+          # Remove any existing SQLite database files
+          rm -f database/database.sqlite
+          rm -f database/testing.sqlite
+          
+          # Clear Laravel caches
+          php artisan config:clear
+          php artisan cache:clear
+          
+          # Use migrate:fresh to ensure clean database state
+          php artisan migrate:fresh --force
+
       - name: Run tests
         run: |
-          php artisan config:clear
-          php artisan migrate --force
-          # Add your test commands here
+          # Add your test commands here when ready
+          echo "✅ Database prepared for testing"
+          echo "🧪 Tests would run here: php artisan test"
           # php artisan test
 
   build-and-deploy:

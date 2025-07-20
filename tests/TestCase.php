@@ -38,12 +38,8 @@ abstract class TestCase extends BaseTestCase
      */
     protected function setupUniqueTestDatabase(): void
     {
-        // Generate unique database file name for each process
-        $processId = getmypid();
-        $testToken = env('GITHUB_RUN_ID', 'local');
-        $workerId = env('PHPUNIT_WORKER_ID', '0');
-        
-        $databasePath = "database/testing_{$testToken}_{$workerId}_{$processId}.sqlite";
+        // Use consistent database file name that matches phpunit.xml configuration
+        $databasePath = "database/testing.sqlite";
         
         // Ensure database directory exists
         if (!is_dir(dirname($databasePath))) {
@@ -55,7 +51,7 @@ abstract class TestCase extends BaseTestCase
             touch($databasePath);
         }
         
-        // Configure database connection
+        // Configure database connection to use the same file as phpunit.xml
         config(['database.default' => 'sqlite']);
         config(['database.connections.sqlite.database' => $databasePath]);
         
@@ -112,7 +108,7 @@ abstract class TestCase extends BaseTestCase
     {
         $databaseDir = 'database';
         if (is_dir($databaseDir)) {
-            $files = glob($databaseDir . '/testing_*.sqlite');
+            $files = glob($databaseDir . '/testing*.sqlite');
             foreach ($files as $file) {
                 // Only delete files older than 1 hour to avoid conflicts with running tests
                 if (filemtime($file) < (time() - 3600)) {

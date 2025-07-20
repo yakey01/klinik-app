@@ -11,7 +11,7 @@ if [ -d "database" ]; then
     echo "📊 Found $file_count test database files"
     
     # Remove test database files
-    find database -name "testing_*.sqlite" -delete
+    find database -name "testing*.sqlite" -delete
     
     echo "✅ Test database cleanup completed"
 else

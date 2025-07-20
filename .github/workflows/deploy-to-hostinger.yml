@@ -174,11 +174,11 @@ jobs:
               echo "🔧 Configuring for production database..."
               # Ensure MySQL production settings
               sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
-              sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+              sed -i 's/DB_HOST=.*/DB_HOST=localhost/' .env
               sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
               sed -i 's/DB_DATABASE=.*/DB_DATABASE=u454362045_u45436245_kli/' .env
               sed -i 's/DB_USERNAME=.*/DB_USERNAME=u454362045_u45436245_kli/' .env
-              sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=KlinikApp2025!/' .env
+              sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=LaTahzan@01/' .env
             fi
             
             # Verify database connection settings
@@ -187,25 +187,69 @@ jobs:
             
             echo "🔍 Testing database connection..."
             php artisan config:clear
-            php -r "
+            
+            # Test database connection with error handling for special characters in password
+            CONNECTION_TEST=$(php -r "
               require 'vendor/autoload.php';
               \$app = require_once 'bootstrap/app.php';
               \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
               \$kernel->bootstrap();
               try {
-                DB::connection()->getPdo();
-                echo '✅ Database connection successful\n';
+                \$pdo = DB::connection()->getPdo();
+                echo 'SUCCESS: Database connection established\n';
+                echo 'Database: ' . DB::connection()->getDatabaseName() . '\n';
+                exit(0);
               } catch (Exception \$e) {
-                echo '❌ Database connection failed: ' . \$e->getMessage() . '\n';
-                echo '🔧 Troubleshooting database connection...\n';
+                echo 'ERROR: ' . \$e->getMessage() . '\n';
                 exit(1);
               }
-            " || {
-              echo "❌ Database connection test failed"
-              echo "🔍 Current database settings:"
-              grep -E "^DB_" .env
-              exit 1
-            }
+            " 2>&1)
+            
+            if echo "$CONNECTION_TEST" | grep -q "SUCCESS"; then
+              echo "✅ Database connection successful"
+              echo "$CONNECTION_TEST"
+            else
+              echo "❌ Database connection failed, trying alternative hosts..."
+              echo "$CONNECTION_TEST"
+              
+              # Try alternative database hosts
+              for HOST in "127.0.0.1" "mysql.dokterkuklinik.com" "mysql.hostinger.com"; do
+                echo "🔄 Trying host: $HOST"
+                sed -i "s/DB_HOST=.*/DB_HOST=$HOST/" .env
+                php artisan config:clear
+                
+                ALT_TEST=$(php -r "
+                  require 'vendor/autoload.php';
+                  \$app = require_once 'bootstrap/app.php';
+                  \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
+                  \$kernel->bootstrap();
+                  try {
+                    DB::connection()->getPdo();
+                    echo 'SUCCESS\n';
+                    exit(0);
+                  } catch (Exception \$e) {
+                    echo 'FAILED: ' . \$e->getMessage() . '\n';
+                    exit(1);
+                  }
+                " 2>&1)
+                
+                if echo "$ALT_TEST" | grep -q "SUCCESS"; then
+                  echo "✅ Database connection successful with host: $HOST"
+                  break
+                else
+                  echo "❌ Failed with host $HOST: $ALT_TEST"
+                fi
+              done
+              
+              # Final check
+              FINAL_TEST=$(php artisan tinker --execute="try { DB::connection()->getPdo(); echo 'FINAL_SUCCESS'; } catch(Exception \$e) { echo 'FINAL_FAILED: ' . \$e->getMessage(); }" 2>&1)
+              if ! echo "$FINAL_TEST" | grep -q "FINAL_SUCCESS"; then
+                echo "❌ All database connection attempts failed"
+                echo "🔍 Final database settings:"
+                grep -E "^DB_" .env
+                exit 1
+              fi
+            fi
             
             echo "🔧 Running Laravel optimization commands..."
             php artisan config:clear

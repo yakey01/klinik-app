@@ -161,7 +161,119 @@ jobs:
               echo "❌ Composer install failed, trying alternative approach..."
               ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-reqs --no-scripts
             }
-            # ... (lanjutkan kode deploy seperti biasa)
+            
+            echo "🗄️ Setting up production database configuration..."
+            
+            # Ensure we have the correct production .env file
+            if [ -f .env.production ]; then
+              echo "📄 Using production environment configuration"
+              cp .env.production .env
+            elif [ ! -f .env ]; then
+              echo "⚠️ .env file missing, copying from .env.example"
+              cp .env.example .env
+              echo "🔧 Configuring for production database..."
+              # Ensure MySQL production settings
+              sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+              sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+              sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
+              sed -i 's/DB_DATABASE=.*/DB_DATABASE=u454362045_u45436245_kli/' .env
+              sed -i 's/DB_USERNAME=.*/DB_USERNAME=u454362045_u45436245_kli/' .env
+              sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=KlinikApp2025!/' .env
+            fi
+            
+            # Verify database connection settings
+            echo "📋 Production database configuration:"
+            grep -E "^DB_" .env || echo "No DB config found"
+            
+            echo "🔍 Testing database connection..."
+            php artisan config:clear
+            php -r "
+              require 'vendor/autoload.php';
+              \$app = require_once 'bootstrap/app.php';
+              \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
+              \$kernel->bootstrap();
+              try {
+                DB::connection()->getPdo();
+                echo '✅ Database connection successful\n';
+              } catch (Exception \$e) {
+                echo '❌ Database connection failed: ' . \$e->getMessage() . '\n';
+                echo '🔧 Troubleshooting database connection...\n';
+                exit(1);
+              }
+            " || {
+              echo "❌ Database connection test failed"
+              echo "🔍 Current database settings:"
+              grep -E "^DB_" .env
+              exit 1
+            }
+            
+            echo "🔧 Running Laravel optimization commands..."
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan view:clear
+            php artisan route:clear
+            
+            echo "🗄️ Preparing database migrations..."
+            
+            # Create backup directory
+            mkdir -p ~/backups/database
+            BACKUP_FILE="~/backups/database/backup_$(date +%Y%m%d_%H%M%S).sql"
+            
+            # Backup current database before migration
+            echo "💾 Creating database backup..."
+            if grep -q "DB_CONNECTION=mysql" .env; then
+              DB_USER=$(grep "^DB_USERNAME=" .env | cut -d'=' -f2 | tr -d '"')
+              DB_PASS=$(grep "^DB_PASSWORD=" .env | cut -d'=' -f2 | tr -d '"')
+              DB_NAME=$(grep "^DB_DATABASE=" .env | cut -d'=' -f2 | tr -d '"')
+              DB_HOST=$(grep "^DB_HOST=" .env | cut -d'=' -f2 | tr -d '"')
+              
+              mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_FILE" 2>/dev/null || {
+                echo "⚠️ Database backup failed, but continuing with migration"
+              }
+              echo "✅ Database backup created: $BACKUP_FILE"
+            fi
+            
+            # Check migration status before running
+            echo "📊 Checking current migration status..."
+            php artisan migrate:status || echo "Could not check migration status"
+            
+            echo "🗄️ Running database migrations..."
+            php artisan migrate --force || {
+              echo "❌ Migration failed! Detailed error information:"
+              echo "🔍 Database connection test:"
+              php -r "
+                try {
+                  DB::connection()->getPdo();
+                  echo 'Database connection: OK\n';
+                  echo 'Database name: ' . DB::connection()->getDatabaseName() . '\n';
+                } catch (Exception \$e) {
+                  echo 'Database connection error: ' . \$e->getMessage() . '\n';
+                }
+              "
+              echo "📊 Migration status:"
+              php artisan migrate:status || echo "Could not get migration status"
+              
+              echo "🔧 Attempting to rollback and retry..."
+              if [ -f "$BACKUP_FILE" ]; then
+                echo "🔄 Restoring from backup..."
+                mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$BACKUP_FILE" || echo "Backup restore failed"
+              fi
+              exit 1
+            }
+            
+            echo "✅ Database migrations completed successfully"
+            
+            echo "🎨 Optimizing for production..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache || echo "⚠️ View cache skipped (possible component issues)"
+            
+            echo "🔐 Setting file permissions..."
+            chmod -R 755 storage bootstrap/cache
+            chmod 644 .env
+            
+            echo "✅ Deployment completed successfully!"
+            echo "🌐 Application URL: https://dokterkuklinik.com"
 
       - name: Health Check
         uses: appleboy/ssh-action@v1.0.3

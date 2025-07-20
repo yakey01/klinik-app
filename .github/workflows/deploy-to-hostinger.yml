@@ -9,6 +9,7 @@ on:
 env:
   PHP_VERSION: "8.3"
   NODE_VERSION: "20"
+  APP_DIR: "domains/dokterkuklinik.com/public_html/dokterku"
 
 jobs:
   test:
@@ -125,35 +126,39 @@ jobs:
             echo "📁 Available directories:"
             ls -la
             
-            # Set deployment variables - try common Hostinger paths
-            POSSIBLE_PATHS=(
-                "domains/dokterkuklinik.com/public_html/dokterku"
-                "public_html/dokterku"
-                "htdocs/dokterku"
-                "$HOME/domains/dokterkuklinik.com/public_html/dokterku"
-                "$HOME/public_html/dokterku"
-            )
+            # Use APP_DIR from environment variable
+            APP_DIR="${{ env.APP_DIR }}"
+            echo "🎯 Using deployment directory from environment: $APP_DIR"
             
-            APP_DIR=""
-            echo "🔍 Searching for correct deployment path..."
-            
-            for path in "${POSSIBLE_PATHS[@]}"; do
-                echo "🧪 Trying path: $path"
-                parent_dir=$(dirname "$path")
-                if [ -d "$parent_dir" ] || mkdir -p "$parent_dir" 2>/dev/null; then
-                    echo "✅ Found/created parent directory: $parent_dir"
-                    APP_DIR="$path"
-                    break
-                else
-                    echo "❌ Cannot access/create: $parent_dir"
-                fi
-            done
-            
+            # Fallback to common paths if APP_DIR is not set
             if [ -z "$APP_DIR" ]; then
-                echo "❌ Could not find suitable deployment path"
-                echo "🔍 Available directories from root:"
-                find . -maxdepth 3 -type d -name "*html*" 2>/dev/null || echo "No public_html directories found"
-                exit 1
+                echo "⚠️ APP_DIR not set, trying common Hostinger paths..."
+                POSSIBLE_PATHS=(
+                    "domains/dokterkuklinik.com/public_html/dokterku"
+                    "public_html/dokterku"
+                    "htdocs/dokterku"
+                    "$HOME/domains/dokterkuklinik.com/public_html/dokterku"
+                    "$HOME/public_html/dokterku"
+                )
+                
+                for path in "${POSSIBLE_PATHS[@]}"; do
+                    echo "🧪 Trying path: $path"
+                    parent_dir=$(dirname "$path")
+                    if [ -d "$parent_dir" ] || mkdir -p "$parent_dir" 2>/dev/null; then
+                        echo "✅ Found/created parent directory: $parent_dir"
+                        APP_DIR="$path"
+                        break
+                    else
+                        echo "❌ Cannot access/create: $parent_dir"
+                    fi
+                done
+                
+                if [ -z "$APP_DIR" ]; then
+                    echo "❌ Could not find suitable deployment path"
+                    echo "🔍 Available directories from root:"
+                    find . -maxdepth 3 -type d -name "*html*" 2>/dev/null || echo "No public_html directories found"
+                    exit 1
+                fi
             fi
             
             BACKUP_DIR="/tmp/dokterku-backup-$(date +%Y%m%d_%H%M%S)"

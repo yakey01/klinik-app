@@ -27,6 +27,10 @@ abstract class TestCase extends BaseTestCase
         config(['database.default' => 'sqlite']);
         config(['database.connections.sqlite.database' => ':memory:']);
         
+        // Force a fresh database connection to prevent "table already exists" errors
+        \DB::purge('sqlite');
+        \DB::reconnect('sqlite');
+        
         // Clear any existing permission cache
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         

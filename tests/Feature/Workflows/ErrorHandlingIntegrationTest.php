@@ -3,7 +3,6 @@
 namespace Tests\Feature\Workflows;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +26,6 @@ use Spatie\Permission\Models\Role;
 
 class ErrorHandlingIntegrationTest extends TestCase
 {
-    use DatabaseMigrations;
 
     protected User $petugas;
     protected User $supervisor;

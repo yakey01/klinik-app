@@ -40,7 +40,7 @@ class ComponentPerformanceTest extends TestCase
         parent::setUp();
         
         // Create role and user
-        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
+        Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
         $this->petugas = User::factory()->create(['name' => 'Component Test User']);
         $this->petugas->assignRole('petugas');
         

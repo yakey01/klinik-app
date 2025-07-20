@@ -41,7 +41,7 @@ class PerformanceIntegrationTest extends TestCase
         
         // Create roles and users
         if (!Role::where('name', 'petugas')->exists()) {
-            Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
+            Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
         }
         $this->petugas = User::factory()->create(['name' => 'Performance Test User']);
         $this->petugas->assignRole('petugas');

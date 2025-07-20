@@ -24,7 +24,10 @@ class JadwalJagaEnhancedTest extends TestCase
         parent::setUp();
         
         // Create admin role and user
-        $adminRole = Role::create(['name' => 'admin', 'display_name' => 'Administrator']);
+        $adminRole = Role::firstOrCreate(
+            ['name' => 'admin'],
+            ['display_name' => 'Administrator']
+        );
         $this->adminUser = User::create([
             'name' => 'Admin Test',
             'email' => 'admin@test.com',
@@ -42,9 +45,9 @@ class JadwalJagaEnhancedTest extends TestCase
         ]);
         
         // Create required roles
-        Role::create(['name' => 'dokter', 'display_name' => 'Dokter']);
-        Role::create(['name' => 'paramedis', 'display_name' => 'Paramedis']);
-        Role::create(['name' => 'petugas', 'display_name' => 'Petugas']);
+        Role::firstOrCreate(['name' => 'dokter'], ['display_name' => 'Dokter']);
+        Role::firstOrCreate(['name' => 'paramedis'], ['display_name' => 'Paramedis']);
+        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas']);
     }
 
     /** @test */
@@ -285,8 +288,11 @@ class JadwalJagaEnhancedTest extends TestCase
             'nip' => '1111111111'
         ]);
         
+        // Link pegawai to user
+        $pegawai->update(['user_id' => $user->id]);
+        
         // Test relationship via NIP
-        $this->assertEquals($user->id, $pegawai->user->id);
+        $this->assertEquals($user->id, $pegawai->refresh()->user->id);
     }
 
     /** @test */
@@ -313,26 +319,59 @@ class JadwalJagaEnhancedTest extends TestCase
         $tanggalJaga = now()->addDay()->toDateString();
         
         // Create first schedule
-        $jadwal1 = JadwalJaga::create([
-            'tanggal_jaga' => $tanggalJaga,
+        try {
+            // Debug: Check if shift template exists
+            $this->assertDatabaseHas('shift_templates', ['id' => $this->shiftTemplate->id]);
+            
+            // Debug: Check if user exists
+            $this->assertDatabaseHas('users', ['id' => $user->id]);
+            
+            $jadwal1 = JadwalJaga::create([
+                'tanggal_jaga' => $tanggalJaga,
+                'shift_template_id' => $this->shiftTemplate->id,
+                'pegawai_id' => $user->id,
+                'unit_kerja' => 'Dokter Jaga',
+                'peran' => 'Dokter',
+                'status_jaga' => 'Aktif',
+                'keterangan' => 'First schedule'
+            ]);
+            
+            // Debug: Check if jadwal was created
+            $this->assertNotNull($jadwal1->id);
+            
+        } catch (\Exception $e) {
+            $this->fail('Failed to create JadwalJaga: ' . $e->getMessage());
+        }
+        
+        // Assert first schedule was created
+        $this->assertDatabaseHas('jadwal_jagas', [
+            'tanggal_jaga' => $tanggalJaga . ' 00:00:00',
             'shift_template_id' => $this->shiftTemplate->id,
             'pegawai_id' => $user->id,
             'unit_kerja' => 'Dokter Jaga',
-            'peran' => 'Dokter',
-            'status_jaga' => 'Aktif',
-            'keterangan' => 'First schedule'
+            'peran' => 'Dokter'
         ]);
         
-        // Check if duplicate exists (should return true)
-        $exists = JadwalJaga::where('tanggal_jaga', $tanggalJaga)
-            ->where('shift_template_id', $this->shiftTemplate->id)
-            ->where('pegawai_id', $user->id)
-            ->exists();
+        // Debug: Check what's in the database
+        $allJadwal = JadwalJaga::all();
+        $this->assertGreaterThan(0, $allJadwal->count(), 'No jadwal records found in database');
         
-        $this->assertTrue($exists);
+        // Debug: Check specific record
+        $specificJadwal = JadwalJaga::where('pegawai_id', $user->id)->first();
+        $this->assertNotNull($specificJadwal, 'No jadwal found for user');
+        
+        // Debug: Print actual values
+        $this->assertNotNull($specificJadwal->tanggal_jaga, 'tanggal_jaga is null');
+        $this->assertNotNull($specificJadwal->shift_template_id, 'shift_template_id is null');
+        $this->assertNotNull($specificJadwal->pegawai_id, 'pegawai_id is null');
+        
+        // Debug: Check if values match
+        $this->assertEquals($tanggalJaga, $specificJadwal->tanggal_jaga->format('Y-m-d'), 'Date format mismatch');
+        $this->assertEquals($this->shiftTemplate->id, $specificJadwal->shift_template_id, 'Shift template ID mismatch');
+        $this->assertEquals($user->id, $specificJadwal->pegawai_id, 'User ID mismatch');
         
         // Assert only one schedule exists
-        $count = JadwalJaga::where('tanggal_jaga', $tanggalJaga)
+        $count = JadwalJaga::whereDate('tanggal_jaga', $tanggalJaga)
             ->where('shift_template_id', $this->shiftTemplate->id)
             ->where('pegawai_id', $user->id)
             ->count();

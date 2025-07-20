@@ -21,12 +21,12 @@ class AutomaticRoleAssignmentTest extends TestCase
         parent::setUp();
         
         // Create test roles
-        Role::create(['name' => 'admin', 'display_name' => 'Administrator', 'guard_name' => 'web']);
-        Role::create(['name' => 'dokter', 'display_name' => 'Dokter', 'guard_name' => 'web']);
-        Role::create(['name' => 'paramedis', 'display_name' => 'Paramedis', 'guard_name' => 'web']);
-        Role::create(['name' => 'petugas', 'display_name' => 'Petugas', 'guard_name' => 'web']);
-        Role::create(['name' => 'manajer', 'display_name' => 'Manajer', 'guard_name' => 'web']);
-        Role::create(['name' => 'bendahara', 'display_name' => 'Bendahara', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'admin'], ['display_name' => 'Administrator', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'dokter'], ['display_name' => 'Dokter', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'paramedis'], ['display_name' => 'Paramedis', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'petugas'], ['display_name' => 'Petugas', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'manajer'], ['display_name' => 'Manajer', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'bendahara'], ['display_name' => 'Bendahara', 'guard_name' => 'web']);
         
         // Create admin user for testing
         $adminRole = Role::where('name', 'admin')->first();

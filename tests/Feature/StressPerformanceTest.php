@@ -32,10 +32,19 @@ class StressPerformanceTest extends TestCase
     {
         parent::setUp();
         
-        // Create roles
-        $petugasRole = Role::create(['name' => 'petugas', 'display_name' => 'Petugas', 'description' => 'Staff Petugas']);
-        $bendaharaRole = Role::create(['name' => 'bendahara', 'display_name' => 'Bendahara', 'description' => 'Staff Bendahara']);
-        $adminRole = Role::create(['name' => 'admin', 'display_name' => 'Admin', 'description' => 'Administrator']);
+        // Create roles using firstOrCreate to avoid duplicates
+        $petugasRole = Role::firstOrCreate(
+            ['name' => 'petugas'],
+            ['display_name' => 'Petugas', 'description' => 'Staff Petugas']
+        );
+        $bendaharaRole = Role::firstOrCreate(
+            ['name' => 'bendahara'],
+            ['display_name' => 'Bendahara', 'description' => 'Staff Bendahara']
+        );
+        $adminRole = Role::firstOrCreate(
+            ['name' => 'admin'],
+            ['display_name' => 'Admin', 'description' => 'Administrator']
+        );
         
         // Create test users
         $this->petugasUser = User::create([
@@ -64,7 +73,9 @@ class StressPerformanceTest extends TestCase
         
         // Create jenis tindakan
         $this->jenisTindakan = JenisTindakan::create([
+            'kode' => 'STRESS001',
             'nama' => 'Stress Test Consultation',
+            'kategori' => 'konsultasi',
             'tarif' => 100000,
             'jasa_dokter' => 60000,
             'jasa_paramedis' => 20000,

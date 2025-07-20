@@ -1,0 +1,50 @@
+name: Quick Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PHP_VERSION: 8.3
+
+jobs:
+  quick-test:
+    name: Quick Essential Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --optimize-autoloader
+
+      - name: Setup environment
+        run: |
+          cp .env.example .env.testing
+          sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=sqlite/' .env.testing
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=database\/testing.sqlite/' .env.testing
+          echo "CACHE_STORE=array" >> .env.testing
+          echo "SESSION_DRIVER=array" >> .env.testing
+          echo "QUEUE_CONNECTION=sync" >> .env.testing
+          php artisan key:generate --env=testing
+
+      - name: Create SQLite database
+        run: |
+          mkdir -p database
+          touch database/testing.sqlite
+
+      - name: Run quick tests
+        run: |
+          # Run only unit tests and basic feature tests (fast)
+          ./vendor/bin/pest tests/Unit --stop-on-failure
+          ./vendor/bin/pest tests/Feature/Auth --stop-on-failure
+          ./vendor/bin/pest tests/Feature/Resources --stop-on-failure --exclude-group=slow

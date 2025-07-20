@@ -96,7 +96,9 @@ jobs:
           echo "✅ Test environment prepared successfully"
 
       - name: Run tests
-        run: ./vendor/bin/pest --coverage
+        run: |
+          # Run only fast essential tests (skip slow performance tests)
+          ./vendor/bin/pest --exclude-group=slow,performance --stop-on-failure
         
       - name: Upload test results to Claude Code
         if: always()

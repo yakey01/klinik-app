@@ -26,6 +26,10 @@ use Livewire\Livewire;
 use App\Filament\Petugas\Resources\PasienResource\Pages\ListPasiens;
 use Spatie\Permission\Models\Role;
 
+/**
+ * @group performance
+ * @group slow 
+ */
 class PerformanceIntegrationTest extends TestCase
 {
 

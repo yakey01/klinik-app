@@ -476,4 +476,44 @@ class DokterDashboardController extends Controller
             return 'Selamat Malam';
         }
     }
+
+    /**
+     * Get attendance data for dokter
+     */
+    public function getAttendance(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $today = Carbon::today();
+            
+            // Get today's attendance
+            $attendance = Attendance::where('user_id', $user->id)
+                ->where('date', $today)
+                ->first();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Attendance data retrieved successfully',
+                'data' => [
+                    'today' => [
+                        'has_checked_in' => $attendance ? true : false,
+                        'has_checked_out' => $attendance && $attendance->time_out ? true : false,
+                        'check_in_time' => $attendance?->time_in?->format('H:i'),
+                        'check_out_time' => $attendance?->time_out?->format('H:i'),
+                        'work_duration' => $attendance?->formatted_work_duration ?? '0 jam',
+                        'status' => $attendance ? 
+                            ($attendance->time_out ? 'checked_out' : 'checked_in') : 
+                            'not_checked_in'
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve attendance data',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

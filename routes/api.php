@@ -302,6 +302,9 @@ Route::prefix('v2')->group(function () {
                 Route::get('/jaspel', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getJaspel']);
                 Route::get('/tindakan', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getTindakan']);
                 Route::get('/presensi', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getPresensi']);
+                Route::get('/attendance', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getAttendance']);
+                Route::get('/patients', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getPatients']);
+                Route::get('/test', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'test']);
                 
                 // Attendance endpoints
                 Route::get('/attendance/status', function () {

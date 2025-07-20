@@ -43,7 +43,7 @@ jobs:
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
-          coverage: none
+          coverage: pcov
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --optimize-autoloader

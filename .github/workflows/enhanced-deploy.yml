@@ -51,6 +51,13 @@ jobs:
       - name: Setup environment
         run: |
           cp .env.example .env.testing
+          # Override database settings for testing
+          sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=sqlite/' .env.testing
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=database\/testing.sqlite/' .env.testing
+          sed -i 's/DB_HOST=.*/# DB_HOST=127.0.0.1/' .env.testing
+          sed -i 's/DB_PORT=.*/# DB_PORT=3306/' .env.testing
+          sed -i 's/DB_USERNAME=.*/# DB_USERNAME=/' .env.testing
+          sed -i 's/DB_PASSWORD=.*/# DB_PASSWORD=/' .env.testing
           php artisan key:generate --env=testing
 
       - name: Create SQLite database

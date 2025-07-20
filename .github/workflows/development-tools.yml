@@ -16,9 +16,6 @@ on:
           - health-check
           - sync-vendor
           - optimize-production
-
-env:
-  ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
       
       backup_name:
         description: 'Backup name (for restore)'
@@ -30,6 +27,9 @@ env:
         required: false
         type: string
         default: 'DatabaseSeeder'
+
+env:
+  ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
 
 jobs:
   development-action:

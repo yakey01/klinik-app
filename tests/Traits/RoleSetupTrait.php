@@ -7,6 +7,19 @@ use Spatie\Permission\Models\Role;
 trait RoleSetupTrait
 {
     /**
+     * Track if roles have been setup to prevent repeated calls
+     */
+    private static $rolesSetup = false;
+
+    /**
+     * Reset role setup tracking (call this when database is refreshed)
+     */
+    protected function resetRoleSetup(): void
+    {
+        self::$rolesSetup = false;
+    }
+
+    /**
      * Setup roles for testing with atomic operations
      */
     protected function setupRoles(): void
@@ -16,8 +29,14 @@ trait RoleSetupTrait
             return;
         }
 
+        // Skip if already setup in this test session
+        if (self::$rolesSetup) {
+            return;
+        }
+
         // Skip if roles already exist in database
         if (Role::count() > 0) {
+            self::$rolesSetup = true;
             return;
         }
 
@@ -56,6 +75,9 @@ trait RoleSetupTrait
                     }
                 }
             });
+            
+            // Mark as setup after successful creation
+            self::$rolesSetup = true;
         } catch (\Exception $e) {
             // If transaction fails completely, log and continue
             // This prevents test failures due to database setup issues

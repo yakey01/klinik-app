@@ -34,6 +34,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'refresh.csrf' => \App\Http\Middleware\RefreshCsrfToken::class,
             // Session cleanup middleware
             'session.cleanup' => \App\Http\Middleware\SessionCleanupMiddleware::class,
+            // Clear stale session middleware
+            'clear.stale.session' => \App\Http\Middleware\ClearStaleSessionMiddleware::class,
         ]);
         
         // Add security headers to all responses
@@ -42,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // Add redirect to unified login for Filament panels
         $middleware->web(append: [
+            \App\Http\Middleware\ClearStaleSessionMiddleware::class,
             \App\Http\Middleware\RedirectToUnifiedLogin::class,
         ]);
         

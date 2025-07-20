@@ -15,6 +15,13 @@ class RefreshCsrfToken
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // For login pages, aggressively regenerate session to clear stale tokens
+        if ($request->is('*/login') || $request->routeIs('*.auth.login')) {
+            session()->invalidate();
+            session()->regenerateToken();
+            session()->migrate(true);
+        }
+        
         $response = $next($request);
 
         // Add CSRF token to all responses for Filament panels

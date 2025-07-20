@@ -51,22 +51,34 @@ jobs:
       - name: Setup environment
         run: |
           cp .env.example .env.testing
-          # Override database settings for testing
+          # Use in-memory SQLite database for testing (matches TestCase configuration)
           sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=sqlite/' .env.testing
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=database\/testing.sqlite/' .env.testing
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=:memory:/' .env.testing
           sed -i 's/DB_HOST=.*/# DB_HOST=127.0.0.1/' .env.testing
           sed -i 's/DB_PORT=.*/# DB_PORT=3306/' .env.testing
           sed -i 's/DB_USERNAME=.*/# DB_USERNAME=/' .env.testing
           sed -i 's/DB_PASSWORD=.*/# DB_PASSWORD=/' .env.testing
+          # Add additional test optimizations
+          echo "CACHE_STORE=array" >> .env.testing
+          echo "SESSION_DRIVER=array" >> .env.testing
+          echo "QUEUE_CONNECTION=sync" >> .env.testing
+          echo "MAIL_MAILER=array" >> .env.testing
           php artisan key:generate --env=testing
 
-      - name: Create SQLite database
+      - name: Prepare test environment
         run: |
-          mkdir -p database
-          touch database/testing.sqlite
-
-      - name: Run migrations
-        run: php artisan migrate --env=testing --force
+          # Verify test environment configuration
+          echo "🔍 Verifying test environment configuration..."
+          grep -E "^DB_" .env.testing || echo "No DB config found in .env.testing"
+          
+          # Clear any cached configurations
+          php artisan config:clear --env=testing
+          php artisan cache:clear --env=testing
+          
+          # Run fresh migrations (in-memory database is automatically clean)
+          php artisan migrate:fresh --env=testing --force
+          
+          echo "✅ Test environment prepared successfully"
 
       - name: Run tests
         run: ./vendor/bin/pest --coverage

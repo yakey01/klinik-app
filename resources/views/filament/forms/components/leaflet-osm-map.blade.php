@@ -134,11 +134,12 @@
                     updateCoords(e.latlng.lat, e.latlng.lng);
                 });
                 
-                // Initialize from form if data exists
+                // Auto-detect GPS atau initialize from form
                 setTimeout(function() {
                     const latField = document.querySelector('input[name="latitude"]');
                     const lngField = document.querySelector('input[name="longitude"]');
                     
+                    // Check if form already has data
                     if (latField && lngField && latField.value && lngField.value) {
                         const existingLat = parseFloat(latField.value);
                         const existingLng = parseFloat(lngField.value);
@@ -146,9 +147,63 @@
                             map.setView([existingLat, existingLng], {{ $zoom }});
                             marker.setLatLng([existingLat, existingLng]);
                             updateCoords(existingLat, existingLng);
+                            return; // Don't auto-detect if data already exists
                         }
                     }
-                }, 500);
+                    
+                    // Auto-detect GPS untuk form baru
+                    if (navigator.geolocation) {
+                        console.log('🌍 Auto-detecting GPS location...');
+                        const button = document.getElementById('{{ $mapId }}-gps-btn');
+                        if (button) {
+                            button.textContent = '🔄 Auto-detecting...';
+                            button.disabled = true;
+                        }
+                        
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const lat = position.coords.latitude;
+                                const lng = position.coords.longitude;
+                                console.log('✅ GPS detected:', lat, lng);
+                                
+                                // Update map
+                                map.setView([lat, lng], {{ $zoom }});
+                                marker.setLatLng([lat, lng]);
+                                updateCoords(lat, lng);
+                                
+                                // Update button
+                                if (button) {
+                                    button.textContent = '📍 GPS Auto-Detected';
+                                    button.disabled = false;
+                                    button.classList.add('bg-green-500', 'hover:bg-green-600');
+                                    button.classList.remove('bg-white');
+                                }
+                                
+                                console.log('🎯 Auto GPS detection completed successfully');
+                            },
+                            function(error) {
+                                console.warn('⚠️ Auto GPS detection failed:', error.message);
+                                
+                                // Fallback to default location (Madiun)
+                                console.log('🏠 Using default location: Madiun');
+                                updateCoords({{ $lat }}, {{ $lng }});
+                                
+                                if (button) {
+                                    button.textContent = '📍 Deteksi GPS';
+                                    button.disabled = false;
+                                }
+                            },
+                            {
+                                enableHighAccuracy: true,
+                                timeout: 8000, // 8 seconds timeout for auto-detect
+                                maximumAge: 300000 // 5 minutes cache
+                            }
+                        );
+                    } else {
+                        console.warn('❌ Geolocation not supported, using default location');
+                        updateCoords({{ $lat }}, {{ $lng }});
+                    }
+                }, 800); // Delay sedikit lebih lama untuk auto-detect
                 
             } catch (error) {
                 console.error('Map initialization error:', error);

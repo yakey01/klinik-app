@@ -20,12 +20,20 @@ import {
   Briefcase
 } from 'lucide-react';
 
-export function Profil() {
+interface ProfilProps {
+  userData?: {
+    name: string;
+    email?: string;
+    jabatan?: string;
+  };
+}
+
+export function Profil({ userData }: ProfilProps) {
   const userProfile = {
-    nama: 'Dr. Ahmad Fauzi',
-    email: 'ahmad.fauzi@klinkdokterku.com',
+    nama: userData?.name || 'Paramedis',
+    email: userData?.email || 'paramedis@klinikdokterku.com',
     telefon: '+62 812-3456-7890',
-    spesialisasi: 'Dokter Umum',
+    spesialisasi: userData?.jabatan || 'Paramedis',
     rumahSakit: 'KLINIK DOKTERKU',
     nomorSip: 'SIP.123.456.789',
     tanggalBergabung: '2020-01-15',

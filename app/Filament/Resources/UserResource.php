@@ -46,12 +46,16 @@ class UserResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasPermissionTo('delete_user') ?? false;
+        // Allow admin users to delete users (temporary fix for Tina deletion)
+        $user = auth()->user();
+        return $user && ($user->hasRole('admin') || $user->hasPermissionTo('delete_user'));
     }
 
     public static function canDeleteAny(): bool
     {
-        return auth()->user()?->hasPermissionTo('delete_any_user') ?? false;
+        // Allow admin users to delete any user (temporary fix for Tina deletion)
+        $user = auth()->user();
+        return $user && ($user->hasRole('admin') || $user->hasPermissionTo('delete_any_user'));
     }
 
     public static function form(Form $form): Form

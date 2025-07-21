@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, 
@@ -32,6 +32,23 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+
+  // Get user data from meta tag
+  useEffect(() => {
+    const userDataMeta = document.querySelector('meta[name="user-data"]');
+    if (userDataMeta) {
+      try {
+        const data = JSON.parse(userDataMeta.getAttribute('content') || '{}');
+        setUserData(data);
+        if (data.name) {
+          setIsLoggedIn(true); // Auto login if user data exists
+        }
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -380,7 +397,7 @@ export default function App() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <ActiveComponent />
+            <ActiveComponent userData={userData} />
           </motion.div>
         </AnimatePresence>
       </main>

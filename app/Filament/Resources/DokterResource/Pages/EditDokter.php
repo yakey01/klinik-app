@@ -96,8 +96,18 @@ class EditDokter extends EditRecord
             $syncData = [
                 'username' => $record->username,
                 'name' => $record->nama_lengkap,
-                'email' => $record->email
             ];
+            
+            // Only sync email if it's not empty/null
+            if (!empty($record->email)) {
+                $syncData['email'] = $record->email;
+            } else {
+                // Keep existing user email if dokter email is empty
+                \Log::warning('EditDokter: Dokter email is empty, keeping existing user email', [
+                    'dokter_id' => $record->id,
+                    'user_email' => $record->user->email
+                ]);
+            }
             
             // Sync password if dokter has password
             if (!empty($record->password)) {
@@ -110,7 +120,7 @@ class EditDokter extends EditRecord
                 'user_id' => $record->user_id,
                 'synced_username' => $record->username,
                 'synced_name' => $record->nama_lengkap,
-                'synced_email' => $record->email,
+                'synced_email' => !empty($record->email) ? $record->email : 'KEPT_EXISTING',
                 'synced_password' => !empty($record->password) ? 'YES' : 'NO'
             ]);
         }

@@ -113,6 +113,8 @@ class DokterResource extends Resource
                             ->email()
                             ->unique(ignoreRecord: true)
                             ->placeholder('dokter@klinik.com')
+                            ->helperText('Email diperlukan untuk akses sistem dan notifikasi')
+                            ->rules(['nullable', 'email', 'max:255'])
                             ->columnSpan(1),
 
                         Forms\Components\Toggle::make('aktif')

@@ -21,8 +21,8 @@ class SessionCleanupMiddleware
         
         $response = $next($request);
         
-        // If session is about to expire, refresh it for all panel users
-        if (($request->is('admin*') || $request->is('paramedis*') || $request->is('bendahara*') || $request->is('manajer*') || $request->is('petugas*')) && auth()->check()) {
+        // If session is about to expire, refresh it for all panel users and dokter routes
+        if (($request->is('admin*') || $request->is('paramedis*') || $request->is('bendahara*') || $request->is('manajer*') || $request->is('petugas*') || $request->is('dokter*') || $request->is('dokter-gigi*')) && auth()->check()) {
             $this->refreshSessionIfNeeded();
         }
         

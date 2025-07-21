@@ -216,6 +216,17 @@ jobs:
             echo "📋 Production database configuration:"
             grep -E "^DB_" .env || echo "No DB config found"
             
+            # Debug database configuration first
+            echo "🔍 Debugging database configuration..."
+            echo "DB_HOST=$(grep '^DB_HOST=' .env | cut -d'=' -f2)"
+            echo "DB_USERNAME=$(grep '^DB_USERNAME=' .env | cut -d'=' -f2)"
+            echo "DB_DATABASE=$(grep '^DB_DATABASE=' .env | cut -d'=' -f2)"
+            
+            # Test network connectivity first
+            echo "🌐 Testing network connectivity..."
+            DB_HOST_VALUE=$(grep '^DB_HOST=' .env | cut -d'=' -f2)
+            nc -zv "$DB_HOST_VALUE" 3306 || echo "⚠️ MySQL host $DB_HOST_VALUE not reachable on port 3306"
+            
             # Test database connection with better error handling
             echo "🔍 Testing database connection..."
             php artisan config:clear
@@ -280,16 +291,21 @@ jobs:
                 
                 # Test direct MySQL connection
                 echo "🔄 Testing direct MySQL connection..."
+                DB_USER_TEST=$(grep "^DB_USERNAME=" .env | cut -d'=' -f2 | tr -d '"')
+                DB_PASS_TEST=$(grep "^DB_PASSWORD=" .env | cut -d'=' -f2 | tr -d '"')
+                DB_NAME_TEST=$(grep "^DB_DATABASE=" .env | cut -d'=' -f2 | tr -d '"')
+                
                 for HOST in "localhost" "127.0.0.1"; do
                   echo "Testing MySQL direct connection to $HOST..."
-                  if mysql -h "$HOST" -u u454362045_u45436245_kli -p'LaTahzan@01' u454362045_u45436245_kli -e "SELECT 'Direct MySQL: SUCCESS' as result;" 2>/dev/null; then
+                  MYSQL_TEST=$(mysql -h "$HOST" -u "$DB_USER_TEST" -p"$DB_PASS_TEST" "$DB_NAME_TEST" -e "SELECT 'Direct MySQL: SUCCESS' as result;" 2>&1)
+                  if echo "$MYSQL_TEST" | grep -q "SUCCESS"; then
                     echo "✅ Direct MySQL connection works with $HOST"
                     sed -i "s/DB_HOST=.*/DB_HOST=$HOST/" .env
                     php artisan config:clear
                     WORKING_HOST="$HOST"
                     break
                   else
-                    echo "❌ Direct MySQL failed with $HOST"
+                    echo "❌ Direct MySQL failed with $HOST: $(echo "$MYSQL_TEST" | head -2)"
                   fi
                 done
               fi
@@ -353,8 +369,9 @@ jobs:
               DB_NAME=$(grep "^DB_DATABASE=" .env | cut -d'=' -f2 | tr -d '"')
               DB_HOST=$(grep "^DB_HOST=" .env | cut -d'=' -f2 | tr -d '"')
               
-              mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_FILE" 2>/dev/null || {
-                echo "⚠️ Database backup failed, but continuing with migration"
+              mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_FILE" || {
+                echo "⚠️ Database backup failed: $(mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" 2>&1 | head -3)"
+                echo "⚠️ Continuing with migration without backup"
               }
               echo "✅ Database backup created: $BACKUP_FILE"
             fi

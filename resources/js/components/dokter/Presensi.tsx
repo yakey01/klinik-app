@@ -3,13 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Clock, MapPin, CheckCircle, XCircle, Timer, Activity, Calendar } from 'lucide-react';
+import { Clock, MapPin, CheckCircle, XCircle, Timer, Activity, Calendar, Map } from 'lucide-react';
+import LeafletMap from './LeafletMap';
 
 export function Presensi() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkedInAt, setCheckedInAt] = useState<string | null>(null);
   const [workingHours, setWorkingHours] = useState<string>('00:00:00');
+  const [showMap, setShowMap] = useState(false);
+  const [checkinLocation, setCheckinLocation] = useState<{lat: number; lng: number; accuracy?: number; address?: string} | null>(null);
+  const [checkoutLocation, setCheckoutLocation] = useState<{lat: number; lng: number; accuracy?: number; address?: string} | null>(null);
+  const [isLocationRequired, setIsLocationRequired] = useState(true);
 
   // Update time every second
   useEffect(() => {
@@ -35,18 +40,68 @@ export function Presensi() {
   }, [isCheckedIn, checkedInAt]);
 
   const handleCheckIn = () => {
+    // Check if location is required and available
+    if (isLocationRequired && !checkinLocation) {
+      alert('Mohon pilih lokasi presensi terlebih dahulu menggunakan peta di bawah');
+      setShowMap(true);
+      return;
+    }
+
     const now = new Date();
     setIsCheckedIn(true);
     setCheckedInAt(now.toLocaleTimeString('id-ID', { 
       hour: '2-digit', 
       minute: '2-digit' 
     }));
+
+    // Here you would typically save to database
+    // Check-in data saved
+
+    // Show success notification
+    if (checkinLocation) {
+      alert(`Check-in berhasil!\nLokasi: ${checkinLocation.address || 'Koordinat: ' + checkinLocation.lat + ', ' + checkinLocation.lng}${checkinLocation.accuracy ? '\nAkurasi GPS: ' + Math.round(checkinLocation.accuracy) + ' meter' : ''}`);
+    }
   };
 
   const handleCheckOut = () => {
+    // Check if location is required and available for checkout
+    if (isLocationRequired && !checkoutLocation) {
+      alert('Mohon pilih lokasi check-out terlebih dahulu menggunakan peta di bawah');
+      setShowMap(true);
+      return;
+    }
+
     setIsCheckedIn(false);
     setCheckedInAt(null);
     setWorkingHours('00:00:00');
+
+    // Here you would typically save to database
+    // Check-out data saved
+
+    // Show success notification
+    if (checkoutLocation) {
+      alert(`Check-out berhasil!\nLokasi: ${checkoutLocation.address || 'Koordinat: ' + checkoutLocation.lat + ', ' + checkoutLocation.lng}${checkoutLocation.accuracy ? '\nAkurasi GPS: ' + Math.round(checkoutLocation.accuracy) + ' meter' : ''}`);
+    }
+
+    // Reset locations for next day
+    setCheckinLocation(null);
+    setCheckoutLocation(null);
+  };
+
+  const handleLocationSelect = (location: {lat: number; lng: number; accuracy?: number; address?: string}) => {
+    try {
+      if (!isCheckedIn) {
+        // Setting check-in location
+        setCheckinLocation(location);
+        // Check-in location set
+      } else {
+        // Setting check-out location
+        setCheckoutLocation(location);
+        // Check-out location set
+      }
+    } catch (error) {
+      // Error setting location
+    }
   };
 
   const getTodayDate = () => {
@@ -236,6 +291,87 @@ export function Presensi() {
                 <div className="text-xs font-medium text-green-600 dark:text-green-400">Total Jam</div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Location Selection */}
+      <motion.div variants={item}>
+        <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-high-contrast">
+                <Map className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                Lokasi Presensi
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMap(!showMap)}
+                className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-950/50"
+              >
+                {showMap ? 'Sembunyikan' : 'Tampilkan'} Peta
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Location Status */}
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    {!isCheckedIn ? 'Lokasi Check-in' : 'Lokasi Check-out'}
+                  </span>
+                </div>
+                <div className="text-xs text-blue-600 dark:text-blue-400">
+                  {(!isCheckedIn && checkinLocation) ? '✓ Tersimpan' : 
+                   (isCheckedIn && checkoutLocation) ? '✓ Tersimpan' : 
+                   'Belum dipilih'}
+                </div>
+              </div>
+              
+              {/* Current Location Display */}
+              {((checkinLocation && !isCheckedIn) || (checkoutLocation && isCheckedIn)) && (
+                <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                  <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
+                    {!isCheckedIn && checkinLocation && (
+                      <>
+                        <p><strong>Check-in:</strong> {checkinLocation.address || `${checkinLocation.lat.toFixed(6)}, ${checkinLocation.lng.toFixed(6)}`}</p>
+                        {checkinLocation.accuracy && (
+                          <p><strong>Akurasi:</strong> {Math.round(checkinLocation.accuracy)} meter</p>
+                        )}
+                      </>
+                    )}
+                    {isCheckedIn && checkoutLocation && (
+                      <>
+                        <p><strong>Check-out:</strong> {checkoutLocation.address || `${checkoutLocation.lat.toFixed(6)}, ${checkoutLocation.lng.toFixed(6)}`}</p>
+                        {checkoutLocation.accuracy && (
+                          <p><strong>Akurasi:</strong> {Math.round(checkoutLocation.accuracy)} meter</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Leaflet Map */}
+            <AnimatePresence>
+              {showMap && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <LeafletMap
+                    onLocationSelect={handleLocationSelect}
+                    height="400px"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </CardContent>
         </Card>
       </motion.div>

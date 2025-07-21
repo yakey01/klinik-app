@@ -137,7 +137,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('👥 USER MANAGEMENT')
                     ->collapsed(false),
                 NavigationGroup::make('💰 FINANSIAL MANAGEMENT')
-                    ->collapsed(true),
+                    ->collapsed(false),
                 NavigationGroup::make('🏖️ CUTI DAN ABSEN')
                     ->collapsed(true),
                 NavigationGroup::make('📅 KALENDAR DAN JADWAL')

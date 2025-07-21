@@ -13,6 +13,12 @@ class PendapatanPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Workaround for Spatie permission relationship issue
+        // Check if user has admin role (temporary fix)
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+        
         return $user->hasPermissionTo('view-finances') || $user->hasPermissionTo('validate_transactions');
     }
 

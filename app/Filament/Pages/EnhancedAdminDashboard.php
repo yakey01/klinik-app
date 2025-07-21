@@ -31,7 +31,7 @@ class EnhancedAdminDashboard extends Page
     
     protected static ?int $navigationSort = 1;
     
-    protected static ?string $navigationGroup = 'Dashboard';
+    protected static ?string $navigationGroup = '📊 DASHBOARD';
     
     public function mount(): void
     {

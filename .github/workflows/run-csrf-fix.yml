@@ -1,0 +1,55 @@
+name: Run CSRF Session Fix
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for running CSRF fix'
+        required: false
+        default: 'Fix session expired error on dokter edit page'
+
+jobs:
+  run-csrf-fix:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Run CSRF Session Fix Script
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: 22
+        timeout: 300s
+        script: |
+          echo "🔧 Running CSRF Session Fix Script..."
+          echo "📍 Target: https://dokterkuklinik.com/admin/dokters/2/edit"
+          
+          cd /home/u546523095/domains/dokterkuklinik.com/public_html
+          
+          # Run the fix script
+          php fix-csrf-session.php
+          
+          echo ""
+          echo "✅ CSRF Session fix script completed!"
+          echo "📍 Please test: https://dokterkuklinik.com/admin/dokters/2/edit"
+          
+    - name: Notify Fix Completion
+      run: |
+        echo "✅ CSRF Session fix completed successfully"
+        echo "🌐 Test URL: https://dokterkuklinik.com/admin/dokters/2/edit"
+        echo ""
+        echo "🔧 Actions performed:"
+        echo "  - Cleared Laravel caches (config, cache, view, route)"
+        echo "  - Cleaned old session files"
+        echo "  - Set proper storage permissions"
+        echo "  - Verified APP_KEY configuration"
+        echo "  - Updated session settings in .env"
+        echo "  - Rebuilt configuration cache"
+        echo "  - Ran Laravel optimization"
+        echo ""
+        echo "💡 If the 'This page has expired' error persists:"
+        echo "  1. Clear your browser cache"
+        echo "  2. Try incognito/private browsing mode"
+        echo "  3. Make sure you're logged in as admin"
+        echo "  4. Check if the session hasn't timed out"

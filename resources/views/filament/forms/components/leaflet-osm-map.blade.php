@@ -104,23 +104,60 @@
                 
                 // Update coordinates function
                 function updateCoords(lat, lng) {
+                    console.log('🎯 Updating coordinates:', lat, lng);
+                    
                     const coordsEl = document.getElementById('{{ $mapId }}-coords');
                     if (coordsEl) {
                         coordsEl.textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
                     }
                     
-                    // Update form fields
-                    const latField = document.querySelector('input[name="latitude"]');
-                    const lngField = document.querySelector('input[name="longitude"]');
-                    
-                    if (latField) {
-                        latField.value = lat.toFixed(6);
-                        latField.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                    if (lngField) {
-                        lngField.value = lng.toFixed(6);
-                        lngField.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
+                    // Force update form fields dengan multiple methods
+                    setTimeout(function() {
+                        const latField = document.querySelector('input[name="latitude"]');
+                        const lngField = document.querySelector('input[name="longitude"]');
+                        
+                        console.log('🔧 Found fields:', !!latField, !!lngField);
+                        
+                        if (latField) {
+                            latField.value = lat.toFixed(6);
+                            latField.setAttribute('value', lat.toFixed(6));
+                            
+                            // Multiple event types untuk compatibility
+                            latField.dispatchEvent(new Event('input', { bubbles: true }));
+                            latField.dispatchEvent(new Event('change', { bubbles: true }));
+                            latField.dispatchEvent(new Event('blur', { bubbles: true }));
+                            
+                            // Force Livewire update jika ada
+                            if (typeof Livewire !== 'undefined') {
+                                try {
+                                    Livewire.emit('refreshComponent');
+                                } catch (e) {
+                                    console.log('Livewire emit not available');
+                                }
+                            }
+                            
+                            console.log('✅ Latitude field updated to:', latField.value);
+                        }
+                        
+                        if (lngField) {
+                            lngField.value = lng.toFixed(6);
+                            lngField.setAttribute('value', lng.toFixed(6));
+                            
+                            // Multiple event types
+                            lngField.dispatchEvent(new Event('input', { bubbles: true }));
+                            lngField.dispatchEvent(new Event('change', { bubbles: true }));
+                            lngField.dispatchEvent(new Event('blur', { bubbles: true }));
+                            
+                            console.log('✅ Longitude field updated to:', lngField.value);
+                        }
+                        
+                        // Force visual update
+                        if (latField && lngField) {
+                            latField.focus();
+                            lngField.focus();
+                            document.activeElement.blur();
+                        }
+                    }, 100);
                 }
                 
                 // Event handlers
@@ -169,6 +206,38 @@
                                 // Update map
                                 map.setView([lat, lng], {{ $zoom }});
                                 marker.setLatLng([lat, lng]);
+                                
+                                // Force immediate field update
+                                const latField = document.querySelector('input[name="latitude"]');
+                                const lngField = document.querySelector('input[name="longitude"]');
+                                
+                                if (latField && lngField) {
+                                    // Clear any existing values first
+                                    latField.value = '';
+                                    lngField.value = '';
+                                    
+                                    // Set new values
+                                    latField.value = lat.toFixed(6);
+                                    lngField.value = lng.toFixed(6);
+                                    
+                                    // Force multiple update methods
+                                    setTimeout(function() {
+                                        latField.setAttribute('value', lat.toFixed(6));
+                                        lngField.setAttribute('value', lng.toFixed(6));
+                                        
+                                        // Trigger all possible events
+                                        [latField, lngField].forEach(field => {
+                                            field.dispatchEvent(new Event('input', { bubbles: true }));
+                                            field.dispatchEvent(new Event('change', { bubbles: true }));
+                                            field.dispatchEvent(new Event('blur', { bubbles: true }));
+                                            field.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                                        });
+                                        
+                                        console.log('🔥 FORCE UPDATED - Lat:', latField.value, 'Lng:', lngField.value);
+                                    }, 50);
+                                }
+                                
+                                // Update coordinates display
                                 updateCoords(lat, lng);
                                 
                                 // Update button
@@ -239,11 +308,24 @@
                             coordsEl.textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
                         }
                         
-                        // Update form
+                        // Force update form fields
                         const latField = document.querySelector('input[name="latitude"]');
                         const lngField = document.querySelector('input[name="longitude"]');
-                        if (latField) latField.value = lat.toFixed(6);
-                        if (lngField) lngField.value = lng.toFixed(6);
+                        
+                        if (latField) {
+                            latField.value = lat.toFixed(6);
+                            latField.setAttribute('value', lat.toFixed(6));
+                            latField.dispatchEvent(new Event('input', { bubbles: true }));
+                            latField.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        if (lngField) {
+                            lngField.value = lng.toFixed(6);
+                            lngField.setAttribute('value', lng.toFixed(6));
+                            lngField.dispatchEvent(new Event('input', { bubbles: true }));
+                            lngField.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        
+                        console.log('🔄 GPS Button - Updated fields:', latField?.value, lngField?.value);
                     }
                     
                     button.textContent = '📍 Deteksi GPS';

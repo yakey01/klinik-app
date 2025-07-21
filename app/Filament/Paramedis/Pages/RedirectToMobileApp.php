@@ -14,13 +14,7 @@ class RedirectToMobileApp extends Page
 
     public function mount(): void
     {
-        try {
-            // Use redirect method that works in Filament context
-            $this->redirect(route('paramedis.mobile-app'));
-        } catch (\Exception $e) {
-            // If redirect fails, log error and fallback to JavaScript redirect
-            \Log::error('RedirectToMobileApp mount() failed: ' . $e->getMessage());
-            // The view has JavaScript redirect as fallback
-        }
+        // Don't redirect in mount - let the view handle it
+        // This prevents "$this when not in object context" errors
     }
 }

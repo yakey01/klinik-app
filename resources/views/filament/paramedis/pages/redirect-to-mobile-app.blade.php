@@ -1,19 +1,63 @@
-<x-filament-panels::page>
-    <div class="flex flex-col items-center justify-center min-h-[400px]">
-        <div class="text-center">
-            <div class="mb-4">
-                <svg class="w-16 h-16 mx-auto text-primary-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                </svg>
-            </div>
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Redirecting to Mobile App...</h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-4">You will be redirected to the Paramedis Mobile App</p>
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
-        </div>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting to Mobile App...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f8fafc;
+            color: #1f2937;
+        }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px 0;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            color: #3b82f6;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="text-center">
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+        </svg>
+        <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">Redirecting to Mobile App...</h2>
+        <p style="color: #6b7280; margin-bottom: 16px;">You will be redirected to the Paramedis Mobile App</p>
+        <div class="spinner"></div>
+        <p style="font-size: 14px; color: #9ca3af;">If you are not redirected automatically, <a href="{{ route('paramedis.mobile-app') }}" style="color: #3b82f6; text-decoration: underline;">click here</a>.</p>
     </div>
     
     <script>
         // Redirect immediately
-        window.location.href = '{{ route('paramedis.mobile-app') }}';
+        setTimeout(function() {
+            window.location.href = '{{ route('paramedis.mobile-app') }}';
+        }, 500);
     </script>
-</x-filament-panels::page>
+</body>
+</html>

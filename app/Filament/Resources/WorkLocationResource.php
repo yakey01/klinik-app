@@ -14,7 +14,8 @@ use Filament\Tables\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Dotswan\MapPicker\Fields\Map;
+use Filament\Forms\Components\ViewField;
+use Afsakar\FilamentLeafletMapPicker\Fields\LeafletMapPicker;
 
 class WorkLocationResource extends Resource
 {
@@ -78,35 +79,31 @@ class WorkLocationResource extends Resource
                     ]),
 
                 Forms\Components\Section::make('📍 Koordinat GPS & Geofencing')
-                    ->description('Pilih lokasi pada peta atau gunakan tombol "Get Location" untuk deteksi GPS otomatis')
+                    ->description('Pilih lokasi pada peta OSM atau gunakan pencarian lokasi')
                     ->schema([
-                        Map::make('map_coordinates')
+                        LeafletMapPicker::make('location')
                             ->label('📍 Pilih Lokasi pada Peta')
-                            ->extraStyles(['height: 400px'])
-                            ->defaultLocation(latitude: -6.2088, longitude: 106.8456) // Jakarta default
+                            ->height(500)
                             ->zoom(15)
-                            ->draggable(true)
-                            ->clickable(true)
-                            ->showMarker(true)
-                            ->showMyLocationButton()
-                            ->reactive()
-                            ->live()
-                            ->dehydrated(false) // Don't save this field to database
-                            ->afterStateHydrated(function (callable $get, callable $set, $state): void {
-                                // Initialize map with existing coordinates
-                                $lat = $get('latitude');
-                                $lng = $get('longitude');
-                                if ($lat && $lng) {
-                                    $set('map_coordinates', ['lat' => (float) $lat, 'lng' => (float) $lng]);
-                                }
-                            })
+                            ->centerPoint(-7.89946200, 111.96239900) // Default Madiun coordinates
                             ->afterStateUpdated(function (callable $get, callable $set, ?array $state): void {
                                 if (is_array($state) && isset($state['lat']) && isset($state['lng'])) {
                                     $set('latitude', round($state['lat'], 6));
                                     $set('longitude', round($state['lng'], 6));
                                 }
                             })
-                            ->columnSpanFull(),
+                            ->afterStateHydrated(function (callable $get, callable $set, $state): void {
+                                // Initialize map with existing coordinates
+                                $lat = $get('latitude');
+                                $lng = $get('longitude');
+                                if ($lat && $lng) {
+                                    $set('location', ['lat' => (float) $lat, 'lng' => (float) $lng]);
+                                }
+                            })
+                            ->reactive()
+                            ->live()
+                            ->columnSpanFull()
+                            ->dehydrated(false), // Don't save this field to database
 
                         Forms\Components\Grid::make(3)
                             ->schema([

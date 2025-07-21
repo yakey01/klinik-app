@@ -15,7 +15,6 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\ViewField;
-use App\Filament\Components\LeafletOSMMap;
 
 class WorkLocationResource extends Resource
 {
@@ -81,13 +80,9 @@ class WorkLocationResource extends Resource
                 Forms\Components\Section::make('📍 Koordinat GPS & Geofencing')
                     ->description('Pilih lokasi pada peta OSM dengan GPS detection')
                     ->schema([
-                        LeafletOSMMap::make('location')
+                        ViewField::make('osm_map')
+                            ->view('filament.forms.components.leaflet-osm-map')
                             ->label('📍 Pilih Lokasi pada Peta OSM')
-                            ->height(500)
-                            ->zoom(15)
-                            ->defaultLocation(-7.89946200, 111.96239900) // Default Madiun coordinates
-                            ->reactive()
-                            ->live()
                             ->columnSpanFull()
                             ->dehydrated(false), // Don't save this field to database
 

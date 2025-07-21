@@ -381,7 +381,7 @@ export default function App() {
             </div>
             <div>
               <p className="text-white/90 text-sm">Selamat datang,</p>
-              <p className="text-white">{userData?.name || 'Dokter'}</p>
+              <p className="text-white">Dr. Ahmad Fauzi</p>
             </div>
           </motion.div>
         </div>

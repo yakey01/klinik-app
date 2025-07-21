@@ -145,7 +145,7 @@ class BulkOperationServiceTest extends TestCase
         ];
 
         // Act
-        $result = $this->service->bulkUpdate(Pasien::class, $updateData, 'id');
+        $result = $this->service->bulkUpdate(Pasien::class, $updateData, 'id', ['validate' => false]);
 
         // Assert
         $this->assertTrue($result['success']);

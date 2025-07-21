@@ -26,6 +26,7 @@ Route::get('/', function () {
 Route::get('/login', [UnifiedAuthController::class, 'create'])->name('login');
 Route::post('/login', [UnifiedAuthController::class, 'store'])
     ->middleware('throttle:20,1')
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
     ->name('unified.login');
 Route::post('/logout', [UnifiedAuthController::class, 'destroy'])->name('logout');
 

@@ -250,7 +250,7 @@ class BulkOperationService
                 }
                 
                 if ($validate) {
-                    $validator = $this->validateModelData($model, $item);
+                    $validator = $this->validateModelDataForUpdate($model, $item);
                     if ($validator->fails()) {
                         $errors[] = [
                             'batch' => $batchIndex,
@@ -308,6 +308,25 @@ class BulkOperationService
             // Only validate that required database fields are present
             // Let the database handle the actual constraints
             $rules = [];
+        }
+        
+        return Validator::make($data, $rules);
+    }
+
+    protected function validateModelDataForUpdate(Model $model, array $data)
+    {
+        $rules = [];
+        
+        // Only use custom validation rules if they exist
+        if (method_exists($model, 'getBulkValidationRules')) {
+            $rules = $model->getBulkValidationRules();
+            
+            // Modify unique rules to exclude current record
+            foreach ($rules as $field => $rule) {
+                if (strpos($rule, 'unique:') !== false) {
+                    $rules[$field] = $rule . ',' . $model->getKey();
+                }
+            }
         }
         
         return Validator::make($data, $rules);

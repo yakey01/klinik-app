@@ -23,8 +23,9 @@ class ParamedisMiddleware
 
         $user = Auth::user();
 
-        // Check if user has paramedis role
-        if (!$user->role || $user->role->name !== 'paramedis') {
+        // Check if user has paramedis role using hasRole method (more robust)
+        try {
+            if (!$user || !$user->hasRole('paramedis')) {
             // For non-paramedis users, deny access
             if ($request->expectsJson()) {
                 return response()->json([
@@ -32,8 +33,8 @@ class ParamedisMiddleware
                 ], 403);
             }
 
-            // Redirect based on user role
-            if ($user->role) {
+            // Redirect based on user role - with null safety
+            if ($user && $user->role && $user->role->name) {
                 switch ($user->role->name) {
                     case 'admin':
                     case 'manajer': 
@@ -47,8 +48,18 @@ class ParamedisMiddleware
             }
             
             return redirect('/')->with('error', 'Akses ditolak. Anda tidak memiliki akses ke panel paramedis.');
-        }
+            }
 
-        return $next($request);
+            return $next($request);
+        } catch (\Exception $e) {
+            // If there's any error checking roles, log it and deny access
+            \Log::error('ParamedisMiddleware error: ' . $e->getMessage(), [
+                'user_id' => $user?->id,
+                'user_email' => $user?->email,
+                'error' => $e->getTraceAsString()
+            ]);
+            
+            return redirect('/')->with('error', 'Terjadi kesalahan sistem. Silakan coba lagi.');
+        }
     }
 }

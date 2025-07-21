@@ -114,13 +114,16 @@ class PetugasStatsServiceTest extends TestCase
         $today = Carbon::today();
         $yesterday = Carbon::yesterday();
         
+        // Clear cache to ensure fresh data
+        Cache::flush();
+        
         // Create more data for today than yesterday
-        Pasien::factory()->count(5)->create([
+        $todayPatients = Pasien::factory()->count(5)->create([
             'input_by' => $this->user->id,
             'created_at' => $today,
         ]);
         
-        Pasien::factory()->count(3)->create([
+        $yesterdayPatients = Pasien::factory()->count(3)->create([
             'input_by' => $this->user->id,
             'created_at' => $yesterday,
         ]);
@@ -129,10 +132,17 @@ class PetugasStatsServiceTest extends TestCase
         $stats = $this->service->getDashboardStats($this->user->id);
         
         // Assert
+        $this->assertArrayHasKey('daily', $stats);
         $this->assertArrayHasKey('trends', $stats['daily']);
+        
         $trends = $stats['daily']['trends'];
         
         $this->assertArrayHasKey('pasien_count', $trends);
+        $this->assertArrayHasKey('current', $trends['pasien_count']);
+        $this->assertArrayHasKey('previous', $trends['pasien_count']);
+        $this->assertArrayHasKey('direction', $trends['pasien_count']);
+        $this->assertArrayHasKey('percentage', $trends['pasien_count']);
+        
         $this->assertEquals(5, $trends['pasien_count']['current']);
         $this->assertEquals(3, $trends['pasien_count']['previous']);
         $this->assertEquals('up', $trends['pasien_count']['direction']);
@@ -361,6 +371,7 @@ class PetugasStatsServiceTest extends TestCase
 
     protected function tearDown(): void
     {
+        \Mockery::close();
         Cache::flush();
         parent::tearDown();
     }

@@ -265,6 +265,8 @@ class PetugasConfigServiceTest extends TestCase
         // Arrange - Mock cache failure
         Cache::shouldReceive('remember')
             ->andThrow(new \Exception('Cache failure'));
+        Cache::shouldReceive('flush')
+            ->andReturn(true);
         
         // Act
         $navigationGroups = $this->service->getNavigationGroups();
@@ -371,6 +373,7 @@ class PetugasConfigServiceTest extends TestCase
 
     protected function tearDown(): void
     {
+        \Mockery::close();
         Cache::flush();
         parent::tearDown();
     }

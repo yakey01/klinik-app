@@ -20,7 +20,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- ULTRAFIX: Force clear all caches before loading app -->
-    <script src="/ultrafix.js"></script>
+    <!-- DISABLED: <script src="/ultrafix.js.disabled"></script> -->
     
     <!-- DEBUG MONITOR: Ultimate debugging (temporary) -->
     <script src="/debug-monitor.js"></script>
@@ -250,8 +250,8 @@
             }, 1000);
         });
         
-        // Register service worker for PWA capabilities
-        if ('serviceWorker' in navigator) {
+        // Register service worker for PWA capabilities (disabled temporarily)
+        if ('serviceWorker' in navigator && false) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {

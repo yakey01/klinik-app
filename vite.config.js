@@ -13,6 +13,7 @@ export default defineConfig({
                 'resources/js/widget-animations.js',
                 'resources/js/dokter-mobile-app.tsx',
                 'resources/js/paramedis-mobile-app.tsx',
+                'resources/js/filament/paramedis-gps-attendance.js',
                 'resources/css/filament/admin/theme.css',
                 'resources/css/filament/bendahara/theme.css',
                 'resources/css/filament/manajer/theme.css',

@@ -20,21 +20,12 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Support\Facades\FilamentView;
-use Cheesegrits\FilamentGoogleMaps\FilamentGoogleMapsPlugin;
 use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 use App\Filament\Pages\Auth\CustomLogin;
 use Hasnayeen\Themes\ThemesPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
-    public function canAccessPanel(): bool
-    {
-        return auth()->check() && (
-            auth()->user()?->hasRole('admin') || 
-            auth()->user()?->hasPermissionTo('access_admin_panel')
-        );
-    }
-
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -42,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(CustomLogin::class)
+            ->authGuard('web')
             ->brandName('🏥 Dokterku Admin Portal')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->colors([
@@ -125,7 +117,6 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
                 \App\Http\Middleware\AdminMiddleware::class,
             ])
-            ->authGuard('web')
             ->databaseNotifications()
             ->plugins([
                 FilamentFullCalendarPlugin::make(),

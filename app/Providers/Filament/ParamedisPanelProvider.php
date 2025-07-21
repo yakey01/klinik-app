@@ -29,7 +29,10 @@ class ParamedisPanelProvider extends PanelProvider
             ->brandName('🩺 Paramedis Mobile')
             ->brandLogo(asset('images/logo-paramedis.png'))
             ->favicon(asset('favicon.ico'))
-            ->viteTheme('resources/css/filament/paramedis/theme.css')
+            ->viteTheme([
+                'resources/css/filament/paramedis/theme.css',
+                'resources/js/filament/paramedis-gps-attendance.js',
+            ])
             ->colors([
                 'primary' => Color::Emerald,
                 'secondary' => Color::Teal,
@@ -40,10 +43,10 @@ class ParamedisPanelProvider extends PanelProvider
             ])
             ->sidebarCollapsibleOnDesktop()
             ->resources([
-                // No resources - mobile app only
+                \App\Filament\Paramedis\Resources\AttendanceResource::class,
             ])
             ->pages([
-                // No pages - panel will redirect to mobile app
+                \App\Filament\Paramedis\Pages\RedirectToMobileApp::class,
             ])
             ->widgets([
                 // No widgets - mobile app only

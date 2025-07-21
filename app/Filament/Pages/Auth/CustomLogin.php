@@ -9,18 +9,11 @@ class CustomLogin extends BaseLogin
 {
     public function mount(): void
     {
-        // If user is already authenticated, continue normally
-        if (auth()->check()) {
-            parent::mount();
-            return;
-        }
-        
-        // Otherwise, this will be handled by RedirectToUnifiedLogin middleware
         parent::mount();
     }
     
     protected function getRedirectUrl(): string
     {
-        return '/';
+        return '/admin';
     }
 }

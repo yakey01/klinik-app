@@ -56,7 +56,7 @@
                     <p class="text-2xl font-bold">{{ number_format($quickStats['monthly_target_progress'] ?? 0, 1) }}%</p>
                 </div>
                 <div class="p-3 bg-purple-600 bg-opacity-50 rounded-full">
-                    <x-heroicon-o-target class="h-6 w-6" />
+                    <x-heroicon-o-clipboard-document-list class="h-6 w-6" />
                 </div>
             </div>
         </div>

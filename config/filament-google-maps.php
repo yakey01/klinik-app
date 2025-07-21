@@ -81,4 +81,29 @@ return [
     */
 
     'force-https' => env('FILAMENT_GOOGLE_MAPS_FORCE_HTTPS', false),
+
+    /*
+    | OpenStreetMap configuration
+    | Use OSM instead of Google Maps for map tiles
+    */
+    'clustering' => [
+        'enabled' => env('FILAMENT_GOOGLE_MAPS_CLUSTERING', false),
+        'algorithm' => env('FILAMENT_GOOGLE_MAPS_CLUSTER_ALGORITHM', 'GRID'),
+    ],
+
+    /*
+    | Map defaults
+    */
+    'default_location' => [
+        'lat' => env('FILAMENT_GOOGLE_MAPS_DEFAULT_LAT', -7.89946200), // Madiun
+        'lng' => env('FILAMENT_GOOGLE_MAPS_DEFAULT_LNG', 111.96239900), // Madiun
+    ],
+
+    /*
+    | Tile provider configuration
+    | Set to 'osm' to use OpenStreetMap tiles instead of Google Maps
+    */
+    'tile_provider' => env('FILAMENT_GOOGLE_MAPS_TILE_PROVIDER', 'osm'),
+
+    'default_zoom' => env('FILAMENT_GOOGLE_MAPS_DEFAULT_ZOOM', 15),
 ];

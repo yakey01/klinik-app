@@ -674,13 +674,7 @@
         const clinicLng = {{ $workLocation['longitude'] }};
         const clinicRadius = {{ $workLocation['radius'] }}; // meters
         
-        console.log('🏢 Work Location Config:', {
-            name: '{{ $workLocation["name"] }}',
-            lat: clinicLat,
-            lng: clinicLng,
-            radius: clinicRadius,
-            address: '{{ $workLocation["address"] }}'
-        });
+        // Work location config (console logging disabled for production)
         
         // Real GPS Detection with Permission Request
         async function detectLocation() {
@@ -704,7 +698,7 @@
             try {
                 // Request permission explicitly
                 const permission = await navigator.permissions.query({name: 'geolocation'});
-                console.log('GPS Permission status:', permission.state);
+                // GPS Permission status logged (disabled for performance)
                 
                 if (permission.state === 'denied') {
                     showLocationError('❌ Permission GPS ditolak. Silakan aktifkan GPS di pengaturan browser.');
@@ -739,7 +733,7 @@
                 );
                 
             } catch (error) {
-                console.error('Permission API error:', error);
+                // Permission API error (logging disabled for performance)
                 showLocationError('⚠️ Tidak dapat mengakses permission API. Mencoba deteksi langsung...');
                 
                 // Fallback: direct geolocation call
@@ -761,11 +755,7 @@
             currentAccuracy = position.coords.accuracy;
             locationDetected = true;
             
-            console.log('📍 GPS detected:', {
-                lat: currentLatitude,
-                lng: currentLongitude,
-                accuracy: currentAccuracy
-            });
+            // GPS detected (console logging disabled for performance)
             
             // Calculate distance to clinic
             const distance = calculateDistance(currentLatitude, currentLongitude, clinicLat, clinicLng);
@@ -801,7 +791,7 @@
                     break;
             }
             
-            console.error('GPS Error:', error);
+            // GPS Error logged (console logging disabled for performance)
             showLocationError(errorMessage);
         }
         
@@ -939,7 +929,7 @@
         
         // Auto-detect location on page load
         function autoDetectOnLoad() {
-            console.log('🚀 Auto-detecting GPS on page load...');
+            // Auto-detecting GPS on page load (logging disabled for performance)
             detectLocation();
         }
         
@@ -957,7 +947,7 @@
         
         // Initialize attendance interactions
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Presensi page loaded successfully!');
+            // Presensi page loaded (logging disabled for performance)
             updateClock(); // Initial clock update
             
             // Auto-detect GPS on page load (with slight delay)

@@ -15,7 +15,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\ViewField;
-use Afsakar\FilamentLeafletMapPicker\Fields\LeafletMapPicker;
+use App\Filament\Components\LeafletOSMMap;
 
 class WorkLocationResource extends Resource
 {
@@ -79,27 +79,13 @@ class WorkLocationResource extends Resource
                     ]),
 
                 Forms\Components\Section::make('📍 Koordinat GPS & Geofencing')
-                    ->description('Pilih lokasi pada peta OSM atau gunakan pencarian lokasi')
+                    ->description('Pilih lokasi pada peta OSM dengan GPS detection')
                     ->schema([
-                        LeafletMapPicker::make('location')
-                            ->label('📍 Pilih Lokasi pada Peta')
+                        LeafletOSMMap::make('location')
+                            ->label('📍 Pilih Lokasi pada Peta OSM')
                             ->height(500)
                             ->zoom(15)
-                            ->centerPoint(-7.89946200, 111.96239900) // Default Madiun coordinates
-                            ->afterStateUpdated(function (callable $get, callable $set, ?array $state): void {
-                                if (is_array($state) && isset($state['lat']) && isset($state['lng'])) {
-                                    $set('latitude', round($state['lat'], 6));
-                                    $set('longitude', round($state['lng'], 6));
-                                }
-                            })
-                            ->afterStateHydrated(function (callable $get, callable $set, $state): void {
-                                // Initialize map with existing coordinates
-                                $lat = $get('latitude');
-                                $lng = $get('longitude');
-                                if ($lat && $lng) {
-                                    $set('location', ['lat' => (float) $lat, 'lng' => (float) $lng]);
-                                }
-                            })
+                            ->defaultLocation(-7.89946200, 111.96239900) // Default Madiun coordinates
                             ->reactive()
                             ->live()
                             ->columnSpanFull()

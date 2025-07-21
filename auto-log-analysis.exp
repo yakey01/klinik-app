@@ -1,0 +1,123 @@
+#!/usr/bin/expect -f
+
+# Automated Log Analysis with Creative Expect Script
+# This will automatically connect and analyze the 500 error
+
+set timeout 60
+set host "srv556.hstgr.io"
+set user "u196138154"
+set path "/home/u196138154/domains/dokterkuklinik.com/public_html"
+
+# Get password securely
+send_user "🔐 SSH Password: "
+stty -echo
+expect_user -re "(.*)\n"
+set password $expect_out(1,string)
+stty echo
+send_user "\n"
+
+send_user "🚀 Starting automated 500 error analysis...\n"
+
+# Connect to server
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" {
+        send "$password\r"
+        expect "$ "
+        send_user "✅ Connected to production server\n"
+    }
+    timeout {
+        send_user "❌ Connection failed\n"
+        exit 1
+    }
+}
+
+# Navigate to app directory
+send "cd $path\r"
+expect "$ "
+
+send_user "📋 STEP 1: Checking Laravel logs for recent errors...\n"
+send "tail -50 storage/logs/laravel.log | grep -A 3 -B 3 -E '(ERROR|Exception|Fatal|500)'\r"
+expect "$ "
+
+send_user "\n📋 STEP 2: Testing database connectivity...\n"
+send "php artisan tinker --execute=\"try { \\DB::connection()->getPdo(); echo 'DB: OK'; } catch(Exception \\$e) { echo 'DB ERROR: ' . \\$e->getMessage(); }\"\r"
+expect "$ "
+
+send_user "\n📋 STEP 3: Checking paramedis user data...\n"
+send "php artisan tinker --execute=\"\\$p = \\App\\Models\\Pegawai::where('username', 'naning')->orWhere('nama_lengkap', 'LIKE', '%naning%')->first(); echo \\$p ? 'FOUND: ' . \\$p->nama_lengkap : 'NOT FOUND';\"\r"
+expect "$ "
+
+send_user "\n📋 STEP 4: Testing authentication simulation...\n"
+send {php artisan tinker --execute="
+try {
+    $pegawai = \App\Models\Pegawai::where('jenis_pegawai', 'Paramedis')->first();
+    if (!$pegawai) { echo 'NO PARAMEDIS FOUND'; exit(); }
+    
+    echo 'Testing: ' . $pegawai->nama_lengkap . '\n';
+    
+    $roleName = match($pegawai->jenis_pegawai) {
+        'Paramedis' => 'paramedis',
+        'Non-Paramedis' => 'non_paramedis',
+        default => 'petugas'
+    };
+    
+    $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
+    echo 'Role check: ' . ($role ? 'OK' : 'MISSING') . '\n';
+    
+    $userEmail = $pegawai->nik . '@pegawai.local';
+    $emailConflict = \App\Models\User::where('email', $userEmail)->exists();
+    echo 'Email conflict: ' . ($emailConflict ? 'YES' : 'NO') . '\n';
+    
+} catch (Exception $e) {
+    echo 'AUTH ERROR: ' . $e->getMessage();
+}
+"}
+send "\r"
+expect "$ "
+
+send_user "\n📋 STEP 5: Checking migration status...\n"
+send "php artisan migrate:status | grep email\r"
+expect "$ "
+
+send_user "\n📋 STEP 6: Testing actual login endpoint...\n"
+send {php -r "
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://dokterkuklinik.com/login');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+echo 'Login page HTTP code: ' . $httpCode . '\n';
+echo 'Response length: ' . strlen($response) . ' chars\n';
+if ($httpCode !== 200) {
+    echo 'Login page error detected\n';
+}
+"}
+send "\r"
+expect "$ "
+
+send_user "\n📋 STEP 7: Checking PHP errors...\n"
+send "find . -name 'error_log' -o -name 'php_errors.log' | head -3 | xargs tail -20\r"
+expect "$ "
+
+send_user "\n📋 STEP 8: Memory and configuration check...\n"
+send "php -r \"echo 'Memory: ' . ini_get('memory_limit') . ' | Max execution: ' . ini_get('max_execution_time') . ' | Display errors: ' . ini_get('display_errors');\"\r"
+expect "$ "
+
+send_user "\n📋 STEP 9: Checking recent file changes...\n"
+send "find . -name '*.php' -mtime -1 | head -10\r"
+expect "$ "
+
+send_user "\n📋 STEP 10: Testing route registration...\n"
+send "php artisan route:list | grep -E '(login|auth)'\r"
+expect "$ "
+
+send_user "\n🎉 Analysis completed!\n"
+send "exit\r"
+expect eof
+
+send_user "📊 Log analysis finished - check output above for error details\n"

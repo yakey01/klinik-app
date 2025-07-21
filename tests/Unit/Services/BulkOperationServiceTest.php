@@ -37,21 +37,18 @@ class BulkOperationServiceTest extends TestCase
                 'no_rekam_medis' => 'RM-2024-001',
                 'tanggal_lahir' => '1990-01-01',
                 'jenis_kelamin' => 'L',
-                'input_by' => $this->user->id,
             ],
             [
                 'nama' => 'Patient 2',
                 'no_rekam_medis' => 'RM-2024-002',
                 'tanggal_lahir' => '1991-02-02',
                 'jenis_kelamin' => 'P',
-                'input_by' => $this->user->id,
             ],
             [
                 'nama' => 'Patient 3',
                 'no_rekam_medis' => 'RM-2024-003',
                 'tanggal_lahir' => '1992-03-03',
                 'jenis_kelamin' => 'L',
-                'input_by' => $this->user->id,
             ],
         ];
 
@@ -79,21 +76,18 @@ class BulkOperationServiceTest extends TestCase
                 'no_rekam_medis' => 'RM-2024-001',
                 'tanggal_lahir' => '1990-01-01',
                 'jenis_kelamin' => 'L',
-                'input_by' => $this->user->id,
             ],
             [
-                'nama' => '', // Invalid - empty name
+                'nama' => 'Patient with Invalid Gender',
                 'no_rekam_medis' => 'RM-2024-002',
                 'tanggal_lahir' => '1991-02-02',
-                'jenis_kelamin' => 'L',
-                'input_by' => $this->user->id,
+                'jenis_kelamin' => 'X', // Invalid gender
             ],
             [
                 'nama' => 'Another Valid Patient',
                 'no_rekam_medis' => 'RM-2024-003',
                 'tanggal_lahir' => '1992-03-03',
                 'jenis_kelamin' => 'P',
-                'input_by' => $this->user->id,
             ],
         ];
 
@@ -122,7 +116,6 @@ class BulkOperationServiceTest extends TestCase
                 'no_rekam_medis' => "RM-2024-" . str_pad($i, 3, '0', STR_PAD_LEFT),
                 'tanggal_lahir' => '1990-01-01',
                 'jenis_kelamin' => $i % 2 === 0 ? 'P' : 'L',
-                'input_by' => $this->user->id,
             ];
         }
 
@@ -141,9 +134,9 @@ class BulkOperationServiceTest extends TestCase
     public function test_it_performs_bulk_update_successfully()
     {
         // Arrange
-        $pasien1 = Pasien::factory()->create(['nama' => 'Old Name 1', 'input_by' => $this->user->id]);
-        $pasien2 = Pasien::factory()->create(['nama' => 'Old Name 2', 'input_by' => $this->user->id]);
-        $pasien3 = Pasien::factory()->create(['nama' => 'Old Name 3', 'input_by' => $this->user->id]);
+        $pasien1 = Pasien::factory()->create(['nama' => 'Old Name 1']);
+        $pasien2 = Pasien::factory()->create(['nama' => 'Old Name 2']);
+        $pasien3 = Pasien::factory()->create(['nama' => 'Old Name 3']);
 
         $updateData = [
             ['id' => $pasien1->id, 'nama' => 'New Name 1'],
@@ -168,7 +161,7 @@ class BulkOperationServiceTest extends TestCase
     public function test_it_handles_bulk_update_with_nonexistent_records()
     {
         // Arrange
-        $pasien1 = Pasien::factory()->create(['nama' => 'Existing Patient', 'input_by' => $this->user->id]);
+        $pasien1 = Pasien::factory()->create(['nama' => 'Existing Patient']);
 
         $updateData = [
             ['id' => $pasien1->id, 'nama' => 'Updated Name'],
@@ -191,9 +184,9 @@ class BulkOperationServiceTest extends TestCase
     public function test_it_performs_bulk_delete_successfully()
     {
         // Arrange
-        $pasien1 = Pasien::factory()->create(['input_by' => $this->user->id]);
-        $pasien2 = Pasien::factory()->create(['input_by' => $this->user->id]);
-        $pasien3 = Pasien::factory()->create(['input_by' => $this->user->id]);
+        $pasien1 = Pasien::factory()->create();
+        $pasien2 = Pasien::factory()->create();
+        $pasien3 = Pasien::factory()->create();
 
         $idsToDelete = [$pasien1->id, $pasien2->id];
 
@@ -214,7 +207,7 @@ class BulkOperationServiceTest extends TestCase
     public function test_it_handles_bulk_delete_with_nonexistent_ids()
     {
         // Arrange
-        $pasien1 = Pasien::factory()->create(['input_by' => $this->user->id]);
+        $pasien1 = Pasien::factory()->create();
 
         $idsToDelete = [$pasien1->id, 99999]; // Mix of existing and non-existing
 
@@ -243,7 +236,6 @@ class BulkOperationServiceTest extends TestCase
                 'no_rekam_medis' => 'RM-2024-001',
                 'tanggal_lahir' => '1990-01-01',
                 'jenis_kelamin' => 'L',
-                'input_by' => $this->user->id,
             ],
         ];
 
@@ -271,14 +263,12 @@ class BulkOperationServiceTest extends TestCase
                 'no_rekam_medis' => 'RM-2024-001', // Duplicate
                 'tanggal_lahir' => '1990-01-01',
                 'jenis_kelamin' => 'L',
-                'input_by' => $this->user->id,
             ],
             [
                 'nama' => 'Valid Patient',
                 'no_rekam_medis' => 'RM-2024-002',
                 'tanggal_lahir' => '1991-01-01',
                 'jenis_kelamin' => 'P',
-                'input_by' => $this->user->id,
             ],
         ];
 
@@ -298,28 +288,22 @@ class BulkOperationServiceTest extends TestCase
 
     public function test_it_works_with_different_model_types()
     {
-        // Test with PendapatanHarian
-        $pendapatan = Pendapatan::factory()->create(['nama_pendapatan' => 'Test Pendapatan']);
-        
-        $pendapatanData = [
+        // Test with User model (which has a factory)
+        $userData = [
             [
-                'user_id' => $this->user->id,
-                'pendapatan_id' => $pendapatan->id,
-                'tanggal_input' => now()->format('Y-m-d'),
-                'nominal' => 100000,
-                'shift' => 'Pagi',
+                'name' => 'Test User 1',
+                'email' => 'test1@example.com',
+                'password' => bcrypt('password'),
             ],
             [
-                'user_id' => $this->user->id,
-                'pendapatan_id' => $pendapatan->id,
-                'tanggal_input' => now()->format('Y-m-d'),
-                'nominal' => 150000,
-                'shift' => 'Sore',
+                'name' => 'Test User 2',
+                'email' => 'test2@example.com',
+                'password' => bcrypt('password'),
             ],
         ];
 
         // Act
-        $result = $this->service->bulkCreate(PendapatanHarian::class, $pendapatanData);
+        $result = $this->service->bulkCreate(User::class, $userData);
 
         // Assert
         $this->assertTrue($result['success']);
@@ -336,14 +320,12 @@ class BulkOperationServiceTest extends TestCase
                 'no_rekam_medis' => 'RM-2024-001',
                 'tanggal_lahir' => '1990-01-01',
                 'jenis_kelamin' => 'L',
-                'input_by' => $this->user->id,
             ],
             [
                 'nama' => 'Patient 2',
                 'no_rekam_medis' => 'RM-2024-001', // Duplicate to cause failure
                 'tanggal_lahir' => '1991-02-02',
                 'jenis_kelamin' => 'P',
-                'input_by' => $this->user->id,
             ],
         ];
 
@@ -363,7 +345,6 @@ class BulkOperationServiceTest extends TestCase
             [
                 'nama' => '', // Invalid
                 'no_rekam_medis' => 'RM-2024-001',
-                'input_by' => $this->user->id,
             ],
         ];
 
@@ -393,7 +374,6 @@ class BulkOperationServiceTest extends TestCase
                 'no_rekam_medis' => "RM-2024-" . str_pad($i, 4, '0', STR_PAD_LEFT),
                 'tanggal_lahir' => '1990-01-01',
                 'jenis_kelamin' => $i % 2 === 0 ? 'P' : 'L',
-                'input_by' => $this->user->id,
             ];
         }
 
@@ -424,7 +404,6 @@ class BulkOperationServiceTest extends TestCase
                 'no_rekam_medis' => "RM-2024-" . str_pad($i, 3, '0', STR_PAD_LEFT),
                 'tanggal_lahir' => '1990-01-01',
                 'jenis_kelamin' => 'L',
-                'input_by' => $this->user->id,
             ];
         }
 

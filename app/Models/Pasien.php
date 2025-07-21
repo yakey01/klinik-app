@@ -27,7 +27,6 @@ class Pasien extends Model
         'status_pernikahan',
         'kontak_darurat_nama',
         'kontak_darurat_telepon',
-        'input_by',
     ];
 
     protected $casts = [
@@ -85,5 +84,18 @@ class Pasien extends Model
         return $this->cacheAttribute('last_tindakan', function() {
             return $this->tindakan()->latest()->first();
         });
+    }
+    
+    /**
+     * Get validation rules for bulk operations
+     */
+    public function getBulkValidationRules(): array
+    {
+        return [
+            'nama' => 'required|string|max:255',
+            'no_rekam_medis' => 'required|string|max:255|unique:pasien,no_rekam_medis',
+            'tanggal_lahir' => 'required|date',
+            'jenis_kelamin' => 'required|in:L,P',
+        ];
     }
 }

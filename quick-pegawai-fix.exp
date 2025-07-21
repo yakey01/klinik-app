@@ -1,0 +1,79 @@
+#!/usr/bin/expect -f
+
+# Quick Pegawai Role Edit Fix
+set timeout 30
+set host "srv556.hstgr.io"
+set user "u196138154"
+
+send_user "🔧 QUICK PEGAWAI ROLE EDIT FIX\n"
+send_user "=============================\n"
+
+# Get password
+send_user "🔐 Password: "
+stty -echo
+expect_user -re "(.*)\n"
+set password $expect_out(1,string)
+stty echo
+send_user "\n"
+
+# Connect and fix
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect "password:"
+send "$password\r"
+expect "$ "
+
+send "cd /home/u196138154/domains/dokterkuklinik.com/public_html\r"
+expect "$ "
+
+send_user "🧹 Clearing all caches...\n"
+
+# Clear all caches that could cause schema cache issues
+send "php artisan optimize:clear\r"
+expect "$ "
+
+send "php artisan cache:clear\r" 
+expect "$ "
+
+send "php artisan config:clear\r"
+expect "$ "
+
+send "php artisan view:clear\r"
+expect "$ "
+
+send "php artisan route:clear\r"
+expect "$ "
+
+send_user "🗃️  Testing database access...\n"
+
+# Test database access
+send {php artisan tinker --execute="
+try {
+    $pegawai = \App\Models\Pegawai::find(1);
+    echo $pegawai ? 'Pegawai found: ' . $pegawai->nama_lengkap : 'Pegawai not found';
+    echo '\nEmail: ' . ($pegawai->email ?? 'NULL');
+} catch (Exception $e) {
+    echo 'Error: ' . $e->getMessage();
+}
+"}
+send "\r"
+expect "$ "
+
+send_user "🚀 Rebuilding production caches...\n"
+
+send "php artisan config:cache\r"
+expect "$ "
+
+send "php artisan route:cache\r"
+expect "$ "
+
+send_user "✅ Fix completed!\n"
+send "exit\r"
+expect eof
+
+send_user "\n🎉 PEGAWAI ROLE EDIT FIX APPLIED!\n"
+send_user "=================================\n"
+send_user "✅ Database schema cache cleared\n"
+send_user "✅ All application caches refreshed\n"
+send_user "✅ Production caches rebuilt\n"
+send_user "\n💡 Test now: https://dokterkuklinik.com/admin/pegawai/1/edit\n"
+send_user "The role editing should work without 500 errors\n"

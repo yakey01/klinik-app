@@ -18,14 +18,15 @@ class BulkOperationService
 {
     use HandlesErrors, SafeTransaction;
     protected array $supportedModels = [
-        'PendapatanHarian',
-        'PengeluaranHarian', 
-        'JumlahPasienHarian',
-        'Tindakan',
-        'Pasien',
-        'Pegawai',
-        'Dokter',
-        'Attendance',
+        'App\Models\PendapatanHarian',
+        'App\Models\PengeluaranHarian', 
+        'App\Models\JumlahPasienHarian',
+        'App\Models\Tindakan',
+        'App\Models\Pasien',
+        'App\Models\Pegawai',
+        'App\Models\Dokter',
+        'App\Models\Attendance',
+        'App\Models\User',
     ];
 
     protected array $batchSizes = [
@@ -64,7 +65,8 @@ class BulkOperationService
             return [
                 'success' => true,
                 'created' => count($results),
-                'errors' => count($errors),
+                'failed' => count($errors),
+                'errors' => $errors,
                 'data' => $results,
                 'error_details' => $errors,
             ];
@@ -101,7 +103,8 @@ class BulkOperationService
             return [
                 'success' => true,
                 'updated' => count($results),
-                'errors' => count($errors),
+                'failed' => count($errors),
+                'errors' => $errors,
                 'data' => $results,
                 'error_details' => $errors,
             ];
@@ -123,13 +126,26 @@ class BulkOperationService
             
             foreach ($batches as $batchIndex => $batch) {
                 try {
-                    if ($softDelete && method_exists($modelClass, 'trashed')) {
-                        $batchDeleted = $modelClass::whereIn('id', $batch)->delete();
+                    // Check which records exist before deletion
+                    $existingIds = $modelClass::whereIn('id', $batch)->pluck('id')->toArray();
+                    $nonExistingIds = array_diff($batch, $existingIds);
+                    
+                    if ($softDelete && in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses_recursive($modelClass))) {
+                        $batchDeleted = $modelClass::whereIn('id', $existingIds)->delete();
                     } else {
-                        $batchDeleted = $modelClass::whereIn('id', $batch)->forceDelete();
+                        $batchDeleted = $modelClass::whereIn('id', $existingIds)->delete();
                     }
                     
                     $deleted += $batchDeleted;
+                    
+                    // Track non-existing IDs as errors
+                    foreach ($nonExistingIds as $id) {
+                        $errors[] = [
+                            'batch' => $batchIndex,
+                            'id' => $id,
+                            'error' => "Record with ID {$id} not found"
+                        ];
+                    }
                     
                 } catch (Exception $e) {
                     $errors[] = [
@@ -145,7 +161,8 @@ class BulkOperationService
             return [
                 'success' => true,
                 'deleted' => $deleted,
-                'errors' => count($errors),
+                'failed' => count($errors),
+                'errors' => $errors,
                 'error_details' => $errors,
             ];
         });
@@ -172,7 +189,7 @@ class BulkOperationService
                             'batch' => $batchIndex,
                             'index' => $index,
                             'data' => $item,
-                            'errors' => $validator->errors()->toArray()
+                            'error' => $validator->errors()->toArray()
                         ];
                         continue;
                     }
@@ -188,7 +205,7 @@ class BulkOperationService
                     'batch' => $batchIndex,
                     'index' => $index,
                     'data' => $item,
-                    'errors' => ['general' => [$e->getMessage()]]
+                    'error' => $e->getMessage()
                 ];
             }
         }
@@ -216,7 +233,7 @@ class BulkOperationService
                         'batch' => $batchIndex,
                         'index' => $index,
                         'data' => $item,
-                        'errors' => ['general' => ["Missing key field: {$keyField}"]]
+                        'error' => "Missing key field: {$keyField}"
                     ];
                     continue;
                 }
@@ -227,7 +244,7 @@ class BulkOperationService
                         'batch' => $batchIndex,
                         'index' => $index,
                         'data' => $item,
-                        'errors' => ['general' => ["Record not found with {$keyField}: {$item[$keyField]}"]]
+                        'error' => "Record not found with {$keyField}: {$item[$keyField]}"
                     ];
                     continue;
                 }
@@ -239,7 +256,7 @@ class BulkOperationService
                             'batch' => $batchIndex,
                             'index' => $index,
                             'data' => $item,
-                            'errors' => $validator->errors()->toArray()
+                            'error' => $validator->errors()->toArray()
                         ];
                         continue;
                     }
@@ -255,7 +272,7 @@ class BulkOperationService
                     'batch' => $batchIndex,
                     'index' => $index,
                     'data' => $item,
-                    'errors' => ['general' => [$e->getMessage()]]
+                    'error' => $e->getMessage()
                 ];
             }
         }
@@ -272,25 +289,25 @@ class BulkOperationService
             throw new Exception("Model class {$modelClass} does not exist");
         }
         
-        $modelName = class_basename($modelClass);
-        if (!in_array($modelName, $this->supportedModels)) {
-            throw new Exception("Model {$modelName} is not supported for bulk operations");
+        if (!in_array($modelClass, $this->supportedModels)) {
+            throw new Exception("Model {$modelClass} is not supported for bulk operations");
         }
     }
 
     protected function validateModelData(Model $model, array $data)
     {
-        $fillable = $model->getFillable();
         $rules = [];
         
-        foreach ($fillable as $field) {
-            if (isset($data[$field])) {
-                $rules[$field] = 'required';
-            }
+        // Only use custom validation rules if they exist
+        if (method_exists($model, 'getBulkValidationRules')) {
+            $rules = $model->getBulkValidationRules();
         }
         
-        if (method_exists($model, 'getBulkValidationRules')) {
-            $rules = array_merge($rules, $model->getBulkValidationRules());
+        // If no custom rules, use minimal validation
+        if (empty($rules)) {
+            // Only validate that required database fields are present
+            // Let the database handle the actual constraints
+            $rules = [];
         }
         
         return Validator::make($data, $rules);

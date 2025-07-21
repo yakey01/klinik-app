@@ -20,22 +20,21 @@ class TindakanFactory extends Factory
      */
     public function definition(): array
     {
-        $jenisTindakan = JenisTindakan::inRandomOrder()->first();
-        
         return [
             'pasien_id' => Pasien::factory(),
-            'jenis_tindakan_id' => $jenisTindakan->id,
-            'dokter_id' => User::whereHas('role', fn($q) => $q->where('name', 'dokter'))->inRandomOrder()->first()?->id,
-            'paramedis_id' => User::whereHas('role', fn($q) => $q->where('name', 'paramedis'))->inRandomOrder()->first()?->id,
-            'non_paramedis_id' => User::whereHas('role', fn($q) => $q->where('name', 'non_paramedis'))->inRandomOrder()->first()?->id,
-            'shift_id' => Shift::inRandomOrder()->first()?->id,
+            'jenis_tindakan_id' => JenisTindakan::factory(),
+            'dokter_id' => User::factory(),
+            'paramedis_id' => User::factory(),
+            'non_paramedis_id' => User::factory(),
+            'shift_id' => null,
             'tanggal_tindakan' => fake()->dateTimeBetween('-30 days', 'now'),
-            'tarif' => $jenisTindakan->tarif,
-            'jasa_dokter' => $jenisTindakan->jasa_dokter,
-            'jasa_paramedis' => $jenisTindakan->jasa_paramedis,
-            'jasa_non_paramedis' => $jenisTindakan->jasa_non_paramedis,
+            'tarif' => fake()->numberBetween(50000, 1000000),
+            'jasa_dokter' => fake()->numberBetween(20000, 300000),
+            'jasa_paramedis' => fake()->numberBetween(10000, 150000),
+            'jasa_non_paramedis' => fake()->numberBetween(5000, 50000),
             'catatan' => fake()->optional()->sentence(),
             'status' => fake()->randomElement(['pending', 'selesai', 'batal']),
+            'input_by' => User::factory(),
         ];
     }
 }

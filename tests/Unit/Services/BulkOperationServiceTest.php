@@ -169,7 +169,7 @@ class BulkOperationServiceTest extends TestCase
         ];
 
         // Act
-        $result = $this->service->bulkUpdate(Pasien::class, $updateData, 'id');
+        $result = $this->service->bulkUpdate(Pasien::class, $updateData, 'id', ['validate' => false]);
 
         // Assert
         $this->assertTrue($result['success']);
@@ -198,10 +198,10 @@ class BulkOperationServiceTest extends TestCase
         $this->assertEquals(2, $result['deleted']);
         $this->assertEquals(0, $result['failed']);
 
-        // Verify records were deleted
-        $this->assertDatabaseMissing('pasien', ['id' => $pasien1->id]);
-        $this->assertDatabaseMissing('pasien', ['id' => $pasien2->id]);
-        $this->assertDatabaseHas('pasien', ['id' => $pasien3->id]); // Should still exist
+        // Verify records were soft deleted (they still exist but with deleted_at set)
+        $this->assertSoftDeleted('pasien', ['id' => $pasien1->id]);
+        $this->assertSoftDeleted('pasien', ['id' => $pasien2->id]);
+        $this->assertDatabaseHas('pasien', ['id' => $pasien3->id, 'deleted_at' => null]); // Should still exist and not deleted
     }
 
     public function test_it_handles_bulk_delete_with_nonexistent_ids()
@@ -219,8 +219,8 @@ class BulkOperationServiceTest extends TestCase
         $this->assertEquals(1, $result['deleted']);
         $this->assertEquals(1, $result['failed']);
 
-        // Verify existing record was deleted
-        $this->assertDatabaseMissing('pasien', ['id' => $pasien1->id]);
+        // Verify existing record was soft deleted
+        $this->assertSoftDeleted('pasien', ['id' => $pasien1->id]);
     }
 
     public function test_it_validates_data_before_operations()

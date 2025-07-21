@@ -33,10 +33,53 @@ class RoleMiddleware
             }
 
             if (!$hasRole) {
+                // For mobile app routes, provide better error handling
+                if ($request->expectsJson() || str_contains($request->path(), 'mobile-app')) {
+                    return response()->json([
+                        'error' => 'Akses ditolak',
+                        'message' => 'Anda tidak memiliki akses ke halaman ini. Role yang diperlukan: ' . implode(', ', $roles),
+                        'redirect_url' => $this->getRedirectUrl($user, $roles)
+                    ], 403);
+                }
+                
+                // For web routes, redirect based on user role
+                $redirectUrl = $this->getRedirectUrl($user, $roles);
+                if ($redirectUrl) {
+                    return redirect($redirectUrl)->with('error', 'Akses ditolak. Anda tidak memiliki role yang diperlukan.');
+                }
+                
                 abort(403, 'Unauthorized access. You do not have the required role.');
             }
         }
 
         return $next($request);
+    }
+    
+    /**
+     * Get appropriate redirect URL based on user's actual role
+     */
+    private function getRedirectUrl($user, $requiredRoles): ?string
+    {
+        if (!$user || !$user->role) {
+            return '/login';
+        }
+        
+        // Redirect to user's actual role dashboard
+        switch ($user->role->name) {
+            case 'admin':
+            case 'manajer': 
+            case 'bendahara':
+                return '/admin';
+            case 'petugas':
+                return '/petugas';
+            case 'dokter':
+                return '/dokter';
+            case 'paramedis':
+                return '/paramedis';
+            case 'non_paramedis':
+                return route('nonparamedis.dashboard');
+            default:
+                return '/';
+        }
     }
 }

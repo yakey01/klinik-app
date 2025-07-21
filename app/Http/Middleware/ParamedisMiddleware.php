@@ -33,7 +33,7 @@ class ParamedisMiddleware
                 ], 403);
             }
 
-            // Redirect based on user role - with null safety
+            // Redirect based on user role - with proper null safety
             if ($user && $user->role && $user->role->name) {
                 switch ($user->role->name) {
                     case 'admin':
@@ -42,6 +42,10 @@ class ParamedisMiddleware
                         return redirect()->route('filament.admin.pages.dashboard');
                     case 'petugas':
                         return redirect()->route('filament.petugas.pages.dashboard');
+                    case 'dokter':
+                        return redirect('/dokter');
+                    case 'non_paramedis':
+                        return redirect()->route('nonparamedis.dashboard');
                     default:
                         return redirect('/');
                 }

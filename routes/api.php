@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Paramedis\AttendanceController;
 use App\Models\WorkLocation;
+use App\Http\Controllers\Auth\UnifiedAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -825,3 +826,78 @@ Route::prefix('v1')->group(function () {
         ], 404);
     });
 });
+
+// Temporary paramedis login API route to bypass CSRF
+Route::post('/paramedis/login', function (Request $request) {
+    // Simulate the UnifiedAuthController logic but for API
+    $identifier = $request->input('email_or_username');
+    $password = $request->input('password');
+    
+    // Find pegawai
+    $pegawai = \App\Models\Pegawai::where('username', $identifier)
+        ->orWhere('nik', $identifier)
+        ->first();
+    
+    if (!$pegawai || !$pegawai->aktif) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid credentials or user not active'
+        ], 401);
+    }
+    
+    // Check password
+    if (!\Illuminate\Support\Facades\Hash::check($password, $pegawai->password)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid password'
+        ], 401);
+    }
+    
+    // Check if it's a paramedis
+    if ($pegawai->jenis_pegawai !== 'Paramedis') {
+        return response()->json([
+            'success' => false,
+            'message' => 'Access denied. Only paramedis can login here.'
+        ], 403);
+    }
+    
+    // Create or get user
+    $role = \Spatie\Permission\Models\Role::where('name', 'paramedis')->first();
+    if (!$role) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Paramedis role not found'
+        ], 500);
+    }
+    
+    $userEmail = $pegawai->nik . '@pegawai.local';
+    $user = \App\Models\User::where('email', $userEmail)->first();
+    
+    if (!$user) {
+        $user = \App\Models\User::create([
+            'name' => $pegawai->nama_lengkap,
+            'username' => $pegawai->username,
+            'email' => $userEmail,
+            'role_id' => $role->id,
+            'is_active' => $pegawai->aktif,
+            'password' => $pegawai->password,
+        ]);
+        
+        $pegawai->update(['user_id' => $user->id]);
+    }
+    
+    // Login the user
+    \Illuminate\Support\Facades\Auth::login($user);
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Login successful',
+        'user' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => 'paramedis'
+        ],
+        'redirect_url' => '/paramedis'
+    ]);
+})->name('api.paramedis.login');

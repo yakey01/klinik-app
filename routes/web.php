@@ -278,10 +278,20 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/api/schedules', function () {
             try {
                 $user = auth()->user();
-                $userId = $user->id;
+                
+                // Get the actual pegawai_id if user was created from pegawai
+                $pegawaiId = null;
+                if ($user->email && str_contains($user->email, '@pegawai.local')) {
+                    // This user was created from pegawai table, find the pegawai record
+                    $pegawai = \App\Models\Pegawai::where('user_id', $user->id)->first();
+                    $pegawaiId = $pegawai ? $pegawai->id : null;
+                } else {
+                    // Check if user has direct pegawai relationship
+                    $pegawaiId = $user->pegawai_id ?? $user->id;
+                }
                 
                 // Get current and upcoming schedules for this paramedis
-                $schedules = \App\Models\JadwalJaga::where('pegawai_id', $userId)
+                $schedules = \App\Models\JadwalJaga::where('pegawai_id', $pegawaiId)
                     ->where('tanggal_jaga', '>=', now()->subDays(1)) // Include yesterday for overnight shifts
                     ->with(['shiftTemplate'])
                     ->orderBy('tanggal_jaga')

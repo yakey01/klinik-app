@@ -12,17 +12,9 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        // Temporarily disable CSRF for all routes to fix 419 error
-        // TODO: Re-enable after fixing CSRF token issue
-        '*',
+        'livewire/update',
+        'livewire/upload-file',
+        'livewire/message/*',
     ];
     
-    /**
-     * Temporarily disable CSRF verification completely
-     */
-    protected function tokensMatch($request)
-    {
-        // Temporarily bypass CSRF check to fix 419 error
-        return true;
-    }
 }

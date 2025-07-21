@@ -43,7 +43,11 @@ class ParamedisPanelProvider extends PanelProvider
                 // No resources - mobile app only
             ])
             ->pages([
-                \App\Filament\Paramedis\Pages\RedirectToMobileApp::class,
+                // Use conditional page loading to prevent errors
+                ...(class_exists('\App\Filament\Paramedis\Pages\RedirectToMobileApp') 
+                    ? [\App\Filament\Paramedis\Pages\RedirectToMobileApp::class] 
+                    : []
+                ),
             ])
             ->widgets([
                 // No widgets - mobile app only

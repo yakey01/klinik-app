@@ -23,8 +23,14 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        // Use existing role or create a basic one to avoid unique constraint violations
+        $role = \App\Models\Role::firstOrCreate(
+            ['name' => 'petugas'],
+            ['display_name' => 'Petugas', 'permissions' => ['basic_access']]
+        );
+
         return [
-            'role_id' => \App\Models\Role::factory(),
+            'role_id' => $role->id,
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),

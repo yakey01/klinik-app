@@ -21,6 +21,13 @@ import {
   Timer
 } from 'lucide-react';
 
+interface DashboardProps {
+  userData?: {
+    name: string;
+    greeting?: string;
+  };
+}
+
 interface JadwalItem {
   id: string;
   tanggal: string;
@@ -30,7 +37,7 @@ interface JadwalItem {
   status: 'scheduled' | 'completed' | 'missed';
 }
 
-export function Dashboard() {
+export function Dashboard({ userData }: DashboardProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [jadwalMendatang] = useState<JadwalItem[]>([
     {
@@ -144,7 +151,9 @@ export function Dashboard() {
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-white text-heading-mobile">Dashboard</h2>
-                  <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">Selamat datang kembali, Dr. Ahmad</p>
+                  <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">
+                    {userData?.greeting || 'Selamat datang kembali'}, {userData?.name || 'Dokter'}
+                  </p>
                 </div>
               </div>
               

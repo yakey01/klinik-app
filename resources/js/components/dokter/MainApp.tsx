@@ -11,9 +11,13 @@ import { Card, CardContent } from '../ui/card';
 
 interface MainAppProps {
   onLogout: () => void;
+  userData?: {
+    name: string;
+    greeting?: string;
+  };
 }
 
-export function MainApp({ onLogout }: MainAppProps) {
+export function MainApp({ onLogout, userData }: MainAppProps) {
   const [activeTab, setActiveTab] = useState('presensi');
 
   const tabs = [
@@ -107,8 +111,8 @@ export function MainApp({ onLogout }: MainAppProps) {
               <User className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-white/90 text-sm">Selamat datang,</p>
-              <p className="text-white">Dr. Ahmad Fauzi</p>
+              <p className="text-white/90 text-sm">{userData?.greeting || 'Selamat datang'},</p>
+              <p className="text-white">{userData?.name || 'Dokter'}</p>
             </div>
           </motion.div>
         </div>

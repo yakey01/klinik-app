@@ -32,6 +32,20 @@ function ModernDashboardWrapper({ initialData }: ModernDashboardProps) {
     const [dashboardData, setDashboardData] = useState(initialData);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [userData, setUserData] = useState<any>(null);
+
+    // Get user data from meta tag
+    useEffect(() => {
+        const userDataMeta = document.querySelector('meta[name="user-data"]');
+        if (userDataMeta) {
+            try {
+                const data = JSON.parse(userDataMeta.getAttribute('content') || '{}');
+                setUserData(data);
+            } catch (e) {
+                console.error('Error parsing user data:', e);
+            }
+        }
+    }, []);
 
     // Handle data updates from global events
     useEffect(() => {
@@ -157,7 +171,7 @@ function ModernDashboardWrapper({ initialData }: ModernDashboardProps) {
         }, []);
 
         // Return your existing Dashboard component with integrated data
-        return <Dashboard />;
+        return <Dashboard userData={userData} />;
     };
 
     if (error) {
@@ -201,7 +215,7 @@ function ModernDashboardWrapper({ initialData }: ModernDashboardProps) {
 
     // Use MainApp component for full navigation experience
     return (
-        <MainApp onLogout={handleLogout} />
+        <MainApp onLogout={handleLogout} userData={userData} />
     );
 }
 

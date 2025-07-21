@@ -169,9 +169,13 @@ Route::middleware(['auth'])->group(function () {
             $user = auth()->user();
             $token = $user->createToken('mobile-app-dokter-' . now()->timestamp)->plainTextToken;
             
+            $hour = now()->hour;
+            $greeting = $hour < 12 ? 'Selamat Pagi' : ($hour < 17 ? 'Selamat Siang' : 'Selamat Malam');
+            
             $userData = [
                 'name' => $user->name,
                 'email' => $user->email,
+                'greeting' => $greeting,
                 'initials' => strtoupper(substr($user->name ?? 'DA', 0, 2))
             ];
             
@@ -256,9 +260,13 @@ Route::middleware(['auth'])->group(function () {
             $user = auth()->user();
             $token = $user->createToken('mobile-app-paramedis-' . now()->timestamp)->plainTextToken;
             
+            $hour = now()->hour;
+            $greeting = $hour < 12 ? 'Selamat Pagi' : ($hour < 17 ? 'Selamat Siang' : 'Selamat Malam');
+            
             $userData = [
                 'name' => $user->name,
                 'email' => $user->email,
+                'greeting' => $greeting,
                 'initials' => strtoupper(substr($user->name ?? 'PA', 0, 2))
             ];
             

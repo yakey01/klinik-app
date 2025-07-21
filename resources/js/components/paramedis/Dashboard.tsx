@@ -30,7 +30,14 @@ interface JadwalItem {
   status: 'scheduled' | 'completed' | 'missed';
 }
 
-export function Dashboard() {
+interface DashboardProps {
+  userData?: {
+    name: string;
+    greeting?: string;
+  };
+}
+
+export function Dashboard({ userData: propUserData }: DashboardProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [userData, setUserData] = useState<any>(null);
   const [jadwalMendatang, setJadwalMendatang] = useState<JadwalItem[]>([]);
@@ -162,7 +169,7 @@ export function Dashboard() {
                 <div>
                   <h2 className="text-xl font-semibold text-white text-heading-mobile">Dashboard</h2>
                   <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">
-                    Selamat datang kembali, {userData?.name || 'Paramedis'}
+                    {propUserData?.greeting || userData?.greeting || 'Selamat datang kembali'}, {propUserData?.name || userData?.name || 'Paramedis'}
                   </p>
                 </div>
               </div>

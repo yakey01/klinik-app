@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, 
@@ -38,7 +38,21 @@ function AppContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
   const { theme, toggleTheme } = useTheme();
+
+  // Get user data from meta tag
+  useEffect(() => {
+    const userDataMeta = document.querySelector('meta[name="user-data"]');
+    if (userDataMeta) {
+      try {
+        const data = JSON.parse(userDataMeta.getAttribute('content') || '{}');
+        setUserData(data);
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +124,7 @@ function AppContent() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard userData={userData} />;
       case 'jadwal':
         return <JadwalJaga />;
       case 'jaspel':
@@ -120,9 +134,9 @@ function AppContent() {
       case 'laporan':
         return <Laporan />;
       case 'profil':
-        return <Profil />;
+        return <Profil userData={userData} />;
       default:
-        return <Dashboard />;
+        return <Dashboard userData={userData} />;
     }
   };
 

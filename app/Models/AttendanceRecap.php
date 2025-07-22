@@ -143,7 +143,7 @@ class AttendanceRecap extends Model
                 END) as total_working_hours'),
                 DB::raw("ROUND((CAST(COUNT(DISTINCT a.date) AS REAL) / CAST($workingDays AS REAL)) * 100, 2) as attendance_percentage")
             ])
-            ->where('p.jenis_pegawai', 'paramedis')
+            ->where('p.jenis_pegawai', 'Paramedis')
             ->whereBetween('a.date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->groupBy('u.id', 'u.name', 'p.jabatan')
             ->get()

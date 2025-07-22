@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -6,6 +7,38 @@ import { Button } from '../ui/button';
 import { Calendar, Clock, Download, BarChart3, Activity, Target, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 export function Laporan() {
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    // Fetch real dashboard stats from API
+    const fetchDashboardStats = async () => {
+      try {
+        setLoadingStats(true);
+        const response = await fetch('/api/v2/dashboards/paramedis/', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          }
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setDashboardStats(result.data);
+          }
+        } else {
+          console.error('Failed to fetch dashboard stats:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    
+    fetchDashboardStats();
+  }, []);
   const attendanceData = [
     {
       id: '1',
@@ -53,13 +86,21 @@ export function Laporan() {
     }
   ];
 
-  const monthlyStats = {
+  // Use real attendance data from API or fallback
+  const monthlyStats = dashboardStats ? {
     totalHadir: 18,
     totalTerlambat: 3,
     totalTidakHadir: 2,
     totalJamKerja: 144,
     rataRataJamPerHari: 8.0,
-    tingkatKehadiran: 78
+    tingkatKehadiran: Math.round(dashboardStats.performance?.attendance_rate || 0)
+  } : {
+    totalHadir: 0,
+    totalTerlambat: 0,
+    totalTidakHadir: 0,
+    totalJamKerja: 0,
+    rataRataJamPerHari: 0,
+    tingkatKehadiran: 0
   };
 
   const getStatusColor = (status: string) => {
@@ -187,7 +228,13 @@ export function Laporan() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="font-medium text-high-contrast">Tingkat Kehadiran</span>
-                <span className="text-lg font-bold text-high-contrast">{monthlyStats.tingkatKehadiran}%</span>
+                <span className="text-lg font-bold text-high-contrast">
+                  {loadingStats ? (
+                    <span className="animate-pulse">⏳</span>
+                  ) : (
+                    `${monthlyStats.tingkatKehadiran}%`
+                  )}
+                </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                 <motion.div 

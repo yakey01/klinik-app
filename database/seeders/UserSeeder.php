@@ -91,6 +91,16 @@ class UserSeeder extends Seeder
                 'tanggal_bergabung' => '2024-01-01',
             ],
             [
+                'role_id' => $roles['paramedis']->id,
+                'name' => 'Naning Paramedis',
+                'username' => 'naning',
+                'email' => 'naning@dokterku.com',
+                'password' => Hash::make('naning123'),
+                'nip' => 'PMD003',
+                'no_telepon' => '081234567810',
+                'tanggal_bergabung' => '2024-01-01',
+            ],
+            [
                 'role_id' => $roles['non_paramedis']->id,
                 'name' => 'Asisten Klinik',
                 'email' => 'asisten@dokterku.com',

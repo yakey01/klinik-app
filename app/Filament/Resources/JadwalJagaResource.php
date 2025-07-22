@@ -44,6 +44,34 @@ class JadwalJagaResource extends Resource
                             ->required()
                             ->native(false)
                             ->displayFormat('d/m/Y')
+                            ->minDate(function (callable $get) {
+                                $shiftTemplateId = $get('shift_template_id');
+                                $today = \Carbon\Carbon::today('Asia/Jakarta');
+                                
+                                if (!$shiftTemplateId) {
+                                    return $today->format('Y-m-d');
+                                }
+                                
+                                $shiftTemplate = \App\Models\ShiftTemplate::find($shiftTemplateId);
+                                if (!$shiftTemplate) {
+                                    return $today->format('Y-m-d');
+                                }
+                                
+                                // Parse the time correctly without timezone conversion
+                                $shiftHour = \Carbon\Carbon::parse($shiftTemplate->jam_masuk)->hour;
+                                $shiftMinute = \Carbon\Carbon::parse($shiftTemplate->jam_masuk)->minute;
+                                $currentTime = \Carbon\Carbon::now('Asia/Jakarta');
+                                
+                                // Create shift start time for today in Jakarta timezone
+                                $todayShiftStart = \Carbon\Carbon::today('Asia/Jakarta')->setHour($shiftHour)->setMinute($shiftMinute)->setSecond(0);
+                                
+                                // If current time is past shift start time, don't allow today
+                                if ($currentTime->greaterThanOrEqualTo($todayShiftStart)) {
+                                    return $today->addDay()->format('Y-m-d');
+                                }
+                                
+                                return $today->format('Y-m-d');
+                            })
                             ->reactive()
                             ->afterStateUpdated(function ($state, callable $set) {
                                 // Reset pegawai selection when date changes
@@ -57,9 +85,30 @@ class JadwalJagaResource extends Resource
                             ->searchable()
                             ->preload()
                             ->reactive()
-                            ->afterStateUpdated(function ($state, callable $set) {
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 // Reset pegawai selection when shift changes
                                 $set('pegawai_id', null);
+                                
+                                // Reset tanggal_jaga if current date is no longer valid for this shift
+                                $currentDate = $get('tanggal_jaga');
+                                if ($currentDate && $state) {
+                                    $selectedDate = \Carbon\Carbon::parse($currentDate);
+                                    $today = \Carbon\Carbon::today('Asia/Jakarta');
+                                    
+                                    if ($selectedDate->isSameDay($today)) {
+                                        $shiftTemplate = \App\Models\ShiftTemplate::find($state);
+                                        if ($shiftTemplate) {
+                                            $shiftHour = \Carbon\Carbon::parse($shiftTemplate->jam_masuk)->hour;
+                                            $shiftMinute = \Carbon\Carbon::parse($shiftTemplate->jam_masuk)->minute;
+                                            $currentTime = \Carbon\Carbon::now('Asia/Jakarta');
+                                            $todayShiftStart = \Carbon\Carbon::today('Asia/Jakarta')->setHour($shiftHour)->setMinute($shiftMinute)->setSecond(0);
+                                            
+                                            if ($currentTime->greaterThanOrEqualTo($todayShiftStart)) {
+                                                $set('tanggal_jaga', null);
+                                            }
+                                        }
+                                    }
+                                }
                             }),
                         Forms\Components\Select::make('unit_kerja')
                             ->label('Unit Kerja')

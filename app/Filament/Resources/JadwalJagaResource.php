@@ -55,11 +55,7 @@ class JadwalJagaResource extends Resource
                                 $set('pegawai_id', null);
                                 $set('tanggal_jaga', null);
                             })
-                            ->helperText('Pilih shift terlebih dahulu untuk menentukan batasan tanggal yang tersedia')
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                // Update timezone configuration
-                                \Carbon\Carbon::setDefaultTimezone('Asia/Jakarta');
-                            }),
+                            ->helperText('Pilih shift terlebih dahulu untuk menentukan batasan tanggal yang tersedia'),
                         Forms\Components\DatePicker::make('tanggal_jaga')
                             ->label('Tanggal Jaga')
                             ->required()
@@ -164,6 +160,74 @@ class JadwalJagaResource extends Resource
                                 
                                 $timeLeft = $todayShiftStart->diffInMinutes($currentTime);
                                 return "✅ Shift {$shiftTemplate->nama_shift} dimulai jam {$shiftTemplate->jam_masuk_format}. Masih bisa pilih hari ini ({$timeLeft} menit lagi).";
+                            }),
+                            
+                        Forms\Components\TimePicker::make('jam_jaga_custom')
+                            ->label('Jam Mulai Jaga (Opsional)')
+                            ->native(false)
+                            ->seconds(false)
+                            ->minutesStep(15)
+                            ->rules([
+                                function (callable $get) {
+                                    return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                        $selectedDate = $get('tanggal_jaga');
+                                        $shiftTemplateId = $get('shift_template_id');
+                                        
+                                        if (!$value || !$selectedDate || !$shiftTemplateId) {
+                                            return; // Skip validation if fields are empty
+                                        }
+                                        
+                                        $shiftTemplate = \App\Models\ShiftTemplate::find($shiftTemplateId);
+                                        if (!$shiftTemplate) {
+                                            return;
+                                        }
+                                        
+                                        $selectedDate = \Carbon\Carbon::parse($selectedDate);
+                                        $today = \Carbon\Carbon::today('Asia/Jakarta');
+                                        $currentTime = \Carbon\Carbon::now('Asia/Jakarta');
+                                        
+                                        // Validasi hanya untuk hari ini
+                                        if ($selectedDate->isSameDay($today)) {
+                                            $customTime = \Carbon\Carbon::parse($value);
+                                            $selectedDateTime = $today->copy()->setHour($customTime->hour)->setMinute($customTime->minute)->setSecond(0);
+                                            
+                                            // Jika jam custom dipilih dan hari ini
+                                            if ($currentTime->greaterThanOrEqualTo($selectedDateTime)) {
+                                                $fail("Tidak dapat memilih jam {$customTime->format('H:i')} untuk hari ini karena waktu tersebut sudah lewat. Sekarang jam {$currentTime->format('H:i')}.");
+                                            }
+                                            
+                                            // Validasi jam custom tidak boleh setelah jam mulai shift template
+                                            $shiftStartTime = \Carbon\Carbon::parse($shiftTemplate->jam_masuk);
+                                            $todayShiftStart = $today->copy()->setHour($shiftStartTime->hour)->setMinute($shiftStartTime->minute)->setSecond(0);
+                                            
+                                            if ($selectedDateTime->greaterThan($todayShiftStart)) {
+                                                $fail("Jam mulai jaga custom ({$customTime->format('H:i')}) tidak boleh setelah jam mulai shift template ({$shiftTemplate->jam_masuk_format}).");
+                                            }
+                                        }
+                                    };
+                                }
+                            ])
+                            ->helperText(function (callable $get) {
+                                $shiftTemplateId = $get('shift_template_id');
+                                $selectedDate = $get('tanggal_jaga');
+                                
+                                if (!$shiftTemplateId) {
+                                    return 'Pilih shift template terlebih dahulu.';
+                                }
+                                
+                                $shiftTemplate = \App\Models\ShiftTemplate::find($shiftTemplateId);
+                                if (!$shiftTemplate) {
+                                    return '';
+                                }
+                                
+                                $today = \Carbon\Carbon::today('Asia/Jakarta');
+                                $currentTime = \Carbon\Carbon::now('Asia/Jakarta');
+                                
+                                if ($selectedDate && \Carbon\Carbon::parse($selectedDate)->isSameDay($today)) {
+                                    return "⚠️ Untuk hari ini: Jam harus sebelum {$shiftTemplate->jam_masuk_format} (jam mulai shift) dan setelah jam {$currentTime->format('H:i')} (sekarang). Kosongkan untuk menggunakan jam default dari template.";
+                                }
+                                
+                                return "💡 Opsional: Kosongkan untuk menggunakan jam default dari shift template ({$shiftTemplate->jam_masuk_format} - {$shiftTemplate->jam_pulang_format}).";
                             }),
                         Forms\Components\Select::make('unit_kerja')
                             ->label('Unit Kerja')

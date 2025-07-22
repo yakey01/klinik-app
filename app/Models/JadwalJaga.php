@@ -17,10 +17,12 @@ class JadwalJaga extends Model
         'peran',
         'status_jaga',
         'keterangan',
+        'jam_jaga_custom', // Custom start time override
     ];
 
     protected $casts = [
         'tanggal_jaga' => 'date',
+        'jam_jaga_custom' => 'datetime:H:i',
     ];
 
     public function shiftTemplate(): BelongsTo
@@ -50,6 +52,42 @@ class JadwalJaga extends Model
         }
         
         return $endDate->format('Y-m-d') . 'T' . $endTime;
+    }
+
+    /**
+     * Get effective start time (custom or from template)
+     */
+    public function getEffectiveStartTimeAttribute(): string
+    {
+        if ($this->jam_jaga_custom) {
+            return \Carbon\Carbon::parse($this->jam_jaga_custom)->format('H:i');
+        }
+        
+        return $this->shiftTemplate->jam_masuk_format;
+    }
+
+    /**
+     * Check if this schedule is for today and if it's still valid to be created
+     */
+    public function isValidForToday(): bool
+    {
+        $today = \Carbon\Carbon::today('Asia/Jakarta');
+        $currentTime = \Carbon\Carbon::now('Asia/Jakarta');
+        
+        if (!$this->tanggal_jaga->isSameDay($today)) {
+            return true; // Future dates are always valid
+        }
+        
+        // For today, check against effective start time
+        if ($this->jam_jaga_custom) {
+            $customTime = \Carbon\Carbon::parse($this->jam_jaga_custom);
+            $scheduleStart = $today->copy()->setHour($customTime->hour)->setMinute($customTime->minute);
+        } else {
+            $shiftStartTime = \Carbon\Carbon::parse($this->shiftTemplate->jam_masuk);
+            $scheduleStart = $today->copy()->setHour($shiftStartTime->hour)->setMinute($shiftStartTime->minute);
+        }
+        
+        return $currentTime->lessThan($scheduleStart);
     }
 
     public function getTitleAttribute(): string

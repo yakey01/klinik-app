@@ -307,6 +307,11 @@ Route::prefix('v2')->group(function () {
                 Route::get('/patients', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getPatients']);
                 Route::get('/test', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'test']);
                 
+                // Schedule endpoints
+                Route::get('/schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'schedules']);
+                Route::get('/weekly-schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getWeeklySchedule']);
+                Route::get('/igd-schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getIgdSchedules']);
+                
                 // Attendance endpoints
                 Route::get('/attendance/status', function () {
                     $user = auth()->user();

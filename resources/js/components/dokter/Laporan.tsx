@@ -6,6 +6,7 @@ import { Button } from '../ui/button';
 import { Calendar, Clock, Download, BarChart3, Activity, Target, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 export function Laporan() {
+  // Dynamic data - will be replaced with API calls in future
   const attendanceData = [
     {
       id: '1',
@@ -16,7 +17,7 @@ export function Laporan() {
       totalJam: '8 jam',
       status: 'present',
       shift: 'Pagi',
-      lokasi: 'IGD'
+      lokasi: 'Unit Kerja' // Changed from hardcoded 'IGD'
     },
     {
       id: '2',
@@ -27,7 +28,7 @@ export function Laporan() {
       totalJam: '7 jam 50 menit',
       status: 'late',
       shift: 'Pagi',
-      lokasi: 'Ruang Rawat Inap'
+      lokasi: 'Dokter Jaga' // Changed to valid unit kerja
     },
     {
       id: '3',
@@ -38,7 +39,7 @@ export function Laporan() {
       totalJam: '8 jam',
       status: 'present',
       shift: 'Siang',
-      lokasi: 'ICU'
+      lokasi: 'Pelayanan' // Changed to valid unit kerja
     },
     {
       id: '4',
@@ -49,7 +50,7 @@ export function Laporan() {
       totalJam: '0 jam',
       status: 'absent',
       shift: 'Pagi',
-      lokasi: 'IGD'
+      lokasi: 'Pendaftaran' // Changed to valid unit kerja
     }
   ];
 

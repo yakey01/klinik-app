@@ -70,12 +70,12 @@
                                     {{ $userAccount->username }}
                                 </span>
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
-                                    @if($userAccount->role->name === 'paramedis') bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200
-                                    @elseif($userAccount->role->name === 'petugas') bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200
-                                    @elseif($userAccount->role->name === 'bendahara') bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200
+                                    @if($userAccount->role?->name === 'paramedis') bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200
+                                    @elseif($userAccount->role?->name === 'petugas') bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200
+                                    @elseif($userAccount->role?->name === 'bendahara') bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200
                                     @else bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200
                                     @endif">
-                                    {{ $userAccount->role->display_name }}
+                                    {{ $userAccount->role?->display_name ?? $userAccount->role?->name ?? 'No Role' }}
                                 </span>
                             </div>
                         @endforeach

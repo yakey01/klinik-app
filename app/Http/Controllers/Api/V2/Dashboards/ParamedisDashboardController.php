@@ -669,6 +669,193 @@ class ParamedisDashboardController extends Controller
     }
 
     /**
+     * Get IGD schedules with dynamic unit kerja data
+     * Same implementation as DokterDashboardController for consistency
+     */
+    public function getIgdSchedules(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $category = $request->get('category', 'all');
+            $date = $request->get('date', now()->format('Y-m-d'));
+            
+            // Map category to unit_kerja values - same as dokter implementation
+            $unitKerjaMap = [
+                'all' => ['Pendaftaran', 'Pelayanan', 'Dokter Jaga'],
+                'pendaftaran' => ['Pendaftaran'],
+                'pelayanan' => ['Pelayanan'],
+                'dokter_jaga' => ['Dokter Jaga']
+            ];
+            
+            $unitKerjaFilter = $unitKerjaMap[$category] ?? $unitKerjaMap['all'];
+            
+            // SECURITY: For paramedis, exclude "Dokter Jaga" unit even if "all" is requested
+            $unitKerjaFilter = array_diff($unitKerjaFilter, ['Dokter Jaga']);
+            
+            // Build query with proper relationships and sorting
+            $query = JadwalJaga::with(['pegawai', 'shiftTemplate'])
+                ->join('pegawais', 'jadwal_jagas.pegawai_id', '=', 'pegawais.user_id')
+                ->join('users', 'pegawais.user_id', '=', 'users.id')
+                ->leftJoin('shift_templates', 'jadwal_jagas.shift_template_id', '=', 'shift_templates.id')
+                ->where('pegawais.jenis_pegawai', 'Paramedis')
+                ->whereIn('jadwal_jagas.unit_kerja', $unitKerjaFilter)
+                ->whereDate('jadwal_jagas.tanggal_jaga', $date)
+                ->select([
+                    'jadwal_jagas.*',
+                    'users.name as nama_paramedis',
+                    'shift_templates.nama_shift as shift_name',
+                    'shift_templates.jam_masuk',
+                    'shift_templates.jam_pulang'
+                ])
+                ->orderByRaw("
+                    FIELD(jadwal_jagas.unit_kerja, 'Pendaftaran', 'Pelayanan', 'Dokter Jaga'),
+                    CASE 
+                        WHEN shift_templates.nama_shift = 'Pagi' THEN 1
+                        WHEN shift_templates.nama_shift = 'Siang' THEN 2
+                        WHEN shift_templates.nama_shift = 'Malam' THEN 3
+                        ELSE 4
+                    END,
+                    users.name ASC
+                ");
+
+            $schedules = $query->get()->map(function($schedule) {
+                // Format time display
+                $timeDisplay = 'TBA';
+                if ($schedule->jam_masuk && $schedule->jam_pulang) {
+                    $timeDisplay = Carbon::parse($schedule->jam_masuk)->format('H:i') . 
+                                  ' - ' . 
+                                  Carbon::parse($schedule->jam_pulang)->format('H:i');
+                }
+
+                return [
+                    'id' => $schedule->id,
+                    'tanggal' => Carbon::parse($schedule->tanggal_jaga)->format('Y-m-d'),
+                    'tanggal_formatted' => Carbon::parse($schedule->tanggal_jaga)->format('l, d F Y'),
+                    'unit_kerja' => $schedule->unit_kerja ?: 'Unit Kerja',
+                    'paramedis_name' => $schedule->nama_paramedis ?: 'Unknown',
+                    'shift_name' => $schedule->shift_name ?: 'Shift',
+                    'jam_masuk' => $schedule->jam_masuk,
+                    'jam_keluar' => $schedule->jam_pulang,
+                    'waktu_display' => $timeDisplay,
+                    'status' => $schedule->status_jaga ?? 'scheduled',
+                    'created_at' => $schedule->created_at
+                ];
+            });
+
+            // Group by unit_kerja for better organization
+            $groupedSchedules = $schedules->groupBy('unit_kerja');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal paramedis berhasil dimuat',
+                'data' => [
+                    'schedules' => $schedules,
+                    'grouped_schedules' => $groupedSchedules,
+                    'category' => $category,
+                    'date' => $date,
+                    'total_count' => $schedules->count(),
+                    'units_available' => $schedules->pluck('unit_kerja')->unique()->values(),
+                    'filters_applied' => [
+                        'unit_kerja' => $unitKerjaFilter,
+                        'date' => $date,
+                        'staff_type' => 'Paramedis'
+                    ]
+                ],
+                'meta' => [
+                    'version' => '2.0',
+                    'timestamp' => now()->toISOString(),
+                    'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('ParamedisDashboardController::getIgdSchedules error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat jadwal paramedis: ' . $e->getMessage(),
+                'data' => [
+                    'schedules' => [],
+                    'grouped_schedules' => [],
+                    'total_count' => 0
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get weekly schedules with dynamic data
+     * Same pattern as dokter implementation
+     */
+    public function getWeeklySchedule(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $startDate = Carbon::now()->startOfWeek();
+            $endDate = Carbon::now()->endOfWeek();
+            
+            $schedules = JadwalJaga::with(['shiftTemplate'])
+                ->join('pegawais', 'jadwal_jagas.pegawai_id', '=', 'pegawais.user_id')
+                ->where('pegawais.jenis_pegawai', 'Paramedis')
+                ->whereIn('jadwal_jagas.unit_kerja', ['Pendaftaran', 'Pelayanan']) // EXCLUDE Dokter Jaga
+                ->whereBetween('jadwal_jagas.tanggal_jaga', [
+                    $startDate->format('Y-m-d'),
+                    $endDate->format('Y-m-d')
+                ])
+                ->select([
+                    'jadwal_jagas.*',
+                    'pegawais.nama_lengkap as nama_paramedis'
+                ])
+                ->orderBy('jadwal_jagas.tanggal_jaga')
+                ->orderByRaw("FIELD(jadwal_jagas.unit_kerja, 'Pendaftaran', 'Pelayanan', 'Dokter Jaga')")
+                ->get()
+                ->map(function($schedule) {
+                    return [
+                        'id' => $schedule->id,
+                        'tanggal' => Carbon::parse($schedule->tanggal_jaga)->format('Y-m-d'),
+                        'unit_kerja' => $schedule->unit_kerja ?: 'Unit Kerja',
+                        'paramedis_name' => $schedule->nama_paramedis ?: 'Unknown',
+                        'shift_name' => $schedule->shiftTemplate ? $schedule->shiftTemplate->nama_shift : 'Shift',
+                        'jam_masuk' => $schedule->shiftTemplate ? $schedule->shiftTemplate->jam_masuk : null,
+                        'jam_keluar' => $schedule->shiftTemplate ? $schedule->shiftTemplate->jam_pulang : null,
+                        'status' => $schedule->status_jaga ?? 'scheduled'
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal minggu ini berhasil dimuat',
+                'data' => [
+                    'schedules' => $schedules,
+                    'week_range' => [
+                        'start' => $startDate->format('Y-m-d'),
+                        'end' => $endDate->format('Y-m-d'),
+                        'start_formatted' => $startDate->format('d M Y'),
+                        'end_formatted' => $endDate->format('d M Y')
+                    ],
+                    'total_count' => $schedules->count()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('ParamedisDashboardController::getWeeklySchedule error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat jadwal minggu ini: ' . $e->getMessage(),
+                'data' => [
+                    'schedules' => [],
+                    'total_count' => 0
+                ]
+            ], 500);
+        }
+    }
+
+    /**
      * Get greeting based on time
      */
     private function getGreeting()

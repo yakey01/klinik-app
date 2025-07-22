@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -15,40 +15,46 @@ interface JadwalItem {
 }
 
 export function JadwalJaga() {
-  const [jadwal, setJadwal] = useState<JadwalItem[]>([
-    {
-      id: '1',
-      tanggal: '2025-01-18',
-      waktu: '07:00 - 15:00',
-      lokasi: 'IGD',
-      jenis: 'pagi',
-      status: 'scheduled'
-    },
-    {
-      id: '2',
-      tanggal: '2025-01-19',
-      waktu: '15:00 - 23:00',
-      lokasi: 'Ruang Rawat Inap',
-      jenis: 'siang',
-      status: 'scheduled'
-    },
-    {
-      id: '3',
-      tanggal: '2025-01-20',
-      waktu: '23:00 - 07:00',
-      lokasi: 'ICU',
-      jenis: 'malam',
-      status: 'scheduled'
-    },
-    {
-      id: '4',
-      tanggal: '2025-01-16',
-      waktu: '23:00 - 07:00',
-      lokasi: 'ICU',
-      jenis: 'malam',
-      status: 'completed'
-    }
-  ]);
+  const [jadwal, setJadwal] = useState<JadwalItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        
+        const response = await fetch('/paramedis/api/schedules', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+          }
+        });
+        
+        if (response.ok) {
+          const schedules = await response.json();
+          setJadwal(schedules || []);
+          console.log('✅ Paramedis schedules loaded:', schedules?.length || 0, 'items');
+        } else {
+          console.error('Failed to fetch paramedis schedules:', response.status);
+          setError('Gagal memuat jadwal. Silakan coba lagi.');
+        }
+      } catch (error) {
+        console.error('Error fetching paramedis schedules:', error);
+        setError('Terjadi kesalahan saat memuat jadwal.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSchedules();
+  }, []);
 
   const handleEditSchedule = (id: string) => {
     console.log('Edit schedule:', id);
@@ -175,7 +181,37 @@ export function JadwalJaga() {
 
       {/* Schedule List */}
       <motion.div variants={container} className="space-y-4">
-        {jadwal.map((scheduleItem, index) => (
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+            <span className="text-sm text-medium-contrast">Memuat jadwal...</span>
+          </div>
+        ) : error ? (
+          <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
+            <CardContent className="p-6 text-center">
+              <div className="text-red-500 mb-2">
+                <X className="w-12 h-12 mx-auto mb-3" />
+                <p className="font-medium">{error}</p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="mt-3"
+              >
+                Coba Lagi
+              </Button>
+            </CardContent>
+          </Card>
+        ) : jadwal.length === 0 ? (
+          <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
+            <CardContent className="p-6 text-center">
+              <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-sm font-medium text-high-contrast mb-1">Belum ada jadwal</p>
+              <p className="text-xs text-medium-contrast">Hubungi admin untuk penjadwalan jaga</p>
+            </CardContent>
+          </Card>
+        ) : (
+          jadwal.map((scheduleItem, index) => (
           <motion.div
             key={scheduleItem.id}
             variants={item}
@@ -259,7 +295,8 @@ export function JadwalJaga() {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+          ))
+        )}
       </motion.div>
 
       {/* Add Schedule Button */}

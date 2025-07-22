@@ -173,15 +173,27 @@ Route::middleware(['auth'])->group(function () {
             $hour = now()->hour;
             $greeting = $hour < 12 ? 'Selamat Pagi' : ($hour < 17 ? 'Selamat Siang' : 'Selamat Malam');
             
+            // Get dokter data for more accurate name
+            $dokter = \App\Models\Dokter::where('user_id', $user->id)->first();
+            $displayName = $dokter ? $dokter->nama_lengkap : $user->name;
+            
             $userData = [
-                'name' => $user->name,
+                'name' => $displayName,
                 'email' => $user->email,
                 'greeting' => $greeting,
-                'initials' => strtoupper(substr($user->name ?? 'DA', 0, 2))
+                'initials' => strtoupper(substr($displayName ?? 'DA', 0, 2))
             ];
             
             return view('mobile.dokter.app', compact('token', 'userData'));
         })->name('mobile-app')->middleware('throttle:1000,1');
+        
+        // API endpoint for doctor weekly schedules (for dashboard)
+        Route::get('/api/weekly-schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getWeeklySchedule'])
+            ->name('api.weekly-schedules')->middleware('throttle:1000,1');
+            
+        // API endpoint for unit kerja schedules (for dashboard)
+        Route::get('/api/igd-schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getIgdSchedules'])
+            ->name('api.igd-schedules')->middleware('throttle:1000,1');
         
         // API endpoint for doctor schedules
         Route::get('/api/schedules', function () {
@@ -206,13 +218,8 @@ Route::middleware(['auth'])->group(function () {
                         default => 'malam'
                     };
                     
-                    // Determine location based on shift and unit
-                    $lokasi = match($jenis) {
-                        'pagi' => 'IGD',
-                        'siang' => 'Ruang Rawat Inap',
-                        'malam' => 'ICU',
-                        default => 'Klinik'
-                    };
+                    // Use dynamic location from database or default to unit kerja
+                    $lokasi = 'Dokter Jaga'; // Use consistent unit kerja from admin
                     
                     return [
                         'id' => (string) $jadwal->id,
@@ -279,19 +286,34 @@ Route::middleware(['auth'])->group(function () {
             try {
                 $user = auth()->user();
                 
-                // Get the actual pegawai_id if user was created from pegawai
-                $pegawaiId = null;
-                if ($user->email && str_contains($user->email, '@pegawai.local')) {
-                    // This user was created from pegawai table, find the pegawai record
-                    $pegawai = \App\Models\Pegawai::where('user_id', $user->id)->first();
-                    $pegawaiId = $pegawai ? $pegawai->id : null;
-                } else {
-                    // Check if user has direct pegawai relationship
-                    $pegawaiId = $user->pegawai_id ?? $user->id;
+                // SECURITY: Ensure user has paramedis role before proceeding
+                if (!$user->hasRole('paramedis')) {
+                    \Log::warning('Non-paramedis user attempted to access paramedis schedules API', [
+                        'user_id' => $user->id,
+                        'user_name' => $user->name,
+                        'roles' => $user->getRoleNames()->toArray()
+                    ]);
+                    return response()->json([], 403);
                 }
                 
-                // Get current and upcoming schedules for this paramedis
+                // Get the actual pegawai_id - ONLY for paramedis users
+                $pegawai = \App\Models\Pegawai::where('user_id', $user->id)
+                    ->where('jenis_pegawai', 'Paramedis')
+                    ->first();
+                
+                if (!$pegawai) {
+                    \Log::warning('Paramedis user has no valid pegawai record', [
+                        'user_id' => $user->id,
+                        'user_name' => $user->name
+                    ]);
+                    return response()->json([]);
+                }
+                
+                $pegawaiId = $pegawai->user_id; // Use user_id from pegawai table
+                
+                // Get current and upcoming schedules for this paramedis ONLY
                 $schedules = \App\Models\JadwalJaga::where('pegawai_id', $pegawaiId)
+                    ->whereIn('unit_kerja', ['Pendaftaran', 'Pelayanan']) // EXCLUDE Dokter Jaga
                     ->where('tanggal_jaga', '>=', now()->subDays(1)) // Include yesterday for overnight shifts
                     ->with(['shiftTemplate'])
                     ->orderBy('tanggal_jaga')
@@ -317,13 +339,8 @@ Route::middleware(['auth'])->group(function () {
                             $shiftNama = 'Shift Regular';
                         }
                         
-                        // Determine location based on shift and paramedis role
-                        $lokasi = match($jenis) {
-                            'pagi' => 'Ruang Tindakan',
-                            'siang' => 'IGD',
-                            'malam' => 'Ruang Rawat Inap',
-                            default => 'Klinik'
-                        };
+                        // Use dynamic location from database or default to unit kerja  
+                        $lokasi = $jadwal->unit_kerja ?? 'Pelayanan'; // Use unit_kerja from database
                         
                         return [
                             'id' => (string) $jadwal->id,
@@ -345,6 +362,64 @@ Route::middleware(['auth'])->group(function () {
                 return response()->json([]);
             }
         })->name('api.schedules')->middleware('throttle:1000,1');
+        
+        // IGD Schedules API with dynamic unit kerja filtering
+        Route::get('/api/igd-schedules', function (Request $request) {
+            try {
+                $user = auth()->user();
+                
+                // SECURITY: Ensure user has paramedis role
+                if (!$user->hasRole('paramedis')) {
+                    \Log::warning('Non-paramedis user attempted to access IGD schedules API', [
+                        'user_id' => $user->id,
+                        'user_name' => $user->name
+                    ]);
+                    return response()->json(['success' => false, 'message' => 'Access denied'], 403);
+                }
+                
+                $controller = new \App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController();
+                return $controller->getIgdSchedules($request);
+            } catch (\Exception $e) {
+                \Log::error('Paramedis IGD schedules API error: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memuat jadwal IGD',
+                    'data' => [
+                        'schedules' => [],
+                        'total_count' => 0
+                    ]
+                ], 500);
+            }
+        })->name('api.igd.schedules')->middleware('throttle:1000,1');
+        
+        // Weekly Schedule API with dynamic data
+        Route::get('/api/weekly-schedule', function (Request $request) {
+            try {
+                $user = auth()->user();
+                
+                // SECURITY: Ensure user has paramedis role
+                if (!$user->hasRole('paramedis')) {
+                    \Log::warning('Non-paramedis user attempted to access weekly schedules API', [
+                        'user_id' => $user->id,
+                        'user_name' => $user->name
+                    ]);
+                    return response()->json(['success' => false, 'message' => 'Access denied'], 403);
+                }
+                
+                $controller = new \App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController();
+                return $controller->getWeeklySchedule($request);
+            } catch (\Exception $e) {
+                \Log::error('Paramedis weekly schedules API error: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memuat jadwal minggu ini',
+                    'data' => [
+                        'schedules' => [],
+                        'total_count' => 0
+                    ]
+                ], 500);
+            }
+        })->name('api.weekly.schedules')->middleware('throttle:1000,1');
         
         // Legacy routes - redirect to new mobile app
         Route::get('/dashboard', function () {

@@ -496,7 +496,7 @@ class ParamedisRealDataSeeder extends Seeder
                     'tanggal_jaga' => $tanggal->format('Y-m-d'),
                 ], [
                     'shift_template_id' => $shiftTemplates->random()->id,
-                    'unit_kerja' => $this->faker->randomElement(['IGD', 'Rawat Inap', 'ICU', 'Ruang Tindakan']),
+                    'unit_kerja' => $this->faker->randomElement(['Pendaftaran', 'Pelayanan', 'Dokter Jaga']),
                     'status_jaga' => 'scheduled',
                 ]);
             }

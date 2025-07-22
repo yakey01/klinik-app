@@ -49,7 +49,7 @@ export function Laporan() {
       totalJam: '8 jam',
       status: 'present',
       shift: 'Pagi',
-      lokasi: 'IGD'
+      lokasi: 'Pendaftaran'
     },
     {
       id: '2',
@@ -60,7 +60,7 @@ export function Laporan() {
       totalJam: '7 jam 50 menit',
       status: 'late',
       shift: 'Pagi',
-      lokasi: 'Ruang Rawat Inap'
+      lokasi: 'Pelayanan'
     },
     {
       id: '3',
@@ -71,7 +71,7 @@ export function Laporan() {
       totalJam: '8 jam',
       status: 'present',
       shift: 'Siang',
-      lokasi: 'ICU'
+      lokasi: 'Dokter Jaga'
     },
     {
       id: '4',
@@ -82,7 +82,7 @@ export function Laporan() {
       totalJam: '0 jam',
       status: 'absent',
       shift: 'Pagi',
-      lokasi: 'IGD'
+      lokasi: 'Pendaftaran'
     }
   ];
 

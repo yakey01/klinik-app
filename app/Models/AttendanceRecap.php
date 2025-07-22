@@ -92,7 +92,7 @@ class AttendanceRecap extends Model
             ->join('users as u', 'd.user_id', '=', 'u.id')
             ->select([
                 'u.id as staff_id',
-                'u.name as staff_name',
+                DB::raw("COALESCE(d.nama_lengkap, u.name) as staff_name"),
                 DB::raw("'Dokter' as staff_type"),
                 DB::raw("COALESCE(d.jabatan, 'Dokter Umum') as position"),
                 DB::raw("$workingDays as total_working_days"),
@@ -107,7 +107,7 @@ class AttendanceRecap extends Model
                 DB::raw("ROUND((CAST(COUNT(DISTINCT dp.tanggal) AS REAL) / CAST($workingDays AS REAL)) * 100, 2) as attendance_percentage")
             ])
             ->whereBetween('dp.tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->groupBy('u.id', 'u.name', 'd.jabatan')
+            ->groupBy('u.id', 'u.name', 'd.nama_lengkap', 'd.jabatan')
             ->get()
             ->map(function ($item) {
                 $item->status = self::getAttendanceStatus($item->attendance_percentage);

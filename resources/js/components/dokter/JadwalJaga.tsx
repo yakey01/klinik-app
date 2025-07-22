@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -15,40 +15,59 @@ interface JadwalItem {
 }
 
 export function JadwalJaga() {
-  const [jadwal, setJadwal] = useState<JadwalItem[]>([
-    {
-      id: '1',
-      tanggal: '2025-01-18',
-      waktu: '07:00 - 15:00',
-      lokasi: 'IGD',
-      jenis: 'pagi',
-      status: 'scheduled'
-    },
-    {
-      id: '2',
-      tanggal: '2025-01-19',
-      waktu: '15:00 - 23:00',
-      lokasi: 'Ruang Rawat Inap',
-      jenis: 'siang',
-      status: 'scheduled'
-    },
-    {
-      id: '3',
-      tanggal: '2025-01-20',
-      waktu: '23:00 - 07:00',
-      lokasi: 'ICU',
-      jenis: 'malam',
-      status: 'scheduled'
-    },
-    {
-      id: '4',
-      tanggal: '2025-01-16',
-      waktu: '23:00 - 07:00',
-      lokasi: 'ICU',
-      jenis: 'malam',
-      status: 'completed'
-    }
-  ]);
+  const [jadwal, setJadwal] = useState<JadwalItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch dynamic schedule data from API
+  useEffect(() => {
+    const fetchJadwalData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        
+        const response = await fetch('/dokter/api/schedules', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken || '',
+            'Accept': 'application/json'
+          },
+          credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const schedules: any[] = await response.json();
+        
+        // Transform schedules to our format
+        const dynamicJadwal = schedules.map((jadwal: any) => ({
+          id: jadwal.id.toString(),
+          tanggal: jadwal.tanggal,
+          waktu: jadwal.waktu,
+          lokasi: jadwal.lokasi,
+          jenis: jadwal.jenis as 'pagi' | 'siang' | 'malam',
+          status: jadwal.status as 'scheduled' | 'completed' | 'missed'
+        }));
+
+        setJadwal(dynamicJadwal);
+      } catch (error) {
+        console.error('Error fetching jadwal data:', error);
+        setError('Gagal memuat data jadwal');
+        // No fallback data - keep empty array
+        setJadwal([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchJadwalData();
+  }, []);
 
   const handleEditSchedule = (id: string) => {
     console.log('Edit schedule:', id);
@@ -175,7 +194,78 @@ export function JadwalJaga() {
 
       {/* Schedule List */}
       <motion.div variants={container} className="space-y-4">
-        {jadwal.map((scheduleItem, index) => (
+        {isLoading ? (
+          // Loading state
+          <div className="space-y-4">
+            {[1, 2, 3].map((index) => (
+              <motion.div key={index} variants={item}>
+                <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
+                  <CardContent className="p-6">
+                    <div className="animate-pulse">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-48 mb-2"></div>
+                          <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-24"></div>
+                        </div>
+                        <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-20"></div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
+                          <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded flex-1"></div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
+                          <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded flex-1"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        ) : error ? (
+          // Error state
+          <motion.div variants={item}>
+            <Card className="shadow-lg border-0 bg-red-50 dark:bg-red-950/30 backdrop-blur-sm card-enhanced">
+              <CardContent className="p-6 text-center">
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <X className="w-8 h-8 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+                  Gagal Memuat Jadwal
+                </h3>
+                <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline"
+                  className="border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/50"
+                >
+                  Coba Lagi
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : jadwal.length === 0 ? (
+          // Empty state
+          <motion.div variants={item}>
+            <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
+              <CardContent className="p-6 text-center">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-8 h-8 text-gray-400 dark:text-gray-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Belum Ada Jadwal
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400">
+                  Jadwal jaga akan muncul setelah diatur oleh admin
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : (
+          jadwal.map((scheduleItem, index) => (
           <motion.div
             key={scheduleItem.id}
             variants={item}
@@ -259,7 +349,8 @@ export function JadwalJaga() {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+        ))
+        )}
       </motion.div>
 
       {/* Add Schedule Button */}

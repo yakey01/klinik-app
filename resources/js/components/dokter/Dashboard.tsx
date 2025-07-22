@@ -179,22 +179,100 @@ export function Dashboard({ userData }: DashboardProps) {
     show: { opacity: 1, y: 0 }
   };
 
-  const stats = {
+  // State for dashboard data with API integration
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // Fetch real dashboard stats from API
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        setLoadingStats(true);
+        
+        // Get CSRF token and API token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const apiToken = document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
+        
+        const headers: Record<string, string> = {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+        };
+        
+        // Add Bearer token if available
+        if (apiToken) {
+          headers['Authorization'] = `Bearer ${apiToken}`;
+        }
+        
+        const response = await fetch('/api/v2/dashboards/dokter/', {
+          credentials: 'include',
+          headers
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setDashboardStats(result.data);
+            console.log('✅ Dokter Dashboard data loaded successfully');
+          }
+        } else {
+          console.error('Failed to fetch dokter dashboard stats:', response.status, response.statusText);
+          if (response.status === 401) {
+            console.error('Authentication required. Please ensure you are logged in.');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching dokter dashboard stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
+  // Use real data from API or fallback to dummy data
+  const stats = dashboardStats ? {
     attendance: {
-      current: 85,
+      current: Math.round(dashboardStats.performance?.attendance_rate || 0),
       target: 90,
       change: +5
     },
     performance: {
-      score: 92,
-      change: +3
+      score: dashboardStats.performance?.patient_satisfaction || 92,
+      change: +3,
+      attendance_rank: dashboardStats.performance?.attendance_rank,
+      total_staff: dashboardStats.performance?.total_staff
     },
     jaspel: {
-      thisMonth: 15500000,
+      thisMonth: dashboardStats.stats?.jaspel_month || 0,
       lastMonth: 14200000,
       change: +9.2
     }
+  } : {
+    attendance: {
+      current: 0,
+      target: 90,
+      change: 0
+    },
+    performance: {
+      score: 0,
+      change: 0,
+      attendance_rank: null,
+      total_staff: 0
+    },
+    jaspel: {
+      thisMonth: 0,
+      lastMonth: 0,
+      change: 0
+    }
   };
+
+  // Debug log to see attendance data
+  console.log('🎯 Dokter Stats object:', {
+    attendance_current: stats.attendance.current,
+    attendance_rate_raw: dashboardStats?.performance?.attendance_rate,
+    performance_data: dashboardStats?.performance,
+  });
 
   return (
     <motion.div 
@@ -372,7 +450,13 @@ export function Dashboard({ userData }: DashboardProps) {
               </div>
               <div>
                 <h4 className="text-sm font-semibold text-high-contrast text-mobile-friendly">Tingkat Kehadiran</h4>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400 text-heading-mobile">{stats.attendance.current}%</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 text-heading-mobile">
+                  {loadingStats ? (
+                    <span className="animate-pulse">⏳</span>
+                  ) : (
+                    `${stats.attendance.current}%`
+                  )}
+                </p>
               </div>
             </div>
             <Progress value={stats.attendance.current} className="h-2 mb-2" />
@@ -391,15 +475,23 @@ export function Dashboard({ userData }: DashboardProps) {
                 <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-high-contrast text-mobile-friendly">Skor Kinerja</h4>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 text-heading-mobile">{stats.performance.score}</p>
+                <h4 className="text-sm font-semibold text-high-contrast text-mobile-friendly">Urutan Kehadiran</h4>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 text-heading-mobile">
+                  {loadingStats ? (
+                    <span className="animate-pulse">⏳</span>
+                  ) : (
+                    `#${stats.performance.attendance_rank || '--'}`
+                  )}
+                </p>
               </div>
             </div>
-            <Progress value={stats.performance.score} className="h-2 mb-2" />
+            <Progress value={stats.performance.attendance_rank ? Math.max(0, 100 - ((stats.performance.attendance_rank / stats.performance.total_staff) * 100)) : 0} className="h-2 mb-2" />
             <div className="flex items-center gap-1 text-xs">
-              <TrendingUp className="w-3 h-3 text-blue-500 dark:text-blue-400" />
-              <span className="font-semibold text-blue-600 dark:text-blue-400">+{stats.performance.change}</span>
-              <span className="text-medium-contrast font-medium">poin minggu ini</span>
+              <Award className="w-3 h-3 text-blue-500 dark:text-blue-400" />
+              <span className="font-semibold text-blue-600 dark:text-blue-400">
+                dari {loadingStats ? '...' : (stats.performance.total_staff || 0)}
+              </span>
+              <span className="text-medium-contrast font-medium">dokter</span>
             </div>
           </CardContent>
         </Card>

@@ -391,10 +391,43 @@ class DokterDashboardController extends Controller
     }
 
     /**
-     * Get performance stats
+     * Get performance stats - Enhanced with attendance ranking like Paramedis
      */
     private function getPerformanceStats($dokter)
     {
+        $month = Carbon::now()->month;
+        $year = Carbon::now()->year;
+        $user = Auth::user();
+        
+        // Get attendance ranking from AttendanceRecap (copied from ParamedisDashboardController)
+        $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
+        
+        // Find current user's ranking
+        $currentUserRank = null;
+        $totalDokter = $attendanceData->count();
+        
+        foreach ($attendanceData as $staff) {
+            if ($staff['staff_id'] == $user->id) {
+                $currentUserRank = $staff['rank'];
+                break;
+            }
+        }
+        
+        // Calculate attendance rate using enhanced method
+        $attendanceRate = $this->getAttendanceRateEnhanced($user);
+        
+        // Debug logging
+        \Log::info('🔍 DEBUG: Dokter getPerformanceStats', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'month' => $month,
+            'year' => $year,
+            'attendance_data_count' => $attendanceData->count(),
+            'current_user_rank' => $currentUserRank,
+            'total_dokter' => $totalDokter,
+            'attendance_rate' => $attendanceRate,
+        ]);
+        
         $thisMonth = Carbon::now()->startOfMonth();
         $lastMonth = Carbon::now()->subMonth()->startOfMonth();
         
@@ -410,28 +443,95 @@ class DokterDashboardController extends Controller
             (($thisMonthTindakan - $lastMonthTindakan) / $lastMonthTindakan) * 100 : 0;
 
         return [
-            'efficiency_score' => min(95, 70 + ($thisMonthTindakan * 2)),
+            'attendance_rank' => $currentUserRank ?? $totalDokter + 1,
+            'total_staff' => $totalDokter,
+            'attendance_percentage' => round($attendanceRate, 1),
             'patient_satisfaction' => 92,
-            'growth_rate' => round($growthRate, 1),
-            'attendance_rate' => $this->getAttendanceRate(Auth::user())
+            'attendance_rate' => $attendanceRate,
+            'efficiency_score' => min(95, 70 + ($thisMonthTindakan * 2)),
+            'growth_rate' => round($growthRate, 1)
         ];
     }
 
     /**
-     * Get attendance rate
+     * Get attendance rate using AttendanceRecap calculation method (copied from ParamedisDashboardController)
+     */
+    private function getAttendanceRateEnhanced($user)
+    {
+        $month = Carbon::now()->month;
+        $year = Carbon::now()->year;
+        
+        \Log::info('🔍 DEBUG: Dokter getAttendanceRateEnhanced start', [
+            'user_id' => $user->id,
+            'month' => $month,
+            'year' => $year,
+        ]);
+        
+        // Get attendance data from AttendanceRecap for current user
+        $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
+        
+        \Log::info('🔍 DEBUG: Dokter AttendanceRecap data', [
+            'count' => $attendanceData->count(),
+            'data' => $attendanceData->toArray(),
+        ]);
+        
+        // Find current user's attendance percentage
+        foreach ($attendanceData as $staff) {
+            \Log::info('🔍 DEBUG: Checking dokter staff', [
+                'staff_id' => $staff['staff_id'],
+                'user_id' => $user->id,
+                'attendance_percentage' => $staff['attendance_percentage'] ?? 'not set',
+            ]);
+            
+            if ($staff['staff_id'] == $user->id) {
+                \Log::info('✅ Found dokter user attendance', [
+                    'attendance_percentage' => $staff['attendance_percentage'],
+                ]);
+                return $staff['attendance_percentage'];
+            }
+        }
+        
+        \Log::info('🔄 Using fallback calculation for dokter');
+        
+        // Fallback: calculate manually using same method as AttendanceRecap
+        $startDate = Carbon::create($year, $month, 1);
+        $endDate = $startDate->copy()->endOfMonth();
+        
+        // Count working days (Monday to Saturday, exclude Sunday)
+        $workingDays = 0;
+        $tempDate = $startDate->copy();
+        while ($tempDate->lte($endDate)) {
+            if ($tempDate->dayOfWeek !== Carbon::SUNDAY) {
+                $workingDays++;
+            }
+            $tempDate->addDay();
+        }
+        
+        // Count attendance days for the full month
+        $attendanceDays = Attendance::where('user_id', $user->id)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->distinct('date')
+            ->count();
+        
+        $fallbackRate = $workingDays > 0 ? round(($attendanceDays / $workingDays) * 100, 2) : 0;
+        
+        \Log::info('🔍 DEBUG: Dokter Fallback calculation', [
+            'start_date' => $startDate->format('Y-m-d'),
+            'end_date' => $endDate->format('Y-m-d'),
+            'working_days' => $workingDays,
+            'attendance_days' => $attendanceDays,
+            'fallback_rate' => $fallbackRate,
+        ]);
+        
+        return $fallbackRate;
+    }
+
+    /**
+     * Get attendance rate - Legacy method for backward compatibility
      */
     private function getAttendanceRate($user)
     {
-        $thisMonth = Carbon::now()->startOfMonth();
-        $workDays = Carbon::now()->diffInDaysFiltered(function (Carbon $date) {
-            return $date->isWeekday();
-        }, $thisMonth);
-
-        $attendanceDays = Attendance::where('user_id', $user->id)
-            ->where('date', '>=', $thisMonth)
-            ->count();
-
-        return $workDays > 0 ? round(($attendanceDays / $workDays) * 100, 1) : 0;
+        return $this->getAttendanceRateEnhanced($user);
     }
 
     /**
@@ -449,15 +549,20 @@ class DokterDashboardController extends Controller
             return null;
         }
 
+        // Ensure tanggal_jaga is properly cast to Carbon
+        $tanggalJaga = $nextSchedule->tanggal_jaga instanceof Carbon 
+            ? $nextSchedule->tanggal_jaga 
+            : Carbon::parse($nextSchedule->tanggal_jaga);
+
         return [
             'id' => $nextSchedule->id,
-            'date' => $nextSchedule->tanggal_jaga->format('Y-m-d'),
-            'formatted_date' => $nextSchedule->tanggal_jaga->format('l, d F Y'),
-            'shift_name' => $nextSchedule->shiftTemplate->nama_shift,
-            'start_time' => $nextSchedule->shiftTemplate->jam_masuk,
-            'end_time' => $nextSchedule->shiftTemplate->jam_pulang,
-            'unit_kerja' => $nextSchedule->unit_kerja,
-            'days_until' => Carbon::today()->diffInDays($nextSchedule->tanggal_jaga)
+            'date' => $tanggalJaga->format('Y-m-d'),
+            'formatted_date' => $tanggalJaga->format('l, d F Y'),
+            'shift_name' => $nextSchedule->shiftTemplate->nama_shift ?? 'Shift',
+            'start_time' => $nextSchedule->shiftTemplate->jam_masuk ?? '08:00',
+            'end_time' => $nextSchedule->shiftTemplate->jam_pulang ?? '16:00',
+            'unit_kerja' => $nextSchedule->unit_kerja ?? 'Unit Kerja',
+            'days_until' => Carbon::today()->diffInDays($tanggalJaga)
         ];
     }
 
@@ -514,6 +619,160 @@ class DokterDashboardController extends Controller
                 'message' => 'Failed to retrieve attendance data',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Check-in/Check-out methods (copied from ParamedisDashboardController)
+     */
+    public function checkIn(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $today = Carbon::today();
+            
+            // Cek apakah sudah check-in hari ini
+            $attendance = Attendance::where('user_id', $user->id)
+                ->whereDate('date', $today)
+                ->first();
+
+            if ($attendance && $attendance->time_in) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda sudah check-in hari ini'
+                ], 422);
+            }
+
+            // Buat record attendance
+            $attendance = Attendance::updateOrCreate([
+                'user_id' => $user->id,
+                'date' => $today
+            ], [
+                'time_in' => Carbon::now(),
+                'location_in' => $request->get('location'),
+                'latitude_in' => $request->get('latitude'),
+                'longitude_in' => $request->get('longitude'),
+                'status' => 'on_time'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Check-in berhasil',
+                'data' => $attendance
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal check-in: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function checkOut(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $today = Carbon::today();
+            
+            $attendance = Attendance::where('user_id', $user->id)
+                ->whereDate('date', $today)
+                ->whereNotNull('time_in')
+                ->whereNull('time_out')
+                ->first();
+
+            if (!$attendance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Belum check-in atau sudah check-out'
+                ], 422);
+            }
+
+            $attendance->update([
+                'time_out' => Carbon::now(),
+                'location_out' => $request->get('location'),
+                'latitude_out' => $request->get('latitude'),
+                'longitude_out' => $request->get('longitude')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Check-out berhasil',
+                'data' => $attendance
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal check-out: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Endpoint untuk schedule API (untuk mobile app) - copied from ParamedisDashboardController
+     */
+    public function schedules(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Get upcoming schedules for mobile app
+            $schedules = JadwalJaga::where('pegawai_id', $user->id)
+                ->where('tanggal_jaga', '>=', Carbon::today())
+                ->with(['shiftTemplate'])
+                ->orderBy('tanggal_jaga')
+                ->limit(10)
+                ->get()
+                ->map(function ($jadwal) {
+                    // Ensure tanggal_jaga is properly cast to Carbon
+                    $tanggalJaga = $jadwal->tanggal_jaga instanceof Carbon 
+                        ? $jadwal->tanggal_jaga 
+                        : Carbon::parse($jadwal->tanggal_jaga);
+                        
+                    return [
+                        'id' => $jadwal->id,
+                        'tanggal' => $tanggalJaga->format('Y-m-d'),
+                        'waktu' => $jadwal->shiftTemplate ? 
+                            ($jadwal->shiftTemplate->jam_masuk . ' - ' . $jadwal->shiftTemplate->jam_pulang) : 
+                            '08:00 - 16:00', // Default fallback
+                        'lokasi' => $jadwal->unit_kerja ?? 'Unit Kerja',
+                        'jenis' => $this->getShiftType($jadwal->shiftTemplate),
+                        'status' => 'scheduled',
+                        'shift_nama' => $jadwal->shiftTemplate->nama_shift ?? 'Shift',
+                        'status_jaga' => $jadwal->status_jaga ?? 'Aktif',
+                        'keterangan' => $jadwal->keterangan
+                    ];
+                });
+
+            return response()->json($schedules);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat jadwal: ' . $e->getMessage(),
+                'data' => []
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper method to determine shift type based on time
+     */
+    private function getShiftType($shiftTemplate)
+    {
+        if (!$shiftTemplate || !$shiftTemplate->jam_masuk) {
+            return 'pagi'; // Default fallback
+        }
+        
+        $startHour = (int) substr($shiftTemplate->jam_masuk, 0, 2);
+        
+        if ($startHour >= 6 && $startHour < 14) {
+            return 'pagi';
+        } elseif ($startHour >= 14 && $startHour < 22) {
+            return 'siang';
+        } else {
+            return 'malam';
         }
     }
 }

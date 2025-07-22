@@ -21,7 +21,7 @@ class JadwalJaga extends Model
     ];
 
     protected $casts = [
-        // 'tanggal_jaga' => 'date', // Temporarily removed for testing
+        'tanggal_jaga' => 'date', // Re-enabled to fix Carbon format issues
         'jam_jaga_custom' => 'datetime:H:i',
     ];
 
@@ -38,16 +38,22 @@ class JadwalJaga extends Model
     // For FullCalendar integration
     public function getStartAttribute(): string
     {
-        return $this->tanggal_jaga->format('Y-m-d') . 'T' . $this->shiftTemplate->jam_masuk;
+        $tanggalJaga = $this->tanggal_jaga instanceof Carbon 
+            ? $this->tanggal_jaga 
+            : Carbon::parse($this->tanggal_jaga);
+            
+        return $tanggalJaga->format('Y-m-d') . 'T' . ($this->shiftTemplate->jam_masuk ?? '08:00');
     }
 
     public function getEndAttribute(): string
     {
-        $endDate = $this->tanggal_jaga;
-        $endTime = $this->shiftTemplate->jam_pulang;
+        $endDate = $this->tanggal_jaga instanceof Carbon 
+            ? $this->tanggal_jaga 
+            : Carbon::parse($this->tanggal_jaga);
+        $endTime = $this->shiftTemplate->jam_pulang ?? '16:00';
         
         // Handle overnight shifts
-        if ($this->shiftTemplate->jam_pulang < $this->shiftTemplate->jam_masuk) {
+        if ($this->shiftTemplate && $this->shiftTemplate->jam_pulang < $this->shiftTemplate->jam_masuk) {
             $endDate = $endDate->addDay();
         }
         

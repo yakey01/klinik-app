@@ -36,6 +36,26 @@ class PegawaiResource extends Resource
     protected static ?string $navigationGroup = '👥 USER MANAGEMENT';
     protected static ?int $navigationSort = 10;
 
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->hasRole('admin') || auth()->user()?->hasRole('manajer');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasRole('admin') || auth()->user()?->hasRole('manajer');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->hasRole('admin');
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->hasRole('admin');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -269,6 +289,8 @@ class PegawaiResource extends Resource
                         true: fn ($query) => $query->whereNotNull('user_id'),
                         false: fn ($query) => $query->whereNull('user_id'),
                     ),
+
+                Tables\Filters\TrashedFilter::make(),
 
                 Tables\Filters\Filter::make('jabatan')
                     ->form([
@@ -859,6 +881,8 @@ class PegawaiResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')

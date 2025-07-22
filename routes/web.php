@@ -14,6 +14,11 @@ require __DIR__.'/test.php';
 require __DIR__.'/test-models.php';
 use Illuminate\Support\Facades\Auth;
 
+// EMERGENCY TEST ROUTE - Top priority
+Route::get('/test-emergency', function () {
+    return response()->json(['status' => 'Emergency route works', 'timestamp' => now()]);
+});
+
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect('/dashboard');
@@ -184,8 +189,44 @@ Route::middleware(['auth'])->group(function () {
                 'initials' => strtoupper(substr($displayName ?? 'DA', 0, 2))
             ];
             
-            return view('mobile.dokter.app', compact('token', 'userData'));
+            // AGGRESSIVE CACHE BUSTING HEADERS
+            return response()
+                ->view('mobile.dokter.app', compact('token', 'userData'))
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', 'Mon, 01 Jan 1990 00:00:00 GMT')
+                ->header('Last-Modified', gmdate('D, d M Y H:i:s') . ' GMT')
+                ->header('ETag', '"' . md5(time()) . '"');
         })->name('mobile-app')->middleware('throttle:1000,1');
+        
+        // EMERGENCY BYPASS ROUTE - Force new bundle loading
+        Route::get('/mobile-app-v2', function () {
+            $user = auth()->user();
+            $token = $user->createToken('mobile-app-dokter-' . now()->timestamp)->plainTextToken;
+            
+            $hour = now()->hour;
+            $greeting = $hour < 12 ? 'Selamat Pagi' : ($hour < 17 ? 'Selamat Siang' : 'Selamat Malam');
+            
+            // Get dokter data for more accurate name
+            $dokter = \App\Models\Dokter::where('user_id', $user->id)->first();
+            $displayName = $dokter ? $dokter->nama_lengkap : $user->name;
+            
+            $userData = [
+                'name' => $displayName,
+                'email' => $user->email,
+                'greeting' => $greeting,
+                'initials' => strtoupper(substr($displayName ?? 'DA', 0, 2))
+            ];
+            
+            // ULTIMATE CACHE BYPASS
+            return response()
+                ->view('mobile.dokter.app-emergency', compact('token', 'userData'))
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', 'Mon, 01 Jan 1990 00:00:00 GMT')
+                ->header('Last-Modified', gmdate('D, d M Y H:i:s') . ' GMT')
+                ->header('ETag', '"bypass-' . md5(time() . rand()) . '"');
+        })->name('mobile-app-v2')->middleware('throttle:1000,1');
         
         // API endpoint for doctor weekly schedules (for dashboard)
         Route::get('/api/weekly-schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getWeeklySchedule'])
@@ -256,6 +297,108 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('dokter.mobile-app');
         });
     });
+    
+    // EMERGENCY DOKTER BYPASS ROUTE (Outside middleware group for debugging)
+    Route::get('/dokter/mobile-app-emergency', function () {
+        $user = auth()->user();
+        
+        // Check if user exists and is authenticated
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated']);
+        }
+        
+        // Check role manually
+        $hasRole = $user->roles()->where('name', 'dokter')->exists();
+        if (!$hasRole) {
+            return response()->json([
+                'error' => 'Role check failed',
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'roles' => $user->roles()->pluck('name')->toArray()
+            ]);
+        }
+        
+        $token = $user->createToken('mobile-app-dokter-emergency-' . now()->timestamp)->plainTextToken;
+        
+        $hour = now()->hour;
+        $greeting = $hour < 12 ? 'Selamat Pagi' : ($hour < 17 ? 'Selamat Siang' : 'Selamat Malam');
+        
+        // Get dokter data
+        $dokter = \App\Models\Dokter::where('user_id', $user->id)->first();
+        $displayName = $dokter ? $dokter->nama_lengkap : $user->name;
+        
+        $userData = [
+            'name' => $displayName,
+            'email' => $user->email,
+            'greeting' => $greeting,
+            'initials' => strtoupper(substr($displayName ?? 'DA', 0, 2))
+        ];
+        
+        // ULTIMATE CACHE BYPASS
+        return response()
+            ->view('mobile.dokter.app-emergency', compact('token', 'userData'))
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Mon, 01 Jan 1990 00:00:00 GMT');
+    })->middleware('auth');
+    
+    // ULTIMATE EMERGENCY BYPASS - Completely independent route
+    Route::get('/emergency-dokter-bypass', function () {
+        $user = auth()->user();
+        
+        // Check if user exists and is authenticated
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+        
+        // Get all user info for debugging
+        $userData = [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'roles' => $user->roles()->pluck('name')->toArray(),
+            'role_id' => $user->role_id ?? null,
+            'authenticated' => auth()->check(),
+        ];
+        
+        // Check if user has dokter role in any way
+        $hasRole = $user->roles()->where('name', 'dokter')->exists();
+        $hasRoleId = $user->role_id && \App\Models\Role::find($user->role_id)?->name === 'dokter';
+        
+        if (!$hasRole && !$hasRoleId) {
+            return response()->json([
+                'error' => 'Role check failed',
+                'debug' => $userData,
+                'role_check_spatie' => $hasRole,
+                'role_check_direct' => $hasRoleId,
+                'message' => 'User does not have dokter role'
+            ], 403);
+        }
+        
+        // If user has role, generate token and load app
+        $token = $user->createToken('emergency-bypass-' . now()->timestamp)->plainTextToken;
+        
+        $hour = now()->hour;
+        $greeting = $hour < 12 ? 'Selamat Pagi' : ($hour < 17 ? 'Selamat Siang' : 'Selamat Malam');
+        
+        // Get dokter data
+        $dokter = \App\Models\Dokter::where('user_id', $user->id)->first();
+        $displayName = $dokter ? $dokter->nama_lengkap : $user->name;
+        
+        $appUserData = [
+            'name' => $displayName,
+            'email' => $user->email,
+            'greeting' => $greeting,
+            'initials' => strtoupper(substr($displayName ?? 'DA', 0, 2))
+        ];
+        
+        // ULTIMATE CACHE BYPASS
+        return response()
+            ->view('mobile.dokter.app-emergency', ['token' => $token, 'userData' => $appUserData])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Mon, 01 Jan 1990 00:00:00 GMT');
+    })->middleware('auth');
     
     // PARAMEDIS Mobile App Routes (Replaces Filament dashboard)
     Route::middleware(['auth', 'role:paramedis'])->prefix('paramedis')->name('paramedis.')->group(function () {

@@ -108,7 +108,7 @@ function AppContent() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard userData={userData} />;
+        return <Dashboard userData={userData} onNavigate={setActiveTab} />;
       case 'jadwal':
         return <JadwalJaga />;
       case 'jaspel':
@@ -120,7 +120,7 @@ function AppContent() {
       case 'profil':
         return <Profil userData={userData} />;
       default:
-        return <Dashboard userData={userData} />;
+        return <Dashboard userData={userData} onNavigate={setActiveTab} />;
     }
   };
 

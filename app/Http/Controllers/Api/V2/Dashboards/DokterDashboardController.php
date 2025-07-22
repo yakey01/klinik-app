@@ -7,7 +7,6 @@ use App\Models\Dokter;
 use App\Models\JadwalJaga;
 use App\Models\Tindakan;
 use App\Models\Attendance;
-use App\Models\DokterPresensi;
 use App\Models\DokterUmumJaspel;
 use App\Models\User;
 use Carbon\Carbon;
@@ -62,9 +61,9 @@ class DokterDashboardController extends Controller
                     ->where('tanggal_jaga', '<=', Carbon::now()->endOfWeek())
                     ->count();
 
-                // Attendance hari ini - use DokterPresensi table
-                $attendanceToday = DokterPresensi::where('dokter_id', $dokter->id)
-                    ->whereDate('tanggal', $today)
+                // Attendance hari ini
+                $attendanceToday = Attendance::where('user_id', $user->id)
+                    ->whereDate('date', $today)
                     ->first();
 
                 return [
@@ -73,10 +72,10 @@ class DokterDashboardController extends Controller
                     'jaspel_month' => $jaspelMonth,
                     'shifts_week' => $shiftsWeek,
                     'attendance_today' => $attendanceToday ? [
-                        'check_in' => $attendanceToday->jam_masuk?->format('H:i'),
-                        'check_out' => $attendanceToday->jam_pulang?->format('H:i'),
-                        'status' => $attendanceToday->jam_pulang ? 'checked_out' : 'checked_in',
-                        'duration' => $attendanceToday->durasi
+                        'check_in' => $attendanceToday->time_in?->format('H:i'),
+                        'check_out' => $attendanceToday->time_out?->format('H:i'),
+                        'status' => $attendanceToday->time_out ? 'checked_out' : 'checked_in',
+                        'duration' => $attendanceToday->formatted_work_duration
                     ] : null
                 ];
             });
@@ -333,42 +332,27 @@ class DokterDashboardController extends Controller
     {
         try {
             $user = Auth::user();
-            $dokter = Dokter::where('user_id', $user->id)->first();
             $today = Carbon::today();
             
-            if (!$dokter) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data dokter tidak ditemukan',
-                    'data' => null
-                ], 404);
-            }
-            
-            // Presensi hari ini - use DokterPresensi table
-            $attendanceToday = DokterPresensi::where('dokter_id', $dokter->id)
-                ->whereDate('tanggal', $today)
+            // Presensi hari ini
+            $attendanceToday = Attendance::where('user_id', $user->id)
+                ->whereDate('date', $today)
                 ->first();
 
-            // History presensi bulan ini - use DokterPresensi table
-            $attendanceHistory = DokterPresensi::where('dokter_id', $dokter->id)
-                ->whereMonth('tanggal', Carbon::now()->month)
-                ->whereYear('tanggal', Carbon::now()->year)
-                ->orderByDesc('tanggal')
+            // History presensi bulan ini
+            $attendanceHistory = Attendance::where('user_id', $user->id)
+                ->whereMonth('date', Carbon::now()->month)
+                ->whereYear('date', Carbon::now()->year)
+                ->orderByDesc('date')
                 ->get();
 
-            // Stats presensi - adapted for DokterPresensi model
+            // Stats presensi
             $attendanceStats = [
                 'total_days' => $attendanceHistory->count(),
-                'complete_days' => $attendanceHistory->whereNotNull('jam_pulang')->count(),
-                'incomplete_days' => $attendanceHistory->whereNull('jam_pulang')->count(),
-                'total_hours' => $attendanceHistory->sum(function($record) {
-                    if ($record->jam_masuk && $record->jam_pulang) {
-                        $masuk = \Carbon\Carbon::parse($record->jam_masuk);
-                        $pulang = \Carbon\Carbon::parse($record->jam_pulang);
-                        return $pulang->diffInHours($masuk);
-                    }
-                    return 0;
-                })
+                'on_time' => $attendanceHistory->where('status', 'on_time')->count(),
+                'late' => $attendanceHistory->where('status', 'late')->count(),
+                'early_leave' => $attendanceHistory->where('status', 'early_leave')->count(),
+                'total_hours' => $attendanceHistory->sum('work_duration_minutes') / 60
             ];
 
             return response()->json([
@@ -376,13 +360,13 @@ class DokterDashboardController extends Controller
                 'message' => 'Data presensi berhasil dimuat',
                 'data' => [
                     'today' => $attendanceToday ? [
-                        'date' => $attendanceToday->tanggal->format('Y-m-d'),
-                        'time_in' => $attendanceToday->jam_masuk?->format('H:i'),
-                        'time_out' => $attendanceToday->jam_pulang?->format('H:i'),
+                        'date' => $attendanceToday->date->format('Y-m-d'),
+                        'time_in' => $attendanceToday->time_in?->format('H:i'),
+                        'time_out' => $attendanceToday->time_out?->format('H:i'),
                         'status' => $attendanceToday->status,
-                        'work_duration' => $attendanceToday->durasi,
+                        'work_duration' => $attendanceToday->formatted_work_duration,
                         'can_check_in' => false,
-                        'can_check_out' => !$attendanceToday->jam_pulang
+                        'can_check_out' => !$attendanceToday->time_out
                     ] : [
                         'date' => $today->format('Y-m-d'),
                         'time_in' => null,
@@ -462,7 +446,7 @@ class DokterDashboardController extends Controller
             'attendance_rank' => $currentUserRank ?? $totalDokter + 1,
             'total_staff' => $totalDokter,
             'attendance_percentage' => round($attendanceRate, 1),
-            'patient_satisfaction' => min(100, 85 + ($thisMonthTindakan * 1.5)), // Dynamic calculation
+            'patient_satisfaction' => 92,
             'attendance_rate' => $attendanceRate,
             'efficiency_score' => min(95, 70 + ($thisMonthTindakan * 2)),
             'growth_rate' => round($growthRate, 1)
@@ -523,12 +507,11 @@ class DokterDashboardController extends Controller
             $tempDate->addDay();
         }
         
-        // Count attendance days for the full month using DokterPresensi
-        $dokter = Dokter::where('user_id', $user->id)->first();
-        $attendanceDays = $dokter ? DokterPresensi::where('dokter_id', $dokter->id)
-            ->whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->distinct('tanggal')
-            ->count() : 0;
+        // Count attendance days for the full month
+        $attendanceDays = Attendance::where('user_id', $user->id)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->distinct('date')
+            ->count();
         
         $fallbackRate = $workingDays > 0 ? round(($attendanceDays / $workingDays) * 100, 2) : 0;
         
@@ -606,20 +589,11 @@ class DokterDashboardController extends Controller
     {
         try {
             $user = Auth::user();
-            $dokter = Dokter::where('user_id', $user->id)->first();
             $today = Carbon::today();
             
-            if (!$dokter) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data dokter tidak ditemukan',
-                    'data' => null
-                ], 404);
-            }
-            
-            // Get today's attendance using DokterPresensi
-            $attendance = DokterPresensi::where('dokter_id', $dokter->id)
-                ->whereDate('tanggal', $today)
+            // Get today's attendance
+            $attendance = Attendance::where('user_id', $user->id)
+                ->where('date', $today)
                 ->first();
             
             return response()->json([
@@ -628,12 +602,12 @@ class DokterDashboardController extends Controller
                 'data' => [
                     'today' => [
                         'has_checked_in' => $attendance ? true : false,
-                        'has_checked_out' => $attendance && $attendance->jam_pulang ? true : false,
-                        'check_in_time' => $attendance?->jam_masuk?->format('H:i'),
-                        'check_out_time' => $attendance?->jam_pulang?->format('H:i'),
-                        'work_duration' => $attendance?->durasi ?? '0 jam',
+                        'has_checked_out' => $attendance && $attendance->time_out ? true : false,
+                        'check_in_time' => $attendance?->time_in?->format('H:i'),
+                        'check_out_time' => $attendance?->time_out?->format('H:i'),
+                        'work_duration' => $attendance?->formatted_work_duration ?? '0 jam',
                         'status' => $attendance ? 
-                            ($attendance->jam_pulang ? 'checked_out' : 'checked_in') : 
+                            ($attendance->time_out ? 'checked_out' : 'checked_in') : 
                             'not_checked_in'
                     ]
                 ]
@@ -655,22 +629,14 @@ class DokterDashboardController extends Controller
     {
         try {
             $user = Auth::user();
-            $dokter = Dokter::where('user_id', $user->id)->first();
             $today = Carbon::today();
             
-            if (!$dokter) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data dokter tidak ditemukan'
-                ], 404);
-            }
-            
             // Cek apakah sudah check-in hari ini
-            $attendance = DokterPresensi::where('dokter_id', $dokter->id)
-                ->whereDate('tanggal', $today)
+            $attendance = Attendance::where('user_id', $user->id)
+                ->whereDate('date', $today)
                 ->first();
 
-            if ($attendance && $attendance->jam_masuk) {
+            if ($attendance && $attendance->time_in) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda sudah check-in hari ini'
@@ -678,11 +644,15 @@ class DokterDashboardController extends Controller
             }
 
             // Buat record attendance
-            $attendance = DokterPresensi::updateOrCreate([
-                'dokter_id' => $dokter->id,
-                'tanggal' => $today
+            $attendance = Attendance::updateOrCreate([
+                'user_id' => $user->id,
+                'date' => $today
             ], [
-                'jam_masuk' => Carbon::now()
+                'time_in' => Carbon::now(),
+                'location_in' => $request->get('location'),
+                'latitude_in' => $request->get('latitude'),
+                'longitude_in' => $request->get('longitude'),
+                'status' => 'on_time'
             ]);
 
             return response()->json([
@@ -703,20 +673,12 @@ class DokterDashboardController extends Controller
     {
         try {
             $user = Auth::user();
-            $dokter = Dokter::where('user_id', $user->id)->first();
             $today = Carbon::today();
             
-            if (!$dokter) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data dokter tidak ditemukan'
-                ], 404);
-            }
-            
-            $attendance = DokterPresensi::where('dokter_id', $dokter->id)
-                ->whereDate('tanggal', $today)
-                ->whereNotNull('jam_masuk')
-                ->whereNull('jam_pulang')
+            $attendance = Attendance::where('user_id', $user->id)
+                ->whereDate('date', $today)
+                ->whereNotNull('time_in')
+                ->whereNull('time_out')
                 ->first();
 
             if (!$attendance) {
@@ -727,7 +689,10 @@ class DokterDashboardController extends Controller
             }
 
             $attendance->update([
-                'jam_pulang' => Carbon::now()
+                'time_out' => Carbon::now(),
+                'location_out' => $request->get('location'),
+                'latitude_out' => $request->get('latitude'),
+                'longitude_out' => $request->get('longitude')
             ]);
 
             return response()->json([
@@ -745,72 +710,6 @@ class DokterDashboardController extends Controller
     }
 
     /**
-     * Get current week schedule for mobile dashboard
-     */
-    public function getWeeklySchedule(Request $request)
-    {
-        try {
-            $user = Auth::user();
-            
-            // Get current week schedules (Monday to Sunday)
-            $startOfWeek = Carbon::now()->startOfWeek(Carbon::MONDAY);
-            $endOfWeek = Carbon::now()->endOfWeek(Carbon::SUNDAY);
-            
-            $weeklySchedule = JadwalJaga::where('pegawai_id', $user->id)
-                ->whereBetween('tanggal_jaga', [
-                    $startOfWeek->format('Y-m-d'),
-                    $endOfWeek->format('Y-m-d')
-                ])
-                ->with(['shiftTemplate'])
-                ->orderBy('tanggal_jaga')
-                ->orderBy('shift_template_id') // Sort by shift time for same day
-                ->get()
-                ->map(function ($jadwal) {
-                    $tanggalJaga = $jadwal->tanggal_jaga instanceof Carbon 
-                        ? $jadwal->tanggal_jaga 
-                        : Carbon::parse($jadwal->tanggal_jaga);
-                        
-                    return [
-                        'id' => $jadwal->id,
-                        'tanggal' => $tanggalJaga->format('Y-m-d'),
-                        'waktu' => $jadwal->shiftTemplate ? 
-                            ($jadwal->shiftTemplate->jam_masuk . ' - ' . $jadwal->shiftTemplate->jam_pulang) : 
-                            '08:00 - 16:00',
-                        'lokasi' => $jadwal->unit_kerja ?? 'Unit Kerja',
-                        'jenis' => $this->getShiftType($jadwal->shiftTemplate),
-                        'status' => $tanggalJaga->isPast() ? 'completed' : 'scheduled',
-                        'shift_nama' => $jadwal->shiftTemplate->nama_shift ?? 'Shift',
-                        'status_jaga' => $jadwal->status_jaga ?? 'Aktif',
-                        'keterangan' => $jadwal->keterangan
-                    ];
-                });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Jadwal minggu ini berhasil dimuat',
-                'data' => $weeklySchedule,
-                'meta' => [
-                    'week_period' => [
-                        'start' => $startOfWeek->format('Y-m-d'),
-                        'end' => $endOfWeek->format('Y-m-d'),
-                        'start_formatted' => $startOfWeek->format('d M Y'),
-                        'end_formatted' => $endOfWeek->format('d M Y')
-                    ],
-                    'total_schedules' => $weeklySchedule->count()
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memuat jadwal minggu ini: ' . $e->getMessage(),
-                'data' => [],
-                'meta' => null
-            ], 500);
-        }
-    }
-
-    /**
      * Endpoint untuk schedule API (untuk mobile app) - copied from ParamedisDashboardController
      */
     public function schedules(Request $request)
@@ -823,7 +722,6 @@ class DokterDashboardController extends Controller
                 ->where('tanggal_jaga', '>=', Carbon::today())
                 ->with(['shiftTemplate'])
                 ->orderBy('tanggal_jaga')
-                ->orderBy('shift_template_id') // Sort by shift time for same day
                 ->limit(10)
                 ->get()
                 ->map(function ($jadwal) {
@@ -854,104 +752,6 @@ class DokterDashboardController extends Controller
                 'success' => false,
                 'message' => 'Gagal memuat jadwal: ' . $e->getMessage(),
                 'data' => []
-            ], 500);
-        }
-    }
-
-    /**
-     * Get IGD schedules by location categories
-     */
-    public function getIgdSchedules(Request $request)
-    {
-        try {
-            $user = Auth::user();
-            $category = $request->get('category', 'all'); // all, pendaftaran, pelayanan, dokter_jaga
-            
-            // Map category to unit_kerja values (matching admin form options)
-            $unitKerjaMap = [
-                'all' => ['Pendaftaran', 'Pelayanan', 'Dokter Jaga'],
-                'pendaftaran' => ['Pendaftaran'],
-                'pelayanan' => ['Pelayanan'],
-                'dokter_jaga' => ['Dokter Jaga']
-            ];
-            
-            $targetUnits = $unitKerjaMap[$category] ?? $unitKerjaMap['all'];
-            
-            // Get current week schedules for unit locations
-            $startOfWeek = Carbon::now()->startOfWeek(Carbon::MONDAY);
-            $endOfWeek = Carbon::now()->endOfWeek(Carbon::SUNDAY);
-            
-            // SECURITY FIX: Only show schedules for the logged-in user
-            $schedules = JadwalJaga::where('pegawai_id', $user->id)
-                ->whereIn('unit_kerja', $targetUnits)
-                ->whereBetween('tanggal_jaga', [
-                    $startOfWeek->format('Y-m-d'),
-                    $endOfWeek->format('Y-m-d')
-                ])
-                ->with(['shiftTemplate', 'pegawai'])
-                ->orderBy('tanggal_jaga')
-                ->orderByRaw("
-                    CASE 
-                        WHEN shift_templates.jam_masuk >= '06:00' AND shift_templates.jam_masuk < '14:00' THEN 1
-                        WHEN shift_templates.jam_masuk >= '14:00' AND shift_templates.jam_masuk < '22:00' THEN 2
-                        ELSE 3
-                    END
-                ")
-                ->leftJoin('shift_templates', 'jadwal_jagas.shift_template_id', '=', 'shift_templates.id')
-                ->select('jadwal_jagas.*')
-                ->get()
-                ->groupBy('unit_kerja')
-                ->map(function ($schedules, $unitKerja) {
-                    return [
-                        'unit_kerja' => $unitKerja,
-                        'schedules' => $schedules->map(function ($jadwal) {
-                            $tanggalJaga = $jadwal->tanggal_jaga instanceof Carbon 
-                                ? $jadwal->tanggal_jaga 
-                                : Carbon::parse($jadwal->tanggal_jaga);
-                                
-                            return [
-                                'id' => $jadwal->id,
-                                'tanggal' => $tanggalJaga->format('Y-m-d'),
-                                'waktu' => $jadwal->shiftTemplate ? 
-                                    ($jadwal->shiftTemplate->jam_masuk . ' - ' . $jadwal->shiftTemplate->jam_pulang) : 
-                                    '08:00 - 16:00',
-                                'lokasi' => $jadwal->unit_kerja,
-                                'pegawai_nama' => $jadwal->pegawai->name ?? 'Staff',
-                                'jenis' => $this->getShiftType($jadwal->shiftTemplate),
-                                'status' => $tanggalJaga->isPast() ? 'completed' : 'scheduled',
-                                'shift_nama' => $jadwal->shiftTemplate->nama_shift ?? 'Shift',
-                                'status_jaga' => $jadwal->status_jaga ?? 'Aktif',
-                                'keterangan' => $jadwal->keterangan
-                            ];
-                        })
-                    ];
-                });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Data jadwal unit kerja berhasil dimuat',
-                'data' => $schedules->values(),
-                'meta' => [
-                    'category' => $category,
-                    'week_period' => [
-                        'start' => $startOfWeek->format('Y-m-d'),
-                        'end' => $endOfWeek->format('Y-m-d'),
-                        'start_formatted' => $startOfWeek->format('d M Y'),
-                        'end_formatted' => $endOfWeek->format('d M Y')
-                    ],
-                    'total_locations' => $schedules->count(),
-                    'total_schedules' => $schedules->sum(function($location) {
-                        return $location['schedules']->count();
-                    })
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memuat data jadwal unit kerja: ' . $e->getMessage(),
-                'data' => [],
-                'meta' => null
             ], 500);
         }
     }

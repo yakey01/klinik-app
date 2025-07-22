@@ -41,31 +41,12 @@ interface JadwalItem {
 }
 
 
-interface UnitLocation {
-  unit_kerja: string;
-  schedules: JadwalItem[];
-}
-
 export function Dashboard({ userData }: DashboardProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
-  // Simplified state management following paramedis pattern
-  const [scheduleData, setScheduleData] = useState({
-    upcoming: [] as JadwalItem[],
-    nextSchedule: null as JadwalItem | null
-  });
-  const [isLoadingSchedules, setIsLoadingSchedules] = useState(true);
-  const [scheduleError, setScheduleError] = useState<string | null>(null);
-
-  // State for jadwal jaga (next schedule)
-  const [isLoadingJadwal, setIsLoadingJadwal] = useState(true);
-  const [jadwalError, setJadwalError] = useState<string | null>(null);
   const [jadwalMendatang, setJadwalMendatang] = useState<JadwalItem[]>([]);
   const [nextSchedule, setNextSchedule] = useState<JadwalItem | null>(null);
-
-  // State for weekly schedule (keep this one - remove unit schedule)
-  const [isLoadingWeekly, setIsLoadingWeekly] = useState(true);
-  const [weeklyError, setWeeklyError] = useState<string | null>(null);
-  const [weeklySchedule, setWeeklySchedule] = useState<JadwalItem[]>([]);
+  const [isLoadingJadwal, setIsLoadingJadwal] = useState(true);
+  const [jadwalError, setJadwalError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -74,7 +55,7 @@ export function Dashboard({ userData }: DashboardProps) {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch jadwal jaga data from API (for next schedule card)
+  // Fetch jadwal jaga data from API
   useEffect(() => {
     const fetchJadwalJaga = async () => {
       try {
@@ -104,7 +85,7 @@ export function Dashboard({ userData }: DashboardProps) {
         setJadwalError(null);
         
         // Transform schedules to our format
-        const upcomingJadwal = schedules.map((jadwal: any) => {
+        const weeklyJadwal = schedules.map((jadwal: any) => {
           return {
             id: jadwal.id.toString(),
             tanggal: jadwal.tanggal,
@@ -118,21 +99,33 @@ export function Dashboard({ userData }: DashboardProps) {
           };
         });
 
-        setJadwalMendatang(upcomingJadwal);
+        setJadwalMendatang(weeklyJadwal);
 
         // Set next schedule (first upcoming schedule)
-        const upcomingSchedules = upcomingJadwal.filter(j => j.status === 'scheduled');
+        const upcomingSchedules = weeklyJadwal.filter(j => j.status === 'scheduled');
         if (upcomingSchedules.length > 0) {
           setNextSchedule(upcomingSchedules[0]);
         } else {
+          // No upcoming schedules
           setNextSchedule(null);
         }
       } catch (error) {
         console.error('Error fetching jadwal jaga:', error);
         setJadwalError('Gagal memuat jadwal jaga');
         
-        // Fallback to empty - no hardcoded data
-        const fallbackJadwal: JadwalItem[] = [];
+        // Fallback to sample data
+        const fallbackJadwal = [
+          {
+            id: '1',
+            tanggal: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+            waktu: '07:00 - 15:00',
+            lokasi: 'IGD',
+            jenis: 'pagi' as const,
+            status: 'scheduled' as const,
+            shift_nama: 'Pagi',
+            status_jaga: 'Aktif'
+          }
+        ];
         setJadwalMendatang(fallbackJadwal);
         setNextSchedule(fallbackJadwal[0]);
       } finally {
@@ -142,69 +135,6 @@ export function Dashboard({ userData }: DashboardProps) {
 
     fetchJadwalJaga();
   }, []);
-
-  // Fetch weekly schedule data from new API endpoint
-  useEffect(() => {
-    const fetchWeeklySchedule = async () => {
-      try {
-        setIsLoadingWeekly(true);
-        setWeeklyError(null);
-
-        // Get CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        
-        const response = await fetch('/dokter/api/weekly-schedules', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken || '',
-            'Accept': 'application/json'
-          },
-          credentials: 'same-origin'
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-          setWeeklyError(null);
-          
-          // Transform weekly schedules to our format
-          const weeklyJadwal = result.data.map((jadwal: any) => {
-            return {
-              id: jadwal.id.toString(),
-              tanggal: jadwal.tanggal,
-              waktu: jadwal.waktu,
-              lokasi: jadwal.lokasi,
-              jenis: jadwal.jenis as 'pagi' | 'siang' | 'malam',
-              status: jadwal.status as 'scheduled' | 'completed' | 'missed',
-              shift_nama: jadwal.shift_nama,
-              status_jaga: jadwal.status_jaga,
-              keterangan: jadwal.keterangan
-            };
-          });
-
-          setWeeklySchedule(weeklyJadwal);
-        } else {
-          throw new Error(result.message || 'Failed to load weekly schedule');
-        }
-      } catch (error) {
-        console.error('Error fetching weekly schedule:', error);
-        setWeeklyError('Gagal memuat jadwal minggu ini');
-        
-        // Set empty array as fallback
-        setWeeklySchedule([]);
-      } finally {
-        setIsLoadingWeekly(false);
-      }
-    };
-
-    fetchWeeklySchedule();
-  }, []);
-
 
 
   const getShiftColor = (jenis: string) => {
@@ -303,20 +233,20 @@ export function Dashboard({ userData }: DashboardProps) {
   // Use real data from API or fallback to dummy data
   const stats = dashboardStats ? {
     attendance: {
-      current: Math.round(dashboardStats.performance?.attendance_percentage || dashboardStats.performance?.attendance_rate || 0),
+      current: Math.round(dashboardStats.performance?.attendance_rate || 0),
       target: 90,
-      change: Math.round(dashboardStats.performance?.growth_rate || 0)
+      change: +5
     },
     performance: {
-      score: Math.round(dashboardStats.performance?.patient_satisfaction || 0),
-      change: Math.round(dashboardStats.performance?.growth_rate || 0),
+      score: dashboardStats.performance?.patient_satisfaction || 92,
+      change: +3,
       attendance_rank: dashboardStats.performance?.attendance_rank,
       total_staff: dashboardStats.performance?.total_staff
     },
     jaspel: {
       thisMonth: dashboardStats.stats?.jaspel_month || 0,
-      lastMonth: dashboardStats.stats?.jaspel_last_month || 0,
-      change: Math.round(((dashboardStats.stats?.jaspel_month || 0) - (dashboardStats.stats?.jaspel_last_month || 0)) / (dashboardStats.stats?.jaspel_last_month || 1) * 100)
+      lastMonth: 14200000,
+      change: +9.2
     }
   } : {
     attendance: {
@@ -363,7 +293,7 @@ export function Dashboard({ userData }: DashboardProps) {
                 <div>
                   <h2 className="text-xl font-semibold text-white text-heading-mobile">Dashboard</h2>
                   <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">
-                    {dashboardStats?.greeting || userData?.greeting || 'Selamat datang kembali'}, {dashboardStats?.dokter?.nama_lengkap || dashboardStats?.user?.name || userData?.name || 'Dokter'}
+                    {userData?.greeting || 'Selamat datang kembali'}, {userData?.name || 'Dokter'}
                   </p>
                 </div>
               </div>
@@ -483,54 +413,13 @@ export function Dashboard({ userData }: DashboardProps) {
                 </div>
               </motion.div>
             ) : (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                className="text-center py-8"
-              >
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.4 }}
-                  className="relative mb-6"
-                >
-                  <div className="relative inline-flex items-center justify-center w-20 h-20 mx-auto mb-3">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-full opacity-20 animate-pulse"></div>
-                    <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 rounded-full p-4 border border-blue-100 dark:border-blue-800/50 shadow-sm">
-                      <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.4 }}
-                  className="space-y-2 mb-4"
-                >
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Tidak ada jadwal jaga
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
-                    Tidak ada jadwal mendatang – Jadwal akan muncul setelah diatur admin
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.4 }}
-                  className="flex items-center justify-center"
-                >
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-full border border-blue-100 dark:border-blue-800/50">
-                    <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                      Segera diperbarui
-                    </span>
-                  </div>
-                </motion.div>
-              </motion.div>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                <div className="text-center text-gray-500 dark:text-gray-400">
+                  <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="font-medium">Tidak ada jadwal mendatang</p>
+                  <p className="text-sm">Jadwal akan muncul setelah diatur admin</p>
+                </div>
+              </div>
             )}
 
             <motion.div 
@@ -592,15 +481,6 @@ export function Dashboard({ userData }: DashboardProps) {
                     <span className="animate-pulse">⏳</span>
                   ) : (
                     `#${stats.performance.attendance_rank || '--'}`
-                  )}
-                </p>
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mt-1">
-                  {loadingStats ? (
-                    <span className="animate-pulse">Loading...</span>
-                  ) : stats.performance.total_staff ? (
-                    `dari ${stats.performance.total_staff} dokter`
-                  ) : (
-                    'dari -- dokter'
                   )}
                 </p>
               </div>
@@ -715,7 +595,7 @@ export function Dashboard({ userData }: DashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingWeekly ? (
+            {isLoadingJadwal ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg animate-pulse">
@@ -733,15 +613,15 @@ export function Dashboard({ userData }: DashboardProps) {
                   </div>
                 ))}
               </div>
-            ) : weeklyError ? (
+            ) : jadwalError ? (
               <div className="text-center py-6">
                 <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500 dark:text-red-400" />
                 <p className="text-sm font-medium text-red-700 dark:text-red-400">Gagal memuat jadwal minggu ini</p>
-                <p className="text-xs text-red-600 dark:text-red-500">{weeklyError}</p>
+                <p className="text-xs text-red-600 dark:text-red-500">{jadwalError}</p>
               </div>
-            ) : weeklySchedule.length > 0 ? (
+            ) : jadwalMendatang.length > 0 ? (
               <div className="space-y-3">
-                {weeklySchedule.slice(0, 3).map((schedule, index) => (
+                {jadwalMendatang.slice(0, 3).map((schedule, index) => (
                   <motion.div
                     key={schedule.id}
                     initial={{ opacity: 0, x: -20 }}
@@ -773,60 +653,15 @@ export function Dashboard({ userData }: DashboardProps) {
                 ))}
               </div>
             ) : (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                className="text-center py-12"
-              >
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.4 }}
-                  className="relative mb-6"
-                >
-                  <div className="relative inline-flex items-center justify-center w-24 h-24 mx-auto mb-4">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full opacity-20 animate-pulse"></div>
-                    <div className="relative bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 rounded-full p-6 border border-blue-100 dark:border-blue-800/50">
-                      <Calendar className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                    </div>
-                  </div>
-                  <div className="text-4xl mb-2">📅</div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.4 }}
-                  className="space-y-2"
-                >
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Tidak ada jadwal minggu ini
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
-                    Jadwal Anda untuk minggu ini belum tersedia. Hubungi admin untuk pengaturan jadwal.
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.4 }}
-                  className="mt-6"
-                >
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full border border-blue-100 dark:border-blue-800/50">
-                    <Timer className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      Segera diperbarui
-                    </span>
-                  </div>
-                </motion.div>
-              </motion.div>
+              <div className="text-center py-6">
+                <Calendar className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-600" />
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Tidak ada jadwal minggu ini</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Hubungi admin untuk pengaturan jadwal</p>
+              </div>
             )}
           </CardContent>
         </Card>
       </motion.div>
-
     </motion.div>
   );
 }

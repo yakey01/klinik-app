@@ -56,67 +56,11 @@ class JadwalJagaResource extends Resource
                                 $set('tanggal_jaga', null);
                             })
                             ->helperText('Pilih shift terlebih dahulu untuk menentukan batasan tanggal yang tersedia'),
-                        Forms\Components\DatePicker::make('tanggal_jaga')
+                        Forms\Components\TextInput::make('tanggal_jaga')
                             ->label('Tanggal Jaga')
                             ->required()
-                            ->native(false)
-                            ->displayFormat('d/m/Y')
-                            ->minDate(function (callable $get) {
-                                $shiftTemplateId = $get('shift_template_id');
-                                $today = \Carbon\Carbon::today('Asia/Jakarta');
-                                
-                                if (!$shiftTemplateId) {
-                                    return $today->format('Y-m-d');
-                                }
-                                
-                                $shiftTemplate = \App\Models\ShiftTemplate::find($shiftTemplateId);
-                                if (!$shiftTemplate) {
-                                    return $today->format('Y-m-d');
-                                }
-                                
-                                $currentTime = \Carbon\Carbon::now('Asia/Jakarta');
-                                $shiftStartTime = \Carbon\Carbon::parse($shiftTemplate->jam_masuk);
-                                $todayShiftStart = $today->copy()->setHour($shiftStartTime->hour)->setMinute($shiftStartTime->minute)->setSecond(0);
-                                
-                                // Jika sekarang sudah melewati jam mulai shift hari ini, 
-                                // maka tanggal minimum adalah besok
-                                if ($currentTime->greaterThanOrEqualTo($todayShiftStart)) {
-                                    return $today->copy()->addDay()->format('Y-m-d');
-                                }
-                                
-                                // Jika belum melewati jam mulai shift, masih bisa pilih hari ini
-                                return $today->format('Y-m-d');
-                            })
-                            ->rules([
-                                function (callable $get) {
-                                    return function (string $attribute, $value, \Closure $fail) use ($get) {
-                                        $shiftTemplateId = $get('shift_template_id');
-                                        
-                                        if (!$shiftTemplateId || !$value) {
-                                            return;
-                                        }
-                                        
-                                        $shiftTemplate = \App\Models\ShiftTemplate::find($shiftTemplateId);
-                                        if (!$shiftTemplate) {
-                                            return;
-                                        }
-                                        
-                                        $selectedDate = \Carbon\Carbon::parse($value);
-                                        $today = \Carbon\Carbon::today('Asia/Jakarta');
-                                        $currentTime = \Carbon\Carbon::now('Asia/Jakarta');
-                                        
-                                        // Validasi khusus hanya untuk hari ini
-                                        if ($selectedDate->isSameDay($today)) {
-                                            $shiftStartTime = \Carbon\Carbon::parse($shiftTemplate->jam_masuk);
-                                            $todayShiftStart = $today->copy()->setHour($shiftStartTime->hour)->setMinute($shiftStartTime->minute)->setSecond(0);
-                                            
-                                            if ($currentTime->greaterThanOrEqualTo($todayShiftStart)) {
-                                                $fail("Tidak dapat memilih hari ini karena shift {$shiftTemplate->nama_shift} sudah dimulai pada jam {$shiftTemplate->jam_masuk_format}. Sekarang sudah jam {$currentTime->format('H:i')}. Silakan pilih tanggal mulai besok.");
-                                            }
-                                        }
-                                    };
-                                }
-                            ])
+                            ->type('date')
+                            ->helperText('Pilih tanggal jadwal jaga (format: YYYY-MM-DD)')
                             ->reactive()
                             ->afterStateUpdated(function ($state, callable $set) {
                                 // Reset pegawai selection when date changes
@@ -143,10 +87,10 @@ class JadwalJagaResource extends Resource
                                 if ($selectedDate) {
                                     $selected = \Carbon\Carbon::parse($selectedDate);
                                     if ($selected->isSameDay($today)) {
-                                        if ($currentTime->greaterThanOrEqualTo($todayShiftStart)) {
+                                        if ($currentTime->greaterThan($todayShiftStart)) {
                                             return "❌ Tanggal hari ini tidak valid - Shift {$shiftTemplate->nama_shift} sudah dimulai jam {$shiftTemplate->jam_masuk_format}. Sekarang jam {$currentTime->format('H:i')}.";
                                         } else {
-                                            $timeLeft = $todayShiftStart->diffInMinutes($currentTime);
+                                            $timeLeft = round($currentTime->diffInMinutes($todayShiftStart));
                                             return "✅ Tanggal hari ini masih valid - Shift dimulai jam {$shiftTemplate->jam_masuk_format} ({$timeLeft} menit lagi).";
                                         }
                                     } else {
@@ -154,11 +98,11 @@ class JadwalJagaResource extends Resource
                                     }
                                 }
                                 
-                                if ($currentTime->greaterThanOrEqualTo($todayShiftStart)) {
+                                if ($currentTime->greaterThan($todayShiftStart)) {
                                     return "⚠️ Shift {$shiftTemplate->nama_shift} hari ini sudah dimulai (jam {$shiftTemplate->jam_masuk_format}). Pilih tanggal mulai besok.";
                                 }
                                 
-                                $timeLeft = $todayShiftStart->diffInMinutes($currentTime);
+                                $timeLeft = round($currentTime->diffInMinutes($todayShiftStart));
                                 return "✅ Shift {$shiftTemplate->nama_shift} dimulai jam {$shiftTemplate->jam_masuk_format}. Masih bisa pilih hari ini ({$timeLeft} menit lagi).";
                             }),
                             
@@ -192,7 +136,7 @@ class JadwalJagaResource extends Resource
                                             $selectedDateTime = $today->copy()->setHour($customTime->hour)->setMinute($customTime->minute)->setSecond(0);
                                             
                                             // Jika jam custom dipilih dan hari ini
-                                            if ($currentTime->greaterThanOrEqualTo($selectedDateTime)) {
+                                            if ($currentTime->greaterThan($selectedDateTime)) {
                                                 $fail("Tidak dapat memilih jam {$customTime->format('H:i')} untuk hari ini karena waktu tersebut sudah lewat. Sekarang jam {$currentTime->format('H:i')}.");
                                             }
                                             

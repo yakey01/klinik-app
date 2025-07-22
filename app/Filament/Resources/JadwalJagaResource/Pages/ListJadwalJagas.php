@@ -28,13 +28,17 @@ class ListJadwalJagas extends ListRecords
                 ->form([
                     \Filament\Forms\Components\Section::make('Pilih Tanggal & Shift')
                         ->schema([
-                            \Filament\Forms\Components\DatePicker::make('tanggal_jaga')
+                            \Filament\Forms\Components\TextInput::make('tanggal_jaga')
                                 ->label('Tanggal Jaga')
                                 ->required()
-                                ->native(false)
-                                ->displayFormat('d/m/Y')
-                                ->minDate(now())
-                                ->reactive(),
+                                ->type('date')
+                                ->helperText('⚠️ Tidak dapat memilih tanggal kemarin atau masa lalu. Pilih tanggal hari ini atau masa depan. Validasi shift akan dicek saat submit.')
+                                ->reactive()
+                                ->extraInputAttributes([
+                                    'min' => \Carbon\Carbon::today('Asia/Jakarta')->format('Y-m-d'),
+                                    'max' => \Carbon\Carbon::today('Asia/Jakarta')->addYear()->format('Y-m-d')
+                                ])
+                                ->validationAttribute('Tanggal Jaga'),
                             \Filament\Forms\Components\Select::make('shift_template_id')
                                 ->label('Template Shift')
                                 ->options(function () {
@@ -223,6 +227,56 @@ class ListJadwalJagas extends ListRecords
                         ->visible(fn (callable $get) => $get('tanggal_jaga') && $get('shift_template_id') && $get('jenis_tugas')),
                 ])
                 ->action(function (array $data): void {
+                    // Custom validation for modal action
+                    $validator = \Validator::make($data, [
+                        'tanggal_jaga' => ['required', 'date'],
+                        'shift_template_id' => ['required', 'exists:shift_templates,id'],
+                        'jenis_tugas' => ['required', 'string'],
+                        'pegawai_ids' => ['required', 'array', 'min:1']
+                    ]);
+                    
+                    if ($validator->fails()) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('Validation Error')
+                            ->body($validator->errors()->first())
+                            ->send();
+                        return;
+                    }
+                    
+                    // Additional shift-specific validation
+                    $selectedDate = \Carbon\Carbon::parse($data['tanggal_jaga']);
+                    $today = \Carbon\Carbon::today('Asia/Jakarta');
+                    $yesterday = $today->copy()->subDay();
+                    $currentTime = \Carbon\Carbon::now('Asia/Jakarta');
+                    
+                    // Block kemarin/masa lalu
+                    if ($selectedDate->isBefore($today)) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('Tanggal Tidak Valid')
+                            ->body('Tidak dapat memilih tanggal kemarin atau masa lalu. Silakan pilih tanggal hari ini atau masa depan.')
+                            ->send();
+                        return;
+                    }
+                    
+                    // Check shift timing for today
+                    if ($selectedDate->isSameDay($today) && isset($data['shift_template_id'])) {
+                        $shiftTemplate = \App\Models\ShiftTemplate::find($data['shift_template_id']);
+                        if ($shiftTemplate) {
+                            $shiftStartTime = \Carbon\Carbon::parse($shiftTemplate->jam_masuk);
+                            $todayShiftStart = $today->copy()->setHour($shiftStartTime->hour)->setMinute($shiftStartTime->minute)->setSecond(0);
+                            
+                            if ($currentTime->greaterThan($todayShiftStart)) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Shift Sudah Dimulai')
+                                    ->body("Tidak dapat memilih hari ini karena shift {$shiftTemplate->nama_shift} sudah dimulai pada jam {$shiftTemplate->jam_masuk_format}. Sekarang sudah jam {$currentTime->format('H:i')}. Silakan pilih tanggal mulai besok.")
+                                    ->send();
+                                return;
+                            }
+                        }
+                    }
                     if (empty($data['pegawai_ids'])) {
                         \Filament\Notifications\Notification::make()
                             ->danger()

@@ -21,7 +21,7 @@ class JadwalJaga extends Model
     ];
 
     protected $casts = [
-        'tanggal_jaga' => 'date',
+        // 'tanggal_jaga' => 'date', // Temporarily removed for testing
         'jam_jaga_custom' => 'datetime:H:i',
     ];
 

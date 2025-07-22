@@ -692,11 +692,12 @@ class ParamedisDashboardController extends Controller
             // SECURITY: For paramedis, exclude "Dokter Jaga" unit even if "all" is requested
             $unitKerjaFilter = array_diff($unitKerjaFilter, ['Dokter Jaga']);
             
-            // Build query with proper relationships and sorting
+            // SECURITY FIX: Only show schedules for the logged-in user
             $query = JadwalJaga::with(['pegawai', 'shiftTemplate'])
                 ->join('pegawais', 'jadwal_jagas.pegawai_id', '=', 'pegawais.user_id')
                 ->join('users', 'pegawais.user_id', '=', 'users.id')
                 ->leftJoin('shift_templates', 'jadwal_jagas.shift_template_id', '=', 'shift_templates.id')
+                ->where('jadwal_jagas.pegawai_id', $user->id)
                 ->where('pegawais.jenis_pegawai', 'Paramedis')
                 ->whereIn('jadwal_jagas.unit_kerja', $unitKerjaFilter)
                 ->whereDate('jadwal_jagas.tanggal_jaga', $date)
@@ -798,8 +799,10 @@ class ParamedisDashboardController extends Controller
             $startDate = Carbon::now()->startOfWeek();
             $endDate = Carbon::now()->endOfWeek();
             
+            // SECURITY FIX: Only show schedules for the logged-in user
             $schedules = JadwalJaga::with(['shiftTemplate'])
                 ->join('pegawais', 'jadwal_jagas.pegawai_id', '=', 'pegawais.user_id')
+                ->where('jadwal_jagas.pegawai_id', $user->id)
                 ->where('pegawais.jenis_pegawai', 'Paramedis')
                 ->whereIn('jadwal_jagas.unit_kerja', ['Pendaftaran', 'Pelayanan']) // EXCLUDE Dokter Jaga
                 ->whereBetween('jadwal_jagas.tanggal_jaga', [

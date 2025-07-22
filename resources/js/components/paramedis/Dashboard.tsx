@@ -540,11 +540,55 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                 <span className="text-sm text-medium-contrast">Memuat jadwal...</span>
               </div>
             ) : jadwalMendatang.length === 0 ? (
-              <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-high-contrast mb-1">Tidak ada jadwal</p>
-                <p className="text-xs text-medium-contrast">Hubungi admin untuk penjadwalan jaga</p>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="text-center py-12"
+              >
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                  className="relative mb-6"
+                >
+                  <div className="relative inline-flex items-center justify-center w-24 h-24 mx-auto mb-4">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-full opacity-20 animate-pulse"></div>
+                    <div className="relative bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 rounded-full p-6 border border-emerald-100 dark:border-emerald-800/50">
+                      <Calendar className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                  </div>
+                  <div className="text-4xl mb-2">🏥</div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                  className="space-y-2"
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Tidak ada jadwal minggu ini
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
+                    Jadwal jaga Anda untuk minggu ini belum tersedia. Hubungi admin untuk pengaturan jadwal.
+                  </p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
+                  className="mt-6"
+                >
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-full border border-emerald-100 dark:border-emerald-800/50">
+                    <Timer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                      Segera diperbarui
+                    </span>
+                  </div>
+                </motion.div>
+              </motion.div>
             ) : (
               <div className="space-y-3">
                 {jadwalMendatang.slice(0, 3).map((schedule, index) => (

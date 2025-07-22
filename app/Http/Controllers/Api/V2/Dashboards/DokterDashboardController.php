@@ -881,7 +881,9 @@ class DokterDashboardController extends Controller
             $startOfWeek = Carbon::now()->startOfWeek(Carbon::MONDAY);
             $endOfWeek = Carbon::now()->endOfWeek(Carbon::SUNDAY);
             
-            $schedules = JadwalJaga::whereIn('unit_kerja', $targetUnits)
+            // SECURITY FIX: Only show schedules for the logged-in user
+            $schedules = JadwalJaga::where('pegawai_id', $user->id)
+                ->whereIn('unit_kerja', $targetUnits)
                 ->whereBetween('tanggal_jaga', [
                     $startOfWeek->format('Y-m-d'),
                     $endOfWeek->format('Y-m-d')

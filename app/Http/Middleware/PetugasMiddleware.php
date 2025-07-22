@@ -24,6 +24,19 @@ class PetugasMiddleware
                 return redirect('/admin')->with('info', 'Anda telah diarahkan ke panel admin.');
             }
             
+            // Role-based redirect for unauthorized access
+            if ($user->hasRole('dokter')) {
+                return redirect('/dokter')->with('info', 'Anda telah diarahkan ke panel dokter.');
+            } elseif ($user->hasRole('paramedis')) {
+                return redirect('/paramedis')->with('info', 'Anda telah diarahkan ke panel paramedis.');
+            } elseif ($user->hasRole('bendahara')) {
+                return redirect('/bendahara')->with('info', 'Anda telah diarahkan ke panel bendahara.');
+            } elseif ($user->hasRole('manajer')) {
+                return redirect('/manajer')->with('info', 'Anda telah diarahkan ke panel manajer.');
+            } elseif ($user->hasRole('non_paramedis')) {
+                return redirect()->route('nonparamedis.dashboard')->with('info', 'Anda telah diarahkan ke panel non-paramedis.');
+            }
+            
             return redirect('/dashboard')
                 ->with('error', 'Anda tidak memiliki akses ke panel petugas.');
         }

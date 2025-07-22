@@ -48,16 +48,24 @@ interface UnitLocation {
 
 export function Dashboard({ userData }: DashboardProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [jadwalMendatang, setJadwalMendatang] = useState<JadwalItem[]>([]);
-  const [weeklySchedule, setWeeklySchedule] = useState<JadwalItem[]>([]);
-  const [unitSchedules, setUnitSchedules] = useState<UnitLocation[]>([]);
-  const [nextSchedule, setNextSchedule] = useState<JadwalItem | null>(null);
+  // Simplified state management following paramedis pattern
+  const [scheduleData, setScheduleData] = useState({
+    upcoming: [] as JadwalItem[],
+    nextSchedule: null as JadwalItem | null
+  });
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(true);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+
+  // State for jadwal jaga (next schedule)
   const [isLoadingJadwal, setIsLoadingJadwal] = useState(true);
-  const [isLoadingWeekly, setIsLoadingWeekly] = useState(true);
-  const [isLoadingUnits, setIsLoadingUnits] = useState(true);
   const [jadwalError, setJadwalError] = useState<string | null>(null);
+  const [jadwalMendatang, setJadwalMendatang] = useState<JadwalItem[]>([]);
+  const [nextSchedule, setNextSchedule] = useState<JadwalItem | null>(null);
+
+  // State for weekly schedule (keep this one - remove unit schedule)
+  const [isLoadingWeekly, setIsLoadingWeekly] = useState(true);
   const [weeklyError, setWeeklyError] = useState<string | null>(null);
-  const [unitError, setUnitError] = useState<string | null>(null);
+  const [weeklySchedule, setWeeklySchedule] = useState<JadwalItem[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -197,69 +205,6 @@ export function Dashboard({ userData }: DashboardProps) {
     fetchWeeklySchedule();
   }, []);
 
-  // Fetch unit schedule data from new API endpoint
-  useEffect(() => {
-    const fetchUnitSchedules = async () => {
-      try {
-        setIsLoadingUnits(true);
-        setUnitError(null);
-
-        // Get CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        
-        const response = await fetch('/dokter/api/igd-schedules?category=all', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken || '',
-            'Accept': 'application/json'
-          },
-          credentials: 'same-origin'
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-          setUnitError(null);
-          
-          // Transform unit schedules to our format
-          const unitData: UnitLocation[] = result.data.map((location: any) => ({
-            unit_kerja: location.unit_kerja,
-            schedules: location.schedules.map((jadwal: any) => ({
-              id: jadwal.id.toString(),
-              tanggal: jadwal.tanggal,
-              waktu: jadwal.waktu,
-              lokasi: jadwal.lokasi,
-              jenis: jadwal.jenis as 'pagi' | 'siang' | 'malam',
-              status: jadwal.status as 'scheduled' | 'completed' | 'missed',
-              shift_nama: jadwal.shift_nama,
-              status_jaga: jadwal.status_jaga,
-              keterangan: jadwal.keterangan,
-              pegawai_nama: jadwal.pegawai_nama
-            }))
-          }));
-
-          setUnitSchedules(unitData);
-        } else {
-          throw new Error(result.message || 'Failed to load unit schedules');
-        }
-      } catch (error) {
-        console.error('Error fetching unit schedules:', error);
-        setUnitError('Gagal memuat jadwal unit kerja');
-        
-        // Set empty array as fallback
-        setUnitSchedules([]);
-      } finally {
-        setIsLoadingUnits(false);
-      }
-    };
-
-    fetchUnitSchedules();
-  }, []);
 
 
   const getShiftColor = (jenis: string) => {
@@ -538,13 +483,54 @@ export function Dashboard({ userData }: DashboardProps) {
                 </div>
               </motion.div>
             ) : (
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                <div className="text-center text-gray-500 dark:text-gray-400">
-                  <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="font-medium">Tidak ada jadwal mendatang</p>
-                  <p className="text-sm">Jadwal akan muncul setelah diatur admin</p>
-                </div>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="text-center py-8"
+              >
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                  className="relative mb-6"
+                >
+                  <div className="relative inline-flex items-center justify-center w-20 h-20 mx-auto mb-3">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-full opacity-20 animate-pulse"></div>
+                    <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 rounded-full p-4 border border-blue-100 dark:border-blue-800/50 shadow-sm">
+                      <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                  className="space-y-2 mb-4"
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Tidak ada jadwal jaga
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
+                    Tidak ada jadwal mendatang – Jadwal akan muncul setelah diatur admin
+                  </p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
+                  className="flex items-center justify-center"
+                >
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-full border border-blue-100 dark:border-blue-800/50">
+                    <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                      Segera diperbarui
+                    </span>
+                  </div>
+                </motion.div>
+              </motion.div>
             )}
 
             <motion.div 
@@ -787,134 +773,60 @@ export function Dashboard({ userData }: DashboardProps) {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-6">
-                <Calendar className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-600" />
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Tidak ada jadwal minggu ini</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Jadwal akan muncul setelah diatur admin</p>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="text-center py-12"
+              >
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                  className="relative mb-6"
+                >
+                  <div className="relative inline-flex items-center justify-center w-24 h-24 mx-auto mb-4">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full opacity-20 animate-pulse"></div>
+                    <div className="relative bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 rounded-full p-6 border border-blue-100 dark:border-blue-800/50">
+                      <Calendar className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </div>
+                  <div className="text-4xl mb-2">📅</div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                  className="space-y-2"
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Tidak ada jadwal minggu ini
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
+                    Jadwal Anda untuk minggu ini belum tersedia. Hubungi admin untuk pengaturan jadwal.
+                  </p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
+                  className="mt-6"
+                >
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full border border-blue-100 dark:border-blue-800/50">
+                    <Timer className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      Segera diperbarui
+                    </span>
+                  </div>
+                </motion.div>
+              </motion.div>
             )}
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Unit Kerja Schedule Categories */}
-      <motion.div variants={item}>
-        <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-high-contrast">
-              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              Jadwal Unit Kerja Minggu Ini
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingUnits ? (
-              <div className="space-y-4">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/3 mb-2"></div>
-                  <div className="space-y-2">
-                    {[1, 2].map((index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                          <div className="space-y-1">
-                            <div className="w-24 h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                            <div className="w-20 h-2 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                          </div>
-                        </div>
-                        <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : unitError ? (
-              <div className="text-center py-6">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500 dark:text-red-400" />
-                <p className="text-sm font-medium text-red-700 dark:text-red-400">Gagal memuat jadwal unit kerja</p>
-                <p className="text-xs text-red-600 dark:text-red-500">{unitError}</p>
-              </div>
-            ) : unitSchedules.length > 0 ? (
-              <div className="space-y-4">
-                {unitSchedules.map((location, locationIndex) => (
-                  <motion.div
-                    key={location.unit_kerja}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: locationIndex * 0.1 }}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-3"
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className={`w-3 h-3 rounded-full ${
-                        location.unit_kerja === 'Dokter Jaga' ? 'bg-red-500' :
-                        location.unit_kerja === 'Pendaftaran' ? 'bg-blue-500' :
-                        location.unit_kerja === 'Pelayanan' ? 'bg-green-500' :
-                        'bg-purple-500'
-                      }`}></div>
-                      <h4 className="font-semibold text-high-contrast text-sm">
-                        {location.unit_kerja}
-                      </h4>
-                      <Badge variant="outline" className="text-xs">
-                        {location.schedules.length} jadwal
-                      </Badge>
-                    </div>
-                    
-                    {location.schedules.length > 0 ? (
-                      <div className="space-y-2">
-                        {location.schedules.slice(0, 2).map((schedule, index) => (
-                          <motion.div
-                            key={schedule.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: (locationIndex * 0.1) + (index * 0.05) }}
-                            className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800/30 rounded-lg"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className="text-sm">{getShiftIcon(schedule.jenis)}</div>
-                              <div>
-                                <p className="font-medium text-high-contrast text-xs text-mobile-friendly">
-                                  {formatTanggal(schedule.tanggal)}
-                                </p>
-                                <p className="text-muted-foreground text-xs">
-                                  {schedule.waktu} | {schedule.pegawai_nama || 'Staff'}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs ${
-                                schedule.jenis === 'pagi' ? 'border-yellow-300 dark:border-yellow-600 text-yellow-700 dark:text-yellow-400' :
-                                schedule.jenis === 'siang' ? 'border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-400' :
-                                'border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-400'
-                              }`}
-                            >
-                              {schedule.jenis}
-                            </Badge>
-                          </motion.div>
-                        ))}
-                        {location.schedules.length > 2 && (
-                          <p className="text-xs text-muted-foreground text-center py-1">
-                            +{location.schedules.length - 2} jadwal lainnya
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground text-center py-2">
-                        Tidak ada jadwal minggu ini
-                      </p>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <Activity className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-600" />
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Tidak ada jadwal unit kerja minggu ini</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Jadwal akan muncul setelah diatur admin</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
     </motion.div>
   );
 }

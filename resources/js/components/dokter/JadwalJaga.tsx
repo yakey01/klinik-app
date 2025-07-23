@@ -248,19 +248,25 @@ export function JadwalJaga() {
             </Card>
           </motion.div>
         ) : jadwal.length === 0 ? (
-          // Empty state
+          // Empty state with orange warning color - Production deployed
           <motion.div variants={item}>
-            <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/30 backdrop-blur-sm border-2 border-orange-200 dark:border-orange-700 card-enhanced">
               <CardContent className="p-6 text-center">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-8 h-8 text-gray-400 dark:text-gray-600" />
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <Calendar className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Belum Ada Jadwal
+                <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200 mb-2">
+                  Belum Ada Jadwal Jaga
                 </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Jadwal jaga akan muncul setelah diatur oleh admin
+                <p className="text-orange-600 dark:text-orange-300 mb-4">
+                  Jadwal jaga akan muncul setelah diatur oleh admin atau manajer
                 </p>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/50 rounded-full border border-orange-200 dark:border-orange-700">
+                  <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                    Menunggu Penjadwalan
+                  </span>
+                </div>
               </CardContent>
             </Card>
           </motion.div>

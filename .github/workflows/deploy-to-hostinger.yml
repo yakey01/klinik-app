@@ -9,6 +9,10 @@ on:
 env:
   PHP_VERSION: "8.3"
   NODE_VERSION: "20"
+  DB_HOST: ${{ secrets.DB_HOST }}
+  DB_DATABASE: ${{ secrets.DB_DATABASE }}
+  DB_USERNAME: ${{ secrets.DB_USERNAME }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
 jobs:
   test:
@@ -165,6 +169,20 @@ jobs:
             
             echo "🗄️ Setting up production database configuration..."
             
+            # Use GitHub secrets for database configuration if available
+            DB_HOST_VALUE="${{ secrets.DB_HOST || 'localhost' }}"
+            DB_DATABASE_VALUE="${{ secrets.DB_DATABASE || 'u454362045_u45436245_kli' }}"
+            DB_USERNAME_VALUE="${{ secrets.DB_USERNAME || 'u454362045_u45436245_kli' }}"
+            DB_PASSWORD_VALUE="${{ secrets.DB_PASSWORD || 'LaTahzan@01' }}"
+            
+            echo "🔍 Tampilkan DB Host dan Tes Konektivitas"
+            echo "DB Host: $DB_HOST_VALUE"
+            echo "DB Database: $DB_DATABASE_VALUE"
+            echo "DB Username: $DB_USERNAME_VALUE"
+            
+            echo "🌐 Testing database connectivity..."
+            nc -zv "$DB_HOST_VALUE" 3306 2>&1 && echo "✅ MySQL host $DB_HOST_VALUE:3306 accessible" || echo "⚠️ MySQL host $DB_HOST_VALUE:3306 tidak dapat dijangkau"
+            
             # Create proper .env file for production
             if [ ! -f .env ]; then
               echo "📄 Creating .env file from example..."
@@ -179,11 +197,11 @@ jobs:
                 echo 'LOG_DEPRECATIONS_CHANNEL=null' >> .env
                 echo 'LOG_LEVEL=debug' >> .env
                 echo 'DB_CONNECTION=mysql' >> .env
-                echo 'DB_HOST=localhost' >> .env
+                echo "DB_HOST=$DB_HOST_VALUE" >> .env
                 echo 'DB_PORT=3306' >> .env
-                echo 'DB_DATABASE=u454362045_u45436245_kli' >> .env
-                echo 'DB_USERNAME=u454362045_u45436245_kli' >> .env
-                echo 'DB_PASSWORD=LaTahzan@01' >> .env
+                echo "DB_DATABASE=$DB_DATABASE_VALUE" >> .env
+                echo "DB_USERNAME=$DB_USERNAME_VALUE" >> .env
+                echo "DB_PASSWORD=$DB_PASSWORD_VALUE" >> .env
                 echo 'BROADCAST_DRIVER=log' >> .env
                 echo 'CACHE_DRIVER=file' >> .env
                 echo 'FILESYSTEM_DISK=local' >> .env
@@ -204,6 +222,13 @@ jobs:
                 echo 'MAIL_FROM_NAME="${APP_NAME}"' >> .env
                 echo 'VITE_APP_NAME="${APP_NAME}"' >> .env
               }
+            else
+              echo "📄 .env file exists, updating database configuration with secrets..."
+              # Update existing .env with secrets if provided
+              sed -i "s/^DB_HOST=.*/DB_HOST=$DB_HOST_VALUE/" .env
+              sed -i "s/^DB_DATABASE=.*/DB_DATABASE=$DB_DATABASE_VALUE/" .env
+              sed -i "s/^DB_USERNAME=.*/DB_USERNAME=$DB_USERNAME_VALUE/" .env
+              sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=$DB_PASSWORD_VALUE/" .env
             fi
             
             # Generate application key if not set
@@ -216,15 +241,8 @@ jobs:
             echo "📋 Production database configuration:"
             grep -E "^DB_" .env || echo "No DB config found"
             
-            # Debug database configuration first
-            echo "🔍 Debugging database configuration..."
-            echo "DB_HOST=$(grep '^DB_HOST=' .env | cut -d'=' -f2)"
-            echo "DB_USERNAME=$(grep '^DB_USERNAME=' .env | cut -d'=' -f2)"
-            echo "DB_DATABASE=$(grep '^DB_DATABASE=' .env | cut -d'=' -f2)"
-            
             # Test network connectivity first
             echo "🌐 Testing network connectivity..."
-            DB_HOST_VALUE=$(grep '^DB_HOST=' .env | cut -d'=' -f2)
             nc -zv "$DB_HOST_VALUE" 3306 || echo "⚠️ MySQL host $DB_HOST_VALUE not reachable on port 3306"
             
             # Test database connection with better error handling
@@ -291,13 +309,10 @@ jobs:
                 
                 # Test direct MySQL connection
                 echo "🔄 Testing direct MySQL connection..."
-                DB_USER_TEST=$(grep "^DB_USERNAME=" .env | cut -d'=' -f2 | tr -d '"')
-                DB_PASS_TEST=$(grep "^DB_PASSWORD=" .env | cut -d'=' -f2 | tr -d '"')
-                DB_NAME_TEST=$(grep "^DB_DATABASE=" .env | cut -d'=' -f2 | tr -d '"')
                 
                 for HOST in "localhost" "127.0.0.1"; do
                   echo "Testing MySQL direct connection to $HOST..."
-                  MYSQL_TEST=$(mysql -h "$HOST" -u "$DB_USER_TEST" -p"$DB_PASS_TEST" "$DB_NAME_TEST" -e "SELECT 'Direct MySQL: SUCCESS' as result;" 2>&1)
+                  MYSQL_TEST=$(mysql -h "$HOST" -u "$DB_USERNAME_VALUE" -p"$DB_PASSWORD_VALUE" "$DB_DATABASE_VALUE" -e "SELECT 'Direct MySQL: SUCCESS' as result;" 2>&1)
                   if echo "$MYSQL_TEST" | grep -q "SUCCESS"; then
                     echo "✅ Direct MySQL connection works with $HOST"
                     sed -i "s/DB_HOST=.*/DB_HOST=$HOST/" .env
@@ -338,10 +353,10 @@ jobs:
               else
                 echo "❌ CRITICAL: No working database host found!"
                 echo "🔍 Current database settings:"
-                grep -E "^DB_" .env
+                grep -E "^DB_" .env | sed 's/DB_PASSWORD=.*/DB_PASSWORD=***HIDDEN***/'
                 echo ""
                 echo "🆘 Please check:"
-                echo "1. Database credentials in cPanel"
+                echo "1. Database credentials in GitHub secrets"
                 echo "2. MySQL service status"
                 echo "3. Database user permissions"
                 echo "4. Network connectivity to database"
@@ -364,13 +379,8 @@ jobs:
             # Backup current database before migration
             echo "💾 Creating database backup..."
             if grep -q "DB_CONNECTION=mysql" .env; then
-              DB_USER=$(grep "^DB_USERNAME=" .env | cut -d'=' -f2 | tr -d '"')
-              DB_PASS=$(grep "^DB_PASSWORD=" .env | cut -d'=' -f2 | tr -d '"')
-              DB_NAME=$(grep "^DB_DATABASE=" .env | cut -d'=' -f2 | tr -d '"')
-              DB_HOST=$(grep "^DB_HOST=" .env | cut -d'=' -f2 | tr -d '"')
-              
-              mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_FILE" || {
-                echo "⚠️ Database backup failed: $(mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" 2>&1 | head -3)"
+              mysqldump -h "$DB_HOST_VALUE" -u "$DB_USERNAME_VALUE" -p"$DB_PASSWORD_VALUE" "$DB_DATABASE_VALUE" > "$BACKUP_FILE" || {
+                echo "⚠️ Database backup failed: $(mysqldump -h "$DB_HOST_VALUE" -u "$DB_USERNAME_VALUE" -p"$DB_PASSWORD_VALUE" "$DB_DATABASE_VALUE" 2>&1 | head -3)"
                 echo "⚠️ Continuing with migration without backup"
               }
               echo "✅ Database backup created: $BACKUP_FILE"
@@ -382,7 +392,8 @@ jobs:
             
             echo "🗄️ Running database migrations..."
             php artisan migrate --force || {
-              echo "❌ Migration failed! Detailed error information:"
+              echo "❌ MIGRATION FAILED! Detailed troubleshooting information:"
+              echo "=================================================================="
               echo "🔍 Database connection test:"
               php -r "
                 try {
@@ -391,15 +402,31 @@ jobs:
                   echo 'Database name: ' . DB::connection()->getDatabaseName() . '\n';
                 } catch (Exception \$e) {
                   echo 'Database connection error: ' . \$e->getMessage() . '\n';
+                  echo 'Error code: ' . \$e->getCode() . '\n';
                 }
               "
-              echo "📊 Migration status:"
+              echo ""
+              echo "📋 Current database configuration:"
+              grep -E "^DB_" .env | sed 's/DB_PASSWORD=.*/DB_PASSWORD=***HIDDEN***/'
+              echo ""
+              echo "🌐 Network connectivity test:"
+              DB_HOST_CHECK=$(grep '^DB_HOST=' .env | cut -d'=' -f2)
+              nc -zv "$DB_HOST_CHECK" 3306 2>&1 || echo "❌ Cannot reach $DB_HOST_CHECK:3306"
+              echo ""
+              echo "📊 Migration status before failure:"
               php artisan migrate:status || echo "Could not get migration status"
+              echo ""
+              echo "🔧 Suggested troubleshooting steps:"
+              echo "1. Verify database credentials in GitHub secrets"
+              echo "2. Check MySQL service status on hosting server"
+              echo "3. Confirm database user permissions"
+              echo "4. Validate network connectivity to database host"
+              echo "=================================================================="
               
-              echo "🔧 Attempting to rollback and retry..."
+              echo "🔄 Attempting to rollback and retry..."
               if [ -f "$BACKUP_FILE" ]; then
                 echo "🔄 Restoring from backup..."
-                mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$BACKUP_FILE" || echo "Backup restore failed"
+                mysql -h "$DB_HOST_CHECK" -u "$DB_USERNAME_VALUE" -p"$DB_PASSWORD_VALUE" "$DB_DATABASE_VALUE" < "$BACKUP_FILE" || echo "❌ Backup restore failed"
               fi
               exit 1
             }

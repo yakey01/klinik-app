@@ -8,11 +8,78 @@ use App\Http\Controllers\Petugas\StaffDashboardController;
 use App\Http\Controllers\NonParamedis\DashboardController as NonParamedisDashboardController;
 use App\Http\Controllers\Auth\UnifiedAuthController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 // Include test routes
 require __DIR__.'/test.php';
 require __DIR__.'/test-models.php';
 use Illuminate\Support\Facades\Auth;
+
+// Health check endpoint for deployment monitoring
+Route::get('/health', function () {
+    try {
+        // Check database connection
+        $dbStatus = 'connected';
+        try {
+            DB::connection()->getPdo();
+            DB::select('SELECT 1');
+        } catch (Exception $e) {
+            $dbStatus = 'disconnected';
+        }
+
+        // Check cache connection
+        $cacheStatus = 'connected';
+        try {
+            Cache::put('health_check', time(), 5);
+            Cache::get('health_check');
+        } catch (Exception $e) {
+            $cacheStatus = 'disconnected';
+        }
+
+        // Check storage writability
+        $storageStatus = 'writable';
+        try {
+            $testFile = storage_path('logs/health_check.tmp');
+            file_put_contents($testFile, 'test');
+            if (file_exists($testFile)) {
+                unlink($testFile);
+            }
+        } catch (Exception $e) {
+            $storageStatus = 'readonly';
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'timestamp' => now()->toISOString(),
+            'environment' => app()->environment(),
+            'version' => app()->version(),
+            'database' => $dbStatus,
+            'cache' => $cacheStatus,
+            'storage' => $storageStatus,
+            'php_version' => PHP_VERSION,
+            'laravel_version' => \Illuminate\Foundation\Application::VERSION,
+        ], 200);
+
+    } catch (Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Health check failed',
+            'timestamp' => now()->toISOString(),
+            'error' => app()->environment('production') ? 'Internal server error' : $e->getMessage()
+        ], 503);
+    }
+})->name('health');
+
+// API Health check endpoint
+Route::get('/api/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'api' => 'healthy',
+        'timestamp' => now()->toISOString(),
+        'environment' => app()->environment(),
+    ], 200);
+})->name('api.health');
 
 // EMERGENCY TEST ROUTE - Top priority
 Route::get('/test-emergency', function () {

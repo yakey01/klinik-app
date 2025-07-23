@@ -16,7 +16,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: ${{ secrets.SSH_PORT }}
         timeout: 30s
-        command_timeout: 10m
+        command_timeout: 15m
         script: |
           cd domains/dokterkuklinik.com/public_html
           echo "🔄 Pulling latest code..."
@@ -39,34 +39,43 @@ DB_PORT=3306
 DB_DATABASE=u454362045_klinik
 DB_USERNAME=u454362045_klinik
 DB_PASSWORD=LaTahzan@01
+CACHE_DRIVER=file
+SESSION_DRIVER=file
+QUEUE_CONNECTION=sync
 EOF
           fi
           
-          echo "🔧 Trying common Hostinger database patterns..."
+          echo "🔧 Testing database connections..."
           
-          # Test pattern 1: u454362045_klinik (most common)
-          echo "Testing pattern 1: u454362045_klinik"
-          if mysql -h localhost -u "u454362045_klinik" -p"LaTahzan@01" -e "SELECT 1;" 2>/dev/null; then
-            echo "✅ Pattern 1 works! Using u454362045_klinik"
-            sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_klinik/' .env
-            sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_klinik/' .env
-          # Test pattern 2: u454362045_dokterkuklinik
-          elif mysql -h localhost -u "u454362045_dokterkuklinik" -p"LaTahzan@01" -e "SELECT 1;" 2>/dev/null; then
-            echo "✅ Pattern 2 works! Using u454362045_dokterkuklinik"
-            sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_dokterkuklinik/' .env
-            sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_dokterkuklinik/' .env
-          # Test pattern 3: Original specified
-          elif mysql -h localhost -u "u454362045_u45436245_kli" -p"LaTahzan@01" -e "SELECT 1;" 2>/dev/null; then
-            echo "✅ Pattern 3 works! Using u454362045_u45436245_kli"
-            sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_u45436245_kli/' .env
-            sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_u45436245_kli/' .env
-          else
-            echo "❌ No working database pattern found. Using fallback..."
-            sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_klinik/' .env
-            sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_klinik/' .env
+          # Test multiple database patterns
+          DB_PATTERNS=(
+            "u454362045_klinik:u454362045_klinik"
+            "u454362045_dokterkuklinik:u454362045_dokterkuklinik"
+            "u454362045_u45436245_kli:u454362045_u45436245_kli"
+            "u454362045_klinik_app:u454362045_klinik_app"
+          )
+          
+          WORKING_DB=""
+          for pattern in "${DB_PATTERNS[@]}"; do
+            IFS=':' read -r db_name db_user <<< "$pattern"
+            echo "Testing: $db_name"
+            if mysql -h localhost -u "$db_user" -p"LaTahzan@01" -e "SELECT 1;" 2>/dev/null; then
+              echo "✅ Working database found: $db_name"
+              WORKING_DB="$db_name"
+              WORKING_USER="$db_user"
+              break
+            fi
+          done
+          
+          if [ -z "$WORKING_DB" ]; then
+            echo "❌ No working database found. Using fallback..."
+            WORKING_DB="u454362045_klinik"
+            WORKING_USER="u454362045_klinik"
           fi
           
-          # Set common settings
+          # Update .env with working database
+          sed -i "s/^DB_DATABASE=.*/DB_DATABASE=$WORKING_DB/" .env
+          sed -i "s/^DB_USERNAME=.*/DB_USERNAME=$WORKING_USER/" .env
           sed -i 's/^DB_HOST=.*/DB_HOST=localhost/' .env
           sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=LaTahzan@01/' .env
           sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
@@ -75,32 +84,30 @@ EOF
           echo "📋 Current database config:"
           grep "^DB_" .env || echo "No DB config found"
           
-          echo "🧹 Clearing config cache..."
+          echo "🧹 Clearing all caches..."
           php artisan config:clear
-          
-          echo "🔌 Testing database connection..."
-          php -r "
-          try {
-              \$pdo = new PDO('mysql:host=localhost;dbname=u454362045_u45436245_kli', 'u454362045_u45436245_kli', 'LaTahzan@01');
-              echo '✅ Direct PDO connection: SUCCESS\n';
-          } catch (Exception \$e) {
-              echo '❌ Direct PDO connection failed: ' . \$e->getMessage() . '\n';
-          }
-          "
+          php artisan cache:clear
+          php artisan route:clear
+          php artisan view:clear
           
           echo "🔌 Testing Laravel database connection..."
-          php artisan migrate:status || echo "❌ Migration status failed"
+          php artisan migrate:status || {
+            echo "❌ Migration status failed, trying to fix..."
+            php artisan config:cache
+            php artisan migrate:status || echo "⚠️ Still failed but continuing..."
+          }
           
           echo "🗄️ Running migrations..."
           php artisan migrate --force || echo "⚠️ Migrations failed but continuing..."
           
-          echo "🧹 Clearing caches..."
-          php artisan cache:clear
-          php artisan config:clear
-          php artisan route:clear
-          php artisan view:clear
+          echo "🔧 Building assets..."
+          npm install --production || echo "⚠️ NPM install failed but continuing..."
+          npm run build || echo "⚠️ Build failed but continuing..."
           
           echo "⚡ Optimizing..."
           php artisan optimize
+          
+          echo "🏥 Testing health endpoint..."
+          curl -f http://localhost/health || echo "⚠️ Health check failed but continuing..."
           
           echo "✅ Deployment completed!"

@@ -152,20 +152,20 @@ class PetugasStatsService
                 ->count();
             
             // Income stats  
-            $pendapatanSum = PendapatanHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
+            $pendapatanSum = PendapatanHarian::where('tanggal_input', $date->format('Y-m-d'))
                 ->where('user_id', $userId)
                 ->sum('nominal');
                 
-            $pendapatanCount = PendapatanHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
+            $pendapatanCount = PendapatanHarian::where('tanggal_input', $date->format('Y-m-d'))
                 ->where('user_id', $userId)
                 ->count();
             
             // Expense stats
-            $pengeluaranSum = PengeluaranHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
+            $pengeluaranSum = PengeluaranHarian::where('tanggal_input', $date->format('Y-m-d'))
                 ->where('user_id', $userId)
                 ->sum('nominal');
                 
-            $pengeluaranCount = PengeluaranHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
+            $pengeluaranCount = PengeluaranHarian::where('tanggal_input', $date->format('Y-m-d'))
                 ->where('user_id', $userId)
                 ->count();
             

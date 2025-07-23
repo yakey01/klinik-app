@@ -1,0 +1,95 @@
+# Prometheus Configuration for Dokterku Healthcare System
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'dokterku-healthcare-monitor'
+
+rule_files:
+  - "healthcare_alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Healthcare Application Metrics
+  - job_name: 'dokterku-app'
+    static_configs:
+      - targets: ['app:9000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    
+  # Node Exporter (System Metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node_exporter:9100']
+    scrape_interval: 15s
+    
+  # MySQL Database Metrics
+  - job_name: 'mysql-exporter'
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+    scrape_interval: 30s
+    
+  # Redis Metrics
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    
+  # Nginx Metrics
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
+    
+  # Healthcare-specific endpoint monitoring
+  - job_name: 'healthcare-panels'
+    metrics_path: '/health'
+    static_configs:
+      - targets: ['app:8000']
+    scrape_interval: 60s
+    params:
+      format: ['prometheus']
+      
+  # Docker Container Metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    
+  # Blackbox Exporter for External Monitoring
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://dokterku.com/health
+        - https://dokterku.com/admin/login
+        - https://dokterku.com/dokter/login
+        - https://dokterku.com/paramedis/login
+        - https://dokterku.com/petugas/login
+        - https://dokterku.com/manajer/login
+        - https://dokterku.com/bendahara/login
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+        
+# Healthcare-specific metric retention
+# Keep detailed metrics for compliance and audit requirements
+retention_time: "90d"

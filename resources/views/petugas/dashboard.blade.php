@@ -99,7 +99,7 @@
         
         @keyframes pulseGreen {
             0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.0); }
         }
         
         /* Sidebar Styles - Isolated */
@@ -239,39 +239,19 @@
             }
         }
 
-        /* Force all navigation groups to be expanded by default */
-        .sidebar-nav-group {
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
-            overflow: hidden;
-        }
-        
-        /* Override any collapsed state */
-        .sidebar-nav-group,
-        .sidebar-nav-group:not(.collapsed) {
-            /* Force expanded state */
-        }
-        
+        /* SIMPLE FORCE VISIBLE - Basic approach */
         .sidebar-nav-group-content {
-            overflow: hidden;
-            transition: all 0.3s ease;
-            max-height: 1000px !important; /* Force expanded */
-            opacity: 1 !important; /* Force visible */
-            display: block !important; /* Force display */
-            padding-top: 0.5rem !important;
-            padding-bottom: 0.5rem !important;
-            margin-top: 0.25rem !important;
-            margin-bottom: 0.25rem !important;
+            display: block !important;
+            max-height: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            height: auto !important;
+            overflow: visible !important;
         }
         
-        /* Only collapse when explicitly set */
+        /* Hide only when explicitly collapsed */
         .sidebar-nav-group.collapsed .sidebar-nav-group-content {
-            max-height: 0 !important;
-            opacity: 0 !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
+            display: none !important;
         }
     </style>
 </head>
@@ -675,6 +655,10 @@
 
     <script src="/js/petugas-chart.js"></script>
     <script>
+        // Simple test to verify JavaScript is running
+        console.log('🔧 PETUGAS DASHBOARD SCRIPT LOADED!');
+        alert('Petugas Dashboard Script Loaded - Check console for debugging');
+        
         // Sidebar functionality
         function toggleSidebar() {
             const sidebar = document.getElementById('petugas-sidebar');

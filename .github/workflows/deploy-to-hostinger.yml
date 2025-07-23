@@ -1,9 +1,11 @@
 name: Deploy to Hostinger
 
 on:
-  push:
-    branches:
-      - main
+  # DISABLED: This workflow has database connection issues
+  # Use hostinger-deploy-no-migrate.yml instead
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
 
 env:

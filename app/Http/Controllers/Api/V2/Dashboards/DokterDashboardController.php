@@ -524,46 +524,73 @@ class DokterDashboardController extends Controller
      */
     private function getPerformanceStats($dokter)
     {
-        $month = Carbon::now()->month;
-        $year = Carbon::now()->year;
-        $user = Auth::user();
-        
-        // Get attendance ranking from AttendanceRecap
-        $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
-        
-        // Find current user's ranking
-        $currentUserRank = null;
-        $totalDokter = $attendanceData->count();
-        
-        foreach ($attendanceData as $staff) {
-            if ($staff['staff_id'] == $user->id) {
-                $currentUserRank = $staff['rank'];
-                break;
+        try {
+            $month = Carbon::now()->month;
+            $year = Carbon::now()->year;
+            $user = Auth::user();
+            
+            // Get attendance ranking from AttendanceRecap with error handling
+            $attendanceData = collect(); // Default empty collection
+            $attendanceRate = 0; // Default rate
+            
+            try {
+                $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
+                $attendanceRate = $this->getAttendanceRate($user);
+            } catch (\Exception $e) {
+                \Log::warning('AttendanceRecap error in getPerformanceStats', [
+                    'error' => $e->getMessage(),
+                    'user_id' => $user->id,
+                    'month' => $month,
+                    'year' => $year
+                ]);
+                // Continue with default values
             }
+            
+            // Find current user's ranking
+            $currentUserRank = null;
+            $totalDokter = $attendanceData->count();
+            
+            foreach ($attendanceData as $staff) {
+                if ($staff['staff_id'] == $user->id) {
+                    $currentUserRank = $staff['rank'];
+                    break;
+                }
+            }
+            
+            // Debug logging
+            \Log::info('🔍 DEBUG: getPerformanceStats', [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'month' => $month,
+                'year' => $year,
+                'attendance_data_count' => $attendanceData->count(),
+                'current_user_rank' => $currentUserRank,
+                'total_dokter' => $totalDokter,
+                'attendance_rate' => $attendanceRate,
+            ]);
+            
+            return [
+                'attendance_rank' => $currentUserRank ?? max($totalDokter + 1, 1),
+                'total_staff' => max($totalDokter, 1),
+                'attendance_percentage' => round($attendanceRate, 1),
+                'patient_satisfaction' => 92,
+                'attendance_rate' => $attendanceRate
+            ];
+        } catch (\Exception $e) {
+            \Log::error('getPerformanceStats complete failure', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Return safe defaults
+            return [
+                'attendance_rank' => 1,
+                'total_staff' => 1,
+                'attendance_percentage' => 0,
+                'patient_satisfaction' => 92,
+                'attendance_rate' => 0
+            ];
         }
-        
-        // Calculate attendance rate
-        $attendanceRate = $this->getAttendanceRate($user);
-        
-        // Debug logging
-        \Log::info('🔍 DEBUG: getPerformanceStats', [
-            'user_id' => $user->id,
-            'user_name' => $user->name,
-            'month' => $month,
-            'year' => $year,
-            'attendance_data_count' => $attendanceData->count(),
-            'current_user_rank' => $currentUserRank,
-            'total_dokter' => $totalDokter,
-            'attendance_rate' => $attendanceRate,
-        ]);
-        
-        return [
-            'attendance_rank' => $currentUserRank ?? $totalDokter + 1,
-            'total_staff' => $totalDokter,
-            'attendance_percentage' => round($attendanceRate, 1),
-            'patient_satisfaction' => 92,
-            'attendance_rate' => $attendanceRate
-        ];
     }
 
     /**
@@ -571,72 +598,93 @@ class DokterDashboardController extends Controller
      */
     private function getAttendanceRate($user)
     {
-        $month = Carbon::now()->month;
-        $year = Carbon::now()->year;
-        
-        \Log::info('🔍 DEBUG: getAttendanceRate start', [
-            'user_id' => $user->id,
-            'month' => $month,
-            'year' => $year,
-        ]);
-        
-        // Get attendance data from AttendanceRecap for current user
-        $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
-        
-        \Log::info('🔍 DEBUG: AttendanceRecap data', [
-            'count' => $attendanceData->count(),
-            'data' => $attendanceData->toArray(),
-        ]);
-        
-        // Find current user's attendance percentage
-        foreach ($attendanceData as $staff) {
-            \Log::info('🔍 DEBUG: Checking staff', [
-                'staff_id' => $staff['staff_id'],
+        try {
+            $month = Carbon::now()->month;
+            $year = Carbon::now()->year;
+            
+            \Log::info('🔍 DEBUG: getAttendanceRate start', [
                 'user_id' => $user->id,
-                'attendance_percentage' => $staff['attendance_percentage'] ?? 'not set',
+                'month' => $month,
+                'year' => $year,
             ]);
             
-            if ($staff['staff_id'] == $user->id) {
-                \Log::info('✅ Found user attendance', [
-                    'attendance_percentage' => $staff['attendance_percentage'],
+            // Try to get attendance data from AttendanceRecap for current user
+            try {
+                $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
+                
+                \Log::info('🔍 DEBUG: AttendanceRecap data', [
+                    'count' => $attendanceData->count(),
                 ]);
-                return $staff['attendance_percentage'];
+                
+                // Find current user's attendance percentage
+                foreach ($attendanceData as $staff) {
+                    if ($staff['staff_id'] == $user->id) {
+                        \Log::info('✅ Found user attendance', [
+                            'attendance_percentage' => $staff['attendance_percentage'],
+                        ]);
+                        return $staff['attendance_percentage'];
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('AttendanceRecap query failed in getAttendanceRate', [
+                    'error' => $e->getMessage(),
+                    'user_id' => $user->id
+                ]);
+                // Continue to fallback calculation
             }
-        }
-        
-        \Log::info('🔄 Using fallback calculation');
-        
-        // Fallback: calculate manually using same method as AttendanceRecap
-        $startDate = Carbon::create($year, $month, 1);
-        $endDate = $startDate->copy()->endOfMonth();
-        
-        // Count working days (Monday to Saturday, exclude Sunday)
-        $workingDays = 0;
-        $tempDate = $startDate->copy();
-        while ($tempDate->lte($endDate)) {
-            if ($tempDate->dayOfWeek !== Carbon::SUNDAY) {
-                $workingDays++;
+            
+            \Log::info('🔄 Using fallback calculation');
+            
+            // Fallback: calculate manually using same method as AttendanceRecap
+            $startDate = Carbon::create($year, $month, 1);
+            $endDate = $startDate->copy()->endOfMonth();
+            
+            // Count working days (Monday to Saturday, exclude Sunday)
+            $workingDays = 0;
+            $tempDate = $startDate->copy();
+            while ($tempDate->lte($endDate)) {
+                if ($tempDate->dayOfWeek !== Carbon::SUNDAY) {
+                    $workingDays++;
+                }
+                $tempDate->addDay();
             }
-            $tempDate->addDay();
+            
+            // Count attendance days for the full month with error handling
+            $attendanceDays = 0;
+            try {
+                $attendanceDays = Attendance::where('user_id', $user->id)
+                    ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                    ->distinct('date')
+                    ->count();
+            } catch (\Exception $e) {
+                \Log::warning('Attendance table query failed', [
+                    'error' => $e->getMessage(),
+                    'user_id' => $user->id
+                ]);
+                // Return 0 as safe default
+                return 0;
+            }
+            
+            $fallbackRate = $workingDays > 0 ? round(($attendanceDays / $workingDays) * 100, 2) : 0;
+            
+            \Log::info('🔍 DEBUG: Fallback calculation', [
+                'start_date' => $startDate->format('Y-m-d'),
+                'end_date' => $endDate->format('Y-m-d'),
+                'working_days' => $workingDays,
+                'attendance_days' => $attendanceDays,
+                'fallback_rate' => $fallbackRate,
+            ]);
+            
+            return $fallbackRate;
+        } catch (\Exception $e) {
+            \Log::error('getAttendanceRate complete failure', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id ?? 'unknown'
+            ]);
+            
+            // Return safe default
+            return 0;
         }
-        
-        // Count attendance days for the full month
-        $attendanceDays = Attendance::where('user_id', $user->id)
-            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->distinct('date')
-            ->count();
-        
-        $fallbackRate = $workingDays > 0 ? round(($attendanceDays / $workingDays) * 100, 2) : 0;
-        
-        \Log::info('🔍 DEBUG: Fallback calculation', [
-            'start_date' => $startDate->format('Y-m-d'),
-            'end_date' => $endDate->format('Y-m-d'),
-            'working_days' => $workingDays,
-            'attendance_days' => $attendanceDays,
-            'fallback_rate' => $fallbackRate,
-        ]);
-        
-        return $fallbackRate;
     }
 
     /**

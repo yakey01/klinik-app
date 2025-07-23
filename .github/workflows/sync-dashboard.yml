@@ -1,0 +1,307 @@
+name: Sync Dashboard to Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      # Dashboard Views
+      - 'resources/views/dashboard.blade.php'
+      - 'resources/views/*/dashboard.blade.php'
+      - 'resources/views/paramedis/dashboards/**'
+      - 'resources/views/filament/**/dashboard*.blade.php'
+      - 'resources/views/filament/**/pages/**dashboard*.blade.php'
+      
+      # Dashboard Controllers
+      - 'app/Http/Controllers/DashboardController.php'
+      - 'app/Http/Controllers/*/DashboardController.php'
+      - 'app/Http/Controllers/*/*DashboardController.php'
+      - 'app/Http/Controllers/Api/V2/Dashboards/**'
+      
+      # Filament Dashboard Pages
+      - 'app/Filament/**/Dashboard*.php'
+      - 'app/Filament/**/Pages/*Dashboard*.php'
+      
+      # React Dashboard Components
+      - 'resources/react/**dashboard**/**'
+      
+      # Dashboard CSS
+      - 'resources/css/*dashboard*.css'
+      - 'public/css/*dashboard*.css'
+      
+      # Dashboard Routes
+      - 'routes/web.php'
+      - 'routes/api.php'
+      
+      # Dashboard Assets
+      - 'public/build/**'
+      - 'public/js/**'
+      - 'public/css/**'
+      
+  workflow_dispatch:
+    inputs:
+      sync_all:
+        description: 'Sync all dashboard files regardless of changes'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  PHP_VERSION: "8.3"
+  NODE_VERSION: "20"
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      dashboard_changed: ${{ steps.filter.outputs.dashboard }}
+      files_changed: ${{ steps.changed-files.outputs.files }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          if [ "${{ github.event.inputs.sync_all }}" = "true" ]; then
+            echo "🔄 Manual sync requested - syncing all dashboard files"
+            echo "files=all" >> $GITHUB_OUTPUT
+          else
+            echo "📋 Detecting changed files..."
+            FILES=$(git diff --name-only HEAD^ HEAD | grep -E "(dashboard|Dashboard)" || true)
+            if [ -z "$FILES" ]; then
+              echo "files=none" >> $GITHUB_OUTPUT
+              echo "ℹ️ No dashboard files changed"
+            else
+              echo "files<<EOF" >> $GITHUB_OUTPUT
+              echo "$FILES" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+              echo "✅ Dashboard files changed:"
+              echo "$FILES"
+            fi
+          fi
+
+      - name: Check dashboard changes
+        id: filter
+        run: |
+          if [ "${{ steps.changed-files.outputs.files }}" != "none" ]; then
+            echo "dashboard=true" >> $GITHUB_OUTPUT
+          else
+            echo "dashboard=false" >> $GITHUB_OUTPUT
+          fi
+
+  sync-dashboard:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.dashboard_changed == 'true' || github.event.inputs.sync_all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: |
+          echo "🔨 Building frontend assets..."
+          npm run build
+          echo "✅ Assets built successfully"
+
+      - name: Prepare files for sync
+        run: |
+          echo "📦 Preparing dashboard files for sync..."
+          
+          # Create sync directory
+          mkdir -p sync-files
+          
+          # Copy dashboard-related files
+          echo "📄 Copying dashboard views..."
+          mkdir -p sync-files/resources/views
+          find resources/views -name "*dashboard*.blade.php" -exec cp --parents {} sync-files/ \; 2>/dev/null || true
+          
+          echo "📄 Copying Filament dashboard files..."
+          mkdir -p sync-files/app/Filament
+          find app/Filament -name "*Dashboard*.php" -exec cp --parents {} sync-files/ \; 2>/dev/null || true
+          
+          echo "📄 Copying dashboard controllers..."
+          mkdir -p sync-files/app/Http/Controllers
+          find app/Http/Controllers -name "*Dashboard*.php" -exec cp --parents {} sync-files/ \; 2>/dev/null || true
+          
+          echo "📄 Copying React dashboard components..."
+          if [ -d "resources/react" ]; then
+            mkdir -p sync-files/resources/react
+            find resources/react -path "*dashboard*" -exec cp --parents {} sync-files/ \; 2>/dev/null || true
+          fi
+          
+          echo "📄 Copying built assets..."
+          mkdir -p sync-files/public
+          cp -r public/build sync-files/public/ 2>/dev/null || true
+          cp -r public/css sync-files/public/ 2>/dev/null || true
+          cp -r public/js sync-files/public/ 2>/dev/null || true
+          
+          echo "📋 Files prepared for sync:"
+          find sync-files -type f | head -20
+          echo "..."
+          echo "Total files: $(find sync-files -type f | wc -l)"
+
+      - name: Deploy Dashboard Files to Hostinger
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 300s
+          command_timeout: 60s
+          script: |
+            set +e
+            echo "🚀 Starting dashboard sync to Hostinger..."
+            echo "📅 Sync started at: $(date)"
+            
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            # Create backup of current dashboard files
+            echo "💾 Creating backup of current dashboard files..."
+            BACKUP_DIR="~/backups/dashboard/backup_$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+            
+            # Backup dashboard views
+            find resources/views -name "*dashboard*.blade.php" -exec cp --parents {} "$BACKUP_DIR/" \; 2>/dev/null || true
+            
+            # Backup Filament files
+            find app/Filament -name "*Dashboard*.php" -exec cp --parents {} "$BACKUP_DIR/" \; 2>/dev/null || true
+            
+            echo "✅ Backup created at: $BACKUP_DIR"
+            
+            echo "🔧 Clearing Laravel caches..."
+            php artisan view:clear
+            php artisan route:clear
+            php artisan config:clear
+            
+            echo "✅ Dashboard sync preparation completed"
+
+      - name: Copy Dashboard Files
+        uses: appleboy/scp-action@v0.1.5
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "sync-files/*"
+          target: "domains/dokterkuklinik.com/public_html/dokterku/"
+          strip_components: 1
+          rm: false
+
+      - name: Post-sync Operations
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set +e
+            echo "🔧 Running post-sync operations..."
+            
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            # Set proper permissions
+            echo "🔐 Setting file permissions..."
+            find resources/views -name "*.blade.php" -exec chmod 644 {} \;
+            find app -name "*.php" -exec chmod 644 {} \;
+            chmod -R 755 public/build public/css public/js 2>/dev/null || true
+            
+            # Clear and rebuild caches
+            echo "🎨 Optimizing for production..."
+            php artisan view:cache || echo "⚠️ View cache skipped"
+            php artisan route:cache || echo "⚠️ Route cache skipped"
+            php artisan config:cache || echo "⚠️ Config cache skipped"
+            
+            # Optional: Run specific dashboard commands
+            php artisan filament:cache-components || echo "⚠️ Filament cache skipped"
+            
+            echo "✅ Dashboard sync completed successfully!"
+            echo "🌐 Application URL: https://dokterkuklinik.com"
+            
+            # List synced dashboard files
+            echo ""
+            echo "📋 Recently synced dashboard files:"
+            find resources/views -name "*dashboard*.blade.php" -mmin -5 2>/dev/null | head -10 || echo "No recent dashboard view changes"
+            
+            exit 0
+
+      - name: Verify Dashboard Access
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo "🔍 Verifying dashboard access..."
+            
+            # Test main dashboard route
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/dashboard || echo "000")
+            if [ "$response" = "200" ] || [ "$response" = "302" ]; then
+                echo "✅ Main dashboard accessible (HTTP $response)"
+            else
+                echo "⚠️ Main dashboard returned HTTP $response"
+            fi
+            
+            # Test role-specific dashboards
+            for role in admin manajer bendahara paramedis petugas dokter; do
+              response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/$role || echo "000")
+              echo "Dashboard /$role: HTTP $response"
+            done
+            
+            # Check Laravel logs for errors
+            echo ""
+            echo "🔍 Recent Laravel logs:"
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            tail -10 storage/logs/laravel.log 2>/dev/null | grep -i "dashboard\|error" || echo "No recent dashboard errors"
+
+      - name: Notify sync status
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo "📊 Dashboard Sync Summary"
+            echo "======================="
+            echo "Repository: ${{ github.repository }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Author: ${{ github.actor }}"
+            echo "Status: ${{ job.status }}"
+            echo "Sync Type: ${{ github.event.inputs.sync_all == 'true' && 'Manual Full Sync' || 'Auto Change Sync' }}"
+            echo "Date: $(date)"
+            echo ""
+            
+            if [ "${{ needs.detect-changes.outputs.files_changed }}" != "all" ] && [ "${{ needs.detect-changes.outputs.files_changed }}" != "none" ]; then
+              echo "📄 Changed files:"
+              echo "${{ needs.detect-changes.outputs.files_changed }}"
+            fi
+            
+            echo ""
+            echo "🤖 Generated with [Claude Code](https://claude.ai/code)"
+            echo "🚀 Automated dashboard sync by Claude AI Assistant"

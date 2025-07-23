@@ -553,9 +553,9 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                   className="relative mb-6"
                 >
                   <div className="relative inline-flex items-center justify-center w-24 h-24 mx-auto mb-4">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-full opacity-20 animate-pulse"></div>
-                    <div className="relative bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 rounded-full p-6 border border-emerald-100 dark:border-emerald-800/50">
-                      <Calendar className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 rounded-full opacity-20 animate-pulse"></div>
+                    <div className="relative bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800/50 rounded-full p-6 border border-orange-200 dark:border-orange-700/50">
+                      <Calendar className="w-8 h-8 text-orange-600 dark:text-orange-400" />
                     </div>
                   </div>
                   <div className="text-4xl mb-2">🏥</div>
@@ -567,11 +567,11 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                   transition={{ delay: 0.4, duration: 0.4 }}
                   className="space-y-2"
                 >
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Tidak ada jadwal minggu ini
+                  <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200">
+                    Belum Ada Jadwal Jaga
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
-                    Jadwal jaga Anda untuk minggu ini belum tersedia. Hubungi admin untuk pengaturan jadwal.
+                  <p className="text-sm text-orange-600 dark:text-orange-300 max-w-xs mx-auto leading-relaxed">
+                    Jadwal jaga akan muncul setelah diatur oleh admin atau manajer
                   </p>
                 </motion.div>
 
@@ -581,10 +581,10 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                   transition={{ delay: 0.6, duration: 0.4 }}
                   className="mt-6"
                 >
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-full border border-emerald-100 dark:border-emerald-800/50">
-                    <Timer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                      Segera diperbarui
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/50 rounded-full border border-orange-200 dark:border-orange-700">
+                    <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                    <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                      Menunggu Penjadwalan
                     </span>
                   </div>
                 </motion.div>

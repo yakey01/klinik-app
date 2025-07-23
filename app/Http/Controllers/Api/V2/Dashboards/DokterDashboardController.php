@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api\V2\Dashboards;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Models\Pegawai;
 use App\Models\Dokter;
-use App\Models\JadwalJaga;
 use App\Models\Tindakan;
 use App\Models\Attendance;
-use App\Models\DokterUmumJaspel;
-use App\Models\User;
+use App\Models\JadwalJaga;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +24,9 @@ class DokterDashboardController extends Controller
     {
         try {
             $user = Auth::user();
-            $dokter = Dokter::where('user_id', $user->id)->first();
+            $dokter = Dokter::where('user_id', $user->id)
+                ->where('aktif', true)
+                ->first();
             
             if (!$dokter) {
                 return response()->json([
@@ -42,16 +44,16 @@ class DokterDashboardController extends Controller
                 $thisWeek = Carbon::now()->startOfWeek();
 
                 // Hitung stats real
-                $patientsToday = Tindakan::where('dokter_id', $dokter->id)
+                $patientsToday = Tindakan::where('paramedis_id', $dokter->id)
                     ->whereDate('tanggal_tindakan', $today)
                     ->distinct('pasien_id')
                     ->count();
 
-                $tindakanToday = Tindakan::where('dokter_id', $dokter->id)
+                $tindakanToday = Tindakan::where('paramedis_id', $dokter->id)
                     ->whereDate('tanggal_tindakan', $today)
                     ->count();
 
-                $jaspelMonth = Tindakan::where('dokter_id', $dokter->id)
+                $jaspelMonth = Tindakan::where('paramedis_id', $dokter->id)
                     ->where('tanggal_tindakan', '>=', $thisMonth)
                     ->where('status_validasi', 'disetujui')
                     ->sum('jasa_dokter');
@@ -94,17 +96,18 @@ class DokterDashboardController extends Controller
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
-                        'jabatan' => $dokter->jabatan_display,
-                        'avatar' => $dokter->default_avatar,
+                        'jenis_pegawai' => $dokter->jenis_pegawai,
+                        'unit_kerja' => $dokter->unit_kerja ?? 'Tidak ditentukan',
+                        'avatar' => null,
                         'initials' => strtoupper(substr($user->name, 0, 2))
                     ],
                     'dokter' => [
                         'id' => $dokter->id,
-                        'nama_lengkap' => $dokter->nama_lengkap,
+                        'nama_lengkap' => $dokter->nama_lengkap ?? $user->name,
                         'nik' => $dokter->nik,
-                        'jabatan' => $dokter->jabatan,
-                        'nomor_sip' => $dokter->nomor_sip,
-                        'status' => $dokter->status_text
+                        'jenis_pegawai' => $dokter->jenis_pegawai,
+                        'unit_kerja' => $dokter->unit_kerja,
+                        'status' => 'Aktif'
                     ],
                     'stats' => $stats,
                     'performance' => $performanceStats,
@@ -143,25 +146,24 @@ class DokterDashboardController extends Controller
             $jadwalJaga = JadwalJaga::where('pegawai_id', $user->id)
                 ->whereMonth('tanggal_jaga', $month)
                 ->whereYear('tanggal_jaga', $year)
-                ->with(['shiftTemplate'])
                 ->orderBy('tanggal_jaga')
                 ->get();
 
-            // Format untuk calendar
+            // Format untuk calendar dengan fallback
             $calendarEvents = $jadwalJaga->map(function ($jadwal) {
                 return [
                     'id' => $jadwal->id,
-                    'title' => $jadwal->shiftTemplate->nama_shift,
-                    'start' => $jadwal->start,
-                    'end' => $jadwal->end,
-                    'color' => $jadwal->color,
-                    'description' => $jadwal->unit_kerja,
+                    'title' => 'Shift Jaga',
+                    'start' => $jadwal->tanggal_jaga->format('Y-m-d'),
+                    'end' => $jadwal->tanggal_jaga->format('Y-m-d'),
+                    'color' => '#10b981',
+                    'description' => $jadwal->unit_kerja ?? 'Unit Kerja',
                     'shift_info' => [
-                        'nama_shift' => $jadwal->shiftTemplate->nama_shift,
-                        'jam_masuk' => $jadwal->shiftTemplate->jam_masuk,
-                        'jam_pulang' => $jadwal->shiftTemplate->jam_pulang,
-                        'unit_kerja' => $jadwal->unit_kerja,
-                        'status' => $jadwal->status_jaga
+                        'nama_shift' => 'Shift Pagi',
+                        'jam_masuk' => '08:00',
+                        'jam_pulang' => '16:00',
+                        'unit_kerja' => $jadwal->unit_kerja ?? 'Unit Kerja',
+                        'status' => 'aktif'
                     ]
                 ];
             });
@@ -172,7 +174,6 @@ class DokterDashboardController extends Controller
                     Carbon::now()->startOfWeek(),
                     Carbon::now()->endOfWeek()
                 ])
-                ->with(['shiftTemplate'])
                 ->orderBy('tanggal_jaga')
                 ->get();
 
@@ -205,13 +206,15 @@ class DokterDashboardController extends Controller
     {
         try {
             $user = Auth::user();
-            $dokter = Dokter::where('user_id', $user->id)->first();
+            $dokter = Dokter::where('user_id', $user->id)
+                ->where('aktif', true)
+                ->first();
             
             $month = $request->get('month', Carbon::now()->month);
             $year = $request->get('year', Carbon::now()->year);
 
             // Jaspel bulan ini
-            $jaspelQuery = Tindakan::where('dokter_id', $dokter->id)
+            $jaspelQuery = Tindakan::where('paramedis_id', $dokter->id)
                 ->whereMonth('tanggal_tindakan', $month)
                 ->whereYear('tanggal_tindakan', $year);
 
@@ -227,8 +230,8 @@ class DokterDashboardController extends Controller
             $dailyBreakdown = $jaspelQuery->select(
                 DB::raw('DATE(tanggal_tindakan) as date'),
                 DB::raw('COUNT(*) as total_tindakan'),
-                DB::raw('SUM(jasa_dokter) as total_jaspel'),
-                DB::raw('SUM(CASE WHEN status_validasi = "disetujui" THEN jasa_dokter ELSE 0 END) as approved_jaspel')
+                DB::raw('SUM(jasa_paramedis) as total_jaspel'),
+                DB::raw('SUM(CASE WHEN status_validasi = "disetujui" THEN jasa_paramedis ELSE 0 END) as approved_jaspel')
             )
             ->groupBy('date')
             ->orderBy('date')
@@ -238,7 +241,7 @@ class DokterDashboardController extends Controller
             $tindakanBreakdown = $jaspelQuery->select(
                 'jenis_tindakan',
                 DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(jasa_dokter) as total_jaspel')
+                DB::raw('SUM(jasa_paramedis) as total_jaspel')
             )
             ->groupBy('jenis_tindakan')
             ->orderByDesc('total_jaspel')
@@ -279,13 +282,15 @@ class DokterDashboardController extends Controller
     {
         try {
             $user = Auth::user();
-            $dokter = Dokter::where('user_id', $user->id)->first();
+            $dokter = Dokter::where('user_id', $user->id)
+                ->where('aktif', true)
+                ->first();
             
             $limit = min($request->get('limit', 15), 50);
             $status = $request->get('status');
             $search = $request->get('search');
 
-            $query = Tindakan::where('dokter_id', $dokter->id)
+            $query = Tindakan::where('paramedis_id', $dokter->id)
                 ->with(['pasien:id,nama_pasien,nomor_pasien']);
 
             if ($status) {
@@ -308,10 +313,10 @@ class DokterDashboardController extends Controller
                 'data' => $tindakan,
                 'meta' => [
                     'summary' => [
-                        'total' => Tindakan::where('dokter_id', $dokter->id)->count(),
-                        'approved' => Tindakan::where('dokter_id', $dokter->id)->where('status_validasi', 'disetujui')->count(),
-                        'pending' => Tindakan::where('dokter_id', $dokter->id)->where('status_validasi', 'pending')->count(),
-                        'rejected' => Tindakan::where('dokter_id', $dokter->id)->where('status_validasi', 'ditolak')->count()
+                        'total' => Tindakan::where('paramedis_id', $dokter->id)->count(),
+                        'approved' => Tindakan::where('paramedis_id', $dokter->id)->where('status_validasi', 'disetujui')->count(),
+                        'pending' => Tindakan::where('paramedis_id', $dokter->id)->where('status_validasi', 'pending')->count(),
+                        'rejected' => Tindakan::where('paramedis_id', $dokter->id)->where('status_validasi', 'ditolak')->count()
                     ]
                 ]
             ]);
@@ -391,239 +396,7 @@ class DokterDashboardController extends Controller
     }
 
     /**
-     * Get performance stats - Enhanced with attendance ranking like Paramedis
-     */
-    private function getPerformanceStats($dokter)
-    {
-        $month = Carbon::now()->month;
-        $year = Carbon::now()->year;
-        $user = Auth::user();
-        
-        // Get attendance ranking from AttendanceRecap (copied from ParamedisDashboardController)
-        $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
-        
-        // Find current user's ranking
-        $currentUserRank = null;
-        $totalDokter = $attendanceData->count();
-        
-        foreach ($attendanceData as $staff) {
-            if ($staff['staff_id'] == $user->id) {
-                $currentUserRank = $staff['rank'];
-                break;
-            }
-        }
-        
-        // Calculate attendance rate using enhanced method
-        $attendanceRate = $this->getAttendanceRateEnhanced($user);
-        
-        // Debug logging
-        \Log::info('🔍 DEBUG: Dokter getPerformanceStats', [
-            'user_id' => $user->id,
-            'user_name' => $user->name,
-            'month' => $month,
-            'year' => $year,
-            'attendance_data_count' => $attendanceData->count(),
-            'current_user_rank' => $currentUserRank,
-            'total_dokter' => $totalDokter,
-            'attendance_rate' => $attendanceRate,
-        ]);
-        
-        $thisMonth = Carbon::now()->startOfMonth();
-        $lastMonth = Carbon::now()->subMonth()->startOfMonth();
-        
-        $thisMonthTindakan = Tindakan::where('dokter_id', $dokter->id)
-            ->where('tanggal_tindakan', '>=', $thisMonth)
-            ->count();
-            
-        $lastMonthTindakan = Tindakan::where('dokter_id', $dokter->id)
-            ->whereBetween('tanggal_tindakan', [$lastMonth, $thisMonth])
-            ->count();
-
-        $growthRate = $lastMonthTindakan > 0 ? 
-            (($thisMonthTindakan - $lastMonthTindakan) / $lastMonthTindakan) * 100 : 0;
-
-        return [
-            'attendance_rank' => $currentUserRank ?? $totalDokter + 1,
-            'total_staff' => $totalDokter,
-            'attendance_percentage' => round($attendanceRate, 1),
-            'patient_satisfaction' => 92,
-            'attendance_rate' => $attendanceRate,
-            'efficiency_score' => min(95, 70 + ($thisMonthTindakan * 2)),
-            'growth_rate' => round($growthRate, 1)
-        ];
-    }
-
-    /**
-     * Get attendance rate using AttendanceRecap calculation method (copied from ParamedisDashboardController)
-     */
-    private function getAttendanceRateEnhanced($user)
-    {
-        $month = Carbon::now()->month;
-        $year = Carbon::now()->year;
-        
-        \Log::info('🔍 DEBUG: Dokter getAttendanceRateEnhanced start', [
-            'user_id' => $user->id,
-            'month' => $month,
-            'year' => $year,
-        ]);
-        
-        // Get attendance data from AttendanceRecap for current user
-        $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
-        
-        \Log::info('🔍 DEBUG: Dokter AttendanceRecap data', [
-            'count' => $attendanceData->count(),
-            'data' => $attendanceData->toArray(),
-        ]);
-        
-        // Find current user's attendance percentage
-        foreach ($attendanceData as $staff) {
-            \Log::info('🔍 DEBUG: Checking dokter staff', [
-                'staff_id' => $staff['staff_id'],
-                'user_id' => $user->id,
-                'attendance_percentage' => $staff['attendance_percentage'] ?? 'not set',
-            ]);
-            
-            if ($staff['staff_id'] == $user->id) {
-                \Log::info('✅ Found dokter user attendance', [
-                    'attendance_percentage' => $staff['attendance_percentage'],
-                ]);
-                return $staff['attendance_percentage'];
-            }
-        }
-        
-        \Log::info('🔄 Using fallback calculation for dokter');
-        
-        // Fallback: calculate manually using same method as AttendanceRecap
-        $startDate = Carbon::create($year, $month, 1);
-        $endDate = $startDate->copy()->endOfMonth();
-        
-        // Count working days (Monday to Saturday, exclude Sunday)
-        $workingDays = 0;
-        $tempDate = $startDate->copy();
-        while ($tempDate->lte($endDate)) {
-            if ($tempDate->dayOfWeek !== Carbon::SUNDAY) {
-                $workingDays++;
-            }
-            $tempDate->addDay();
-        }
-        
-        // Count attendance days for the full month
-        $attendanceDays = Attendance::where('user_id', $user->id)
-            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->distinct('date')
-            ->count();
-        
-        $fallbackRate = $workingDays > 0 ? round(($attendanceDays / $workingDays) * 100, 2) : 0;
-        
-        \Log::info('🔍 DEBUG: Dokter Fallback calculation', [
-            'start_date' => $startDate->format('Y-m-d'),
-            'end_date' => $endDate->format('Y-m-d'),
-            'working_days' => $workingDays,
-            'attendance_days' => $attendanceDays,
-            'fallback_rate' => $fallbackRate,
-        ]);
-        
-        return $fallbackRate;
-    }
-
-    /**
-     * Get attendance rate - Legacy method for backward compatibility
-     */
-    private function getAttendanceRate($user)
-    {
-        return $this->getAttendanceRateEnhanced($user);
-    }
-
-    /**
-     * Get next schedule
-     */
-    private function getNextSchedule($user)
-    {
-        $nextSchedule = JadwalJaga::where('pegawai_id', $user->id)
-            ->where('tanggal_jaga', '>=', Carbon::today())
-            ->with(['shiftTemplate'])
-            ->orderBy('tanggal_jaga')
-            ->first();
-
-        if (!$nextSchedule) {
-            return null;
-        }
-
-        // Ensure tanggal_jaga is properly cast to Carbon
-        $tanggalJaga = $nextSchedule->tanggal_jaga instanceof Carbon 
-            ? $nextSchedule->tanggal_jaga 
-            : Carbon::parse($nextSchedule->tanggal_jaga);
-
-        return [
-            'id' => $nextSchedule->id,
-            'date' => $tanggalJaga->format('Y-m-d'),
-            'formatted_date' => $tanggalJaga->format('l, d F Y'),
-            'shift_name' => $nextSchedule->shiftTemplate->nama_shift ?? 'Shift',
-            'start_time' => $nextSchedule->shiftTemplate->jam_masuk ?? '08:00',
-            'end_time' => $nextSchedule->shiftTemplate->jam_pulang ?? '16:00',
-            'unit_kerja' => $nextSchedule->unit_kerja ?? 'Unit Kerja',
-            'days_until' => Carbon::today()->diffInDays($tanggalJaga)
-        ];
-    }
-
-    /**
-     * Get greeting based on time
-     */
-    private function getGreeting()
-    {
-        $hour = Carbon::now()->hour;
-        
-        if ($hour < 12) {
-            return 'Selamat Pagi';
-        } elseif ($hour < 17) {
-            return 'Selamat Siang';
-        } else {
-            return 'Selamat Malam';
-        }
-    }
-
-    /**
-     * Get attendance data for dokter
-     */
-    public function getAttendance(Request $request)
-    {
-        try {
-            $user = Auth::user();
-            $today = Carbon::today();
-            
-            // Get today's attendance
-            $attendance = Attendance::where('user_id', $user->id)
-                ->where('date', $today)
-                ->first();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Attendance data retrieved successfully',
-                'data' => [
-                    'today' => [
-                        'has_checked_in' => $attendance ? true : false,
-                        'has_checked_out' => $attendance && $attendance->time_out ? true : false,
-                        'check_in_time' => $attendance?->time_in?->format('H:i'),
-                        'check_out_time' => $attendance?->time_out?->format('H:i'),
-                        'work_duration' => $attendance?->formatted_work_duration ?? '0 jam',
-                        'status' => $attendance ? 
-                            ($attendance->time_out ? 'checked_out' : 'checked_in') : 
-                            'not_checked_in'
-                    ]
-                ]
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve attendance data',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Check-in/Check-out methods (copied from ParamedisDashboardController)
+     * Check-in/Check-out
      */
     public function checkIn(Request $request)
     {
@@ -710,7 +483,7 @@ class DokterDashboardController extends Controller
     }
 
     /**
-     * Endpoint untuk schedule API (untuk mobile app) - copied from ParamedisDashboardController
+     * Endpoint untuk schedule API (untuk mobile app)
      */
     public function schedules(Request $request)
     {
@@ -720,28 +493,17 @@ class DokterDashboardController extends Controller
             // Get upcoming schedules for mobile app
             $schedules = JadwalJaga::where('pegawai_id', $user->id)
                 ->where('tanggal_jaga', '>=', Carbon::today())
-                ->with(['shiftTemplate'])
                 ->orderBy('tanggal_jaga')
                 ->limit(10)
                 ->get()
                 ->map(function ($jadwal) {
-                    // Ensure tanggal_jaga is properly cast to Carbon
-                    $tanggalJaga = $jadwal->tanggal_jaga instanceof Carbon 
-                        ? $jadwal->tanggal_jaga 
-                        : Carbon::parse($jadwal->tanggal_jaga);
-                        
                     return [
                         'id' => $jadwal->id,
-                        'tanggal' => $tanggalJaga->format('Y-m-d'),
-                        'waktu' => $jadwal->shiftTemplate ? 
-                            ($jadwal->shiftTemplate->jam_masuk . ' - ' . $jadwal->shiftTemplate->jam_pulang) : 
-                            '08:00 - 16:00', // Default fallback
+                        'tanggal' => $jadwal->tanggal_jaga->format('Y-m-d'),
+                        'waktu' => '08:00 - 16:00', // Default fallback
                         'lokasi' => $jadwal->unit_kerja ?? 'Unit Kerja',
-                        'jenis' => $this->getShiftType($jadwal->shiftTemplate),
-                        'status' => 'scheduled',
-                        'shift_nama' => $jadwal->shiftTemplate->nama_shift ?? 'Shift',
-                        'status_jaga' => $jadwal->status_jaga ?? 'Aktif',
-                        'keterangan' => $jadwal->keterangan
+                        'jenis' => 'pagi', // Default fallback
+                        'status' => 'scheduled'
                     ];
                 });
 
@@ -756,23 +518,360 @@ class DokterDashboardController extends Controller
         }
     }
 
+
     /**
-     * Helper method to determine shift type based on time
+     * Get performance stats
      */
-    private function getShiftType($shiftTemplate)
+    private function getPerformanceStats($dokter)
     {
-        if (!$shiftTemplate || !$shiftTemplate->jam_masuk) {
-            return 'pagi'; // Default fallback
+        $month = Carbon::now()->month;
+        $year = Carbon::now()->year;
+        $user = Auth::user();
+        
+        // Get attendance ranking from AttendanceRecap
+        $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
+        
+        // Find current user's ranking
+        $currentUserRank = null;
+        $totalDokter = $attendanceData->count();
+        
+        foreach ($attendanceData as $staff) {
+            if ($staff['staff_id'] == $user->id) {
+                $currentUserRank = $staff['rank'];
+                break;
+            }
         }
         
-        $startHour = (int) substr($shiftTemplate->jam_masuk, 0, 2);
+        // Calculate attendance rate
+        $attendanceRate = $this->getAttendanceRate($user);
         
-        if ($startHour >= 6 && $startHour < 14) {
-            return 'pagi';
-        } elseif ($startHour >= 14 && $startHour < 22) {
-            return 'siang';
+        // Debug logging
+        \Log::info('🔍 DEBUG: getPerformanceStats', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'month' => $month,
+            'year' => $year,
+            'attendance_data_count' => $attendanceData->count(),
+            'current_user_rank' => $currentUserRank,
+            'total_dokter' => $totalDokter,
+            'attendance_rate' => $attendanceRate,
+        ]);
+        
+        return [
+            'attendance_rank' => $currentUserRank ?? $totalDokter + 1,
+            'total_staff' => $totalDokter,
+            'attendance_percentage' => round($attendanceRate, 1),
+            'patient_satisfaction' => 92,
+            'attendance_rate' => $attendanceRate
+        ];
+    }
+
+    /**
+     * Get attendance rate using AttendanceRecap calculation method
+     */
+    private function getAttendanceRate($user)
+    {
+        $month = Carbon::now()->month;
+        $year = Carbon::now()->year;
+        
+        \Log::info('🔍 DEBUG: getAttendanceRate start', [
+            'user_id' => $user->id,
+            'month' => $month,
+            'year' => $year,
+        ]);
+        
+        // Get attendance data from AttendanceRecap for current user
+        $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Dokter');
+        
+        \Log::info('🔍 DEBUG: AttendanceRecap data', [
+            'count' => $attendanceData->count(),
+            'data' => $attendanceData->toArray(),
+        ]);
+        
+        // Find current user's attendance percentage
+        foreach ($attendanceData as $staff) {
+            \Log::info('🔍 DEBUG: Checking staff', [
+                'staff_id' => $staff['staff_id'],
+                'user_id' => $user->id,
+                'attendance_percentage' => $staff['attendance_percentage'] ?? 'not set',
+            ]);
+            
+            if ($staff['staff_id'] == $user->id) {
+                \Log::info('✅ Found user attendance', [
+                    'attendance_percentage' => $staff['attendance_percentage'],
+                ]);
+                return $staff['attendance_percentage'];
+            }
+        }
+        
+        \Log::info('🔄 Using fallback calculation');
+        
+        // Fallback: calculate manually using same method as AttendanceRecap
+        $startDate = Carbon::create($year, $month, 1);
+        $endDate = $startDate->copy()->endOfMonth();
+        
+        // Count working days (Monday to Saturday, exclude Sunday)
+        $workingDays = 0;
+        $tempDate = $startDate->copy();
+        while ($tempDate->lte($endDate)) {
+            if ($tempDate->dayOfWeek !== Carbon::SUNDAY) {
+                $workingDays++;
+            }
+            $tempDate->addDay();
+        }
+        
+        // Count attendance days for the full month
+        $attendanceDays = Attendance::where('user_id', $user->id)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->distinct('date')
+            ->count();
+        
+        $fallbackRate = $workingDays > 0 ? round(($attendanceDays / $workingDays) * 100, 2) : 0;
+        
+        \Log::info('🔍 DEBUG: Fallback calculation', [
+            'start_date' => $startDate->format('Y-m-d'),
+            'end_date' => $endDate->format('Y-m-d'),
+            'working_days' => $workingDays,
+            'attendance_days' => $attendanceDays,
+            'fallback_rate' => $fallbackRate,
+        ]);
+        
+        return $fallbackRate;
+    }
+
+    /**
+     * Get next schedule
+     */
+    private function getNextSchedule($user)
+    {
+        try {
+            $nextSchedule = JadwalJaga::where('pegawai_id', $user->id)
+                ->where('tanggal_jaga', '>=', Carbon::today())
+                ->orderBy('tanggal_jaga')
+                ->first();
+
+            if (!$nextSchedule) {
+                return null;
+            }
+
+            return [
+                'id' => $nextSchedule->id,
+                'date' => $nextSchedule->tanggal_jaga->format('Y-m-d'),
+                'formatted_date' => $nextSchedule->tanggal_jaga->format('l, d F Y'),
+                'shift_name' => 'Shift Pagi', // Fallback
+                'start_time' => '08:00',
+                'end_time' => '16:00',
+                'unit_kerja' => $nextSchedule->unit_kerja ?? 'Unit Kerja',
+                'days_until' => Carbon::today()->diffInDays($nextSchedule->tanggal_jaga)
+            ];
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get IGD schedules with dynamic unit kerja data
+     * Same implementation as DokterDashboardController for consistency
+     */
+    public function getIgdSchedules(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $category = $request->get('category', 'all');
+            $date = $request->get('date', now()->format('Y-m-d'));
+            
+            // Map category to unit_kerja values - same as dokter implementation
+            $unitKerjaMap = [
+                'all' => ['Pendaftaran', 'Pelayanan', 'Dokter Jaga'],
+                'pendaftaran' => ['Pendaftaran'],
+                'pelayanan' => ['Pelayanan'],
+                'dokter_jaga' => ['Dokter Jaga']
+            ];
+            
+            $unitKerjaFilter = $unitKerjaMap[$category] ?? $unitKerjaMap['all'];
+            
+            // For dokter, only include "Dokter Jaga" unit
+            $unitKerjaFilter = ['Dokter Jaga'];
+            
+            // SECURITY FIX: Only show schedules for the logged-in user
+            $query = JadwalJaga::with(['pegawai', 'shiftTemplate'])
+                ->join('pegawais', 'jadwal_jagas.pegawai_id', '=', 'pegawais.user_id')
+                ->join('users', 'pegawais.user_id', '=', 'users.id')
+                ->leftJoin('shift_templates', 'jadwal_jagas.shift_template_id', '=', 'shift_templates.id')
+                ->where('jadwal_jagas.pegawai_id', $user->id)
+                ->where('pegawais.jenis_pegawai', 'Dokter')
+                ->whereIn('jadwal_jagas.unit_kerja', $unitKerjaFilter)
+                ->whereDate('jadwal_jagas.tanggal_jaga', $date)
+                ->select([
+                    'jadwal_jagas.*',
+                    'users.name as nama_dokter',
+                    'shift_templates.nama_shift as shift_name',
+                    'shift_templates.jam_masuk',
+                    'shift_templates.jam_pulang'
+                ])
+                ->orderByRaw("
+                    FIELD(jadwal_jagas.unit_kerja, 'Pendaftaran', 'Pelayanan', 'Dokter Jaga'),
+                    CASE 
+                        WHEN shift_templates.nama_shift = 'Pagi' THEN 1
+                        WHEN shift_templates.nama_shift = 'Siang' THEN 2
+                        WHEN shift_templates.nama_shift = 'Malam' THEN 3
+                        ELSE 4
+                    END,
+                    users.name ASC
+                ");
+
+            $schedules = $query->get()->map(function($schedule) {
+                // Format time display
+                $timeDisplay = 'TBA';
+                if ($schedule->jam_masuk && $schedule->jam_pulang) {
+                    $timeDisplay = Carbon::parse($schedule->jam_masuk)->format('H:i') . 
+                                  ' - ' . 
+                                  Carbon::parse($schedule->jam_pulang)->format('H:i');
+                }
+
+                return [
+                    'id' => $schedule->id,
+                    'tanggal' => Carbon::parse($schedule->tanggal_jaga)->format('Y-m-d'),
+                    'tanggal_formatted' => Carbon::parse($schedule->tanggal_jaga)->format('l, d F Y'),
+                    'unit_kerja' => $schedule->unit_kerja ?: 'Unit Kerja',
+                    'dokter_name' => $schedule->nama_dokter ?: 'Unknown',
+                    'shift_name' => $schedule->shift_name ?: 'Shift',
+                    'jam_masuk' => $schedule->jam_masuk,
+                    'jam_keluar' => $schedule->jam_pulang,
+                    'waktu_display' => $timeDisplay,
+                    'status' => $schedule->status_jaga ?? 'scheduled',
+                    'created_at' => $schedule->created_at
+                ];
+            });
+
+            // Group by unit_kerja for better organization
+            $groupedSchedules = $schedules->groupBy('unit_kerja');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal dokter berhasil dimuat',
+                'data' => [
+                    'schedules' => $schedules,
+                    'grouped_schedules' => $groupedSchedules,
+                    'category' => $category,
+                    'date' => $date,
+                    'total_count' => $schedules->count(),
+                    'units_available' => $schedules->pluck('unit_kerja')->unique()->values(),
+                    'filters_applied' => [
+                        'unit_kerja' => $unitKerjaFilter,
+                        'date' => $date,
+                        'staff_type' => 'Dokter'
+                    ]
+                ],
+                'meta' => [
+                    'version' => '2.0',
+                    'timestamp' => now()->toISOString(),
+                    'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('DokterDashboardController::getIgdSchedules error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat jadwal dokter: ' . $e->getMessage(),
+                'data' => [
+                    'schedules' => [],
+                    'grouped_schedules' => [],
+                    'total_count' => 0
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get weekly schedules with dynamic data
+     * Same pattern as dokter implementation
+     */
+    public function getWeeklySchedule(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $startDate = Carbon::now()->startOfWeek();
+            $endDate = Carbon::now()->endOfWeek();
+            
+            // SECURITY FIX: Only show schedules for the logged-in user
+            $schedules = JadwalJaga::with(['shiftTemplate'])
+                ->join('pegawais', 'jadwal_jagas.pegawai_id', '=', 'pegawais.user_id')
+                ->where('jadwal_jagas.pegawai_id', $user->id)
+                ->where('pegawais.jenis_pegawai', 'Dokter')
+                ->where('jadwal_jagas.unit_kerja', 'Dokter Jaga') // INCLUDE only Dokter Jaga
+                ->whereBetween('jadwal_jagas.tanggal_jaga', [
+                    $startDate->format('Y-m-d'),
+                    $endDate->format('Y-m-d')
+                ])
+                ->select([
+                    'jadwal_jagas.*',
+                    'pegawais.nama_lengkap as nama_dokter'
+                ])
+                ->orderBy('jadwal_jagas.tanggal_jaga')
+                ->orderByRaw("FIELD(jadwal_jagas.unit_kerja, 'Pendaftaran', 'Pelayanan', 'Dokter Jaga')")
+                ->get()
+                ->map(function($schedule) {
+                    return [
+                        'id' => $schedule->id,
+                        'tanggal' => Carbon::parse($schedule->tanggal_jaga)->format('Y-m-d'),
+                        'unit_kerja' => $schedule->unit_kerja ?: 'Unit Kerja',
+                        'dokter_name' => $schedule->nama_dokter ?: 'Unknown',
+                        'shift_name' => $schedule->shiftTemplate ? $schedule->shiftTemplate->nama_shift : 'Shift',
+                        'jam_masuk' => $schedule->shiftTemplate ? $schedule->shiftTemplate->jam_masuk : null,
+                        'jam_keluar' => $schedule->shiftTemplate ? $schedule->shiftTemplate->jam_pulang : null,
+                        'status' => $schedule->status_jaga ?? 'scheduled'
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal minggu ini berhasil dimuat',
+                'data' => [
+                    'schedules' => $schedules,
+                    'week_range' => [
+                        'start' => $startDate->format('Y-m-d'),
+                        'end' => $endDate->format('Y-m-d'),
+                        'start_formatted' => $startDate->format('d M Y'),
+                        'end_formatted' => $endDate->format('d M Y')
+                    ],
+                    'total_count' => $schedules->count()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('DokterDashboardController::getWeeklySchedule error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat jadwal minggu ini: ' . $e->getMessage(),
+                'data' => [
+                    'schedules' => [],
+                    'total_count' => 0
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get greeting based on time
+     */
+    private function getGreeting()
+    {
+        $hour = Carbon::now()->hour;
+        
+        if ($hour < 12) {
+            return 'Selamat Pagi';
+        } elseif ($hour < 17) {
+            return 'Selamat Siang';
         } else {
-            return 'malam';
+            return 'Selamat Malam';
         }
     }
 }

@@ -21,13 +21,6 @@ import {
   Timer
 } from 'lucide-react';
 
-interface DashboardProps {
-  userData?: {
-    name: string;
-    greeting?: string;
-  };
-}
-
 interface JadwalItem {
   id: string;
   tanggal: string;
@@ -35,156 +28,40 @@ interface JadwalItem {
   lokasi: string;
   jenis: 'pagi' | 'siang' | 'malam';
   status: 'scheduled' | 'completed' | 'missed';
-  shift_nama?: string;
-  status_jaga?: string;
-  keterangan?: string;
 }
 
+interface DashboardProps {
+  userData?: {
+    name: string;
+    greeting?: string;
+  };
+}
 
-export function Dashboard({ userData }: DashboardProps) {
+export function Dashboard({ userData: propUserData }: DashboardProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [userData, setUserData] = useState<any>(null);
   const [jadwalMendatang, setJadwalMendatang] = useState<JadwalItem[]>([]);
-  const [nextSchedule, setNextSchedule] = useState<JadwalItem | null>(null);
-  const [isLoadingJadwal, setIsLoadingJadwal] = useState(true);
-  const [jadwalError, setJadwalError] = useState<string | null>(null);
+  const [loadingSchedules, setLoadingSchedules] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Fetch jadwal jaga data from API
-  useEffect(() => {
-    const fetchJadwalJaga = async () => {
+    
+    // Get user data from meta tag
+    const userDataMeta = document.querySelector('meta[name="user-data"]');
+    if (userDataMeta) {
       try {
-        setIsLoadingJadwal(true);
-        setJadwalError(null);
-
-        // Get CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        
-        const response = await fetch('/dokter/api/schedules', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken || '',
-            'Accept': 'application/json'
-          },
-          credentials: 'same-origin'
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const schedules: any[] = await response.json();
-        
-        // Always clear error if API call succeeds
-        setJadwalError(null);
-        
-        // Transform schedules to our format
-        const weeklyJadwal = schedules.map((jadwal: any) => {
-          return {
-            id: jadwal.id.toString(),
-            tanggal: jadwal.tanggal,
-            waktu: jadwal.waktu,
-            lokasi: jadwal.lokasi,
-            jenis: jadwal.jenis as 'pagi' | 'siang' | 'malam',
-            status: jadwal.status as 'scheduled' | 'completed' | 'missed',
-            shift_nama: jadwal.shift_nama,
-            status_jaga: jadwal.status_jaga,
-            keterangan: jadwal.keterangan
-          };
-        });
-
-        setJadwalMendatang(weeklyJadwal);
-
-        // Set next schedule (first upcoming schedule)
-        const upcomingSchedules = weeklyJadwal.filter(j => j.status === 'scheduled');
-        if (upcomingSchedules.length > 0) {
-          setNextSchedule(upcomingSchedules[0]);
-        } else {
-          // No upcoming schedules
-          setNextSchedule(null);
-        }
-      } catch (error) {
-        console.error('Error fetching jadwal jaga:', error);
-        setJadwalError('Gagal memuat jadwal jaga');
-        
-        // Fallback to sample data
-        const fallbackJadwal = [
-          {
-            id: '1',
-            tanggal: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
-            waktu: '07:00 - 15:00',
-            lokasi: 'IGD',
-            jenis: 'pagi' as const,
-            status: 'scheduled' as const,
-            shift_nama: 'Pagi',
-            status_jaga: 'Aktif'
-          }
-        ];
-        setJadwalMendatang(fallbackJadwal);
-        setNextSchedule(fallbackJadwal[0]);
-      } finally {
-        setIsLoadingJadwal(false);
-      }
-    };
-
-    fetchJadwalJaga();
-  }, []);
-
-
-  const getShiftColor = (jenis: string) => {
-    switch (jenis) {
-      case 'pagi': return 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white dark:from-yellow-500 dark:to-yellow-600';
-      case 'siang': return 'bg-gradient-to-r from-orange-400 to-orange-500 text-white dark:from-orange-500 dark:to-orange-600';
-      case 'malam': return 'bg-gradient-to-r from-purple-400 to-purple-500 text-white dark:from-purple-500 dark:to-purple-600';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-    }
-  };
-
-  const formatTanggal = (tanggal: string) => {
-    return new Date(tanggal).toLocaleDateString('id-ID', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
-    });
-  };
-
-  const getShiftIcon = (jenis: string) => {
-    switch (jenis) {
-      case 'pagi': return '☀️';
-      case 'siang': return '🌤️';
-      case 'malam': return '🌙';
-      default: return '⏰';
-    }
-  };
-
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
+        const data = JSON.parse(userDataMeta.getAttribute('content') || '{}');
+        setUserData(data);
+      } catch (e) {
+        console.error('Failed to parse user data:', e);
       }
     }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
-
-  // State for dashboard data with API integration
-  const [dashboardStats, setDashboardStats] = useState<any>(null);
-  const [loadingStats, setLoadingStats] = useState(true);
-
-  // Fetch real dashboard stats from API
-  useEffect(() => {
+    
+    // Fetch real dashboard stats from API
     const fetchDashboardStats = async () => {
       try {
         setLoadingStats(true);
@@ -212,23 +89,95 @@ export function Dashboard({ userData }: DashboardProps) {
           const result = await response.json();
           if (result.success && result.data) {
             setDashboardStats(result.data);
-            console.log('✅ Dokter Dashboard data loaded successfully');
+            console.log('✅ Dashboard data loaded successfully');
           }
         } else {
-          console.error('Failed to fetch dokter dashboard stats:', response.status, response.statusText);
+          console.error('Failed to fetch dashboard stats:', response.status, response.statusText);
           if (response.status === 401) {
             console.error('Authentication required. Please ensure you are logged in.');
           }
         }
       } catch (error) {
-        console.error('Error fetching dokter dashboard stats:', error);
+        console.error('Error fetching dashboard stats:', error);
       } finally {
         setLoadingStats(false);
       }
     };
 
+    // Fetch real schedule data from API
+    const fetchSchedules = async () => {
+      try {
+        setLoadingSchedules(true);
+        const response = await fetch('/dokter/api/schedules', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          }
+        });
+        if (response.ok) {
+          const schedules = await response.json();
+          setJadwalMendatang(schedules);
+        } else {
+          console.error('Failed to fetch schedules:', response.status);
+          // Keep empty array if fetch fails
+        }
+      } catch (error) {
+        console.error('Error fetching schedules:', error);
+        // Keep empty array if fetch fails
+      } finally {
+        setLoadingSchedules(false);
+      }
+    };
+    
     fetchDashboardStats();
+    fetchSchedules();
+    
+    return () => clearInterval(timer);
   }, []);
+
+  const getShiftColor = (jenis: string) => {
+    switch (jenis) {
+      case 'pagi': return 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white dark:from-yellow-500 dark:to-yellow-600';
+      case 'siang': return 'bg-gradient-to-r from-orange-400 to-orange-500 text-white dark:from-orange-500 dark:to-orange-600';
+      case 'malam': return 'bg-gradient-to-r from-purple-400 to-purple-500 text-white dark:from-purple-500 dark:to-purple-600';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+    }
+  };
+
+  const formatTanggal = (tanggal: string) => {
+    return new Date(tanggal).toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
+    });
+  };
+
+  const getShiftIcon = (jenis: string) => {
+    switch (jenis) {
+      case 'pagi': return '☀️';
+      case 'siang': return '🌤️';
+      case 'malam': return '🌙';
+      default: return '⏰';
+    }
+  };
+
+  const nextSchedule = jadwalMendatang.length > 0 ? jadwalMendatang[0] : null;
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
 
   // Use real data from API or fallback to dummy data
   const stats = dashboardStats ? {
@@ -268,7 +217,7 @@ export function Dashboard({ userData }: DashboardProps) {
   };
 
   // Debug log to see attendance data
-  console.log('🎯 Dokter Stats object:', {
+  console.log('🎯 Stats object:', {
     attendance_current: stats.attendance.current,
     attendance_rate_raw: dashboardStats?.performance?.attendance_rate,
     performance_data: dashboardStats?.performance,
@@ -293,7 +242,7 @@ export function Dashboard({ userData }: DashboardProps) {
                 <div>
                   <h2 className="text-xl font-semibold text-white text-heading-mobile">Dashboard</h2>
                   <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">
-                    {userData?.greeting || 'Selamat datang kembali'}, {userData?.name || 'Dokter'}
+                    {propUserData?.greeting || userData?.greeting || 'Selamat datang kembali'}, {propUserData?.name || userData?.name || 'Dokter'}
                   </p>
                 </div>
               </div>
@@ -342,35 +291,18 @@ export function Dashboard({ userData }: DashboardProps) {
               </Badge>
             </div>
 
-            {isLoadingJadwal ? (
-              <div className="bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-xl p-5 animate-pulse">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-                      <div className="space-y-2">
-                        <div className="w-32 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                        <div className="w-20 h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                      </div>
-                    </div>
-                    <div className="w-16 h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="w-24 h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                    <div className="w-20 h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                  </div>
+            {loadingSchedules ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-gradient-to-r from-gray-400 to-gray-500 dark:from-gray-600 dark:to-gray-700 rounded-xl p-5 text-white relative overflow-hidden"
+              >
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm font-medium">Memuat jadwal...</span>
                 </div>
-              </div>
-            ) : jadwalError ? (
-              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-5">
-                <div className="flex items-center gap-3 text-red-700 dark:text-red-400">
-                  <AlertCircle className="w-5 h-5" />
-                  <div>
-                    <p className="font-medium">Gagal memuat jadwal</p>
-                    <p className="text-sm text-red-600 dark:text-red-500">{jadwalError}</p>
-                  </div>
-                </div>
-              </div>
+              </motion.div>
             ) : nextSchedule ? (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -413,13 +345,20 @@ export function Dashboard({ userData }: DashboardProps) {
                 </div>
               </motion.div>
             ) : (
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                <div className="text-center text-gray-500 dark:text-gray-400">
-                  <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="font-medium">Tidak ada jadwal mendatang</p>
-                  <p className="text-sm">Jadwal akan muncul setelah diatur admin</p>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-gradient-to-r from-amber-400 to-amber-500 dark:from-amber-500 dark:to-amber-600 rounded-xl p-5 text-white relative overflow-hidden"
+              >
+                <div className="flex items-center justify-center space-x-3">
+                  <AlertCircle className="w-6 h-6" />
+                  <div className="text-center">
+                    <p className="font-medium">Tidak ada jadwal jaga</p>
+                    <p className="text-sm text-amber-100 dark:text-amber-200">Hubungi admin untuk penjadwalan</p>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             <motion.div 
@@ -595,68 +534,93 @@ export function Dashboard({ userData }: DashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingJadwal ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg animate-pulse">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                      <div className="space-y-1">
-                        <div className="w-24 h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                        <div className="w-20 h-2 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                      </div>
-                    </div>
-                    <div className="text-right space-y-1">
-                      <div className="w-16 h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                      <div className="w-12 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+            {loadingSchedules ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+                <span className="text-sm text-medium-contrast">Memuat jadwal...</span>
+              </div>
+            ) : jadwalMendatang.length === 0 ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="text-center py-12"
+              >
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                  className="relative mb-6"
+                >
+                  <div className="relative inline-flex items-center justify-center w-24 h-24 mx-auto mb-4">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-full opacity-20 animate-pulse"></div>
+                    <div className="relative bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 rounded-full p-6 border border-emerald-100 dark:border-emerald-800/50">
+                      <Calendar className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : jadwalError ? (
-              <div className="text-center py-6">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-500 dark:text-red-400" />
-                <p className="text-sm font-medium text-red-700 dark:text-red-400">Gagal memuat jadwal minggu ini</p>
-                <p className="text-xs text-red-600 dark:text-red-500">{jadwalError}</p>
-              </div>
-            ) : jadwalMendatang.length > 0 ? (
+                  <div className="text-4xl mb-2">🏥</div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                  className="space-y-2"
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Tidak ada jadwal minggu ini
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
+                    Jadwal jaga Anda untuk minggu ini belum tersedia. Hubungi admin untuk pengaturan jadwal.
+                  </p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
+                  className="mt-6"
+                >
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-full border border-emerald-100 dark:border-emerald-800/50">
+                    <Timer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                      Segera diperbarui
+                    </span>
+                  </div>
+                </motion.div>
+              </motion.div>
+            ) : (
               <div className="space-y-3">
                 {jadwalMendatang.slice(0, 3).map((schedule, index) => (
-                  <motion.div
-                    key={schedule.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="text-lg">{getShiftIcon(schedule.jenis)}</div>
-                      <div>
-                        <p className="text-sm font-medium text-high-contrast">{formatTanggal(schedule.tanggal)}</p>
-                        <p className="text-xs text-muted-foreground font-medium">{schedule.waktu}</p>
-                      </div>
+                <motion.div
+                  key={schedule.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="text-lg">{getShiftIcon(schedule.jenis)}</div>
+                    <div>
+                      <p className="text-sm font-medium text-high-contrast">{formatTanggal(schedule.tanggal)}</p>
+                      <p className="text-xs text-muted-foreground font-medium">{schedule.waktu}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-high-contrast">{schedule.lokasi}</p>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs font-medium ${
-                          schedule.jenis === 'pagi' ? 'border-yellow-300 dark:border-yellow-600 text-yellow-700 dark:text-yellow-400' :
-                          schedule.jenis === 'siang' ? 'border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-400' :
-                          'border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-400'
-                        }`}
-                      >
-                        {schedule.jenis}
-                      </Badge>
-                    </div>
-                  </motion.div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-high-contrast">{schedule.lokasi}</p>
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs font-medium ${
+                        schedule.jenis === 'pagi' ? 'border-yellow-300 dark:border-yellow-600 text-yellow-700 dark:text-yellow-400' :
+                        schedule.jenis === 'siang' ? 'border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-400' :
+                        'border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-400'
+                      }`}
+                    >
+                      {schedule.jenis}
+                    </Badge>
+                  </div>
+                </motion.div>
                 ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <Calendar className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-600" />
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Tidak ada jadwal minggu ini</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Hubungi admin untuk pengaturan jadwal</p>
               </div>
             )}
           </CardContent>

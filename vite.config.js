@@ -5,7 +5,9 @@ import path from 'path';
 
 export default defineConfig({
     plugins: [
-        react(),
+        react({
+            jsxRuntime: 'automatic',
+        }),
         laravel({
             input: [
                 'resources/css/app.css', 

@@ -1,8 +1,6 @@
+# Laravel & PHP
 *.log
-.DS_Store
-.env
-.env.backup
-.env.production
+.env*
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -11,27 +9,70 @@
 /.phpunit.cache
 /.vscode
 /.zed
+/vendor
 /auth.json
+/composer.phar
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+*.bak
+
+# Build & Cache
 /node_modules
 /public/build
 /public/hot
 /public/storage
+/bootstrap/cache/*
+/storage/app/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
 /storage/*.key
 /storage/pail
-/vendor
-Homestead.json
-Homestead.yaml
-Thumbs.db
 
-# Deployment scripts (contains sensitive info)
+# Databases
+database/*.sqlite
+database/*.db
+*.sql
+*.dump
+
+# Credentials & Secrets
+*.key
+*.pem
+*.p12
+*.cer
+*.crt
+*.pfx
+cookies.txt
+database-config.env
+.ssh/
+ssh-keys/
+
+# Deployment & Scripts (SECURITY RISK)
 deploy.sh
 deploy-*.sh
+hostinger-*.sh
+production-*.sh
+*-credentials.sh
+*-password.sh
+setup-*.sh
+install-*.sh
 
-# Temporary files and debug scripts
+# Debug & Testing Files (SECURITY RISK)
 *-test.php
 *-debug.php
 *-fix.php
 *-temp.php
+*-backup.php
+*-restore.php
 debug-*.sh
 test-*.sh
 fix-*.sh
@@ -42,10 +83,65 @@ audit-*.sh
 check-*.php
 simple-*.php
 cleanup-*.sh
+diagnosis-*.sh
+troubleshoot-*.sh
+run-*.php
+enable-*.php
+force-*.php
+handle-*.php
+compare-*.php
+capture-*.sh
+deep-*.sh
+final-*.sh
+remote-*.sh
+root-*.sh
+super-*.sh
+ssh-*.exp
+*.exp
+
+# Temporary Documentation (can contain sensitive info)
 *.txt
 *-analysis.md
 *-fix.md
 *-debug.md
+*-summary.md
 MANUAL_*.txt
 PRODUCTION_*.md
 FINAL_*.md
+*-PROTOCOL.md
+*-TEST_REPORT.md
+*-FIX.md
+
+# Backup Directories
+backups/
+backup/
+old-files/
+components_legacy_backup/
+*.backup
+
+# Logs and Analysis
+storage/logs/
+*.log.*
+error.log
+access.log
+
+# IDE & Editor Files
+*.sublime-project
+*.sublime-workspace
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Temporary test files
+test-*.html
+*-test.html
+*-validation-*.html
+
+# Configuration overrides
+config/database.php.local
+config/app.php.local

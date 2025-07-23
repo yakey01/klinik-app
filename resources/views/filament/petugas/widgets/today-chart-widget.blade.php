@@ -293,7 +293,7 @@
             }
 
             // Listen for theme changes
-            const observer = new MutationObserver(function(mutations) {
+            const todayChartObserver = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     if (mutation.type === 'attributes' && 
                         mutation.attributeName === 'class' && 
@@ -305,7 +305,7 @@
                 });
             });
 
-            observer.observe(document.documentElement, {
+            todayChartObserver.observe(document.documentElement, {
                 attributes: true,
                 attributeFilter: ['class']
             });
@@ -317,7 +317,7 @@
 
             // Cleanup
             window.addEventListener('beforeunload', function() {
-                if (observer) observer.disconnect();
+                if (todayChartObserver) todayChartObserver.disconnect();
                 if (todayChart) todayChart.destroy();
             });
         });

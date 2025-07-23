@@ -20,11 +20,52 @@ jobs:
           echo "🔄 Pulling latest code..."
           git pull origin main
           
-          echo "🔧 Fixing database configuration..."
-          # Ensure correct database credentials
+          echo "🔧 Setting up production environment..."
+          if [ -f ".env.hostinger" ]; then
+            cp .env.hostinger .env
+            echo "✅ Copied .env.hostinger to .env"
+          elif [ ! -f ".env" ]; then
+            echo "❌ No .env file found, creating basic one..."
+            cat > .env << 'EOF'
+APP_NAME="Dokterku Klinik"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://dokterkuklinik.com
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=u454362045_klinik
+DB_USERNAME=u454362045_klinik
+DB_PASSWORD=LaTahzan@01
+EOF
+          fi
+          
+          echo "🔧 Trying common Hostinger database patterns..."
+          
+          # Test pattern 1: u454362045_klinik (most common)
+          echo "Testing pattern 1: u454362045_klinik"
+          if mysql -h localhost -u "u454362045_klinik" -p"LaTahzan@01" -e "SELECT 1;" 2>/dev/null; then
+            echo "✅ Pattern 1 works! Using u454362045_klinik"
+            sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_klinik/' .env
+            sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_klinik/' .env
+          # Test pattern 2: u454362045_dokterkuklinik
+          elif mysql -h localhost -u "u454362045_dokterkuklinik" -p"LaTahzan@01" -e "SELECT 1;" 2>/dev/null; then
+            echo "✅ Pattern 2 works! Using u454362045_dokterkuklinik"
+            sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_dokterkuklinik/' .env
+            sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_dokterkuklinik/' .env
+          # Test pattern 3: Original specified
+          elif mysql -h localhost -u "u454362045_u45436245_kli" -p"LaTahzan@01" -e "SELECT 1;" 2>/dev/null; then
+            echo "✅ Pattern 3 works! Using u454362045_u45436245_kli"
+            sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_u45436245_kli/' .env
+            sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_u45436245_kli/' .env
+          else
+            echo "❌ No working database pattern found. Using fallback..."
+            sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_klinik/' .env
+            sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_klinik/' .env
+          fi
+          
+          # Set common settings
           sed -i 's/^DB_HOST=.*/DB_HOST=localhost/' .env
-          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_u45436245_kli/' .env
-          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_u45436245_kli/' .env
           sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=LaTahzan@01/' .env
           sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
           sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env

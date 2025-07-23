@@ -444,7 +444,7 @@
         }
 
         // Listen for theme changes
-        const observer = new MutationObserver(function(mutations) {
+        const filamentDashboardObserver = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.type === 'attributes' && 
                     mutation.attributeName === 'class' && 
@@ -458,7 +458,7 @@
         });
 
         // Start observing theme changes
-        observer.observe(document.documentElement, {
+        filamentDashboardObserver.observe(document.documentElement, {
             attributes: true,
             attributeFilter: ['class']
         });
@@ -470,7 +470,7 @@
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', function() {
-            if (observer) observer.disconnect();
+            if (filamentDashboardObserver) filamentDashboardObserver.disconnect();
             if (filamentMonthlyChart) filamentMonthlyChart.destroy();
         });
     </script>

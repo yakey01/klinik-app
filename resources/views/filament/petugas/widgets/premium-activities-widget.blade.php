@@ -332,7 +332,7 @@
         premiumActivitiesMonthlyChart.render();
 
         // Theme change detection
-        const observer = new MutationObserver(function(mutations) {
+        const premiumActivitiesObserver = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.type === 'attributes' && 
                     mutation.attributeName === 'class' && 
@@ -346,13 +346,13 @@
             });
         });
 
-        observer.observe(document.documentElement, {
+        premiumActivitiesObserver.observe(document.documentElement, {
             attributes: true,
             attributeFilter: ['class']
         });
 
         window.addEventListener('beforeunload', function() {
-            if (observer) observer.disconnect();
+            if (premiumActivitiesObserver) premiumActivitiesObserver.disconnect();
             if (premiumActivitiesMonthlyChart) premiumActivitiesMonthlyChart.destroy();
         });
     </script>

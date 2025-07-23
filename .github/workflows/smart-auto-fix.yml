@@ -464,6 +464,7 @@ jobs:
       - name: Create Pull Request with fixes
         if: steps.smart-fix.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v5
+        continue-on-error: true
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: |

@@ -262,13 +262,23 @@ class PetugasStatsServiceTest extends TestCase
         // Arrange
         $today = Carbon::today();
         
+        // Disable caching for clean test run and use direct queries for reliability
+        $this->service->cacheMinutes = 0;
+        $this->service->dailyStatsCacheMinutes = 0;
+        $this->service->useDirectQueries = true;
+        Cache::flush();
+        
         $pendapatan = Pendapatan::factory()->create(['nama_pendapatan' => 'Test Pendapatan']);
         PendapatanHarian::factory()->create([
             'user_id' => $this->user->id,
             'tanggal_input' => $today->format('Y-m-d'),
             'nominal' => 1500000, // 1.5 million
             'pendapatan_id' => $pendapatan->id,
+            'status_validasi' => 'approved', // Ensure status is set if queries filter by it
         ]);
+        
+        // Force database commit to ensure data is visible
+        DB::commit();
         
         // Act
         $stats = $this->service->getDashboardStats($this->user->id);
@@ -289,6 +299,12 @@ class PetugasStatsServiceTest extends TestCase
         $thisMonth = Carbon::now()->startOfMonth();
         $lastMonth = Carbon::now()->subMonth()->startOfMonth();
         
+        // Disable caching for clean test run and use direct queries for reliability
+        $this->service->cacheMinutes = 0;
+        $this->service->dailyStatsCacheMinutes = 0;
+        $this->service->useDirectQueries = true;
+        Cache::flush();
+        
         // Create data for this month
         Pasien::factory()->count(10)->create([
             'input_by' => $this->user->id,
@@ -300,6 +316,9 @@ class PetugasStatsServiceTest extends TestCase
             'input_by' => $this->user->id,
             'created_at' => $lastMonth->copy()->addDays(10)->toDateString() . ' 10:00:00',
         ]);
+        
+        // Force database commit to ensure data is visible
+        DB::commit();
         
         // Act
         $stats = $this->service->getDashboardStats($this->user->id);
@@ -319,6 +338,12 @@ class PetugasStatsServiceTest extends TestCase
     public function test_it_calculates_validation_summary()
     {
         // Arrange
+        // Disable caching for clean test run and use direct queries for reliability
+        $this->service->cacheMinutes = 0;
+        $this->service->dailyStatsCacheMinutes = 0;
+        $this->service->useDirectQueries = true;
+        Cache::flush();
+        
         $shift = Shift::factory()->create(['name' => 'Pagi', 'is_active' => true]);
         $jenisTindakan = JenisTindakan::factory()->create(['nama' => 'Test Tindakan']);
         
@@ -351,6 +376,9 @@ class PetugasStatsServiceTest extends TestCase
             ]);
         }
         
+        // Force database commit to ensure data is visible
+        DB::commit();
+        
         // Act
         $stats = $this->service->getDashboardStats($this->user->id);
         
@@ -368,11 +396,20 @@ class PetugasStatsServiceTest extends TestCase
         // Arrange
         $thisMonth = Carbon::now()->startOfMonth();
         
+        // Disable caching for clean test run and use direct queries for reliability
+        $this->service->cacheMinutes = 0;
+        $this->service->dailyStatsCacheMinutes = 0;
+        $this->service->useDirectQueries = true;
+        Cache::flush();
+        
         // Create patients for this month
         Pasien::factory()->count(25)->create([
             'input_by' => $this->user->id,
             'created_at' => $thisMonth->addDays(10),
         ]);
+        
+        // Force database commit to ensure data is visible
+        DB::commit();
         
         // Act
         $stats = $this->service->getDashboardStats($this->user->id);

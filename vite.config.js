@@ -7,6 +7,7 @@ export default defineConfig({
     plugins: [
         react({
             jsxRuntime: 'automatic',
+            fastRefresh: true,
         }),
         laravel({
             input: [
@@ -34,7 +35,10 @@ export default defineConfig({
         port: 5173,
         hmr: {
             host: '127.0.0.1',
+            port: 5173,
         },
+        cors: true,
+        origin: 'http://127.0.0.1:8000',
     },
     resolve: {
         alias: {

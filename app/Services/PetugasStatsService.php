@@ -152,20 +152,20 @@ class PetugasStatsService
                 ->count();
             
             // Income stats  
-            $pendapatanSum = PendapatanHarian::where('tanggal_input', $date->format('Y-m-d'))
+            $pendapatanSum = PendapatanHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
                 ->where('user_id', $userId)
                 ->sum('nominal');
                 
-            $pendapatanCount = PendapatanHarian::where('tanggal_input', $date->format('Y-m-d'))
+            $pendapatanCount = PendapatanHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
                 ->where('user_id', $userId)
                 ->count();
             
             // Expense stats
-            $pengeluaranSum = PengeluaranHarian::where('tanggal_input', $date->format('Y-m-d'))
+            $pengeluaranSum = PengeluaranHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
                 ->where('user_id', $userId)
                 ->sum('nominal');
                 
-            $pengeluaranCount = PengeluaranHarian::where('tanggal_input', $date->format('Y-m-d'))
+            $pengeluaranCount = PengeluaranHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
                 ->where('user_id', $userId)
                 ->count();
             
@@ -638,8 +638,8 @@ class PetugasStatsService
                 ->selectRaw("
                     'tindakan' as table_name,
                     SUM(CASE WHEN status_validasi = 'pending' THEN 1 ELSE 0 END) as pending_count,
-                    SUM(CASE WHEN status_validasi = 'approved' AND DATE(approved_at) = ? THEN 1 ELSE 0 END) as approved_today,
-                    SUM(CASE WHEN status_validasi = 'rejected' AND DATE(rejected_at) = ? THEN 1 ELSE 0 END) as rejected_today
+                    SUM(CASE WHEN status_validasi = 'disetujui' AND DATE(validated_at) = ? THEN 1 ELSE 0 END) as approved_today,
+                    SUM(CASE WHEN status_validasi = 'ditolak' AND DATE(validated_at) = ? THEN 1 ELSE 0 END) as rejected_today
                 ", [$today, $today])
                 ->from('tindakan')
                 ->where('input_by', $userId)
@@ -648,10 +648,10 @@ class PetugasStatsService
                         ->selectRaw("
                             'pendapatan_harian' as table_name,
                             SUM(CASE WHEN status_validasi = 'pending' THEN 1 ELSE 0 END) as pending_count,
-                            SUM(CASE WHEN status_validasi = 'approved' AND DATE(approved_at) = ? THEN 1 ELSE 0 END) as approved_today,
-                            SUM(CASE WHEN status_validasi = 'rejected' AND DATE(rejected_at) = ? THEN 1 ELSE 0 END) as rejected_today
+                            SUM(CASE WHEN status_validasi = 'approved' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as approved_today,
+                            SUM(CASE WHEN status_validasi = 'rejected' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as rejected_today
                         ", [$today, $today])
-                        ->from('pendapatan_harian')
+                        ->from('pendapatan_harians')
                         ->where('user_id', $userId)
                 )
                 ->union(
@@ -659,10 +659,10 @@ class PetugasStatsService
                         ->selectRaw("
                             'pengeluaran_harian' as table_name,
                             SUM(CASE WHEN status_validasi = 'pending' THEN 1 ELSE 0 END) as pending_count,
-                            SUM(CASE WHEN status_validasi = 'approved' AND DATE(approved_at) = ? THEN 1 ELSE 0 END) as approved_today,
-                            SUM(CASE WHEN status_validasi = 'rejected' AND DATE(rejected_at) = ? THEN 1 ELSE 0 END) as rejected_today
+                            SUM(CASE WHEN status_validasi = 'approved' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as approved_today,
+                            SUM(CASE WHEN status_validasi = 'rejected' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as rejected_today
                         ", [$today, $today])
-                        ->from('pengeluaran_harian')
+                        ->from('pengeluaran_harians')
                         ->where('user_id', $userId)
                 )
                 ->get();

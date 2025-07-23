@@ -269,7 +269,7 @@ class PetugasStatsServiceTest extends TestCase
         Cache::flush();
         
         $pendapatan = Pendapatan::factory()->create(['nama_pendapatan' => 'Test Pendapatan']);
-        PendapatanHarian::factory()->create([
+        $pendapatanHarian = PendapatanHarian::factory()->create([
             'user_id' => $this->user->id,
             'tanggal_input' => $today->format('Y-m-d'),
             'nominal' => 1500000, // 1.5 million
@@ -277,8 +277,9 @@ class PetugasStatsServiceTest extends TestCase
             'status_validasi' => 'approved', // Ensure status is set if queries filter by it
         ]);
         
-        // Force database commit to ensure data is visible
-        DB::commit();
+        // Clear any residual cache
+        $this->service->clearStatsCache($this->user->id);
+        Cache::flush();
         
         // Act
         $stats = $this->service->getDashboardStats($this->user->id);
@@ -319,6 +320,10 @@ class PetugasStatsServiceTest extends TestCase
         
         // Force database commit to ensure data is visible
         DB::commit();
+        
+        // Clear any residual cache
+        $this->service->clearStatsCache($this->user->id);
+        Cache::flush();
         
         // Act
         $stats = $this->service->getDashboardStats($this->user->id);
@@ -371,8 +376,8 @@ class PetugasStatsServiceTest extends TestCase
                 'tarif' => 50000,
                 'input_by' => $this->user->id,
                 'status' => 'selesai',
-                'status_validasi' => 'approved',
-                'approved_at' => Carbon::today(),
+                'status_validasi' => 'disetujui',
+                'validated_at' => Carbon::today(),
             ]);
         }
         

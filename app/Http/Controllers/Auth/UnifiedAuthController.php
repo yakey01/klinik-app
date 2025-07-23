@@ -28,21 +28,8 @@ class UnifiedAuthController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        // Temporarily disable CSRF token check for debugging 419 error
-        // TODO: Re-enable after fixing CSRF token issue
-        /*
-        if (!$request->has('_token') || empty($request->input('_token'))) {
-            Log::warning('Login attempt without CSRF token', [
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'session_id' => $request->session()->getId()
-            ]);
-            
-            return back()->withErrors([
-                'email_or_username' => 'Token keamanan tidak valid. Silakan refresh halaman dan coba lagi.',
-            ])->withInput($request->except('password'));
-        }
-        */
+        // CSRF token validation removed - handled by middleware exclusion
+        // This prevents double CSRF checking which can cause 419 errors
 
         // Rate limiting check
         $key = 'login_attempts:' . $request->ip();

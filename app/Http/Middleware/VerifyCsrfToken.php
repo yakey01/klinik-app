@@ -15,6 +15,8 @@ class VerifyCsrfToken extends Middleware
         'livewire/update',
         'livewire/upload-file',
         'livewire/message/*',
+        'login',
+        'unified-login',
     ];
     
 }

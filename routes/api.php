@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Paramedis\AttendanceController;
 use App\Models\WorkLocation;
 use App\Http\Controllers\Auth\UnifiedAuthController;
+use App\Http\Controllers\Api\DokterStatsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -906,3 +907,12 @@ Route::post('/paramedis/login', function (Request $request) {
         'redirect_url' => '/paramedis'
     ]);
 })->name('api.paramedis.login');
+
+// Dokter Dashboard Stats API - Fix for 500 error
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/dokter/stats', [DokterStatsController::class, 'stats'])->name('api.dokter.stats');
+    Route::get('/api/dokter/stats', [DokterStatsController::class, 'stats'])->name('api.dokter.stats.alt');
+});
+
+// Alternative route without auth for testing
+Route::get('/public/dokter/stats', [DokterStatsController::class, 'stats'])->name('api.public.dokter.stats');

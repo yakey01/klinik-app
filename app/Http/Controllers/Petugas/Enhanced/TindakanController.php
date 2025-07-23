@@ -213,9 +213,18 @@ class TindakanController extends Controller
         $jenisTindakanList = JenisTindakan::select('id', 'nama_tindakan', 'tarif_standar')
                                         ->orderBy('nama_tindakan')
                                         ->get();
+        
+        // Get shifts from shift_templates (admin managed shifts)
+        $shiftList = \DB::table('shift_templates')
+                        ->select('id', 'nama_shift as name', 'jam_masuk as start_time', 'jam_pulang as end_time')
+                        ->orderBy('nama_shift')
+                        ->get();
+
+        // Debug: Log shift data to ensure it's being fetched
+        \Log::info('Shift data for tindakan create form:', ['shifts' => $shiftList->toArray()]);
 
         return view('petugas.enhanced.tindakan.create', compact(
-            'pasienList', 'dokterList', 'paramedisList', 'nonParamedisList', 'jenisTindakanList'
+            'pasienList', 'dokterList', 'paramedisList', 'nonParamedisList', 'jenisTindakanList', 'shiftList'
         ));
     }
 
@@ -226,17 +235,18 @@ class TindakanController extends Controller
     {
         try {
             $validated = $request->validate([
-                'pasien_id' => 'required|exists:pasiens,id',
-                'jenis_tindakan_id' => 'required|exists:jenis_tindakans,id',
+                'pasien_id' => 'required|exists:pasien,id',
+                'jenis_tindakan_id' => 'required|exists:jenis_tindakan,id',
                 'dokter_id' => 'nullable|exists:dokters,id',
-                'paramedis_id' => 'nullable|exists:pegawais,id',
-                'non_paramedis_id' => 'nullable|exists:pegawais,id',
+                'paramedis_id' => 'nullable|exists:pegawai,id',
+                'non_paramedis_id' => 'nullable|exists:pegawai,id',
+                'shift_id' => 'required|exists:shift_templates,id',
                 'tanggal_tindakan' => 'required|date',
                 'tarif' => 'required|numeric|min:0',
                 'jasa_dokter' => 'nullable|numeric|min:0',
                 'jasa_paramedis' => 'nullable|numeric|min:0',
                 'jasa_non_paramedis' => 'nullable|numeric|min:0',
-                'keterangan' => 'nullable|string|max:1000',
+                'catatan' => 'nullable|string|max:1000',
                 'status_validasi' => 'nullable|in:pending,approved,rejected',
             ]);
 
@@ -325,9 +335,15 @@ class TindakanController extends Controller
         $jenisTindakanList = JenisTindakan::select('id', 'nama_tindakan', 'tarif_standar')
                                         ->orderBy('nama_tindakan')
                                         ->get();
+        
+        // Get shifts from shift_templates (admin managed shifts)
+        $shiftList = \DB::table('shift_templates')
+                        ->select('id', 'nama_shift as name', 'jam_masuk as start_time', 'jam_pulang as end_time')
+                        ->orderBy('nama_shift')
+                        ->get();
 
         return view('petugas.enhanced.tindakan.edit', compact(
-            'tindakan', 'pasienList', 'dokterList', 'paramedisList', 'nonParamedisList', 'jenisTindakanList'
+            'tindakan', 'pasienList', 'dokterList', 'paramedisList', 'nonParamedisList', 'jenisTindakanList', 'shiftList'
         ));
     }
 
@@ -340,17 +356,18 @@ class TindakanController extends Controller
             $tindakan = Tindakan::findOrFail($id);
 
             $validated = $request->validate([
-                'pasien_id' => 'required|exists:pasiens,id',
-                'jenis_tindakan_id' => 'required|exists:jenis_tindakans,id',
+                'pasien_id' => 'required|exists:pasien,id',
+                'jenis_tindakan_id' => 'required|exists:jenis_tindakan,id',
                 'dokter_id' => 'nullable|exists:dokters,id',
-                'paramedis_id' => 'nullable|exists:pegawais,id',
-                'non_paramedis_id' => 'nullable|exists:pegawais,id',
+                'paramedis_id' => 'nullable|exists:pegawai,id',
+                'non_paramedis_id' => 'nullable|exists:pegawai,id',
+                'shift_id' => 'required|exists:shift_templates,id',
                 'tanggal_tindakan' => 'required|date',
                 'tarif' => 'required|numeric|min:0',
                 'jasa_dokter' => 'nullable|numeric|min:0',
                 'jasa_paramedis' => 'nullable|numeric|min:0',
                 'jasa_non_paramedis' => 'nullable|numeric|min:0',
-                'keterangan' => 'nullable|string|max:1000',
+                'catatan' => 'nullable|string|max:1000',
                 'status_validasi' => 'nullable|in:pending,approved,rejected',
             ]);
 

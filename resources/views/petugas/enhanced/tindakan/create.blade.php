@@ -8,6 +8,12 @@
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- Debug: Check shift data -->
+    @if(isset($shiftList))
+        <!-- DEBUG: Shift list available with {{ count($shiftList) }} items -->
+    @else
+        <!-- DEBUG: Shift list NOT available -->
+    @endif
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -315,6 +321,22 @@
                                 <label class="floating-label">Tanggal & Waktu Tindakan *</label>
                             </div>
                             
+                            <!-- Shift -->
+                            <div class="input-group">
+                                <select x-model="formData.shift_id" 
+                                        required
+                                        class="w-full px-3 py-3 border-2 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-transparent transition-all"
+                                        :class="getFieldClass('shift_id')">
+                                    <option value="">Pilih Shift</option>
+                                    @forelse($shiftList as $shift)
+                                    <option value="{{ $shift->id }}">{{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})</option>
+                                    @empty
+                                    <option value="" disabled>Tidak ada shift tersedia</option>
+                                    @endforelse
+                                </select>
+                                <label class="floating-label">Shift *</label>
+                            </div>
+                            
                             <!-- Tarif -->
                             <div class="input-group">
                                 <input type="number" 
@@ -610,12 +632,13 @@
                     dokter_id: '',
                     paramedis_id: '',
                     non_paramedis_id: '',
+                    shift_id: '',
                     tanggal_tindakan: '',
                     tarif: 0,
                     jasa_dokter: 0,
                     jasa_paramedis: 0,
                     jasa_non_paramedis: 0,
-                    keterangan: '',
+                    catatan: '',
                     status_validasi: 'pending'
                 },
                 
@@ -641,6 +664,9 @@
                 init() {
                     this.setDefaultDateTime();
                     this.loadDraft();
+                    
+                    // Debug: Check if shift data is available
+                    console.log('Shift data available:', @json($shiftList ?? []));
                 },
                 
                 // Step navigation
@@ -756,6 +782,7 @@
                 isFormValid() {
                     return this.formData.pasien_id !== '' &&
                            this.formData.jenis_tindakan_id !== '' &&
+                           this.formData.shift_id !== '' &&
                            this.formData.tanggal_tindakan !== '' &&
                            this.formData.tarif > 0;
                 },

@@ -85,6 +85,12 @@
 
             <form method="POST" action="{{ route('unified.login') }}" class="space-y-6" id="loginForm">
                 @csrf
+                <!-- Debug: CSRF Token verification -->
+                @if(empty(csrf_token()))
+                    <div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded mb-4">
+                        ⚠️ CSRF Token tidak ter-generate. Refresh halaman.
+                    </div>
+                @endif
 
                 <div>
                     <label for="email_or_username" class="block text-sm font-medium text-slate-200 mb-2">

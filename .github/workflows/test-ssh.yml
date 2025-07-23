@@ -1,0 +1,35 @@
+name: Test SSH Connection
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🔌 Test SSH Connection
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: 153.92.8.132
+        username: u454362045
+        password: ${{ secrets.SSH_PASSWORD }}
+        port: 65002
+        timeout: 30s
+        script: |
+          echo "✅ SSH Connection successful!"
+          echo "📍 Current directory: $(pwd)"
+          echo "🏠 Home directory: $HOME"
+          echo "📅 Server time: $(date)"
+          echo "🐧 OS Info: $(uname -a)"
+          
+          echo "📁 Checking project directory..."
+          if [ -d "domains/dokterkuklinik.com/public_html" ]; then
+            echo "✅ Project directory exists"
+            cd domains/dokterkuklinik.com/public_html
+            echo "📂 Project contents:"
+            ls -la | head -10
+          else
+            echo "❌ Project directory not found"
+            echo "📂 Available directories:"
+            ls -la ~/domains/ 2>/dev/null || echo "No domains directory"
+          fi

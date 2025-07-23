@@ -24,7 +24,7 @@ class JenisTindakanFactory extends Factory
             'jasa_dokter' => fake()->numberBetween(20000, 300000),
             'jasa_paramedis' => fake()->numberBetween(10000, 150000),
             'jasa_non_paramedis' => fake()->numberBetween(5000, 50000),
-            'kategori' => fake()->randomElement(['konsultasi', 'pemeriksaan', 'tindakan', 'operasi']),
+            'kategori' => fake()->randomElement(['konsultasi', 'pemeriksaan', 'tindakan', 'obat', 'lainnya']),
             'is_active' => true,
         ];
     }
@@ -51,12 +51,12 @@ class JenisTindakanFactory extends Factory
     }
 
     /**
-     * Indicate that the jenis tindakan is for surgery.
+     * Indicate that the jenis tindakan is for surgery/major procedures.
      */
     public function surgery(): static
     {
         return $this->state(fn (array $attributes) => [
-            'kategori' => 'operasi',
+            'kategori' => 'lainnya',
             'tarif' => fake()->numberBetween(500000, 5000000),
             'jasa_dokter' => fake()->numberBetween(200000, 1500000),
         ]);

@@ -73,7 +73,13 @@ class Tindakan extends Model
 
     public function shift(): BelongsTo
     {
-        return $this->belongsTo(Shift::class);
+        // Now points to ShiftTemplate since we updated the foreign key
+        return $this->belongsTo(ShiftTemplate::class, 'shift_id');
+    }
+
+    public function shiftTemplate(): BelongsTo
+    {
+        return $this->belongsTo(ShiftTemplate::class, 'shift_id');
     }
 
 

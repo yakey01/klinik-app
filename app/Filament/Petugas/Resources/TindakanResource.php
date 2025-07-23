@@ -6,6 +6,7 @@ use App\Filament\Petugas\Resources\TindakanResource\Pages;
 use App\Models\JenisTindakan;
 use App\Models\Pasien;
 use App\Models\Tindakan;
+use App\Models\ShiftTemplate;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -120,11 +121,16 @@ class TindakanResource extends Resource
 
                         Forms\Components\Select::make('shift_id')
                             ->label('Shift')
-                            ->relationship('shift', 'name', fn (Builder $query) => $query->where('is_active', true)->whereIn('name', ['Pagi', 'Sore'])->orderBy('start_time'))
+                            ->options(function () {
+                                return ShiftTemplate::query()
+                                    ->orderBy('nama_shift')
+                                    ->pluck('nama_shift', 'id');
+                            })
                             ->required()
                             ->native(false)
                             ->preload()
-                            ->placeholder('Pilih shift (Pagi/Sore)'),
+                            ->placeholder('Pilih shift')
+                            ->helperText('Data shift dikelola di Admin → Template Shift'),
 
                         Forms\Components\Select::make('dokter_id')
                             ->label('Dokter Pelaksana')
@@ -334,11 +340,12 @@ class TindakanResource extends Resource
                     ->placeholder('-')
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('shift.name')
+                Tables\Columns\TextColumn::make('shift.nama_shift')
                     ->label('Shift')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Pagi' => 'info',
+                        'Siang' => 'warning',
                         'Sore' => 'warning',
                         'Malam' => 'primary',
                         default => 'gray'
@@ -813,7 +820,7 @@ class TindakanResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('input_by', Auth::id())
-            ->with(['jenisTindakan', 'pasien', 'dokter', 'paramedis', 'nonParamedis']);
+            ->with(['jenisTindakan', 'pasien', 'dokter', 'paramedis', 'nonParamedis', 'shift']);
     }
 
     public static function getRelations(): array

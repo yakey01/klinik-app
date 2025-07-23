@@ -55,6 +55,49 @@ jobs:
           npm run build
           echo "✅ Assets built successfully"
 
+      - name: Validate deployment secrets
+        run: |
+          echo "🔐 Validating deployment secrets..."
+          
+          # Check if HOSTINGER_HOST is set and not empty
+          if [ -z "${HOSTINGER_HOST}" ]; then
+            echo "❌ ERROR: HOSTINGER_HOST secret is missing or empty!"
+            echo "Please set the HOSTINGER_HOST secret in your repository settings."
+            echo "Go to: Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          
+          # Check if HOSTINGER_USERNAME is set and not empty
+          if [ -z "${HOSTINGER_USERNAME}" ]; then
+            echo "❌ ERROR: HOSTINGER_USERNAME secret is missing or empty!"
+            echo "Please set the HOSTINGER_USERNAME secret in your repository settings."
+            exit 1
+          fi
+          
+          # Check if HOSTINGER_PASSWORD is set and not empty
+          if [ -z "${HOSTINGER_PASSWORD}" ]; then
+            echo "❌ ERROR: HOSTINGER_PASSWORD secret is missing or empty!"
+            echo "Please set the HOSTINGER_PASSWORD secret in your repository settings."
+            exit 1
+          fi
+          
+          # Check if DEPLOY_PATH is set and not empty
+          if [ -z "${DEPLOY_PATH}" ]; then
+            echo "❌ ERROR: HOSTINGER_DEPLOY_PATH secret is missing or empty!"
+            echo "Please set the HOSTINGER_DEPLOY_PATH secret in your repository settings."
+            exit 1
+          fi
+          
+          echo "✅ All required deployment secrets are configured"
+
+      - name: Debug deployment configuration
+        run: |
+          echo "🔍 Deployment configuration debug info:"
+          echo "Host: ${HOSTINGER_HOST:0:3}***${HOSTINGER_HOST: -3}"
+          echo "Username: ${HOSTINGER_USERNAME:0:2}***${HOSTINGER_USERNAME: -2}"
+          echo "Deploy path: ${DEPLOY_PATH}"
+          echo "Password: [MASKED]"
+
       - name: Run tests (if not skipped)
         if: github.event.inputs.skip_tests != 'true'
         run: |
@@ -102,6 +145,17 @@ jobs:
       - name: Deploy to Hostinger via RSYNC
         run: |
           echo "🚀 Deploying to Hostinger..."
+          echo "Connecting to: ${HOSTINGER_USERNAME}@${HOSTINGER_HOST}"
+          echo "Deploy path: ${DEPLOY_PATH}"
+          
+          # Double-check that required variables are not empty
+          if [ -z "${HOSTINGER_HOST}" ] || [ -z "${HOSTINGER_USERNAME}" ] || [ -z "${HOSTINGER_PASSWORD}" ] || [ -z "${DEPLOY_PATH}" ]; then
+            echo "❌ ERROR: One or more required deployment variables are empty!"
+            echo "HOSTINGER_HOST: ${HOSTINGER_HOST:-[EMPTY]}"
+            echo "HOSTINGER_USERNAME: ${HOSTINGER_USERNAME:-[EMPTY]}"
+            echo "DEPLOY_PATH: ${DEPLOY_PATH:-[EMPTY]}"
+            exit 1
+          fi
           
           # Create .ssh directory and configure
           mkdir -p ~/.ssh
@@ -111,7 +165,8 @@ jobs:
           chmod 600 ~/.ssh/config
           
           # Deploy files using rsync with sshpass
-          sshpass -p "${HOSTINGER_PASSWORD}" rsync -avz \
+          echo "Starting rsync deployment..."
+          if sshpass -p "${HOSTINGER_PASSWORD}" rsync -avz \
             --delete \
             --exclude='storage/logs/*' \
             --exclude='storage/framework/cache/*' \
@@ -119,30 +174,58 @@ jobs:
             --exclude='storage/framework/views/*' \
             --exclude='bootstrap/cache/*' \
             --exclude='.env' \
-            ./ "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}:${DEPLOY_PATH}/"
-          
-          echo "✅ Files deployed successfully"
+            ./ "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}:${DEPLOY_PATH}/"; then
+            echo "✅ Files deployed successfully"
+          else
+            echo "❌ ERROR: RSYNC deployment failed!"
+            echo "Please check:"
+            echo "1. HOSTINGER_HOST is correct and reachable"
+            echo "2. HOSTINGER_USERNAME has proper permissions"
+            echo "3. HOSTINGER_PASSWORD is correct"
+            echo "4. DEPLOY_PATH exists and is writable"
+            exit 1
+          fi
 
       - name: Post-deployment setup (No Migration)
         run: |
           echo "⚙️ Running post-deployment setup..."
           
           # Run Artisan commands on server (NO MIGRATION)
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+          echo "Running config:cache..."
+          if sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan config:cache"
+            "cd ${DEPLOY_PATH} && php artisan config:cache"; then
+            echo "✅ Config cache cleared successfully"
+          else
+            echo "⚠️ Warning: Config cache command failed"
+          fi
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+          echo "Running route:cache..."
+          if sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan route:cache"
+            "cd ${DEPLOY_PATH} && php artisan route:cache"; then
+            echo "✅ Route cache cleared successfully"
+          else
+            echo "⚠️ Warning: Route cache command failed"
+          fi
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+          echo "Running view:cache..."
+          if sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan view:cache"
+            "cd ${DEPLOY_PATH} && php artisan view:cache"; then
+            echo "✅ View cache cleared successfully"
+          else
+            echo "⚠️ Warning: View cache command failed"
+          fi
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+          echo "Creating storage link..."
+          if sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan storage:link"
+            "cd ${DEPLOY_PATH} && php artisan storage:link"; then
+            echo "✅ Storage link created successfully"
+          else
+            echo "⚠️ Warning: Storage link command failed (may already exist)"
+          fi
           
           echo "✅ Post-deployment setup completed (NO MIGRATION)"
 
@@ -151,11 +234,16 @@ jobs:
           echo "🔍 Verifying deployment..."
           
           # Check if files exist on server
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+          echo "Checking deployment files and Laravel version..."
+          if sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && ls -la && php artisan --version"
-          
-          echo "✅ Deployment verification completed"
+            "cd ${DEPLOY_PATH} && ls -la && php artisan --version"; then
+            echo "✅ Deployment verification completed successfully"
+          else
+            echo "❌ ERROR: Deployment verification failed!"
+            echo "The deployment may have issues. Please check manually."
+            exit 1
+          fi
 
       - name: Deployment summary
         if: always()

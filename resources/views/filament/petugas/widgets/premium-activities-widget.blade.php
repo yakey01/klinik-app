@@ -119,7 +119,7 @@
                                 <!-- Progress indicator -->
                                 <div class="flex-shrink-0">
                                     <div class="w-12 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                                        <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500" style="width: {{ min(100, ($staff['total'] / max(array_column($topPerformers['staff'], 'total'))) * 100) }}%"></div>
+                                        <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500" style="width: {{ min(100, $topPerformers['staff'] && count($topPerformers['staff']) > 0 && max(array_column($topPerformers['staff'], 'total')) > 0 ? ($staff['total'] / max(array_column($topPerformers['staff'], 'total'))) * 100 : 0) }}%"></div>
                                     </div>
                                 </div>
                             </div>

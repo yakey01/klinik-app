@@ -372,7 +372,8 @@ class PetugasStatsServiceTest extends TestCase
     protected function tearDown(): void
     {
         \Mockery::close();
-        Cache::flush();
+        // Use real Cache facade for cleanup, bypassing mocks
+        \Illuminate\Support\Facades\Cache::getFacadeRoot()->flush();
         parent::tearDown();
     }
 }

@@ -82,7 +82,7 @@ Route::middleware(['auth'])->group(function () {
         return redirect('/bendahara');
     })->name('treasurer.dashboard');
     Route::get('/staff/dashboard', [StaffDashboardController::class, 'index'])->name('staff.dashboard');
-    Route::get('/petugas/enhanced-dashboard', [StaffDashboardController::class, 'enhanced'])->name('petugas.enhanced.dashboard');
+    // Route removed - using standard petugas dashboard instead
     
     // Enhanced Petugas Management Routes
     Route::middleware(['auth', 'role:petugas'])->prefix('petugas/enhanced')->name('petugas.enhanced.')->group(function () {
@@ -839,3 +839,35 @@ Route::middleware(['auth', 'role:dokter_gigi'])->prefix('dokter-gigi')->name('do
 
 
 // require __DIR__.'/auth.php'; // Using unified auth instead
+
+// Test route removed - using standard petugas dashboard
+
+// Test route to auto-login as tina_petugas and access Filament petugas panel
+Route::get('/test-login-tina', function () {
+    $user = \App\Models\User::where('username', 'tina_petugas')->first();
+    if ($user) {
+        auth()->login($user);
+        return redirect('/petugas'); // Redirect to Filament petugas panel
+    } else {
+        return 'User tina_petugas not found!';
+    }
+})->name('test.login.tina');
+
+// Simple JavaScript test route
+Route::get('/test-js', function () {
+    return '<!DOCTYPE html>
+    <html>
+    <head>
+        <title>JavaScript Test</title>
+    </head>
+    <body>
+        <h1>JavaScript Test</h1>
+        <div id="test">Loading...</div>
+        <script>
+            console.log("🔧 JAVASCRIPT TEST LOADED!");
+            alert("JavaScript is working!");
+            document.getElementById("test").innerHTML = "JavaScript executed successfully!";
+        </script>
+    </body>
+    </html>';
+})->name('test.js');

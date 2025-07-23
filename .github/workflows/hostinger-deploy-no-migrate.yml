@@ -12,10 +12,10 @@ on:
         type: boolean
 
 env:
-  HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
-  HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
-  HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
-  DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+  SSH_HOST: 153.92.8.132
+  SSH_USER: u454362045
+  SSH_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
+  DEPLOY_PATH: public_html
 
 jobs:
   deploy-hostinger:
@@ -111,7 +111,7 @@ jobs:
           chmod 600 ~/.ssh/config
           
           # Deploy files using rsync with sshpass
-          sshpass -p "${HOSTINGER_PASSWORD}" rsync -avz \
+          sshpass -p "${SSH_PASSWORD}" rsync -avz -e "ssh -p 65002" \
             --delete \
             --exclude='storage/logs/*' \
             --exclude='storage/framework/cache/*' \
@@ -119,7 +119,7 @@ jobs:
             --exclude='storage/framework/views/*' \
             --exclude='bootstrap/cache/*' \
             --exclude='.env' \
-            ./ "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}:${DEPLOY_PATH}/"
+            ./ "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/"
           
           echo "✅ Files deployed successfully"
 
@@ -128,20 +128,20 @@ jobs:
           echo "⚙️ Running post-deployment setup..."
           
           # Run Artisan commands on server (NO MIGRATION)
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
-            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+          sshpass -p "${SSH_PASSWORD}" ssh -p 65002 -o StrictHostKeyChecking=no \
+            "${SSH_USER}@${SSH_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan config:cache"
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
-            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+          sshpass -p "${SSH_PASSWORD}" ssh -p 65002 -o StrictHostKeyChecking=no \
+            "${SSH_USER}@${SSH_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan route:cache"
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
-            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+          sshpass -p "${SSH_PASSWORD}" ssh -p 65002 -o StrictHostKeyChecking=no \
+            "${SSH_USER}@${SSH_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan view:cache"
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
-            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+          sshpass -p "${SSH_PASSWORD}" ssh -p 65002 -o StrictHostKeyChecking=no \
+            "${SSH_USER}@${SSH_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan storage:link"
           
           echo "✅ Post-deployment setup completed (NO MIGRATION)"
@@ -151,8 +151,8 @@ jobs:
           echo "🔍 Verifying deployment..."
           
           # Check if files exist on server
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
-            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+          sshpass -p "${SSH_PASSWORD}" ssh -p 65002 -o StrictHostKeyChecking=no \
+            "${SSH_USER}@${SSH_HOST}" \
             "cd ${DEPLOY_PATH} && ls -la && php artisan --version"
           
           echo "✅ Deployment verification completed"
@@ -170,7 +170,7 @@ jobs:
           echo "⚠️  Environment: Please verify .env file manually"
           echo ""
           echo "🔧 To run migrations manually:"
-          echo "sshpass -p 'password' ssh user@host 'cd path && php artisan migrate'"
+          echo "sshpass -p 'LaTahzan@01' ssh -p 65002 u454362045@153.92.8.132 'cd public_html && php artisan migrate'"
           echo ""
           echo "🚀 Deployment completed successfully!"
 
@@ -192,9 +192,9 @@ jobs:
           echo "🗄️  Database migrations were NOT run automatically."
           echo "🔧 To run migrations manually, use:"
           echo ""
-          echo "sshpass -p '\${{ secrets.HOSTINGER_PASSWORD }}' ssh \\"
-          echo "  '\${{ secrets.HOSTINGER_USERNAME }}@\${{ secrets.HOSTINGER_HOST }}' \\"
-          echo "  'cd \${{ secrets.HOSTINGER_DEPLOY_PATH }} && php artisan migrate --force'"
+          echo "sshpass -p 'LaTahzan@01' ssh -p 65002 \\"
+          echo "  'u454362045@153.92.8.132' \\"
+          echo "  'cd public_html && php artisan migrate --force'"
           echo ""
           echo "📝 Or create a separate migration workflow if needed."
           echo ""

@@ -62,7 +62,9 @@ class BendaharaPanelProvider extends PanelProvider
                 \App\Filament\Bendahara\Resources\ValidasiJumlahPasienResource::class,
             ])
             ->widgets([
-                // NO CUSTOM WIDGETS - Pure Filament only
+                \App\Filament\Bendahara\Widgets\InteractiveDashboardWidget::class,
+                \App\Filament\Bendahara\Widgets\BudgetTrackingWidget::class,
+                \App\Filament\Bendahara\Widgets\LanguageSwitcherWidget::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make('Dashboard')

@@ -44,16 +44,16 @@ class DokterDashboardController extends Controller
                 $thisWeek = Carbon::now()->startOfWeek();
 
                 // Hitung stats real
-                $patientsToday = Tindakan::where('paramedis_id', $dokter->id)
+                $patientsToday = Tindakan::where('dokter_id', $dokter->id)
                     ->whereDate('tanggal_tindakan', $today)
                     ->distinct('pasien_id')
                     ->count();
 
-                $tindakanToday = Tindakan::where('paramedis_id', $dokter->id)
+                $tindakanToday = Tindakan::where('dokter_id', $dokter->id)
                     ->whereDate('tanggal_tindakan', $today)
                     ->count();
 
-                $jaspelMonth = Tindakan::where('paramedis_id', $dokter->id)
+                $jaspelMonth = Tindakan::where('dokter_id', $dokter->id)
                     ->where('tanggal_tindakan', '>=', $thisMonth)
                     ->where('status_validasi', 'disetujui')
                     ->sum('jasa_dokter');
@@ -214,7 +214,7 @@ class DokterDashboardController extends Controller
             $year = $request->get('year', Carbon::now()->year);
 
             // Jaspel bulan ini
-            $jaspelQuery = Tindakan::where('paramedis_id', $dokter->id)
+            $jaspelQuery = Tindakan::where('dokter_id', $dokter->id)
                 ->whereMonth('tanggal_tindakan', $month)
                 ->whereYear('tanggal_tindakan', $year);
 
@@ -290,7 +290,7 @@ class DokterDashboardController extends Controller
             $status = $request->get('status');
             $search = $request->get('search');
 
-            $query = Tindakan::where('paramedis_id', $dokter->id)
+            $query = Tindakan::where('dokter_id', $dokter->id)
                 ->with(['pasien:id,nama_pasien,nomor_pasien']);
 
             if ($status) {
@@ -313,10 +313,10 @@ class DokterDashboardController extends Controller
                 'data' => $tindakan,
                 'meta' => [
                     'summary' => [
-                        'total' => Tindakan::where('paramedis_id', $dokter->id)->count(),
-                        'approved' => Tindakan::where('paramedis_id', $dokter->id)->where('status_validasi', 'disetujui')->count(),
-                        'pending' => Tindakan::where('paramedis_id', $dokter->id)->where('status_validasi', 'pending')->count(),
-                        'rejected' => Tindakan::where('paramedis_id', $dokter->id)->where('status_validasi', 'ditolak')->count()
+                        'total' => Tindakan::where('dokter_id', $dokter->id)->count(),
+                        'approved' => Tindakan::where('dokter_id', $dokter->id)->where('status_validasi', 'disetujui')->count(),
+                        'pending' => Tindakan::where('dokter_id', $dokter->id)->where('status_validasi', 'pending')->count(),
+                        'rejected' => Tindakan::where('dokter_id', $dokter->id)->where('status_validasi', 'ditolak')->count()
                     ]
                 ]
             ]);

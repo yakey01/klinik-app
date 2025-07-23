@@ -23,7 +23,7 @@
     <!-- DISABLED: <script src="/ultrafix.js.disabled"></script> -->
     
     <!-- DEBUG MONITOR: Ultimate debugging (temporary) -->
-    <script src="/debug-monitor.js"></script>
+    <!-- <script src="/debug-monitor.js"></script> -->
     
     <!-- Vite Assets -->
     @vite(['resources/js/dokter-mobile-app.tsx'])

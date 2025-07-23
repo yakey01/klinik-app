@@ -199,34 +199,10 @@ Route::middleware(['auth'])->group(function () {
                 ->header('ETag', '"' . md5(time()) . '"');
         })->name('mobile-app')->middleware('throttle:1000,1');
         
-        // EMERGENCY BYPASS ROUTE - Force new bundle loading
-        Route::get('/mobile-app-v2', function () {
-            $user = auth()->user();
-            $token = $user->createToken('mobile-app-dokter-' . now()->timestamp)->plainTextToken;
-            
-            $hour = now()->hour;
-            $greeting = $hour < 12 ? 'Selamat Pagi' : ($hour < 17 ? 'Selamat Siang' : 'Selamat Malam');
-            
-            // Get dokter data for more accurate name
-            $dokter = \App\Models\Dokter::where('user_id', $user->id)->first();
-            $displayName = $dokter ? $dokter->nama_lengkap : $user->name;
-            
-            $userData = [
-                'name' => $displayName,
-                'email' => $user->email,
-                'greeting' => $greeting,
-                'initials' => strtoupper(substr($displayName ?? 'DA', 0, 2))
-            ];
-            
-            // ULTIMATE CACHE BYPASS
-            return response()
-                ->view('mobile.dokter.app-emergency', compact('token', 'userData'))
-                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-                ->header('Pragma', 'no-cache')
-                ->header('Expires', 'Mon, 01 Jan 1990 00:00:00 GMT')
-                ->header('Last-Modified', gmdate('D, d M Y H:i:s') . ' GMT')
-                ->header('ETag', '"bypass-' . md5(time() . rand()) . '"');
-        })->name('mobile-app-v2')->middleware('throttle:1000,1');
+        // EMERGENCY BYPASS ROUTE - Force new bundle loading (DISABLED - file not found)
+        // Route::get('/mobile-app-v2', function () {
+        //     // Route disabled - app-emergency.blade.php not found
+        // })->name('mobile-app-v2')->middleware('throttle:1000,1');
         
         // API endpoint for doctor weekly schedules (for dashboard)
         Route::get('/api/weekly-schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getWeeklySchedule'])

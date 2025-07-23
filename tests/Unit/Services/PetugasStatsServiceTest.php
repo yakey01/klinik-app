@@ -269,16 +269,25 @@ class PetugasStatsServiceTest extends TestCase
         Cache::flush();
         
         $pendapatan = Pendapatan::factory()->create(['nama_pendapatan' => 'Test Pendapatan']);
-        PendapatanHarian::factory()->create([
+        
+        // Create using direct model creation instead of factory for more control
+        $created = PendapatanHarian::create([
             'user_id' => $this->user->id,
             'tanggal_input' => $today->format('Y-m-d'),
             'nominal' => 1500000, // 1.5 million
             'pendapatan_id' => $pendapatan->id,
-            'status_validasi' => 'approved', // Ensure status is set if queries filter by it
+            'status_validasi' => 'approved',
+            'shift' => 'Pagi',
+            'deskripsi' => 'Test pendapatan for unit test',
         ]);
         
-        // Force database commit to ensure data is visible
-        DB::commit();
+        // After PendapatanHarian creation, verify record exists
+        $exists = PendapatanHarian::where('user_id', $this->user->id)
+            ->where('tanggal_input', $today)
+            ->where('status_validasi', 'approved')
+            ->first();
+        $this->assertNotNull($exists, 'PendapatanHarian record should exist for today');
+        DB::commit(); // Ensure it's committed for the direct query
         
         // Act
         $stats = $this->service->getDashboardStats($this->user->id);

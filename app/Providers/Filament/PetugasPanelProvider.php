@@ -60,19 +60,19 @@ class PetugasPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('Dashboard')
                     ->collapsed(false),
-                NavigationGroup::make('Patient Management')
+                NavigationGroup::make('🏥 Manajemen Pasien')
                     ->collapsed(true)
                     ->collapsible(),
-                NavigationGroup::make('Daily Data Entry')
+                NavigationGroup::make('📊 Data Entry Harian')
                     ->collapsed(true)
                     ->collapsible(),
-                NavigationGroup::make('Transaction Management')
+                NavigationGroup::make('💰 Manajemen Transaksi')
                     ->collapsed(true)
                     ->collapsible(),
-                NavigationGroup::make('Reports & Analytics')
+                NavigationGroup::make('📈 Laporan & Analitik')
                     ->collapsed(true)
                     ->collapsible(),
-                NavigationGroup::make('Settings')
+                NavigationGroup::make('⚙️ Pengaturan')
                     ->collapsed(true)
                     ->collapsible(),
             ])

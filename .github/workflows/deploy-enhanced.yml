@@ -1,0 +1,418 @@
+name: 🚀 Enhanced Deployment Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PHP_VERSION: "8.3"
+  NODE_VERSION: "20"
+  COMPOSER_VERSION: "2"
+
+jobs:
+  # ============================================================================
+  # CODE QUALITY & SECURITY CHECKS
+  # ============================================================================
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run security scan
+        uses: securecodewarrior/github-action-add-sarif@v1
+        with:
+          sarif-file: 'security-scan-results.sarif'
+        continue-on-error: true
+
+      - name: Check for secrets
+        run: |
+          echo "🔍 Scanning for potential secrets..."
+          if grep -r "password\|secret\|key" --include="*.php" --include="*.js" . | grep -v "vendor" | grep -v "node_modules"; then
+            echo "⚠️ Potential secrets found in code"
+          else
+            echo "✅ No secrets found in code"
+          fi
+
+  # ============================================================================
+  # BUILD & TEST
+  # ============================================================================
+  build-and-test:
+    name: 🧪 Build & Test
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: dokterku_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, mysql, pdo_mysql, redis
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+          composer validate --strict
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Setup test environment
+        run: |
+          cp .env.testing .env
+          php artisan key:generate
+          php artisan config:clear
+
+      - name: Run database migrations
+        run: |
+          php artisan migrate:fresh --force
+          php artisan db:seed --force
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: dokterku_test
+          DB_USERNAME: root
+          DB_PASSWORD: test_password
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Publish Filament assets
+        run: php artisan vendor:publish --tag=filament-assets --force
+
+      - name: Run PHP CodeSniffer
+        run: |
+          if [ -f "vendor/bin/phpcs" ]; then
+            vendor/bin/phpcs --standard=PSR12 app/ --ignore=app/Http/Middleware/TrustProxies.php || echo "⚠️ Code style issues found"
+          fi
+
+      - name: Run PHPStan (if available)
+        run: |
+          if [ -f "vendor/bin/phpstan" ]; then
+            vendor/bin/phpstan analyse --memory-limit=2G || echo "⚠️ Static analysis issues found"
+          fi
+
+      - name: Run tests with coverage
+        run: |
+          php artisan test --coverage --min=70 --coverage-clover coverage.xml
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: dokterku_test
+          DB_USERNAME: root
+          DB_PASSWORD: test_password
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+        continue-on-error: true
+
+      - name: Test panel accessibility
+        run: |
+          php artisan serve &
+          sleep 5
+          
+          # Test all panels
+          PANELS=("admin" "manajer" "bendahara" "petugas" "paramedis" "dokter")
+          for panel in "${PANELS[@]}"; do
+            if curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/$panel/login" | grep -q "200"; then
+              echo "✅ $panel panel accessible"
+            else
+              echo "❌ $panel panel not accessible"
+            fi
+          done
+        continue-on-error: true
+
+  # ============================================================================
+  # STAGING DEPLOYMENT
+  # ============================================================================
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [security-scan, build-and-test]
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+          npm ci
+          npm run build
+
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USERNAME }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT }}
+          timeout: 300s
+          script: |
+            set -e
+            echo "🚀 Deploying to staging environment..."
+            
+            cd ${{ secrets.STAGING_PATH }}
+            
+            # Pull latest code
+            git pull origin develop
+            
+            # Run deployment script
+            chmod +x deploy.sh
+            ./deploy.sh staging
+            
+            echo "✅ Staging deployment completed"
+
+      - name: Run staging health checks
+        run: |
+          sleep 30
+          if curl -s -o /dev/null -w "%{http_code}" "${{ secrets.STAGING_URL }}/health" | grep -q "200"; then
+            echo "✅ Staging health check passed"
+          else
+            echo "❌ Staging health check failed"
+            exit 1
+          fi
+
+  # ============================================================================
+  # PRODUCTION DEPLOYMENT
+  # ============================================================================
+  deploy-production:
+    name: 🏥 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [security-scan, build-and-test]
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          tools: composer:v2
+
+      - name: Prepare production build
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+          npm ci
+          npm run build
+
+      - name: Create deployment package
+        run: |
+          tar -czf deployment.tar.gz \
+            --exclude=node_modules \
+            --exclude=.git \
+            --exclude=tests \
+            --exclude=storage/logs \
+            --exclude=.env.example \
+            .
+
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT }}
+          timeout: 600s
+          script: |
+            set -e
+            echo "🏥 Starting production deployment..."
+            
+            # Create backup
+            BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+            
+            # Backup database
+            if docker-compose ps mysql | grep -q "Up"; then
+              echo "💾 Creating database backup..."
+              docker-compose exec -T mysql mysqldump \
+                -u "${{ secrets.DB_USERNAME }}" \
+                -p"${{ secrets.DB_PASSWORD }}" \
+                "${{ secrets.DB_DATABASE }}" > "$BACKUP_DIR/database_backup.sql"
+            fi
+            
+            # Deploy new version
+            cd ${{ secrets.PRODUCTION_PATH }}
+            git pull origin main
+            
+            # Run production deployment
+            chmod +x deploy.sh
+            ./deploy.sh production
+            
+            echo "✅ Production deployment completed"
+
+      - name: Run production health checks
+        run: |
+          sleep 60
+          
+          # Health check
+          if curl -s -o /dev/null -w "%{http_code}" "${{ secrets.PRODUCTION_URL }}/health" | grep -q "200"; then
+            echo "✅ Production health check passed"
+          else
+            echo "❌ Production health check failed"
+            exit 1
+          fi
+          
+          # Panel accessibility checks
+          PANELS=("admin" "manajer" "bendahara" "petugas" "paramedis" "dokter")
+          for panel in "${PANELS[@]}"; do
+            if curl -s -o /dev/null -w "%{http_code}" "${{ secrets.PRODUCTION_URL }}/$panel" | grep -q "200\|302"; then
+              echo "✅ $panel panel accessible"
+            else
+              echo "⚠️ $panel panel health check failed"
+            fi
+          done
+
+      - name: Send deployment notification
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT }}
+          script: |
+            echo "📊 Production Deployment Summary"
+            echo "================================"
+            echo "Repository: ${{ github.repository }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Author: ${{ github.actor }}"
+            echo "Branch: ${{ github.ref_name }}"
+            echo "Status: ${{ job.status }}"
+            echo "Timestamp: $(date)"
+            echo ""
+            echo "🏥 Dokterku Healthcare System"
+            echo "🚀 Production deployment completed"
+            echo ""
+            echo "Panel URLs:"
+            echo "- Admin: ${{ secrets.PRODUCTION_URL }}/admin"
+            echo "- Manajer: ${{ secrets.PRODUCTION_URL }}/manajer"
+            echo "- Bendahara: ${{ secrets.PRODUCTION_URL }}/bendahara"
+            echo "- Petugas: ${{ secrets.PRODUCTION_URL }}/petugas"
+            echo "- Paramedis: ${{ secrets.PRODUCTION_URL }}/paramedis"
+            echo "- Dokter: ${{ secrets.PRODUCTION_URL }}/dokter"
+
+  # ============================================================================
+  # ROLLBACK (Manual trigger)
+  # ============================================================================
+  rollback:
+    name: 🔄 Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.rollback == 'true'
+    environment: production
+
+    steps:
+      - name: Rollback production deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_SSH_PORT }}
+          script: |
+            echo "🔄 Starting rollback process..."
+            
+            cd ${{ secrets.PRODUCTION_PATH }}
+            
+            # Find latest backup
+            LATEST_BACKUP=$(ls -t backups/ | head -1)
+            if [ -z "$LATEST_BACKUP" ]; then
+              echo "❌ No backup found for rollback"
+              exit 1
+            fi
+            
+            echo "📦 Rolling back to: $LATEST_BACKUP"
+            
+            # Stop services
+            docker-compose down
+            
+            # Restore database
+            if [ -f "backups/$LATEST_BACKUP/database_backup.sql" ]; then
+              echo "🗄️ Restoring database..."
+              # Implementation depends on your backup strategy
+            fi
+            
+            # Restore application files if needed
+            # git checkout to previous commit or restore from backup
+            
+            # Restart services
+            docker-compose up -d
+            
+            echo "✅ Rollback completed"

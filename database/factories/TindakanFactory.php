@@ -26,7 +26,7 @@ class TindakanFactory extends Factory
             'dokter_id' => User::factory(),
             'paramedis_id' => User::factory(),
             'non_paramedis_id' => User::factory(),
-            'shift_id' => null,
+            'shift_id' => Shift::factory(),
             'tanggal_tindakan' => fake()->dateTimeBetween('-30 days', 'now'),
             'tarif' => fake()->numberBetween(50000, 1000000),
             'jasa_dokter' => fake()->numberBetween(20000, 300000),

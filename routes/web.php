@@ -83,8 +83,8 @@ Route::middleware(['auth'])->group(function () {
     })->name('treasurer.dashboard');
     Route::get('/staff/dashboard', [StaffDashboardController::class, 'index'])->name('staff.dashboard');
     // Route removed - using standard petugas dashboard instead
-    
-    // Enhanced Petugas Management Routes
+    // (NO Route::get('/petugas', ...) or Route::prefix('petugas') here)
+    // Enhanced Petugas Management Routes (still available at /petugas/enhanced/*, does not override /petugas root)
     Route::middleware(['auth', 'role:petugas'])->prefix('petugas/enhanced')->name('petugas.enhanced.')->group(function () {
         // Patient Management
         Route::prefix('pasien')->name('pasien.')->group(function () {

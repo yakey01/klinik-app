@@ -152,20 +152,20 @@ class PetugasStatsService
                 ->count();
             
             // Income stats  
-            $pendapatanSum = PendapatanHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
+            $pendapatanSum = PendapatanHarian::whereDate('tanggal_input', $date)
                 ->where('user_id', $userId)
                 ->sum('nominal');
                 
-            $pendapatanCount = PendapatanHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
+            $pendapatanCount = PendapatanHarian::whereDate('tanggal_input', $date)
                 ->where('user_id', $userId)
                 ->count();
             
             // Expense stats
-            $pengeluaranSum = PengeluaranHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
+            $pengeluaranSum = PengeluaranHarian::whereDate('tanggal_input', $date)
                 ->where('user_id', $userId)
                 ->sum('nominal');
                 
-            $pengeluaranCount = PengeluaranHarian::whereDate('tanggal_input', $date->format('Y-m-d'))
+            $pengeluaranCount = PengeluaranHarian::whereDate('tanggal_input', $date)
                 ->where('user_id', $userId)
                 ->count();
             
@@ -194,7 +194,7 @@ class PetugasStatsService
                 'avg_tindakan_tarif' => (float)$avgTindakanTarif,
                 'net_income' => (float)$netIncome,
                 'reported_patient_count' => (int)$pasienCount, // Same as pasien_count for direct queries
-                'validation_status' => 'approved', // Default for direct queries
+                'validation_status' => 'disetujui', // Default for direct queries
                 'efficiency' => $this->calculateEfficiency((object)[
                     'pasien_count' => $pasienCount,
                     'pendapatan_sum' => $pendapatanSum,
@@ -241,7 +241,7 @@ class PetugasStatsService
             }
             
             // Validation efficiency
-            if ($data->validation_status === 'approved') {
+            if ($data->validation_status === 'disetujui') {
                 $validationEfficiency = 100;
             } elseif ($data->validation_status === 'pending') {
                 $validationEfficiency = 50;
@@ -648,7 +648,7 @@ class PetugasStatsService
                         ->selectRaw("
                             'pendapatan_harian' as table_name,
                             SUM(CASE WHEN status_validasi = 'pending' THEN 1 ELSE 0 END) as pending_count,
-                            SUM(CASE WHEN status_validasi = 'approved' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as approved_today,
+                            SUM(CASE WHEN status_validasi = 'disetujui' AND DATE(validated_at) = ? THEN 1 ELSE 0 END) as approved_today,
                             SUM(CASE WHEN status_validasi = 'rejected' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as rejected_today
                         ", [$today, $today])
                         ->from('pendapatan_harians')
@@ -659,7 +659,7 @@ class PetugasStatsService
                         ->selectRaw("
                             'pengeluaran_harian' as table_name,
                             SUM(CASE WHEN status_validasi = 'pending' THEN 1 ELSE 0 END) as pending_count,
-                            SUM(CASE WHEN status_validasi = 'approved' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as approved_today,
+                            SUM(CASE WHEN status_validasi = 'disetujui' AND DATE(validated_at) = ? THEN 1 ELSE 0 END) as approved_today,
                             SUM(CASE WHEN status_validasi = 'rejected' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as rejected_today
                         ", [$today, $today])
                         ->from('pengeluaran_harians')

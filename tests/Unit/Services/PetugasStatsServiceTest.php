@@ -66,7 +66,7 @@ class PetugasStatsServiceTest extends TestCase
             'pengeluaran_id' => $pengeluaran->id,
             'shift' => 'Pagi',
             'deskripsi' => 'Test pengeluaran',
-            'status_validasi' => 'approved',
+            'status_validasi' => 'disetujui',
         ]);
         
         // Create shift for tindakan
@@ -93,7 +93,7 @@ class PetugasStatsServiceTest extends TestCase
                 'tarif' => 75000,
                 'input_by' => $this->user->id,
                 'status' => 'selesai',
-                'status_validasi' => 'approved',
+                'status_validasi' => 'disetujui',
             ]);
         }
         
@@ -274,7 +274,7 @@ class PetugasStatsServiceTest extends TestCase
             'tanggal_input' => $today->format('Y-m-d'),
             'nominal' => 1500000, // 1.5 million
             'pendapatan_id' => $pendapatan->id,
-            'status_validasi' => 'approved', // Ensure status is set if queries filter by it
+            'status_validasi' => 'disetujui', // Ensure status is set if queries filter by it
         ]);
         
         // Clear any residual cache

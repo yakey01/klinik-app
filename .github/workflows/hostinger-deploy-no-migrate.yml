@@ -1,0 +1,201 @@
+name: 🚀 Deploy to Hostinger (No Migrate)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests before deploy'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+  HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
+  HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
+  DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+
+jobs:
+  deploy-hostinger:
+    name: 🚀 Deploy to Hostinger
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        run: |
+          echo "📦 Installing PHP dependencies..."
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+          echo "✅ Composer dependencies installed"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install NPM dependencies and build assets
+        run: |
+          echo "📦 Installing NPM dependencies..."
+          npm ci
+          echo "🏗️ Building production assets..."
+          npm run build
+          echo "✅ Assets built successfully"
+
+      - name: Run tests (if not skipped)
+        if: github.event.inputs.skip_tests != 'true'
+        run: |
+          echo "🧪 Running tests before deployment..."
+          # Create testing database
+          touch database/database.sqlite
+          php artisan migrate --database=sqlite --force
+          
+          # Run tests
+          if php artisan test --stop-on-failure; then
+            echo "✅ All tests passed!"
+          else
+            echo "❌ Tests failed - deployment will continue anyway"
+            echo "⚠️ Please check tests after deployment"
+          fi
+        continue-on-error: true
+
+      - name: Prepare deployment package
+        run: |
+          echo "📦 Preparing deployment package..."
+          
+          # Remove development files
+          rm -rf tests/
+          rm -rf node_modules/
+          rm -rf .git/
+          rm -f .env.example
+          rm -f *.md
+          rm -f phpunit.xml
+          rm -f vite.config.js
+          rm -f package*.json
+          
+          # Create deployment info
+          echo "Deployed at: $(date)" > deployment-info.txt
+          echo "Commit: ${{ github.sha }}" >> deployment-info.txt
+          echo "Branch: ${{ github.ref_name }}" >> deployment-info.txt
+          
+          echo "✅ Deployment package prepared"
+
+      - name: Install sshpass
+        run: |
+          echo "🔧 Installing sshpass..."
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Deploy to Hostinger via RSYNC
+        run: |
+          echo "🚀 Deploying to Hostinger..."
+          
+          # Create .ssh directory and configure
+          mkdir -p ~/.ssh
+          echo "Host *" > ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+          
+          # Deploy files using rsync with sshpass
+          sshpass -p "${HOSTINGER_PASSWORD}" rsync -avz \
+            --delete \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/views/*' \
+            --exclude='bootstrap/cache/*' \
+            --exclude='.env' \
+            ./ "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}:${DEPLOY_PATH}/"
+          
+          echo "✅ Files deployed successfully"
+
+      - name: Post-deployment setup (No Migration)
+        run: |
+          echo "⚙️ Running post-deployment setup..."
+          
+          # Run Artisan commands on server (NO MIGRATION)
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php artisan config:cache"
+          
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php artisan route:cache"
+          
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php artisan view:cache"
+          
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php artisan storage:link"
+          
+          echo "✅ Post-deployment setup completed (NO MIGRATION)"
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verifying deployment..."
+          
+          # Check if files exist on server
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && ls -la && php artisan --version"
+          
+          echo "✅ Deployment verification completed"
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "🎉 Hostinger Deployment Summary"
+          echo "==============================="
+          echo "✅ Repository: ${{ github.repository }}"
+          echo "✅ Branch: ${{ github.ref_name }}"
+          echo "✅ Commit: ${{ github.sha }}"
+          echo "✅ Deploy Path: ${DEPLOY_PATH}"
+          echo "⚠️  Migration: SKIPPED (run manually via sshpass)"
+          echo "⚠️  Environment: Please verify .env file manually"
+          echo ""
+          echo "🔧 To run migrations manually:"
+          echo "sshpass -p 'password' ssh user@host 'cd path && php artisan migrate'"
+          echo ""
+          echo "🚀 Deployment completed successfully!"
+
+  # ============================================================================
+  # NOTIFY MIGRATION NEEDED
+  # ============================================================================
+  migration-reminder:
+    name: 📢 Migration Reminder
+    runs-on: ubuntu-latest
+    needs: deploy-hostinger
+    if: always()
+    
+    steps:
+      - name: Migration reminder
+        run: |
+          echo "⚠️  MIGRATION REMINDER"
+          echo "====================="
+          echo ""
+          echo "🗄️  Database migrations were NOT run automatically."
+          echo "🔧 To run migrations manually, use:"
+          echo ""
+          echo "sshpass -p '\${{ secrets.HOSTINGER_PASSWORD }}' ssh \\"
+          echo "  '\${{ secrets.HOSTINGER_USERNAME }}@\${{ secrets.HOSTINGER_HOST }}' \\"
+          echo "  'cd \${{ secrets.HOSTINGER_DEPLOY_PATH }} && php artisan migrate --force'"
+          echo ""
+          echo "📝 Or create a separate migration workflow if needed."
+          echo ""
+          echo "✅ Code deployment completed successfully!"

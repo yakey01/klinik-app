@@ -41,10 +41,13 @@ class PetugasStatsServiceTest extends TestCase
         $today = Carbon::today();
         $yesterday = Carbon::yesterday();
         
+        // Clear cache to avoid stale data
+        Cache::flush();
+        
         // Create test data for today
         $patients = Pasien::factory()->count(5)->create([
             'input_by' => $this->user->id,
-            'created_at' => $today,
+            'created_at' => $today->toDateString() . ' 10:00:00',
         ]);
         
         $pendapatan = Pendapatan::factory()->create(['nama_pendapatan' => 'Test Pendapatan']);
@@ -93,6 +96,9 @@ class PetugasStatsServiceTest extends TestCase
                 'status_validasi' => 'approved',
             ]);
         }
+        
+        // Ensure data is committed to database
+        DB::commit();
         
         // Create a mock service for testing the structure without complex DB queries
         $mockService = \Mockery::mock(PetugasStatsService::class)->makePartial();
@@ -167,18 +173,26 @@ class PetugasStatsServiceTest extends TestCase
         $today = Carbon::today();
         $yesterday = Carbon::yesterday();
         
-        // Cache is cleared in tearDown - no need to flush here
+        // Clear cache to avoid stale data
+        Cache::flush();
         
-        // Create more data for today than yesterday
+        // Disable caching for this test to ensure fresh data
+        $this->service->cacheMinutes = 0;
+        $this->service->dailyStatsCacheMinutes = 0;
+        
+        // Create more data for today than yesterday using date strings for proper matching
         $todayPatients = Pasien::factory()->count(5)->create([
             'input_by' => $this->user->id,
-            'created_at' => $today,
+            'created_at' => $today->toDateString() . ' 10:00:00',
         ]);
         
         $yesterdayPatients = Pasien::factory()->count(3)->create([
             'input_by' => $this->user->id,
-            'created_at' => $yesterday,
+            'created_at' => $yesterday->toDateString() . ' 10:00:00',
         ]);
+        
+        // Ensure data is committed to database
+        DB::commit();
         
         // Act
         $stats = $this->service->getDashboardStats($this->user->id);
@@ -227,7 +241,7 @@ class PetugasStatsServiceTest extends TestCase
         // Create test data
         Pasien::factory()->count(3)->create([
             'input_by' => $this->user->id,
-            'created_at' => $today,
+            'created_at' => $today->toDateString() . ' 10:00:00',
         ]);
         
         // Act & Assert - Check that bulk query method is used
@@ -278,13 +292,13 @@ class PetugasStatsServiceTest extends TestCase
         // Create data for this month
         Pasien::factory()->count(10)->create([
             'input_by' => $this->user->id,
-            'created_at' => $thisMonth->addDays(5),
+            'created_at' => $thisMonth->copy()->addDays(5)->toDateString() . ' 10:00:00',
         ]);
         
         // Create data for last month
         Pasien::factory()->count(8)->create([
             'input_by' => $this->user->id,
-            'created_at' => $lastMonth->addDays(10),
+            'created_at' => $lastMonth->copy()->addDays(10)->toDateString() . ' 10:00:00',
         ]);
         
         // Act
@@ -414,7 +428,7 @@ class PetugasStatsServiceTest extends TestCase
             
             Pasien::factory()->count(2)->create([
                 'input_by' => $this->user->id,
-                'created_at' => $date,
+                'created_at' => $date->toDateString() . ' 10:00:00',
             ]);
         }
         

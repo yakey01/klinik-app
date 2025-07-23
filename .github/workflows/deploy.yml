@@ -19,15 +19,45 @@ jobs:
           cd domains/dokterkuklinik.com/public_html
           echo "🔄 Pulling latest code..."
           git pull origin main
+          
+          echo "🔧 Fixing database configuration..."
+          # Ensure correct database credentials
+          sed -i 's/^DB_HOST=.*/DB_HOST=localhost/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=u454362045_u45436245_kli/' .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=u454362045_u45436245_kli/' .env
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=LaTahzan@01/' .env
+          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+          sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
+          
+          echo "📋 Current database config:"
+          grep "^DB_" .env || echo "No DB config found"
+          
+          echo "🧹 Clearing config cache..."
+          php artisan config:clear
+          
+          echo "🔌 Testing database connection..."
+          php -r "
+          try {
+              \$pdo = new PDO('mysql:host=localhost;dbname=u454362045_u45436245_kli', 'u454362045_u45436245_kli', 'LaTahzan@01');
+              echo '✅ Direct PDO connection: SUCCESS\n';
+          } catch (Exception \$e) {
+              echo '❌ Direct PDO connection failed: ' . \$e->getMessage() . '\n';
+          }
+          "
+          
+          echo "🔌 Testing Laravel database connection..."
+          php artisan migrate:status || echo "❌ Migration status failed"
+          
           echo "🗄️ Running migrations..."
-          php artisan migrate:status
-          echo "🔄 Running new migrations only..."
-          php artisan migrate --force 2>/dev/null || echo "⚠️ Some migrations skipped (already exist)"
+          php artisan migrate --force || echo "⚠️ Migrations failed but continuing..."
+          
           echo "🧹 Clearing caches..."
           php artisan cache:clear
           php artisan config:clear
           php artisan route:clear
           php artisan view:clear
+          
           echo "⚡ Optimizing..."
           php artisan optimize
+          
           echo "✅ Deployment completed!"

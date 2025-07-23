@@ -103,12 +103,19 @@
             letter-spacing: 0.05em;
             color: var(--medical-600);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             border-radius: 0.5rem;
+            background-color: rgba(16, 185, 129, 0.1);
         }
         
         .sidebar-nav-group-header:hover {
-            background-color: rgba(16, 185, 129, 0.1);
+            background-color: rgba(16, 185, 129, 0.15);
+            transform: translateX(2px);
+        }
+        
+        .sidebar-nav-group.collapsed .sidebar-nav-group-header {
+            background-color: rgba(16, 185, 129, 0.05);
+            color: var(--medical-500);
         }
         
         .sidebar-nav-item {
@@ -288,7 +295,7 @@
             </div>
 
             <!-- Transaksi Group -->
-            <div class="sidebar-nav-group collapsed">
+            <div class="sidebar-nav-group">
                 <div class="sidebar-nav-group-header" onclick="toggleNavGroup(this)">
                     <span>💰 Transaksi</span>
                     <svg class="sidebar-toggle-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -604,7 +611,24 @@
 
         function toggleNavGroup(header) {
             const group = header.closest('.sidebar-nav-group');
+            const icon = header.querySelector('.sidebar-toggle-icon');
+            
+            // Toggle collapsed state
             group.classList.toggle('collapsed');
+            
+            // Add visual feedback
+            if (group.classList.contains('collapsed')) {
+                // Group is now collapsed
+                header.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
+                header.style.color = 'var(--medical-600)';
+            } else {
+                // Group is now expanded
+                header.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                header.style.color = 'var(--medical-700)';
+            }
+            
+            // Log for debugging
+            console.log('Toggled nav group:', header.querySelector('span').textContent, 'Collapsed:', group.classList.contains('collapsed'));
         }
 
         // Dark mode toggle
@@ -653,7 +677,28 @@
             if (window.petugasCharts) {
                 window.petugasCharts.init();
             }
+            
+            // Initialize sidebar navigation groups
+            initializeSidebarGroups();
         });
+        
+        // Initialize sidebar navigation groups
+        function initializeSidebarGroups() {
+            const navGroups = document.querySelectorAll('.sidebar-nav-group');
+            navGroups.forEach(group => {
+                const header = group.querySelector('.sidebar-nav-group-header');
+                const icon = header.querySelector('.sidebar-toggle-icon');
+                
+                // Ensure all groups are expanded by default (remove collapsed class)
+                group.classList.remove('collapsed');
+                
+                // Set proper visual state
+                header.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                header.style.color = 'var(--medical-700)';
+                
+                console.log('Initialized nav group:', header.querySelector('span').textContent);
+            });
+        }
 
         // Auto-refresh every 30 seconds
         setInterval(updateStats, 30000);

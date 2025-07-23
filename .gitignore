@@ -22,3 +22,30 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Deployment scripts (contains sensitive info)
+deploy.sh
+deploy-*.sh
+
+# Temporary files and debug scripts
+*-test.php
+*-debug.php
+*-fix.php
+*-temp.php
+debug-*.sh
+test-*.sh
+fix-*.sh
+quick-*.sh
+manual-*.sh
+emergency-*.php
+audit-*.sh
+check-*.php
+simple-*.php
+cleanup-*.sh
+*.txt
+*-analysis.md
+*-fix.md
+*-debug.md
+MANUAL_*.txt
+PRODUCTION_*.md
+FINAL_*.md

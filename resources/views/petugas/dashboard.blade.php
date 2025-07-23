@@ -139,7 +139,7 @@
             border-color: rgba(255, 255, 255, 0.2);
         }
         
-        .sidebar-nav-group.collapsed .sidebar-nav-group-header {
+        .sidebar-nav-group-header.collapsed {
             background-color: rgba(255, 255, 255, 0.05);
             color: #94a3b8;
         }
@@ -237,6 +237,41 @@
                 background-color: rgba(0, 0, 0, 0.5);
                 z-index: 40;
             }
+        }
+
+        /* Force all navigation groups to be expanded by default */
+        .sidebar-nav-group {
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        /* Override any collapsed state */
+        .sidebar-nav-group,
+        .sidebar-nav-group:not(.collapsed) {
+            /* Force expanded state */
+        }
+        
+        .sidebar-nav-group-content {
+            overflow: hidden;
+            transition: all 0.3s ease;
+            max-height: 1000px !important; /* Force expanded */
+            opacity: 1 !important; /* Force visible */
+            display: block !important; /* Force display */
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+            margin-top: 0.25rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        /* Only collapse when explicitly set */
+        .sidebar-nav-group.collapsed .sidebar-nav-group-content {
+            max-height: 0 !important;
+            opacity: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
         }
     </style>
 </head>
@@ -725,55 +760,65 @@
             }
         }
 
-        // Initialize charts when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded - Starting initialization...');
-            
-            if (window.petugasCharts) {
-                console.log('Initializing petugas charts...');
-                window.petugasCharts.init();
-            } else {
-                console.log('Petugas charts not available');
-            }
-            
-            // Initialize sidebar navigation groups
-            console.log('Starting sidebar initialization...');
-            initializeSidebarGroups();
-            
-            console.log('Page initialization complete');
-        });
-        
         // Initialize sidebar navigation groups
         function initializeSidebarGroups() {
-            console.log('Initializing sidebar navigation groups...');
+            console.log('🚀 INITIALIZING SIDEBAR NAVIGATION GROUPS...');
             
             const navGroups = document.querySelectorAll('.sidebar-nav-group');
-            console.log('Found', navGroups.length, 'navigation groups');
+            console.log('📊 Found', navGroups.length, 'navigation groups');
             
             navGroups.forEach((group, index) => {
                 const header = group.querySelector('.sidebar-nav-group-header');
                 const content = group.querySelector('.sidebar-nav-group-content');
                 const groupName = header.querySelector('span').textContent;
                 
-                console.log(`Initializing group ${index + 1}:`, groupName);
+                console.log(`🔧 Processing group ${index + 1}:`, groupName);
                 
-                // Ensure all groups are expanded by default (remove collapsed class)
+                // Force remove collapsed class
                 group.classList.remove('collapsed');
                 
-                // Force content to be visible
-                content.style.display = 'block';
-                content.style.maxHeight = '1000px';
-                content.style.opacity = '1';
+                // Force content to be visible with inline styles
+                content.style.setProperty('display', 'block', 'important');
+                content.style.setProperty('max-height', '1000px', 'important');
+                content.style.setProperty('opacity', '1', 'important');
+                content.style.setProperty('padding-top', '0.5rem', 'important');
+                content.style.setProperty('padding-bottom', '0.5rem', 'important');
+                content.style.setProperty('margin-top', '0.25rem', 'important');
+                content.style.setProperty('margin-bottom', '0.25rem', 'important');
                 
                 // Set proper visual state
-                header.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                header.style.color = '#f1f5f9';
+                header.style.setProperty('background-color', 'rgba(255, 255, 255, 0.15)', 'important');
+                header.style.setProperty('color', '#f1f5f9', 'important');
                 
-                console.log(`Group "${groupName}" initialized - Expanded:`, !group.classList.contains('collapsed'));
+                console.log(`✅ Group "${groupName}" FORCED EXPANDED`);
             });
             
-            console.log('Sidebar navigation groups initialization complete');
+            console.log('🎉 SIDEBAR INITIALIZATION COMPLETE - ALL GROUPS SHOULD BE EXPANDED');
         }
+        
+        // Force immediate initialization
+        console.log('⚡ IMMEDIATE SIDEBAR INITIALIZATION STARTING...');
+        setTimeout(() => {
+            initializeSidebarGroups();
+        }, 100);
+        
+        // Also initialize on DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🌐 DOM Content Loaded - Starting initialization...');
+            
+            if (window.petugasCharts) {
+                console.log('📈 Initializing petugas charts...');
+                window.petugasCharts.init();
+            } else {
+                console.log('⚠️ Petugas charts not available');
+            }
+            
+            // Initialize sidebar navigation groups
+            console.log('🔄 Starting sidebar initialization...');
+            initializeSidebarGroups();
+            
+            console.log('✅ Page initialization complete');
+        });
 
         // Auto-refresh every 30 seconds
         setInterval(updateStats, 30000);

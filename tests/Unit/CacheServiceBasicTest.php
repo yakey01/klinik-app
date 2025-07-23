@@ -124,6 +124,9 @@ class CacheServiceBasicTest extends TestCase
         Cache::shouldReceive('remember')
             ->once()
             ->andThrow(new \Exception('Cache failure'));
+            
+        // Mock flush method for tearDown
+        Cache::shouldReceive('flush')->andReturnNull();
         
         $key = 'test_failure';
         $expectedValue = 'fallback_value';
@@ -133,5 +136,12 @@ class CacheServiceBasicTest extends TestCase
         });
         
         $this->assertEquals($expectedValue, $result);
+    }
+    
+    protected function tearDown(): void
+    {
+        // Use real Cache facade for cleanup, bypassing mocks
+        \Illuminate\Support\Facades\Cache::getFacadeRoot()->flush();
+        parent::tearDown();
     }
 }

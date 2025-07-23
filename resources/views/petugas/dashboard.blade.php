@@ -656,23 +656,32 @@
         function toggleNavGroup(header) {
             const group = header.closest('.sidebar-nav-group');
             const icon = header.querySelector('.sidebar-toggle-icon');
+            const content = group.querySelector('.sidebar-nav-group-content');
+            
+            console.log('Toggle clicked for:', header.querySelector('span').textContent);
+            console.log('Current collapsed state:', group.classList.contains('collapsed'));
             
             // Toggle collapsed state
             group.classList.toggle('collapsed');
             
+            // Force reflow to ensure transition works
+            content.offsetHeight;
+            
             // Add visual feedback
             if (group.classList.contains('collapsed')) {
                 // Group is now collapsed
-                header.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
-                header.style.color = 'var(--medical-600)';
+                header.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                header.style.color = '#94a3b8';
+                console.log('Group collapsed:', header.querySelector('span').textContent);
             } else {
                 // Group is now expanded
-                header.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                header.style.color = 'var(--medical-700)';
+                header.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                header.style.color = '#f1f5f9';
+                console.log('Group expanded:', header.querySelector('span').textContent);
             }
             
-            // Log for debugging
-            console.log('Toggled nav group:', header.querySelector('span').textContent, 'Collapsed:', group.classList.contains('collapsed'));
+            // Log final state
+            console.log('Final collapsed state:', group.classList.contains('collapsed'));
         }
 
         // Dark mode toggle
@@ -718,30 +727,52 @@
 
         // Initialize charts when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Starting initialization...');
+            
             if (window.petugasCharts) {
+                console.log('Initializing petugas charts...');
                 window.petugasCharts.init();
+            } else {
+                console.log('Petugas charts not available');
             }
             
             // Initialize sidebar navigation groups
+            console.log('Starting sidebar initialization...');
             initializeSidebarGroups();
+            
+            console.log('Page initialization complete');
         });
         
         // Initialize sidebar navigation groups
         function initializeSidebarGroups() {
+            console.log('Initializing sidebar navigation groups...');
+            
             const navGroups = document.querySelectorAll('.sidebar-nav-group');
-            navGroups.forEach(group => {
+            console.log('Found', navGroups.length, 'navigation groups');
+            
+            navGroups.forEach((group, index) => {
                 const header = group.querySelector('.sidebar-nav-group-header');
-                const icon = header.querySelector('.sidebar-toggle-icon');
+                const content = group.querySelector('.sidebar-nav-group-content');
+                const groupName = header.querySelector('span').textContent;
+                
+                console.log(`Initializing group ${index + 1}:`, groupName);
                 
                 // Ensure all groups are expanded by default (remove collapsed class)
                 group.classList.remove('collapsed');
                 
-                // Set proper visual state
-                header.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                header.style.color = 'var(--medical-700)';
+                // Force content to be visible
+                content.style.display = 'block';
+                content.style.maxHeight = '1000px';
+                content.style.opacity = '1';
                 
-                console.log('Initialized nav group:', header.querySelector('span').textContent);
+                // Set proper visual state
+                header.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                header.style.color = '#f1f5f9';
+                
+                console.log(`Group "${groupName}" initialized - Expanded:`, !group.classList.contains('collapsed'));
             });
+            
+            console.log('Sidebar navigation groups initialization complete');
         }
 
         // Auto-refresh every 30 seconds

@@ -1,4 +1,4 @@
-@import '/vendor/filament/filament/resources/css/theme.css';
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
 
 /* Manajer Panel Design System - Executive Red Theme */
 [data-filament-panel-id="manajer"] {

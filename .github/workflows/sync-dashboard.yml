@@ -116,14 +116,99 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      - name: Download Composer 2 locally
+        run: |
+          echo "📦 Downloading Composer 2 locally..."
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php composer-setup.php --2 --install-dir=. --filename=composer2
+          php -r "unlink('composer-setup.php');"
+          ./composer2 --version
+          echo "✅ Local Composer 2 ready"
+
+      - name: Install Composer dependencies
+        run: |
+          echo "🚀 Installing Composer dependencies..."
+          ./composer2 install --no-dev --optimize-autoloader --no-progress --no-interaction
+          echo "✅ Composer dependencies installed"
+
+      - name: Publish Filament assets
+        run: |
+          echo "📦 Publishing Filament assets..."
+          php artisan vendor:publish --tag=filament-assets --force || echo "⚠️ Filament assets publish skipped"
+          echo "✅ Filament assets published"
+
       - name: Install NPM dependencies
-        run: npm ci
+        run: |
+          echo "📦 Installing NPM dependencies..."
+          npm ci
+          echo "✅ NPM dependencies installed"
+
+      - name: Verify CSS imports
+        run: |
+          echo "🔍 Verifying Filament CSS imports..."
+          
+          # Check if vendor theme.css exists
+          if [ -f "vendor/filament/filament/resources/css/theme.css" ]; then
+            echo "✅ Filament theme.css found"
+          else
+            echo "❌ Filament theme.css missing"
+            echo "📋 Vendor Filament structure:"
+            find vendor/filament -name "*.css" | head -10 || echo "No CSS files found"
+          fi
+          
+          # Check our theme files for correct imports
+          echo "📋 Checking theme file imports..."
+          find resources/css/filament -name "theme*.css" | while read file; do
+            if grep -q "../../../../vendor/filament" "$file"; then
+              echo "✅ $file: Import path correct"
+            elif grep -q "/vendor/filament" "$file"; then
+              echo "❌ $file: Uses absolute path (will cause build errors)"
+            else
+              echo "⚠️ $file: No Filament import found"
+            fi
+          done
 
       - name: Build assets
         run: |
           echo "🔨 Building frontend assets..."
-          npm run build
-          echo "✅ Assets built successfully"
+          echo "📋 Build configuration:"
+          echo "  - Vite config exists: $([ -f vite.config.js ] && echo 'Yes' || echo 'No')"
+          echo "  - Package.json exists: $([ -f package.json ] && echo 'Yes' || echo 'No')"
+          
+          # Show theme files being built
+          echo "📄 Theme files to build:"
+          find resources/css/filament -name "*.css" | head -10
+          
+          echo ""
+          echo "🚀 Starting build process..."
+          if npm run build; then
+            echo "✅ Assets built successfully"
+            
+            # Verify build output
+            if [ -d "public/build" ]; then
+              echo "📊 Build output summary:"
+              echo "  - Files created: $(find public/build -type f | wc -l)"
+              echo "  - CSS files: $(find public/build -name "*.css" | wc -l)"
+              echo "  - JS files: $(find public/build -name "*.js" | wc -l)"
+            fi
+          else
+            echo "❌ Build failed"
+            echo "🔍 Checking for common issues..."
+            
+            # Check if theme.css exists
+            if [ ! -f "vendor/filament/filament/resources/css/theme.css" ]; then
+              echo "❌ Filament theme.css missing - running vendor:publish"
+              php artisan vendor:publish --tag=filament-assets --force
+            fi
+            
+            # Check for absolute path imports
+            echo "🔍 Checking for problematic CSS imports..."
+            find resources/css -name "*.css" -exec grep -l "/vendor/filament" {} \; | while read file; do
+              echo "⚠️ Found absolute import in: $file"
+            done
+            
+            exit 1
+          fi
 
       - name: Prepare files for sync
         run: |

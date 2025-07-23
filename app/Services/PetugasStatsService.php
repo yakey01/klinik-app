@@ -152,21 +152,25 @@ class PetugasStatsService
                 ->count();
             
             // Income stats  
-            $pendapatanSum = PendapatanHarian::where('tanggal_input', $date->format('Y-m-d'))
+            $pendapatanSum = PendapatanHarian::where('tanggal_input', $date)
                 ->where('user_id', $userId)
+                ->where('status_validasi', 'approved') // Only count approved income records
                 ->sum('nominal');
                 
-            $pendapatanCount = PendapatanHarian::where('tanggal_input', $date->format('Y-m-d'))
+            $pendapatanCount = PendapatanHarian::where('tanggal_input', $date)
                 ->where('user_id', $userId)
+                ->where('status_validasi', 'approved') // Only count approved income records
                 ->count();
             
             // Expense stats
-            $pengeluaranSum = PengeluaranHarian::where('tanggal_input', $date->format('Y-m-d'))
+            $pengeluaranSum = PengeluaranHarian::where('tanggal_input', $date)
                 ->where('user_id', $userId)
+                ->where('status_validasi', 'approved') // Only count approved expense records
                 ->sum('nominal');
                 
-            $pengeluaranCount = PengeluaranHarian::where('tanggal_input', $date->format('Y-m-d'))
+            $pengeluaranCount = PengeluaranHarian::where('tanggal_input', $date)
                 ->where('user_id', $userId)
+                ->where('status_validasi', 'approved') // Only count approved expense records
                 ->count();
             
             // Treatment stats

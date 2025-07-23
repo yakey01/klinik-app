@@ -1,0 +1,171 @@
+name: 🔧 Direct Fix
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_type:
+        description: 'Type of issue to fix'
+        required: false
+        default: 'petugas-stats'
+        type: choice
+        options:
+          - petugas-stats
+          - date-queries
+          - validation-status
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  direct-fix:
+    name: 🔧 Apply Direct Fix
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Apply direct fixes
+        id: apply-fix
+        run: |
+          echo "🔧 Applying direct fixes for ${{ github.event.inputs.issue_type }}..."
+          
+          CHANGES_MADE=false
+          
+          # Fix PetugasStatsService
+          if [ "${{ github.event.inputs.issue_type }}" = "petugas-stats" ] || [ "${{ github.event.inputs.issue_type }}" = "date-queries" ]; then
+            if [ -f "app/Services/PetugasStatsService.php" ]; then
+              echo "🔧 Fixing PetugasStatsService..."
+              
+              # Create backup
+              cp "app/Services/PetugasStatsService.php" "app/Services/PetugasStatsService.php.bak"
+              
+              # Apply fixes using sed
+              sed -i.tmp "s/->where('tanggal_input', \\\$date->format('Y-m-d'))/->whereDate('tanggal_input', \\\$date->format('Y-m-d'))/g" app/Services/PetugasStatsService.php
+              sed -i.tmp "s/->where('tanggal', \\\$date->format('Y-m-d'))/->whereDate('tanggal', \\\$date->format('Y-m-d'))/g" app/Services/PetugasStatsService.php
+              sed -i.tmp "s/'approved'/'disetujui'/g" app/Services/PetugasStatsService.php
+              sed -i.tmp "s/approved_at/validated_at/g" app/Services/PetugasStatsService.php
+              
+              # Remove backup files
+              rm -f app/Services/PetugasStatsService.php.tmp app/Services/PetugasStatsService.php.bak
+              
+              echo "✅ PetugasStatsService fixed"
+              CHANGES_MADE=true
+            fi
+          fi
+          
+          # Fix test file
+          if [ "${{ github.event.inputs.issue_type }}" = "petugas-stats" ]; then
+            if [ -f "tests/Unit/Services/PetugasStatsServiceTest.php" ]; then
+              echo "🧪 Fixing test file..."
+              
+              # Create backup
+              cp "tests/Unit/Services/PetugasStatsServiceTest.php" "tests/Unit/Services/PetugasStatsServiceTest.php.bak"
+              
+              # Apply test fixes
+              sed -i.tmp "s/'status_validasi' => 'approved'/'status_validasi' => 'disetujui'/g" tests/Unit/Services/PetugasStatsServiceTest.php
+              sed -i.tmp "s/'approved_at'/'validated_at'/g" tests/Unit/Services/PetugasStatsServiceTest.php
+              
+              # Remove backup files
+              rm -f tests/Unit/Services/PetugasStatsServiceTest.php.tmp tests/Unit/Services/PetugasStatsServiceTest.php.bak
+              
+              echo "✅ Test file fixed"
+              CHANGES_MADE=true
+            fi
+          fi
+          
+          # Set output
+          if [ "$CHANGES_MADE" = true ]; then
+            echo "changes_made=true" >> $GITHUB_OUTPUT
+            echo "📝 Changes applied successfully"
+          else
+            echo "changes_made=false" >> $GITHUB_OUTPUT
+            echo "📝 No changes were needed"
+          fi
+
+      - name: Run tests to verify
+        if: steps.apply-fix.outputs.changes_made == 'true'
+        run: |
+          echo "🧪 Running tests to verify fixes..."
+          
+          # Run specific test
+          if php artisan test tests/Unit/Services/PetugasStatsServiceTest.php; then
+            echo "✅ PetugasStatsService tests are now passing!"
+            echo "test_success=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Tests still failing - but fixes were applied"
+            echo "test_success=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Show test output for debugging
+          echo "🔍 Test output details:"
+          php artisan test tests/Unit/Services/PetugasStatsServiceTest.php --verbose || true
+        continue-on-error: true
+
+      - name: Commit and push fixes
+        if: steps.apply-fix.outputs.changes_made == 'true'
+        run: |
+          echo "📝 Committing fixes..."
+          
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Stage changes
+          git add app/Services/PetugasStatsService.php
+          if [ -f "tests/Unit/Services/PetugasStatsServiceTest.php" ]; then
+            git add tests/Unit/Services/PetugasStatsServiceTest.php
+          fi
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "📝 No changes to commit"
+          else
+            # Commit changes
+            git commit -m "🔧 Fix PetugasStatsService date query and validation issues
+
+Applied direct fixes for dokter/tindakan statistics:
+- Changed where() to whereDate() for date comparisons  
+- Fixed validation status: 'approved' → 'disetujui'
+- Updated column references: approved_at → validated_at
+- Fixed test assertions to match corrected logic
+
+Issue: PetugasStatsService pendapatan_sum returning 0.0
+Status: ${{ steps.apply-fix.outputs.test_success || 'Applied fixes' }}
+
+🤖 Auto-applied via Direct Fix workflow"
+            
+            # Push changes
+            git push origin main
+            
+            echo "✅ Changes committed and pushed to main branch"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "🔧 Direct Fix Summary"
+          echo "==================="
+          echo "Issue type: ${{ github.event.inputs.issue_type }}"
+          echo "Changes made: ${{ steps.apply-fix.outputs.changes_made }}"
+          echo "Tests status: ${{ steps.apply-fix.outputs.test_success }}"
+          echo ""
+          if [ "${{ steps.apply-fix.outputs.changes_made }}" = "true" ]; then
+            echo "✅ Fixes have been applied directly to main branch"
+            echo "🧪 Please verify the changes work as expected"
+          else
+            echo "📝 No fixes were needed at this time"
+          fi

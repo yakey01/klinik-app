@@ -184,6 +184,7 @@
             transition: all 0.3s ease;
             max-height: 1000px; /* Default expanded state */
             opacity: 1;
+            display: block; /* Ensure content is visible */
         }
         
         .sidebar-nav-group.collapsed .sidebar-nav-group-content {
@@ -191,6 +192,8 @@
             opacity: 0;
             padding-top: 0;
             padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
         }
         
         .sidebar-nav-group:not(.collapsed) .sidebar-nav-group-content {
@@ -198,6 +201,8 @@
             opacity: 1;
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
+            margin-top: 0.25rem;
+            margin-bottom: 0.25rem;
         }
         
         .sidebar-toggle-icon {

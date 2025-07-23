@@ -10,10 +10,10 @@ jobs:
     - name: 🔌 Test SSH Connection
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: 153.92.8.132
-        username: u454362045
-        password: ${{ secrets.SSH_PASSWORD }}
-        port: 65002
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
         timeout: 30s
         script: |
           echo "✅ SSH Connection successful!"

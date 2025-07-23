@@ -10,10 +10,10 @@ jobs:
     - name: 🔍 Debug Database on Hostinger
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: 153.92.8.132
-        username: u454362045
-        password: ${{ secrets.SSH_PASSWORD }}
-        port: 65002
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
         script: |
           echo "🔍 Database Debug Report"
           echo "======================="

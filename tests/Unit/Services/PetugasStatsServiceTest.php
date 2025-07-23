@@ -268,13 +268,28 @@ class PetugasStatsServiceTest extends TestCase
         $this->service->useDirectQueries = true;
         Cache::flush();
         
-        $pendapatan = Pendapatan::factory()->create(['nama_pendapatan' => 'Test Pendapatan']);
-        $pendapatanHarian = PendapatanHarian::factory()->create([
+        // Create test data directly without factory to avoid transaction issues
+        $pendapatan = Pendapatan::create([
+            'nama_pendapatan' => 'Test Pendapatan',
+            'kode' => 'TEST-001',
+            'deskripsi' => 'Test pendapatan untuk unit test',
+            'is_active' => true,
+            'tanggal' => now(),
+            'input_by' => $this->user->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        
+        $pendapatanHarian = PendapatanHarian::create([
             'user_id' => $this->user->id,
             'tanggal_input' => $today->format('Y-m-d'),
             'nominal' => 1500000, // 1.5 million
             'pendapatan_id' => $pendapatan->id,
-            'status_validasi' => 'disetujui', // Ensure status is set if queries filter by it
+            'status_validasi' => 'disetujui',
+            'deskripsi' => 'Test pendapatan harian',
+            'shift' => 'Pagi',
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
         
         // Clear any residual cache

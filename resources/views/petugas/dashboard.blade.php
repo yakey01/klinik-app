@@ -31,6 +31,30 @@
         }
     </script>
     <style>
+        :root {
+            --medical-50: #f0fdf4;
+            --medical-100: #dcfce7;
+            --medical-200: #bbf7d0;
+            --medical-300: #86efac;
+            --medical-400: #4ade80;
+            --medical-500: #22c55e;
+            --medical-600: #16a34a;
+            --medical-700: #15803d;
+            --medical-800: #166534;
+            --medical-900: #14532d;
+        }
+        
+        .petugas-sidebar {
+            width: 280px;
+            min-width: 280px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+        }
+        
+        .gradient-medical {
+            background: linear-gradient(135deg, var(--medical-600) 0%, var(--medical-700) 100%);
+        }
+        
         /* Custom isolated styles for non-Filament dashboard */
         .petugas-isolated {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -89,33 +113,35 @@
         }
         
         .sidebar-nav-group {
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            overflow: hidden;
         }
         
         .sidebar-nav-group-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.5rem 1rem;
-            font-size: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--medical-600);
+            color: #e2e8f0;
             cursor: pointer;
             transition: all 0.3s ease;
             border-radius: 0.5rem;
-            background-color: rgba(16, 185, 129, 0.1);
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .sidebar-nav-group-header:hover {
-            background-color: rgba(16, 185, 129, 0.15);
+            background-color: rgba(255, 255, 255, 0.15);
             transform: translateX(2px);
+            border-color: rgba(255, 255, 255, 0.2);
         }
         
         .sidebar-nav-group.collapsed .sidebar-nav-group-header {
-            background-color: rgba(16, 185, 129, 0.05);
-            color: var(--medical-500);
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
         }
         
         .sidebar-nav-item {
@@ -124,21 +150,26 @@
             padding: 0.75rem 1rem;
             margin: 0.125rem 0.5rem;
             font-size: 0.875rem;
-            color: rgb(107, 114, 128);
+            color: #cbd5e1;
             text-decoration: none;
             border-radius: 0.5rem;
             transition: all 0.2s ease;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid transparent;
         }
         
         .sidebar-nav-item:hover {
-            background-color: rgba(16, 185, 129, 0.1);
-            color: var(--medical-700);
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #f1f5f9;
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
         }
         
         .sidebar-nav-item.active {
-            background-color: rgba(16, 185, 129, 0.15);
-            color: var(--medical-700);
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
             font-weight: 600;
+            border-color: rgba(34, 197, 94, 0.3);
         }
         
         .sidebar-nav-item svg {
@@ -151,14 +182,22 @@
         .sidebar-nav-group-content {
             overflow: hidden;
             transition: all 0.3s ease;
+            max-height: 1000px; /* Default expanded state */
+            opacity: 1;
         }
         
         .sidebar-nav-group.collapsed .sidebar-nav-group-content {
             max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
         }
         
         .sidebar-nav-group:not(.collapsed) .sidebar-nav-group-content {
             max-height: 1000px;
+            opacity: 1;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
         }
         
         .sidebar-toggle-icon {

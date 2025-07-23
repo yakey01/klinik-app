@@ -328,8 +328,8 @@
             return new ApexCharts(document.querySelector("#monthlyTrendsChart"), monthlyOptions);
         }
 
-        let monthlyChart = createMonthlyChart();
-        monthlyChart.render();
+        let premiumActivitiesMonthlyChart = createMonthlyChart();
+        premiumActivitiesMonthlyChart.render();
 
         // Theme change detection
         const observer = new MutationObserver(function(mutations) {
@@ -337,10 +337,10 @@
                 if (mutation.type === 'attributes' && 
                     mutation.attributeName === 'class' && 
                     mutation.target === document.documentElement) {
-                    if (monthlyChart) {
-                        monthlyChart.destroy();
-                        monthlyChart = createMonthlyChart();
-                        monthlyChart.render();
+                    if (premiumActivitiesMonthlyChart) {
+                        premiumActivitiesMonthlyChart.destroy();
+                        premiumActivitiesMonthlyChart = createMonthlyChart();
+                        premiumActivitiesMonthlyChart.render();
                     }
                 }
             });
@@ -353,7 +353,7 @@
 
         window.addEventListener('beforeunload', function() {
             if (observer) observer.disconnect();
-            if (monthlyChart) monthlyChart.destroy();
+            if (premiumActivitiesMonthlyChart) premiumActivitiesMonthlyChart.destroy();
         });
     </script>
     @endpush

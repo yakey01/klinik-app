@@ -431,15 +431,15 @@
         }
 
         // Initialize chart
-        let monthlyChart = createMonthlyChart();
-        monthlyChart.render();
+        let filamentMonthlyChart = createMonthlyChart();
+        filamentMonthlyChart.render();
 
         // Theme change detection and chart update
         function updateChartTheme() {
-            if (monthlyChart) {
-                monthlyChart.destroy();
-                monthlyChart = createMonthlyChart();
-                monthlyChart.render();
+            if (filamentMonthlyChart) {
+                filamentMonthlyChart.destroy();
+                filamentMonthlyChart = createMonthlyChart();
+                filamentMonthlyChart.render();
             }
         }
 
@@ -471,7 +471,7 @@
         // Cleanup on page unload
         window.addEventListener('beforeunload', function() {
             if (observer) observer.disconnect();
-            if (monthlyChart) monthlyChart.destroy();
+            if (filamentMonthlyChart) filamentMonthlyChart.destroy();
         });
     </script>
     @endpush

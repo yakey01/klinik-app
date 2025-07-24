@@ -45,6 +45,17 @@ class BendaharaDashboard extends Page
         ];
     }
 
+    public function getHeading(): string
+    {
+        return '💰 Bendahara Dashboard';
+    }
+
+    public function getSubheading(): ?string
+    {
+        $user = auth()->user();
+        return $user ? "Selamat datang, {$user->name}! Kelola keuangan dengan mudah dan efisien." : null;
+    }
+
     // Core Financial Metrics - World Class Treasury Analytics
     public function getFinancialSummary(): array
     {

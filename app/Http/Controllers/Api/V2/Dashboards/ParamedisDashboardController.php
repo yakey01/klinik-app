@@ -52,10 +52,12 @@ class ParamedisDashboardController extends Controller
                     ->whereDate('tanggal_tindakan', $today)
                     ->count();
 
-                $jaspelMonth = Tindakan::where('paramedis_id', $paramedis->id)
-                    ->where('tanggal_tindakan', '>=', $thisMonth)
-                    ->where('status_validasi', 'disetujui')
-                    ->sum('jasa_paramedis');
+                // WORLD-CLASS: Use Jaspel model for consistent calculation with Jaspel page
+                $jaspelMonth = \App\Models\Jaspel::where('user_id', $user->id)
+                    ->whereMonth('tanggal', $thisMonth->month)
+                    ->whereYear('tanggal', $thisMonth->year)
+                    ->whereIn('status_validasi', ['disetujui', 'approved'])
+                    ->sum('nominal');
 
                 $shiftsWeek = JadwalJaga::where('pegawai_id', $user->id)
                     ->where('tanggal_jaga', '>=', $thisWeek)
@@ -212,45 +214,79 @@ class ParamedisDashboardController extends Controller
             $month = $request->get('month', Carbon::now()->month);
             $year = $request->get('year', Carbon::now()->year);
 
-            // Jaspel bulan ini
-            $jaspelQuery = Tindakan::where('paramedis_id', $paramedis->id)
-                ->whereMonth('tanggal_tindakan', $month)
-                ->whereYear('tanggal_tindakan', $year);
+            // WORLD-CLASS: Use Jaspel model for consistent calculation across all endpoints
+            $jaspelQuery = \App\Models\Jaspel::where('user_id', $user->id)
+                ->whereMonth('tanggal', $month)
+                ->whereYear('tanggal', $year);
 
+            // WORLD-CLASS: Enhanced pending calculation including bendahara validation queue
+            $pendingJaspelRecords = (clone $jaspelQuery)->where('status_validasi', 'pending')->sum('nominal');
+            
+            // Add approved Tindakan awaiting Jaspel generation (paramedis portion)
+            $pendingFromTindakan = \App\Models\Tindakan::where('paramedis_id', $paramedis->id)
+                ->whereMonth('tanggal_tindakan', $month)
+                ->whereYear('tanggal_tindakan', $year)
+                ->whereIn('status_validasi', ['approved', 'disetujui'])
+                ->whereDoesntHave('jaspel', function($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                          ->where('jenis_jaspel', 'paramedis');
+                })
+                ->where('jasa_paramedis', '>', 0)
+                ->sum('jasa_paramedis');
+                
+            $totalPending = $pendingJaspelRecords + ($pendingFromTindakan * 0.15);
+            
             $jaspelStats = [
-                'total' => $jaspelQuery->sum('jasa_paramedis'),
-                'approved' => $jaspelQuery->where('status_validasi', 'disetujui')->sum('jasa_paramedis'),
-                'pending' => $jaspelQuery->where('status_validasi', 'pending')->sum('jasa_paramedis'),
-                'rejected' => $jaspelQuery->where('status_validasi', 'ditolak')->sum('jasa_paramedis'),
+                'total' => $jaspelQuery->sum('nominal'),
+                'approved' => $jaspelQuery->whereIn('status_validasi', ['disetujui', 'approved'])->sum('nominal'),
+                'pending' => $totalPending,
+                'pending_breakdown' => [
+                    'jaspel_records' => $pendingJaspelRecords,
+                    'tindakan_awaiting_jaspel' => $pendingFromTindakan * 0.15,
+                    'total' => $totalPending
+                ],
+                'rejected' => $jaspelQuery->whereIn('status_validasi', ['ditolak', 'rejected'])->sum('nominal'),
                 'count_tindakan' => $jaspelQuery->count()
             ];
 
-            // Breakdown per hari
+            // Breakdown per hari using Jaspel model
             $dailyBreakdown = $jaspelQuery->select(
-                DB::raw('DATE(tanggal_tindakan) as date'),
+                DB::raw('DATE(tanggal) as date'),
                 DB::raw('COUNT(*) as total_tindakan'),
-                DB::raw('SUM(jasa_paramedis) as total_jaspel'),
-                DB::raw('SUM(CASE WHEN status_validasi = "disetujui" THEN jasa_paramedis ELSE 0 END) as approved_jaspel')
+                DB::raw('SUM(nominal) as total_jaspel'),
+                DB::raw('SUM(CASE WHEN status_validasi IN ("disetujui", "approved") THEN nominal ELSE 0 END) as approved_jaspel')
             )
             ->groupBy('date')
             ->orderBy('date')
             ->get();
 
-            // Breakdown per jenis tindakan
+            // Breakdown per jenis jaspel
             $tindakanBreakdown = $jaspelQuery->select(
-                'jenis_tindakan',
+                'jenis_jaspel as jenis_tindakan',
                 DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(jasa_paramedis) as total_jaspel')
+                DB::raw('SUM(nominal) as total_jaspel')
             )
-            ->groupBy('jenis_tindakan')
+            ->groupBy('jenis_jaspel')
             ->orderByDesc('total_jaspel')
             ->get();
 
-            // Riwayat jaspel
-            $recentJaspel = $jaspelQuery->with(['pasien:id,nama_pasien'])
-                ->orderByDesc('tanggal_tindakan')
+            // Riwayat jaspel using Jaspel model
+            $recentJaspel = $jaspelQuery->with(['tindakan.pasien:id,nama_pasien'])
+                ->orderByDesc('tanggal')
                 ->limit(10)
-                ->get();
+                ->get()
+                ->map(function($jaspel) {
+                    $tindakan = $jaspel->tindakan;
+                    return [
+                        'id' => $jaspel->id,
+                        'tanggal_tindakan' => $jaspel->tanggal,
+                        'nominal' => $jaspel->nominal,
+                        'jasa_paramedis' => $jaspel->nominal, // For compatibility
+                        'status_validasi' => $jaspel->status_validasi,
+                        'jenis_tindakan' => $jaspel->jenis_jaspel,
+                        'pasien' => $tindakan && $tindakan->pasien ? $tindakan->pasien : null
+                    ];
+                });
 
             return response()->json([
                 'success' => true,
@@ -313,9 +349,9 @@ class ParamedisDashboardController extends Controller
                 'meta' => [
                     'summary' => [
                         'total' => Tindakan::where('paramedis_id', $paramedis->id)->count(),
-                        'approved' => Tindakan::where('paramedis_id', $paramedis->id)->where('status_validasi', 'disetujui')->count(),
+                        'approved' => Tindakan::where('paramedis_id', $paramedis->id)->whereIn('status_validasi', ['disetujui', 'approved'])->count(),
                         'pending' => Tindakan::where('paramedis_id', $paramedis->id)->where('status_validasi', 'pending')->count(),
-                        'rejected' => Tindakan::where('paramedis_id', $paramedis->id)->where('status_validasi', 'ditolak')->count()
+                        'rejected' => Tindakan::where('paramedis_id', $paramedis->id)->whereIn('status_validasi', ['ditolak', 'rejected'])->count()
                     ]
                 ]
             ]);

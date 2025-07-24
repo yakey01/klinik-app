@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { DollarSign, Calendar, TrendingUp, Eye, Wallet, CreditCard, PiggyBank } from 'lucide-react';
+import { DollarSign, Calendar, TrendingUp, Eye, Wallet, CreditCard, PiggyBank, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface JaspelItem {
   id: string;
@@ -13,43 +13,144 @@ interface JaspelItem {
   jumlah: number;
   status: 'pending' | 'paid' | 'rejected';
   keterangan?: string;
+  validated_by?: string;
+  validated_at?: string;
+}
+
+interface JaspelSummary {
+  total_paid: number;
+  total_pending: number;
+  total_rejected: number;
+  count_paid: number;
+  count_pending: number;
+  count_rejected: number;
+}
+
+interface JaspelApiResponse {
+  success: boolean;
+  message: string;
+  data: {
+    jaspel_items: JaspelItem[];
+    summary: JaspelSummary;
+  };
+  meta: {
+    month: number;
+    year: number;
+    user_name: string;
+  };
 }
 
 export function Jaspel() {
-  const [jaspelData] = useState<JaspelItem[]>([
-    {
-      id: '1',
-      tanggal: '2025-01-16',
-      jenis: 'Jaga Malam',
-      jumlah: 150000,
-      status: 'paid',
-      keterangan: 'ICU - 8 jam'
-    },
-    {
-      id: '2',
-      tanggal: '2025-01-15',
-      jenis: 'Operasi',
-      jumlah: 300000,
-      status: 'paid',
-      keterangan: 'Bedah Umum - 4 jam'
-    },
-    {
-      id: '3',
-      tanggal: '2025-01-17',
-      jenis: 'Konsultasi',
-      jumlah: 75000,
-      status: 'pending',
-      keterangan: 'Rawat Jalan'
+  const [jaspelData, setJaspelData] = useState<JaspelItem[]>([]);
+  const [summary, setSummary] = useState<JaspelSummary>({
+    total_paid: 0,
+    total_pending: 0,
+    total_rejected: 0,
+    count_paid: 0,
+    count_pending: 0,
+    count_rejected: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentMonth] = useState(new Date().getMonth() + 1);
+  const [currentYear] = useState(new Date().getFullYear());
+
+  // Fetch Jaspel data from API - WORLD-CLASS implementation for dokter
+  const fetchJaspelData = async (month?: number, year?: number) => {
+    console.log('🔍 [DOKTER JASPEL DEBUG] Starting fetchJaspelData...', { month, year });
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Try multiple token sources
+      const token = localStorage.getItem('token') || 
+                   sessionStorage.getItem('token') || 
+                   document.querySelector('meta[name="api-token"]')?.getAttribute('content');
+      
+      console.log('🔑 [DOKTER JASPEL DEBUG] Token found:', !!token, token ? token.substring(0, 10) + '...' : 'null');
+
+      const params = new URLSearchParams();
+      if (month) params.append('month', month.toString());
+      if (year) params.append('year', year.toString());
+
+      // Use dokter-specific Jaspel endpoint matching routes/api.php line 319
+      const url = `/api/v2/dashboards/dokter/jaspel?${params}`;
+      console.log('📡 [DOKTER JASPEL DEBUG] Calling API:', url);
+
+      const headers: any = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      console.log('📋 [DOKTER JASPEL DEBUG] Request headers:', headers);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        credentials: 'include', // Include cookies for session auth
+      });
+
+      console.log('📊 [DOKTER JASPEL DEBUG] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [DOKTER JASPEL DEBUG] API Error:', response.status, errorText);
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
+      }
+
+      const result: JaspelApiResponse = await response.json();
+      console.log('✅ [DOKTER JASPEL DEBUG] API Success:', result);
+
+      if (result.success) {
+        setJaspelData(result.data.jaspel_items || []);
+        setSummary(result.data.summary || {
+          total_paid: 0,
+          total_pending: 0,
+          total_rejected: 0,
+          count_paid: 0,
+          count_pending: 0,
+          count_rejected: 0
+        });
+        console.log('💾 [DOKTER JASPEL DEBUG] Data updated:', {
+          items: result.data.jaspel_items?.length || 0,
+          summary: result.data.summary
+        });
+      } else {
+        throw new Error(result.message || 'Unknown API error');
+      }
+
+    } catch (err) {
+      console.error('💥 [DOKTER JASPEL DEBUG] Fetch error:', err);
+      setError(err instanceof Error ? err.message : 'Gagal memuat data jaspel');
+      
+      // Set fallback data for development
+      setJaspelData([]);
+      setSummary({
+        total_paid: 0,
+        total_pending: 0,
+        total_rejected: 0,
+        count_paid: 0,
+        count_pending: 0,
+        count_rejected: 0
+      });
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
-  const totalPending = jaspelData
-    .filter(item => item.status === 'pending')
-    .reduce((sum, item) => sum + item.jumlah, 0);
+  // Load data on component mount
+  useEffect(() => {
+    console.log('🚀 [DOKTER JASPEL DEBUG] Component mounted, fetching data...');
+    fetchJaspelData(currentMonth, currentYear);
+  }, [currentMonth, currentYear]);
 
-  const totalPaid = jaspelData
-    .filter(item => item.status === 'paid')
-    .reduce((sum, item) => sum + item.jumlah, 0);
+  const totalPending = summary.total_pending;
+  const totalPaid = summary.total_paid;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -92,6 +193,69 @@ export function Jaspel() {
     show: { opacity: 1, y: 0 }
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6 theme-transition">
+        <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 border-0 shadow-xl card-enhanced">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 dark:bg-white/30 rounded-full flex items-center justify-center">
+                  <RefreshCw className="w-6 h-6 animate-spin" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-white text-heading-mobile">Jaspel</h2>
+                  <p className="text-emerald-100 dark:text-emerald-200 text-sm font-medium text-mobile-friendly">Memuat data jaspel...</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="animate-pulse">
+            <CardContent className="p-4 h-20 bg-gray-200 dark:bg-gray-700"></CardContent>
+          </Card>
+          <Card className="animate-pulse">
+            <CardContent className="p-4 h-20 bg-gray-200 dark:bg-gray-700"></CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6 theme-transition">
+        <Card className="bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 border-0 shadow-xl card-enhanced">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 dark:bg-white/30 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-white text-heading-mobile">Jaspel</h2>
+                  <p className="text-red-100 dark:text-red-200 text-sm font-medium text-mobile-friendly">Error: {error}</p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => fetchJaspelData(currentMonth, currentYear)}
+                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Coba Lagi
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <motion.div 
       variants={container}
@@ -113,6 +277,16 @@ export function Jaspel() {
                   <p className="text-emerald-100 dark:text-emerald-200 text-sm font-medium text-mobile-friendly">Kelola pendapatan jasa medis</p>
                 </div>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => fetchJaspelData(currentMonth, currentYear)}
+                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                disabled={isLoading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
           </CardContent>
         </Card>

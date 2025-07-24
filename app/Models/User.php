@@ -435,4 +435,117 @@ class User extends Authenticatable implements FilamentUser
             return $this->last_login_at ? now()->diffInDays($this->last_login_at) : null;
         });
     }
+
+    /**
+     * Check if NIP is already taken by another user
+     * 
+     * @param string $nip
+     * @param int|null $excludeUserId
+     * @return array
+     */
+    public static function checkNipAvailability(string $nip, ?int $excludeUserId = null): array
+    {
+        $query = static::where('nip', $nip);
+        
+        if ($excludeUserId) {
+            $query->where('id', '!=', $excludeUserId);
+        }
+        
+        $existingUser = $query->first();
+        
+        if ($existingUser) {
+            return [
+                'available' => false,
+                'message' => "NIP '{$nip}' sudah digunakan oleh user '{$existingUser->name}' (Username: {$existingUser->username}). Silakan gunakan NIP yang berbeda.",
+                'existing_user' => [
+                    'id' => $existingUser->id,
+                    'name' => $existingUser->name,
+                    'username' => $existingUser->username,
+                    'email' => $existingUser->email,
+                    'role' => $existingUser->role?->name
+                ]
+            ];
+        }
+        
+        return [
+            'available' => true,
+            'message' => "NIP '{$nip}' tersedia untuk digunakan."
+        ];
+    }
+
+    /**
+     * Check if username is already taken by another user
+     * 
+     * @param string $username
+     * @param int|null $excludeUserId
+     * @return array
+     */
+    public static function checkUsernameAvailability(string $username, ?int $excludeUserId = null): array
+    {
+        $query = static::where('username', $username);
+        
+        if ($excludeUserId) {
+            $query->where('id', '!=', $excludeUserId);
+        }
+        
+        $existingUser = $query->first();
+        
+        if ($existingUser) {
+            return [
+                'available' => false,
+                'message' => "Username '{$username}' sudah digunakan oleh user '{$existingUser->name}' (NIP: {$existingUser->nip}). Silakan gunakan username yang berbeda.",
+                'existing_user' => [
+                    'id' => $existingUser->id,
+                    'name' => $existingUser->name,
+                    'nip' => $existingUser->nip,
+                    'email' => $existingUser->email,
+                    'role' => $existingUser->role?->name
+                ]
+            ];
+        }
+        
+        return [
+            'available' => true,
+            'message' => "Username '{$username}' tersedia untuk digunakan."
+        ];
+    }
+
+    /**
+     * Get detailed error message for constraint violations
+     * 
+     * @param \Exception $e
+     * @return string
+     */
+    public static function getConstraintViolationMessage(\Exception $e): string
+    {
+        if ($e instanceof \Illuminate\Database\QueryException) {
+            $message = $e->getMessage();
+            
+            // Check for different constraint violations
+            if (str_contains($message, 'users.nip') || str_contains($message, 'UNIQUE constraint failed: users.nip')) {
+                return 'NIP sudah digunakan oleh user lain. Silakan gunakan NIP yang berbeda.';
+            } elseif (str_contains($message, 'users.username') || str_contains($message, 'UNIQUE constraint failed: users.username')) {
+                return 'Username sudah digunakan oleh user lain. Silakan gunakan username yang berbeda.';
+            } elseif (str_contains($message, 'users.email') || str_contains($message, 'UNIQUE constraint failed: users.email')) {
+                return 'Email sudah digunakan oleh user lain. Silakan gunakan email yang berbeda.';
+            } elseif (str_contains($message, 'UNIQUE constraint') || str_contains($message, 'Integrity constraint violation')) {
+                return 'Data yang dimasukkan sudah ada di sistem. Periksa NIP, username, atau email yang Anda masukkan.';
+            }
+        }
+        
+        return 'Terjadi kesalahan saat menyimpan data user. Silakan coba lagi.';
+    }
+
+    /**
+     * Send custom password reset notification for admin users
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        if ($this->hasRole('admin')) {
+            $this->notify(new \App\Notifications\AdminPasswordReset($token));
+        } else {
+            // Use default Laravel password reset notification for non-admin users
+            $this->notify(new \Illuminate\Auth\Notifications\ResetPassword($token));
+        }
+    }
 }

@@ -92,6 +92,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->pages([
                 \App\Filament\Pages\EnhancedAdminDashboard::class,
+                \App\Filament\Pages\AdminProfileSettings::class,
                 \App\Filament\Pages\SystemMonitoring::class,
             ])
             ->widgets([

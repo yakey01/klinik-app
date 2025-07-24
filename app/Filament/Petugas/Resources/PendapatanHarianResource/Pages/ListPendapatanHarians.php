@@ -13,7 +13,7 @@ class ListPendapatanHarians extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            // Removed duplicate CreateAction - using custom styled button from table headerActions instead
         ];
     }
 }

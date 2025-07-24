@@ -120,13 +120,13 @@ class ListValidations extends ListRecords
     public function getSubheading(): ?string
     {
         $stats = $this->getValidationStats();
-        return "Total: {$stats['total']} | Pending: {$stats['pending']} | Today: {$stats['today']} | High Value: {$stats['high_value']}";
+        return "Terdapat {$stats['pending']} tindakan menunggu validasi";
     }
 
     protected function getHeaderWidgets(): array
     {
         return [
-            \App\Filament\Bendahara\Widgets\ValidationMetricsWidget::class,
+            // Statistics cards removed for cleaner dashboard visual
         ];
     }
 

@@ -39,13 +39,9 @@ class BendaharaPanelProvider extends PanelProvider
                 \App\Filament\Bendahara\Pages\BendaharaDashboard::class,
             ])
             ->resources([
-                // RESTORED: Unified Validation Centers (PURE FILAMENT)
+                // Validation Centers - Clean navigation structure
                 \App\Filament\Bendahara\Resources\ValidationCenterResource::class,
-                \App\Filament\Bendahara\Resources\UnifiedFinancialValidationResource::class,
-                
-                // RESTORED: Legacy Financial Management (PURE FILAMENT)
-                \App\Filament\Bendahara\Resources\ValidasiPendapatanResource::class,
-                \App\Filament\Bendahara\Resources\ValidasiPengeluaranResource::class,
+                \App\Filament\Bendahara\Resources\DailyFinancialValidationResource::class,
                 
                 // RESTORED: Manajemen Jaspel Group (PURE FILAMENT)
                 \App\Filament\Bendahara\Resources\ValidasiJaspelResource::class,

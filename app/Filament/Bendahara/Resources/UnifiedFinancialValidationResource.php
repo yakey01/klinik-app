@@ -25,7 +25,7 @@ class UnifiedFinancialValidationResource extends Resource
     
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     
-    protected static ?string $navigationLabel = 'Validasi Keuangan';
+    protected static ?string $navigationLabel = 'Pusat Validasi Keuangan';
     
     protected static ?string $navigationGroup = 'Validasi Transaksi';
 
@@ -629,7 +629,8 @@ class UnifiedFinancialValidationResource extends Resource
     
     public static function canAccess(): bool
     {
-        return Auth::user()->hasRole(['admin', 'bendahara']);
+        // Disabled: Functionality moved to DailyFinancialValidationResource
+        return false;
     }
 
     public static function getPages(): array

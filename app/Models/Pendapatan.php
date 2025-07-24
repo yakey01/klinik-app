@@ -38,6 +38,12 @@ class Pendapatan extends Model
         'validasi_at' => 'datetime',
         'is_aktif' => 'boolean',
     ];
+
+    protected $attributes = [
+        'is_aktif' => true,
+        'status_validasi' => 'pending',
+        'nominal' => 0,
+    ];
     
     // Cache TTL for this model (in seconds)
     protected int $cacheTtl = 1800; // 30 minutes

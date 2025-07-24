@@ -28,40 +28,118 @@ class ParamedisDashboardController extends Controller
                 'user_role' => $user->role?->name ?? 'no_role',
             ]);
             
-            // Return static demo data to avoid any database/model issues
+            // Get paramedis data for dynamic calculations
+            $paramedis = \App\Models\Pegawai::where('user_id', $user->id)
+                ->where('jenis_pegawai', 'Paramedis')
+                ->first();
+            
+            if (!$paramedis) {
+                return response()->json([
+                    'error' => 'Paramedis data not found',
+                    'message' => 'Unable to find paramedis record for user'
+                ], 404);
+            }
+            
+            // Calculate dynamic Jaspel data from validated Tindakan (same as bendahara validation)
+            $today = Carbon::today();
+            $thisMonth = Carbon::now()->startOfMonth();
+            $thisWeek = Carbon::now()->startOfWeek();
+            
+            // Monthly Jaspel from Jaspel model (consistent with Jaspel page)
+            $jaspelMonthly = \App\Models\Jaspel::where('user_id', $user->id)
+                ->whereMonth('tanggal', $thisMonth->month)
+                ->whereYear('tanggal', $thisMonth->year)
+                ->whereIn('status_validasi', ['disetujui', 'approved'])
+                ->sum('nominal');
+            
+            // Weekly Jaspel from Jaspel model (consistent calculation)
+            $jaspelWeekly = \App\Models\Jaspel::where('user_id', $user->id)
+                ->where('tanggal', '>=', $thisWeek)
+                ->whereIn('status_validasi', ['disetujui', 'approved'])
+                ->sum('nominal');
+            
+            // Approved vs Pending breakdown using Jaspel model
+            $approvedJaspel = \App\Models\Jaspel::where('user_id', $user->id)
+                ->whereMonth('tanggal', $thisMonth->month)
+                ->whereYear('tanggal', $thisMonth->year)
+                ->whereIn('status_validasi', ['disetujui', 'approved'])
+                ->sum('nominal');
+                
+            // WORLD-CLASS: Calculate comprehensive pending Jaspel from multiple sources
+            // 1. Existing Jaspel records with pending status
+            $pendingJaspelRecords = \App\Models\Jaspel::where('user_id', $user->id)
+                ->whereMonth('tanggal', $thisMonth->month)
+                ->whereYear('tanggal', $thisMonth->year)
+                ->where('status_validasi', 'pending')
+                ->sum('nominal');
+                
+            // 2. Approved Tindakan that haven't generated Jaspel records yet (paramedis portion)
+            $pendingFromTindakan = \App\Models\Tindakan::where('paramedis_id', $paramedis->id)
+                ->whereMonth('tanggal_tindakan', $thisMonth->month)
+                ->whereYear('tanggal_tindakan', $thisMonth->year)
+                ->whereIn('status_validasi', ['approved', 'disetujui'])
+                ->whereDoesntHave('jaspel', function($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                          ->where('jenis_jaspel', 'paramedis');
+                })
+                ->where('jasa_paramedis', '>', 0)
+                ->sum('jasa_paramedis');
+                
+            // Total pending = existing pending Jaspel + paramedis portion of approved Tindakan without Jaspel
+            $pendingJaspel = $pendingJaspelRecords + ($pendingFromTindakan * 0.15); // 15% paramedis calculation
+            
+            // Shifts and attendance data
+            $shiftsThisMonth = \App\Models\JadwalJaga::where('pegawai_id', $user->id)
+                ->whereMonth('tanggal_jaga', Carbon::now()->month)
+                ->count();
+                
+            $todayAttendance = \App\Models\Attendance::where('user_id', $user->id)
+                ->whereDate('date', $today)
+                ->first();
+            
+            // Recent validated Jaspel records using Jaspel model
+            $recentJaspel = \App\Models\Jaspel::where('user_id', $user->id)
+                ->whereIn('status_validasi', ['disetujui', 'approved'])
+                ->with(['tindakan.pasien:id,nama_pasien'])
+                ->orderByDesc('tanggal')
+                ->limit(5)
+                ->get()
+                ->map(function($jaspel) {
+                    $tindakan = $jaspel->tindakan;
+                    return [
+                        'id' => $jaspel->id,
+                        'tanggal' => $jaspel->tanggal->format('Y-m-d'),
+                        'nominal' => $jaspel->nominal,
+                        'status_validasi' => $jaspel->status_validasi,
+                        'jenis_tindakan' => $jaspel->jenis_jaspel,
+                        'pasien' => $tindakan && $tindakan->pasien ? $tindakan->pasien->nama_pasien : 'Unknown Patient',
+                    ];
+                });
+            
+            // Return dynamic data based on validated bendahara data with enhanced metadata
             $dashboardData = [
-                'jaspel_monthly' => 15200000,
-                'jaspel_weekly' => 3800000,
-                'approved_jaspel' => 12800000,
-                'pending_jaspel' => 2400000,
-                'minutes_worked' => 720, // 12 hours
-                'shifts_this_month' => 22,
+                'jaspel_monthly' => $jaspelMonthly,
+                'jaspel_weekly' => $jaspelWeekly,
+                'approved_jaspel' => $approvedJaspel,
+                'pending_jaspel' => $pendingJaspel,
+                'pending_breakdown' => [
+                    'jaspel_pending' => $pendingJaspelRecords,
+                    'tindakan_awaiting_jaspel' => $pendingFromTindakan * 0.15,
+                    'tindakan_raw_amount' => $pendingFromTindakan,
+                    'calculation_rate' => '15%',
+                    'needs_bendahara_action' => $pendingFromTindakan > 0
+                ],
+                'minutes_worked' => $todayAttendance ? $todayAttendance->work_duration_minutes ?? 0 : 0,
+                'shifts_this_month' => $shiftsThisMonth,
                 'paramedis_name' => $user->name,
                 'paramedis_specialty' => $this->getUserSpecialty($user),
-                'today_attendance' => [
-                    'type' => 'demo',
-                    'check_in' => '08:00:00',
-                    'check_out' => null,
-                    'status' => 'present',
-                ],
-                'recent_jaspel' => [
-                    [
-                        'id' => 1,
-                        'tanggal' => Carbon::now()->subDays(1)->format('Y-m-d'),
-                        'nominal' => 500000,
-                        'status_validasi' => 'disetujui',
-                        'jenis_tindakan' => 'Konsultasi Umum',
-                        'pasien' => 'Pasien A',
-                    ],
-                    [
-                        'id' => 2,
-                        'tanggal' => Carbon::now()->subDays(2)->format('Y-m-d'),
-                        'nominal' => 750000,
-                        'status_validasi' => 'pending',
-                        'jenis_tindakan' => 'Pemeriksaan Khusus',
-                        'pasien' => 'Pasien B',
-                    ],
-                ],
+                'today_attendance' => $todayAttendance ? [
+                    'type' => 'real',
+                    'check_in' => $todayAttendance->time_in?->format('H:i:s'),
+                    'check_out' => $todayAttendance->time_out?->format('H:i:s'),
+                    'status' => $todayAttendance->time_out ? 'checked_out' : 'checked_in',
+                ] : null,
+                'recent_jaspel' => $recentJaspel->toArray(),
             ];
 
             return response()->json($dashboardData);

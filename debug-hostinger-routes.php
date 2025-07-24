@@ -4,7 +4,7 @@ echo "🔍 DEBUG: Hostinger Routes & Controller\n";
 echo "=====================================\n\n";
 
 // Check if we're on Hostinger
-$isHostinger = strpos($_SERVER['HTTP_HOST'] ?? '', 'dokterkuklinic.com') !== false;
+$isHostinger = strpos($_SERVER['HTTP_HOST'] ?? '', 'dokterkuklinik.com') !== false;
 echo "Environment: " . ($isHostinger ? 'Hostinger Production' : 'Local Development') . "\n\n";
 
 // Check if controller file exists
@@ -61,9 +61,9 @@ if (function_exists('app') || class_exists('Illuminate\Support\Facades\Route')) 
 
 echo "\n";
 echo "🧪 Manual Test URLs:\n";
-echo "   https://dokterkuklinic.com/api/public/dokter/stats\n";
-echo "   https://dokterkuklinic.com/api/dokter/stats\n";
-echo "   https://dokterkuklinic.com/api/api/dokter/stats\n";
+echo "   https://dokterkuklinik.com/api/public/dokter/stats\n";
+echo "   https://dokterkuklinik.com/api/dokter/stats\n";
+echo "   https://dokterkuklinik.com/api/api/dokter/stats\n";
 
 echo "\n";
 echo "🔧 Next Steps:\n";

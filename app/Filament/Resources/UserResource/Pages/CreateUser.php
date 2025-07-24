@@ -19,16 +19,41 @@ class CreateUser extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // Clean up NIP - make it null if empty for Pegawai/Dokter
+        if (isset($data['nip']) && empty(trim($data['nip']))) {
+            $data['nip'] = null;
+        }
+        
+        // For Pegawai and Dokter, NIP should be optional/nullable
+        $roleId = $data['role_id'] ?? null;
+        if ($roleId) {
+            $role = \App\Models\Role::find($roleId);
+            if ($role && in_array($role->name, ['dokter', 'pegawai', 'non_paramedis'])) {
+                // For Dokter, Pegawai, and Non-Paramedis, NIP can be null
+                if (empty($data['nip'])) {
+                    $data['nip'] = null;
+                }
+            }
+        }
+        
+        // Validate NIP uniqueness if provided
+        if (!empty($data['nip'])) {
+            $nipCheck = \App\Models\User::checkNipAvailability($data['nip']);
+            if (!$nipCheck['available']) {
+                throw ValidationException::withMessages([
+                    'nip' => $nipCheck['message']
+                ]);
+            }
+        }
+        
         // DEBUG: Log form data yang diterima dengan detail lebih lengkap
         \Log::info('CreateUser: Form data received', [
             'data_keys' => array_keys($data),
             'username' => $data['username'] ?? 'NOT_SET',
             'name' => $data['name'] ?? 'NOT_SET',
             'email' => $data['email'] ?? 'NOT_SET',
-            'email_type' => gettype($data['email'] ?? null),
-            'email_empty_check' => empty($data['email']),
-            'email_trim_check' => isset($data['email']) ? trim($data['email']) === '' : 'EMAIL_NOT_SET',
-            'all_request_data' => request()->all(),
+            'nip' => $data['nip'] ?? 'NULL',
+            'role' => $role->name ?? 'unknown',
             'full_data' => $data
         ]);
         
@@ -132,7 +157,33 @@ class CreateUser extends CreateRecord
             $data['email'] = trim($data['email']);
         }
         
-        return static::getModel()::create($data);
+        try {
+            return static::getModel()::create($data);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle database constraint violations using helper method
+            $errorMessage = \App\Models\User::getConstraintViolationMessage($e);
+            
+            // Determine which field has the constraint violation for better UX
+            if (str_contains($e->getMessage(), 'users.nip')) {
+                throw ValidationException::withMessages(['nip' => $errorMessage]);
+            } elseif (str_contains($e->getMessage(), 'users.username')) {
+                throw ValidationException::withMessages(['username' => $errorMessage]);
+            } elseif (str_contains($e->getMessage(), 'users.email')) {
+                throw ValidationException::withMessages(['email' => $errorMessage]);
+            } else {
+                throw ValidationException::withMessages(['general' => $errorMessage]);
+            }
+        } catch (\Exception $e) {
+            // Handle any other unexpected errors
+            \Log::error('CreateUser: Unexpected error', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+            
+            throw ValidationException::withMessages([
+                'general' => 'Terjadi kesalahan tidak terduga. Silakan coba lagi.'
+            ]);
+        }
     }
     
     /**

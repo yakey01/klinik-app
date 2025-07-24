@@ -57,7 +57,7 @@ try {
     // 5. Check Dr. Yaya specifically
     echo "5. DR. YAYA ANALYSIS\n";
     echo "--------------------\n";
-    $yayaUser = App\Models\User::where('email', 'yaya@dokterkuklinic.com')->first();
+    $yayaUser = App\Models\User::where('email', 'yaya@dokterkuklinik.com')->first();
     if ($yayaUser) {
         echo "Dr. Yaya found:\n";
         echo "  ID: " . $yayaUser->id . "\n";
@@ -146,9 +146,9 @@ try {
     
     // Check for potential seeded users
     $commonSeededEmails = [
-        'admin@dokterkuklinic.com',
-        'dokter@dokterkuklinic.com',
-        'paramedis@dokterkuklinic.com',
+        'admin@dokterkuklinik.com',
+        'dokter@dokterkuklinik.com',
+        'paramedis@dokterkuklinik.com',
         'test@example.com'
     ];
     

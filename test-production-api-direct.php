@@ -16,7 +16,7 @@ echo "Timestamp: " . date('Y-m-d H:i:s') . "\n\n";
 
 try {
     // Find Dr. Yaya
-    $yayaUser = App\Models\User::where('email', 'yaya@dokterkuklinic.com')->first();
+    $yayaUser = App\Models\User::where('email', 'yaya@dokterkuklinik.com')->first();
     
     if (!$yayaUser) {
         echo "ERROR: Dr. Yaya user not found\n";

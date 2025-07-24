@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\UserConstraintHandler;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Database\QueryException;
 
 class UserManagementController extends Controller
 {
@@ -31,24 +33,41 @@ class UserManagementController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'role_id' => 'required|exists:roles,id',
             'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
-            'nip' => 'nullable|string|max:50',
+            'nip' => 'nullable|string|max:50|unique:users',
             'no_telepon' => 'nullable|string|max:20',
             'tanggal_bergabung' => 'required|date',
+        ], [
+            'nip.unique' => 'NIP sudah digunakan oleh user lain. Silakan gunakan NIP yang berbeda.',
+            'username.unique' => 'Username sudah digunakan oleh user lain. Silakan gunakan username yang berbeda.',
+            'email.unique' => 'Email sudah digunakan oleh user lain. Silakan gunakan email yang berbeda.',
         ]);
 
-        User::create([
-            'name' => $request->name,
-            'username' => $request->username,
-            'email' => $request->email,
-            'role_id' => $request->role_id,
-            'password' => Hash::make($request->password),
-            'nip' => $request->nip,
-            'no_telepon' => $request->no_telepon,
-            'tanggal_bergabung' => $request->tanggal_bergabung,
-            'is_active' => true,
-        ]);
+        try {
+            // Pre-validate to provide better error messages
+            UserConstraintHandler::preValidateUserData($request);
+            
+            User::create([
+                'name' => $request->name,
+                'username' => $request->username,
+                'email' => $request->email,
+                'role_id' => $request->role_id,
+                'password' => Hash::make($request->password),
+                'nip' => $request->nip,
+                'no_telepon' => $request->no_telepon,
+                'tanggal_bergabung' => $request->tanggal_bergabung,
+                'is_active' => true,
+            ]);
 
-        return redirect()->route('settings.users.index')->with('success', 'User berhasil ditambahkan.');
+            return redirect()->route('settings.users.index')->with('success', 'User berhasil ditambahkan.');
+            
+        } catch (QueryException $e) {
+            // Handle database constraint violations
+            UserConstraintHandler::handleConstraintViolation($e, $request);
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Terjadi kesalahan saat membuat user. Silakan coba lagi.']);
+        }
     }
 
     public function edit(User $user)
@@ -64,10 +83,14 @@ class UserManagementController extends Controller
             'username' => 'required|string|max:255|unique:users,username,' . $user->id,
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'role_id' => 'required|exists:roles,id',
-            'nip' => 'nullable|string|max:50',
+            'nip' => 'nullable|string|max:50|unique:users,nip,' . $user->id,
             'no_telepon' => 'nullable|string|max:20',
             'tanggal_bergabung' => 'required|date',
             'is_active' => 'boolean',
+        ], [
+            'nip.unique' => 'NIP sudah digunakan oleh user lain. Silakan gunakan NIP yang berbeda.',
+            'username.unique' => 'Username sudah digunakan oleh user lain. Silakan gunakan username yang berbeda.',
+            'email.unique' => 'Email sudah digunakan oleh user lain. Silakan gunakan email yang berbeda.',
         ]);
 
         $user->update([

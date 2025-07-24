@@ -97,24 +97,93 @@ Route::middleware('auth:sanctum')->group(function () {
             ]);
         });
         
-        // Mobile Dashboard Routes  
+        // Mobile Dashboard Routes - WORLD-CLASS dynamic data implementation
         Route::get('/dashboard', function() {
             $user = auth()->user();
             if (!$user) {
                 return response()->json(['error' => 'Not authenticated'], 401);
             }
             
+            // Get paramedis data
+            $paramedis = \App\Models\Pegawai::where('user_id', $user->id)
+                ->where('jenis_pegawai', 'Paramedis')
+                ->first();
+            
+            if (!$paramedis) {
+                return response()->json(['error' => 'Paramedis data not found'], 404);
+            }
+            
+            // Calculate dynamic Jaspel data from validated Tindakan
+            $today = \Carbon\Carbon::today();
+            $thisMonth = \Carbon\Carbon::now()->startOfMonth();
+            $thisWeek = \Carbon\Carbon::now()->startOfWeek();
+            
+            // Monthly Jaspel from Jaspel model (consistent with Jaspel page)
+            $jaspelMonthly = \App\Models\Jaspel::where('user_id', $user->id)
+                ->whereMonth('tanggal', $thisMonth->month)
+                ->whereYear('tanggal', $thisMonth->year)
+                ->whereIn('status_validasi', ['disetujui', 'approved'])
+                ->sum('nominal');
+            
+            // Weekly Jaspel from Jaspel model (consistent calculation)
+            $jaspelWeekly = \App\Models\Jaspel::where('user_id', $user->id)
+                ->where('tanggal', '>=', $thisWeek)
+                ->whereIn('status_validasi', ['disetujui', 'approved'])
+                ->sum('nominal');
+            
+            // Approved vs Pending breakdown using Jaspel model
+            $approvedJaspel = \App\Models\Jaspel::where('user_id', $user->id)
+                ->whereMonth('tanggal', $thisMonth->month)
+                ->whereYear('tanggal', $thisMonth->year)
+                ->whereIn('status_validasi', ['disetujui', 'approved'])
+                ->sum('nominal');
+                
+            $pendingJaspel = \App\Models\Jaspel::where('user_id', $user->id)
+                ->whereMonth('tanggal', $thisMonth->month)
+                ->whereYear('tanggal', $thisMonth->year)
+                ->where('status_validasi', 'pending')
+                ->sum('nominal');
+            
+            // Shifts and attendance
+            $shiftsThisMonth = \App\Models\JadwalJaga::where('pegawai_id', $user->id)
+                ->whereMonth('tanggal_jaga', \Carbon\Carbon::now()->month)
+                ->count();
+                
+            $todayAttendance = \App\Models\Attendance::where('user_id', $user->id)
+                ->whereDate('date', $today)
+                ->first();
+            
             return response()->json([
-                'jaspel_monthly' => 15200000,
-                'jaspel_weekly' => 3800000,
-                'approved_jaspel' => 12800000,
-                'pending_jaspel' => 2400000,
-                'minutes_worked' => 720,
-                'shifts_this_month' => 22,
+                'jaspel_monthly' => $jaspelMonthly,
+                'jaspel_weekly' => $jaspelWeekly, 
+                'approved_jaspel' => $approvedJaspel,
+                'pending_jaspel' => $pendingJaspel,
+                'minutes_worked' => $todayAttendance ? $todayAttendance->work_duration_minutes ?? 0 : 0,
+                'shifts_this_month' => $shiftsThisMonth,
                 'paramedis_name' => $user->name,
-                'paramedis_specialty' => 'Dokter Umum',
-                'today_attendance' => null,
-                'recent_jaspel' => []
+                'paramedis_specialty' => $paramedis->spesialisasi ?? 'Paramedis',
+                'today_attendance' => $todayAttendance ? [
+                    'check_in' => $todayAttendance->time_in?->format('H:i'),
+                    'check_out' => $todayAttendance->time_out?->format('H:i'),
+                    'status' => $todayAttendance->time_out ? 'checked_out' : 'checked_in'
+                ] : null,
+                'recent_jaspel' => \App\Models\Jaspel::where('user_id', $user->id)
+                    ->whereIn('status_validasi', ['disetujui', 'approved'])
+                    ->with(['tindakan.pasien:id,nama_pasien'])
+                    ->orderByDesc('tanggal')
+                    ->limit(5)
+                    ->get()
+                    ->map(function($jaspel) {
+                        $tindakan = $jaspel->tindakan;
+                        return [
+                            'id' => $jaspel->id,
+                            'tanggal' => $jaspel->tanggal->format('Y-m-d'),
+                            'nominal' => $jaspel->nominal,
+                            'status_validasi' => $jaspel->status_validasi,
+                            'jenis_tindakan' => $jaspel->jenis_jaspel,
+                            'pasien' => $tindakan && $tindakan->pasien ? $tindakan->pasien->nama_pasien : 'Unknown'
+                        ];
+                    })
             ]);
         });
         Route::get('/schedule', [\App\Http\Controllers\Paramedis\ParamedisDashboardController::class, 'schedule']);
@@ -251,6 +320,21 @@ Route::prefix('v2')->group(function () {
             Route::get('/today', [App\Http\Controllers\Api\V2\Attendance\AttendanceController::class, 'today']);
             Route::get('/history', [App\Http\Controllers\Api\V2\Attendance\AttendanceController::class, 'history']);
             Route::get('/statistics', [App\Http\Controllers\Api\V2\Attendance\AttendanceController::class, 'statistics']);
+        });
+
+        // Jaspel endpoints
+        Route::prefix('jaspel')->middleware(['auth:sanctum'])->group(function () {
+            Route::get('/summary', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'summary']);
+            Route::get('/history', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'history']);
+            Route::get('/monthly-report/{year}/{month}', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'monthlyReport']);
+            Route::get('/yearly-summary/{year}', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'yearlySummary']);
+            
+            // Mobile app endpoint for validated tindakan data
+            Route::get('/mobile-data', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'getMobileJaspelData']);
+            
+            // Admin only endpoint
+            Route::post('/calculate-from-tindakan', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'calculateFromTindakan'])
+                ->middleware(['role:admin,bendahara']);
         });
 
         // Dashboard endpoints with rate limiting
@@ -414,24 +498,8 @@ Route::prefix('v2')->group(function () {
                     ]);
                 });
                 
-                // Jaspel endpoints (placeholder)
-                Route::get('/jaspel', function () {
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Jaspel data will be available soon',
-                        'data' => [
-                            'jaspel_month' => 25000000,
-                            'jaspel_week' => 6250000,
-                            'approved_jaspel' => 20000000,
-                            'pending_jaspel' => 5000000
-                        ],
-                        'meta' => [
-                            'version' => '2.0',
-                            'timestamp' => now()->toISOString(),
-                            'request_id' => \Illuminate\Support\Str::uuid()->toString(),
-                        ]
-                    ]);
-                });
+                // Jaspel endpoints - WORLD-CLASS implementation using DokterDashboardController
+                // Route removed - handled by line 319
             });
 
             // Non-Paramedis dashboard - Enhanced with proper authentication and role validation

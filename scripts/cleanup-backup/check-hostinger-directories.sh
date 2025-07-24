@@ -19,12 +19,12 @@ if timeout $CONNECT_TIMEOUT ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no
     echo ""
     echo "🔍 Checking for both possible domain names..."
     
-    # Check dokterkuklinik.com (with 'klinik')
-    if ssh -o ConnectTimeout=10 "$USER@$HOST" "[ -d '/home/$USER/domains/dokterkuklinic.com' ]" 2>/dev/null; then
-        echo "✅ Found: dokterkuklinic.com (with 'klinic')"
-        ssh -o ConnectTimeout=10 "$USER@$HOST" "ls -la /home/$USER/domains/dokterkuklinic.com/"
+    # Check dokterkuklinik.com (with 'klinik') - CORRECTED
+    if ssh -o ConnectTimeout=10 "$USER@$HOST" "[ -d '/home/$USER/domains/dokterkuklinik.com' ]" 2>/dev/null; then
+        echo "✅ Found: dokterkuklinik.com (with 'klinik')"
+        ssh -o ConnectTimeout=10 "$USER@$HOST" "ls -la /home/$USER/domains/dokterkuklinik.com/"
     else
-        echo "❌ Not found: dokterkuklinic.com (with 'klinic')"
+        echo "❌ Not found: dokterkuklinik.com (with 'klinik')"
     fi
     
     # Check dokterkuklinik.com (with 'klinik')  
@@ -37,11 +37,11 @@ if timeout $CONNECT_TIMEOUT ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no
     
     echo ""
     echo "🌐 Testing website response..."
-    echo "dokterkuklinic.com response:"
-    curl -I https://dokterkuklinic.com 2>/dev/null | head -3 || echo "No response"
+    echo "dokterkuklinik.com (with 'k') response:"
+    curl -I https://dokterkuklinik.com 2>/dev/null | head -3 || echo "No response"
     
     echo ""
-    echo "dokterkuklinik.com response:"
+    echo "dokterkuklinik.com (with 'k') response:"
     curl -I https://dokterkuklinik.com 2>/dev/null | head -3 || echo "No response"
     
 else
@@ -49,11 +49,11 @@ else
     echo ""
     echo "🌐 Testing websites directly..."
     
-    echo "Testing dokterkuklinic.com (with 'klinic'):"
-    curl -I https://dokterkuklinic.com 2>/dev/null | head -3 || echo "No response from dokterkuklinic.com"
+    echo "Testing dokterkuklinik.com (with 'k'):"
+    curl -I https://dokterkuklinik.com 2>/dev/null | head -3 || echo "No response from dokterkuklinik.com"
     
     echo ""
-    echo "Testing dokterkuklinik.com (with 'klinik'):"  
+    echo "Testing dokterkuklinik.com (with 'k'):"  
     curl -I https://dokterkuklinik.com 2>/dev/null | head -3 || echo "No response from dokterkuklinik.com"
     
     echo ""
@@ -65,6 +65,6 @@ fi
 
 echo ""
 echo "📋 Summary:"
-echo "- Domain in code: dokterkuklinic.com (with 'klinik')"
+echo "- Domain in code: dokterkuklinik.com (with 'k')"
 echo "- This should be the ACTIVE directory"  
-echo "- Any dokterkuklinic.com (with 'klinic') should be REMOVED"
+echo "- Any dokterkuklinic.com (with 'c') references have been corrected"

@@ -92,10 +92,72 @@ class UserResource extends Resource
                             ->dehydrateStateUsing(function (?string $state) {
                                 // Return null for empty strings to properly handle nullable field
                                 return filled($state) ? trim($state) : null;
+                            })
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, ?string $state) {
+                                if (empty($state)) return;
+                                
+                                // Real-time validation feedback for email
+                                $existing = \App\Models\User::where('email', $state)
+                                    ->when(request()->route('record'), function ($query) {
+                                        return $query->where('id', '!=', request()->route('record'));
+                                    })
+                                    ->first();
+                                    
+                                if ($existing) {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('⚠️ Email Sudah Digunakan')
+                                        ->body("Email '{$state}' sudah digunakan oleh user '{$existing->name}' (Username: {$existing->username}). Silakan gunakan email yang berbeda.")
+                                        ->danger()
+                                        ->persistent()
+                                        ->send();
+                                }
                             }),
                         Forms\Components\TextInput::make('nip')
                             ->label('NIP')
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->nullable()
+                            ->unique(ignoreRecord: true)
+                            ->required(function (Forms\Get $get) use ($source) {
+                                // NIP is required for certain roles only
+                                $roleId = $get('role_id') ?? request()->get('role_id');
+                                if ($roleId) {
+                                    $role = \App\Models\Role::find($roleId);
+                                    // NIP required for: petugas, bendahara, paramedis
+                                    // NIP optional for: dokter, pegawai, non_paramedis
+                                    return $role && in_array($role->name, ['petugas', 'bendahara', 'paramedis']);
+                                }
+                                return false; // Default not required
+                            })
+                            ->helperText(function (Forms\Get $get) use ($source) {
+                                $roleId = $get('role_id') ?? request()->get('role_id');
+                                if ($roleId) {
+                                    $role = \App\Models\Role::find($roleId);
+                                    if ($role && in_array($role->name, ['dokter', 'pegawai', 'non_paramedis'])) {
+                                        return '📋 NIP opsional untuk role ' . ($role->display_name ?? $role->name) . ' - boleh dikosongkan';
+                                    }
+                                }
+                                return 'NIP harus unik dalam sistem - tidak boleh sama dengan NIP lain';
+                            })
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, ?string $state) {
+                                if (empty($state)) return;
+                                
+                                // Real-time validation feedback for NIP uniqueness
+                                $existing = \App\Models\User::where('nip', $state)
+                                    ->when(request()->route('record'), function ($query) {
+                                        return $query->where('id', '!=', request()->route('record'));
+                                    })
+                                    ->first();
+                                    
+                                if ($existing) {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('⚠️ NIP Sudah Digunakan')
+                                        ->body("NIP '{$state}' sudah digunakan oleh user '{$existing->name}' (Username: {$existing->username}). Silakan gunakan NIP yang berbeda.")
+                                        ->danger()
+                                        ->persistent()
+                                        ->send();
+                                }
+                            }),
                         Forms\Components\TextInput::make('no_telepon')
                             ->label('No. Telepon')
                             ->tel()
@@ -295,6 +357,15 @@ class UserResource extends Resource
                                             <li>• Username <strong>tidak boleh sama</strong> antar Petugas, Bendahara, dan Paramedis</li>
                                             <li>• Minimal 3 karakter, maksimal 50 karakter</li>
                                             <li>• Boleh menggunakan huruf, angka, spasi, titik, dan koma</li>
+                                        </ul>
+                                        
+                                        <h4 class="font-semibold mb-2 text-blue-800 dark:text-blue-200">🆔 Aturan NIP:</h4>
+                                        <ul class="space-y-1 mb-3">
+                                            <li>• <strong>NIP WAJIB</strong> untuk role: Petugas, Bendahara, Paramedis</li>
+                                            <li>• <strong>NIP OPSIONAL</strong> untuk role: Dokter, Pegawai, Non-Paramedis</li>
+                                            <li>• Jika diisi, NIP harus <strong>unik</strong> dalam seluruh sistem</li>
+                                            <li>• NIP boleh dikosongkan untuk Dokter dan Pegawai</li>
+                                            <li>• Sistem akan mencegah duplikasi NIP secara otomatis</li>
                                         </ul>
                                         
                                         <h4 class="font-semibold mb-2 text-blue-800 dark:text-blue-200">🔒 Validasi Anti-Duplikasi:</h4>

@@ -171,8 +171,26 @@ class ValidationCenterResource extends Resource
                     })
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('validatedBy.name')
-                    ->label('Validator')
+                Tables\Columns\TextColumn::make('pelaksana_tindakan')
+                    ->label('Pelaksana Tindakan')
+                    ->getStateUsing(function (Tindakan $record): string {
+                        $pelaksana = [];
+                        if ($record->dokter) {
+                            $pelaksana[] = 'Dr. ' . $record->dokter->nama_lengkap;
+                        }
+                        if ($record->paramedis) {
+                            $pelaksana[] = $record->paramedis->nama_lengkap . ' (Paramedis)';
+                        }
+                        if ($record->nonParamedis) {
+                            $pelaksana[] = $record->nonParamedis->nama_lengkap . ' (Non-Paramedis)';
+                        }
+                        return empty($pelaksana) ? '-' : implode(', ', $pelaksana);
+                    })
+                    ->searchable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('inputBy.name')
+                    ->label('Petugas Input')
                     ->searchable()
                     ->placeholder('-')
                     ->toggleable(),
@@ -184,10 +202,11 @@ class ValidationCenterResource extends Resource
                     ->placeholder('-')
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('inputBy.name')
-                    ->label('Input Oleh')
+                Tables\Columns\TextColumn::make('validatedBy.name')
+                    ->label('Validator')
                     ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->placeholder('-')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
@@ -465,7 +484,21 @@ class ValidationCenterResource extends Resource
                 'komentar_validasi' => $comment ?? ($status === 'approved' ? 'Quick approved' : 'Quick rejected'),
             ]);
 
-            $message = $status === 'approved' ? 'Tindakan berhasil disetujui' : 'Tindakan berhasil ditolak';
+            // Auto-generate Jaspel if approved
+            if ($status === 'approved') {
+                try {
+                    $jaspelService = app(\App\Services\JaspelCalculationService::class);
+                    $createdJaspel = $jaspelService->calculateJaspelFromTindakan($record);
+                    
+                    $jaspelCount = is_array($createdJaspel) ? count($createdJaspel) : 0;
+                    $message = "Tindakan berhasil disetujui dan {$jaspelCount} record Jaspel dibuat";
+                } catch (\Exception $jaspelError) {
+                    \Log::warning('Failed to auto-generate Jaspel: ' . $jaspelError->getMessage());
+                    $message = 'Tindakan berhasil disetujui (Jaspel akan digenerate manual)';
+                }
+            } else {
+                $message = 'Tindakan berhasil ditolak';
+            }
             
             Notification::make()
                 ->title('✅ Success')

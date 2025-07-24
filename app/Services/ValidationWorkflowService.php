@@ -141,6 +141,25 @@ class ValidationWorkflowService
                 $record->update(['status' => 'selesai']);
             }
 
+            // Calculate Jaspel for approved Tindakan
+            if ($record instanceof \App\Models\Tindakan) {
+                try {
+                    $jaspelService = app(\App\Services\JaspelCalculationService::class);
+                    $jaspelRecords = $jaspelService->calculateJaspelFromTindakan($record);
+                    
+                    Log::info('Jaspel calculated for approved tindakan', [
+                        'tindakan_id' => $record->id,
+                        'jaspel_count' => is_array($jaspelRecords) ? count($jaspelRecords) : 0,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to calculate Jaspel for tindakan', [
+                        'tindakan_id' => $record->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Don't throw - let the validation continue even if Jaspel fails
+                }
+            }
+
             // Notify stakeholders
             $this->notifyApprovers($record, 'approved');
             $this->notifySubmitter($record, 'approved');

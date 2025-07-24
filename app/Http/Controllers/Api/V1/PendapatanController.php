@@ -81,12 +81,27 @@ class PendapatanController extends BaseApiController
 
             // Validate request
             $validated = $request->validate([
-                'tanggal_pendapatan' => 'required|date',
+                'kode_pendapatan' => 'nullable|string|max:50',
+                'nama_pendapatan' => 'required|string|max:255',
                 'sumber_pendapatan' => 'required|string|max:255',
-                'jumlah' => 'required|numeric|min:0',
+                'tanggal' => 'required|date',
+                'nominal' => 'required|numeric|min:0',
+                'kategori' => 'required|string|max:50',
                 'keterangan' => 'nullable|string|max:1000',
-                'tindakan_id' => 'nullable|exists:tindakans,id',
+                'tindakan_id' => 'nullable|exists:tindakan,id',
+                'is_aktif' => 'boolean',
             ]);
+
+            // Set default values if not provided
+            $validated['is_aktif'] = $validated['is_aktif'] ?? true;
+            $validated['status_validasi'] = 'pending';
+            
+            // Generate kode_pendapatan if not provided
+            if (empty($validated['kode_pendapatan'])) {
+                $lastPendapatan = Pendapatan::latest()->first();
+                $lastNumber = $lastPendapatan ? (int) substr($lastPendapatan->kode_pendapatan, 4) : 0;
+                $validated['kode_pendapatan'] = 'PND-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+            }
 
             // Check for duplicate tindakan if provided
             if (!empty($validated['tindakan_id'])) {
@@ -315,14 +330,24 @@ class PendapatanController extends BaseApiController
                         continue;
                     }
 
+                    // Generate kode_pendapatan
+                    $lastPendapatan = Pendapatan::latest()->first();
+                    $lastNumber = $lastPendapatan ? (int) substr($lastPendapatan->kode_pendapatan, 4) : 0;
+                    $kodePendapatan = 'PND-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+
                     // Create pendapatan
                     Pendapatan::create([
-                        'tanggal_pendapatan' => $tindakan->tanggal_tindakan,
-                        'sumber_pendapatan' => $tindakan->jenisTindakan->nama_tindakan ?? 'Tindakan Medis',
-                        'jumlah' => $tindakan->tarif,
+                        'kode_pendapatan' => $kodePendapatan,
+                        'nama_pendapatan' => $tindakan->jenisTindakan->nama_tindakan ?? 'Tindakan Medis',
+                        'sumber_pendapatan' => 'Pelayanan Medis',
+                        'tanggal' => $tindakan->tanggal_tindakan,
+                        'nominal' => $tindakan->tarif,
+                        'kategori' => 'tindakan_medis',
                         'keterangan' => "Auto-generated dari tindakan #{$tindakan->id} untuk pasien {$tindakan->pasien->nama_pasien}",
                         'tindakan_id' => $tindakan->id,
                         'input_by' => $this->getAuthUser()->id,
+                        'is_aktif' => true,
+                        'status_validasi' => 'pending',
                     ]);
 
                     $created++;

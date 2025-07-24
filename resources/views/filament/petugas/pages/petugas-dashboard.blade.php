@@ -1,4 +1,21 @@
 <x-filament-panels::page>
+    <!-- Welcome Message -->
+    <div class="mb-6">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <h1 class="text-xl font-semibold">Welcome Petugas, {{ auth()->user()->name }}</h1>
+                    <p class="text-blue-100 text-sm">Selamat bekerja pada {{ \Carbon\Carbon::now()->format('l, d F Y') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @livewire(\App\Filament\Petugas\Widgets\PremiumStatsWidget::class)
     @livewire(\App\Filament\Petugas\Widgets\PremiumProgressWidget::class)
     @livewire(\App\Filament\Petugas\Widgets\PremiumActivitiesWidget::class)

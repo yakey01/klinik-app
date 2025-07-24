@@ -17,6 +17,7 @@ class Jaspel extends Model
         'user_id',
         'jenis_jaspel',
         'nominal',
+        'total_jaspel',
         'tanggal',
         'shift_id',
         'input_by',
@@ -28,6 +29,7 @@ class Jaspel extends Model
 
     protected $casts = [
         'nominal' => 'decimal:2',
+        'total_jaspel' => 'decimal:2',
         'tanggal' => 'date',
         'validasi_at' => 'datetime',
     ];
@@ -80,5 +82,55 @@ class Jaspel extends Model
     public function scopeApproved($query)
     {
         return $query->where('status_validasi', 'disetujui');
+    }
+
+    /**
+     * Accessor for compatibility with views
+     */
+    public function getStatusAttribute()
+    {
+        return $this->status_validasi;
+    }
+
+    /**
+     * Accessor for tanggal_pengajuan compatibility
+     */
+    public function getTanggalPengajuanAttribute()
+    {
+        return $this->created_at;
+    }
+
+    /**
+     * Accessor for tanggal_validasi compatibility
+     */
+    public function getTanggalValidasiAttribute()
+    {
+        return $this->validasi_at;
+    }
+
+    /**
+     * Accessor for validator compatibility
+     */
+    public function getValidatorAttribute()
+    {
+        return $this->validasiBy;
+    }
+
+    /**
+     * Accessor for keterangan
+     */
+    public function getKeteranganAttribute()
+    {
+        if ($this->tindakan) {
+            $tindakan = $this->tindakan;
+            $jenisTindakan = $tindakan->jenisTindakan;
+            $pasien = $tindakan->pasien;
+            
+            return "Jaspel untuk tindakan: " . ($jenisTindakan ? $jenisTindakan->nama_tindakan : 'N/A') . 
+                   " - Pasien: " . ($pasien ? $pasien->nama : 'N/A') . 
+                   " - Tindakan ID: " . $tindakan->id;
+        }
+        
+        return "Jaspel " . ucwords(str_replace('_', ' ', $this->jenis_jaspel));
     }
 }

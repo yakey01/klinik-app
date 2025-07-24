@@ -16,6 +16,39 @@ require __DIR__.'/test.php';
 require __DIR__.'/test-models.php';
 use Illuminate\Support\Facades\Auth;
 
+// Test endpoint for debugging Jaspel data
+Route::get('/test-jaspel-data', function () {
+    try {
+        $naning = \App\Models\User::where('name', 'LIKE', '%Naning%')
+                     ->whereHas('roles', function($q) { $q->where('name', 'paramedis'); })
+                     ->first();
+        
+        if (!$naning) {
+            return response('❌ Naning not found', 404);
+        }
+        
+        $jaspelRecords = \App\Models\Jaspel::where('user_id', $naning->id)
+            ->with(['tindakan.jenisTindakan'])
+            ->get();
+        
+        $output = "🔍 JASPEL DEBUG for {$naning->name} (ID: {$naning->id})\n";
+        $output .= "📊 Total Jaspel records: {$jaspelRecords->count()}\n\n";
+        
+        foreach ($jaspelRecords as $jaspel) {
+            $tindakan = $jaspel->tindakan;
+            $jenis = $tindakan && $tindakan->jenisTindakan ? $tindakan->jenisTindakan->nama : 'N/A';
+            $output .= "- ID: {$jaspel->id}, Jenis: {$jenis}, Nominal: Rp " . number_format($jaspel->nominal, 0, ',', '.') . ", Status: {$jaspel->status_validasi}\n";
+        }
+        
+        $totalPaid = $jaspelRecords->where('status_validasi', 'disetujui')->sum('nominal');
+        $output .= "\n💰 Total Paid: Rp " . number_format($totalPaid, 0, ',', '.');
+        
+        return response($output)->header('Content-Type', 'text/plain');
+    } catch (\Exception $e) {
+        return response('Error: ' . $e->getMessage(), 500);
+    }
+});
+
 // Health check endpoint for deployment monitoring
 Route::get('/health', function () {
     try {
@@ -102,6 +135,23 @@ Route::post('/login', [UnifiedAuthController::class, 'store'])
     ->name('unified.login');
 Route::post('/logout', [UnifiedAuthController::class, 'destroy'])->name('logout');
 
+
+// Password reset routes
+Route::get('/forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'create'])
+    ->middleware('guest')
+    ->name('password.request');
+
+Route::post('/forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])
+    ->middleware('guest')
+    ->name('password.email');
+
+Route::get('/reset-password/{token}', [App\Http\Controllers\Auth\NewPasswordController::class, 'create'])
+    ->middleware('guest')
+    ->name('password.reset');
+
+Route::post('/reset-password', [App\Http\Controllers\Auth\NewPasswordController::class, 'store'])
+    ->middleware('guest')
+    ->name('password.update');
 
 // Email verification routes
 Route::get('/email/verify', function () {
@@ -695,14 +745,32 @@ Route::middleware(['auth'])->group(function () {
         ]);
     })->middleware('auth');
     
-    // Simple API test route
+    // Simple API test route - WORLD-CLASS dynamic data
     Route::get('/api-test', function () {
+        $user = auth()->user();
+        $jaspelMonthly = 0;
+        
+        if ($user) {
+            $paramedis = \App\Models\Pegawai::where('user_id', $user->id)
+                ->where('jenis_pegawai', 'Paramedis')
+                ->first();
+                
+            if ($paramedis) {
+                $thisMonth = \Carbon\Carbon::now()->startOfMonth();
+                $jaspelMonthly = \App\Models\Jaspel::where('user_id', $user->id)
+                    ->whereMonth('tanggal', $thisMonth->month)
+                    ->whereYear('tanggal', $thisMonth->year)
+                    ->whereIn('status_validasi', ['disetujui', 'approved'])
+                    ->sum('nominal');
+            }
+        }
+        
         return response()->json([
             'status' => 'success',
-            'message' => 'API working',
+            'message' => 'API working with dynamic data',
             'data' => [
-                'jaspel_monthly' => 15200000,
-                'paramedis_name' => 'Test User'
+                'jaspel_monthly' => $jaspelMonthly,
+                'paramedis_name' => $user ? $user->name : 'Test User'
             ]
         ]);
     });

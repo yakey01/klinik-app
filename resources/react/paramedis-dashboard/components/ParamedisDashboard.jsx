@@ -4,33 +4,23 @@ import '../styles/ParamedisDashboard.css';
 
 const ParamedisDashboard = () => {
   const [dashboardData, setDashboardData] = useState({
-    jaspel_monthly: 15200000,
-    jaspel_weekly: 3800000,
-    minutes_worked: 720,
-    shifts_this_month: 22,
-    paramedis_name: 'Dr. Sari',
-    paramedis_specialty: 'Dokter Spesialis',
-    pending_jaspel: 2400000,
-    approved_jaspel: 12800000,
+    jaspel_monthly: 0,  // Changed from hardcoded 15200000
+    jaspel_weekly: 0,   // Changed from hardcoded 3800000
+    minutes_worked: 0,  // Changed from hardcoded 720
+    shifts_this_month: 0, // Changed from hardcoded 22
+    paramedis_name: 'Loading...', // Changed from hardcoded 'Dr. Sari'
+    paramedis_specialty: 'Paramedis', // Changed from hardcoded 'Dokter Spesialis'
+    pending_jaspel: 0,  // Changed from hardcoded 2400000
+    approved_jaspel: 0, // Changed from hardcoded 12800000
     today_attendance: null
   });
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // For demo: just set loading to false and use default data
-    setLoading(false);
-    
-    // Try to get user name from Laravel data if available
-    if (window.laravelData?.user?.name) {
-      setDashboardData(prev => ({
-        ...prev,
-        paramedis_name: window.laravelData.user.name
-      }));
-    }
-    
-    // Optionally try to fetch API data
-    // fetchDashboardData();
+    // Always fetch real data from API
+    fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {

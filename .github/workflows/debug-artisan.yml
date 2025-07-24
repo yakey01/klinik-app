@@ -1,0 +1,140 @@
+name: 🔧 Debug Laravel Artisan Issue
+
+on:
+  workflow_dispatch:
+
+env:
+  HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+  HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
+  HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
+  DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+
+jobs:
+  debug-artisan:
+    name: 🔍 Debug Artisan File Issue
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Install sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "Host *" > ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Check Deployment Path Contents
+        run: |
+          echo "🔍 Checking contents of deployment path..."
+          echo "=========================================="
+          echo "Deploy Path: ${DEPLOY_PATH}"
+          echo ""
+          
+          echo "📋 Current directory contents:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && pwd && ls -la"
+
+      - name: Search for Artisan File
+        run: |
+          echo "🔍 Searching for artisan file..."
+          echo "================================="
+          
+          echo "📋 Looking for artisan in deployment path:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && find . -name 'artisan' -type f"
+          
+          echo ""
+          echo "📋 Looking for artisan in parent directories:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && find .. -name 'artisan' -type f -maxdepth 3"
+
+      - name: Check Laravel Project Structure
+        run: |
+          echo "🔍 Checking Laravel project structure..."
+          echo "========================================"
+          
+          echo "📋 Looking for Laravel indicators:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && echo 'composer.json:' && ls -la composer.json 2>/dev/null || echo 'Not found'"
+          
+          echo ""
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && echo 'app directory:' && ls -la app/ 2>/dev/null | head -5 || echo 'app/ not found'"
+          
+          echo ""
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && echo 'vendor directory:' && ls -la vendor/ 2>/dev/null | head -3 || echo 'vendor/ not found'"
+
+      - name: Check Parent Directory Structure
+        run: |
+          echo "🔍 Checking parent directory for Laravel project..."
+          echo "=================================================="
+          
+          echo "📋 Contents of parent directory:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH}/.. && pwd && ls -la"
+          
+          echo ""
+          echo "📋 Looking for artisan in parent:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH}/.. && ls -la artisan 2>/dev/null || echo 'artisan not found in parent'"
+
+      - name: Test PHP and Check Permissions
+        run: |
+          echo "🔍 Testing PHP and file permissions..."
+          echo "====================================="
+          
+          echo "📋 PHP version:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php --version"
+          
+          echo ""
+          echo "📋 Current working directory and permissions:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && pwd && whoami && ls -la . | head -10"
+
+      - name: Recommend Solutions
+        if: always()
+        run: |
+          echo "🔧 Troubleshooting Recommendations"
+          echo "=================================="
+          echo ""
+          echo "Based on the output above, check:"
+          echo ""
+          echo "1. 📁 If artisan is missing from current path:"
+          echo "   - The Laravel project may not be fully deployed"
+          echo "   - artisan might be in the parent directory"
+          echo "   - Update HOSTINGER_DEPLOY_PATH to point to Laravel root"
+          echo ""
+          echo "2. 📋 If Laravel project structure is incomplete:"
+          echo "   - Deploy your Laravel project to the server first"
+          echo "   - Make sure composer install was run"
+          echo "   - Verify all Laravel files are uploaded"
+          echo ""
+          echo "3. 🔐 If artisan exists but has permission issues:"
+          echo "   - Run: chmod +x artisan"
+          echo "   - Check file ownership"
+          echo ""
+          echo "4. 📂 Common path corrections needed:"
+          echo "   - If artisan is in parent: update path to remove /dokterku"
+          echo "   - If artisan is in subdirectory: update path to include subdir"
+          echo ""
+          echo "Next steps:"
+          echo "1. Review the output above to locate artisan file"
+          echo "2. Update HOSTINGER_DEPLOY_PATH secret if needed"
+          echo "3. Re-run the migration workflow"

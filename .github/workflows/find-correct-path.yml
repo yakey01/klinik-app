@@ -1,0 +1,161 @@
+name: 🔍 Find Correct Hostinger Path
+
+on:
+  workflow_dispatch:
+
+env:
+  HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+  HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
+  HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
+
+jobs:
+  find-path:
+    name: 🗂️ Find Correct Deployment Path
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Install sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "Host *" > ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Explore Hostinger Directory Structure
+        run: |
+          echo "🔍 Exploring Hostinger directory structure..."
+          echo "=============================================="
+          
+          echo "📁 Home directory contents:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "pwd && ls -la"
+          
+          echo ""
+          echo "📁 Looking for domains directory:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "ls -la domains/ 2>/dev/null || echo 'domains directory not found'"
+          
+          echo ""
+          echo "📁 Looking for public_html directories:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "find . -name 'public_html' -type d 2>/dev/null || echo 'No public_html found'"
+          
+          echo ""
+          echo "📁 Looking for dokterku directories:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "find . -name '*dokter*' -type d 2>/dev/null || echo 'No dokterku directories found'"
+          
+          echo ""
+          echo "📁 Looking for Laravel projects (composer.json):"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "find . -name 'composer.json' -type f 2>/dev/null | head -10 || echo 'No composer.json found'"
+
+      - name: Check Common Hostinger Paths
+        run: |
+          echo "🔍 Checking common Hostinger hosting paths..."
+          echo "============================================="
+          
+          COMMON_PATHS=(
+            "public_html"
+            "public_html/dokterku"
+            "domains/dokterkuklinik.com/public_html"
+            "domains/dokterkuklinik.com/public_html/dokterku"
+            "htdocs"
+            "htdocs/dokterku"
+            "www"
+            "www/dokterku"
+            "domains/dokterkuklinik.com"
+          )
+          
+          for path in "${COMMON_PATHS[@]}"; do
+            echo ""
+            echo "🔍 Checking: $path"
+            result=$(sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+              "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+              "if [ -d '$path' ]; then echo 'EXISTS'; ls -la '$path' | head -5; else echo 'NOT_FOUND'; fi" 2>/dev/null)
+            
+            if echo "$result" | grep -q "EXISTS"; then
+              echo "✅ Found: $path"
+              echo "$result"
+              
+              # Check if it contains Laravel files
+              laravel_check=$(sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+                "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+                "if [ -f '$path/artisan' ]; then echo 'LARAVEL_PROJECT'; fi" 2>/dev/null)
+              
+              if echo "$laravel_check" | grep -q "LARAVEL_PROJECT"; then
+                echo "🎯 LARAVEL PROJECT FOUND in: $path"
+                echo "   This might be your correct deployment path!"
+              fi
+            else
+              echo "❌ Not found: $path"
+            fi
+          done
+
+      - name: Check Current Working App Location
+        run: |
+          echo "🔍 Looking for existing Dokterku application..."
+          echo "==============================================="
+          
+          echo "📋 Searching for Laravel artisan files:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "find . -name 'artisan' -type f 2>/dev/null | while read file; do
+              dir=\$(dirname \"\$file\")
+              echo \"Found Laravel project in: \$dir\"
+              echo \"Contents:\"
+              ls -la \"\$dir\" | head -5
+              echo \"---\"
+            done"
+
+      - name: Verify Domain Configuration
+        run: |
+          echo "🌐 Checking web-accessible paths..."
+          echo "==================================="
+          
+          echo "📋 Testing various paths for web accessibility:"
+          
+          # Test if dokterkuklinik.com is accessible
+          echo "🔍 Testing main domain accessibility:"
+          curl -I https://dokterkuklinik.com 2>/dev/null | head -3 || echo "Domain not accessible via HTTPS"
+          curl -I http://dokterkuklinik.com 2>/dev/null | head -3 || echo "Domain not accessible via HTTP"
+          
+          echo ""
+          echo "📋 Directory structure recommendations based on Hostinger typical setup:"
+          echo "1. public_html/ (most common)"
+          echo "2. public_html/dokterku/ (if in subdirectory)"  
+          echo "3. domains/dokterkuklinik.com/public_html/ (if using addon domain)"
+          echo "4. domains/dokterkuklinik.com/public_html/dokterku/ (addon domain + subdirectory)"
+
+      - name: Summary and Recommendations
+        if: always()
+        run: |
+          echo "📊 Path Detection Summary"
+          echo "========================="
+          echo ""
+          echo "🔍 Based on the exploration above, look for:"
+          echo "1. Directories containing 'artisan' file (Laravel projects)"
+          echo "2. Directories with 'composer.json' and 'app/' folder"
+          echo "3. Web-accessible paths that serve your domain"
+          echo ""
+          echo "🔧 Next steps:"
+          echo "1. Identify the correct path from the output above"
+          echo "2. Update your HOSTINGER_DEPLOY_PATH secret in GitHub"
+          echo "3. Re-run the migration workflow"
+          echo ""
+          echo "💡 Common Hostinger paths to try:"
+          echo "   - public_html"
+          echo "   - public_html/dokterku"
+          echo "   - domains/dokterkuklinik.com/public_html"
+          echo "   - domains/dokterkuklinik.com/public_html/dokterku"

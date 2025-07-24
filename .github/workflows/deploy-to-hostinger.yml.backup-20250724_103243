@@ -380,10 +380,10 @@ jobs:
             
             # Check migration status before running
             echo "📊 Checking current migration status..."
-            yes | php artisan migrate:status --no-interaction --force || echo "Could not check migration status"
+            php artisan migrate:status || echo "Could not check migration status"
             
             echo "🗄️ Running database migrations..."
-            yes | php artisan migrate --force --no-interaction || {
+            php artisan migrate --force || {
               echo "❌ Migration failed! Detailed error information:"
               echo "🔍 Database connection test:"
               php -r "
@@ -396,7 +396,7 @@ jobs:
                 }
               "
               echo "📊 Migration status:"
-              yes | php artisan migrate:status --no-interaction --force || echo "Could not get migration status"
+              php artisan migrate:status || echo "Could not get migration status"
               
               echo "🔧 Attempting to rollback and retry..."
               if [ -f "$BACKUP_FILE" ]; then

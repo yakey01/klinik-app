@@ -95,7 +95,7 @@ jobs:
             echo "📅 Started at: $(date)"
             
             # Navigate to project directory
-            cd ~/domains/dokterkuklinik.com/public_html
+            cd ~/domains/dokterkuklinic.com/public_html
             
             # Create backup of current assets
             echo "💾 Creating backup of current assets..."
@@ -191,7 +191,7 @@ jobs:
             
             echo "✅ Orange Card Deployment Completed Successfully!"
             echo "🟠 Orange card for 'tidak ada jadwal jaga' is now live"
-            echo "🌐 URL: https://dokterkuklinik.com/dokter/mobile-app"
+            echo "🌐 URL: https://dokterkuklinic.com/dokter/mobile-app"
             echo "📅 Completed at: $(date)"
 
       - name: 🔍 Post-deployment verification
@@ -206,7 +206,7 @@ jobs:
             echo "🔍 Running post-deployment verification..."
             
             # Check if the orange card implementation is in the built assets
-            cd ~/domains/dokterkuklinik.com/public_html
+            cd ~/domains/dokterkuklinic.com/public_html
             
             # Look for orange-related styles in built assets
             echo "🟠 Checking for orange card styles in built assets..."
@@ -222,7 +222,7 @@ jobs:
             
             # Final health check
             echo "🏥 Final health check..."
-            HEALTH_STATUS=$(curl -s -w "%{http_code}" -o /tmp/health_response "https://dokterkuklinik.com/health" 2>/dev/null || echo "000")
+            HEALTH_STATUS=$(curl -s -w "%{http_code}" -o /tmp/health_response "https://dokterkuklinic.com/health" 2>/dev/null || echo "000")
             if [ "$HEALTH_STATUS" = "200" ]; then
               echo "✅ Application health check passed (HTTP $HEALTH_STATUS)"
               if [ -f "/tmp/health_response" ]; then
@@ -244,7 +244,7 @@ jobs:
             echo "✅ Application accessible"
             echo ""
             echo "🟠 The orange 'tidak ada jadwal jaga' card is now live!"
-            echo "📱 Visit: https://dokterkuklinik.com/dokter/mobile-app"
+            echo "📱 Visit: https://dokterkuklinic.com/dokter/mobile-app"
 
       - name: 📝 Skip deployment notification
         if: steps.check_changes.outputs.should_deploy == 'false'

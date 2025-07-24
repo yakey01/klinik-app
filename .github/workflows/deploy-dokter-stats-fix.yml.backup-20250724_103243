@@ -52,7 +52,7 @@ jobs:
             echo "=================================="
             echo "📅 Started at: $(date)"
             
-            cd domains/dokterkuklinik.com/public_html
+            cd domains/dokterkuklinic.com/public_html
             
             # Create backup of existing files
             echo "💾 Creating backup..."
@@ -91,7 +91,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd domains/dokterkuklinik.com/public_html
+            cd domains/dokterkuklinic.com/public_html
             
             echo "🧹 Clearing Laravel caches..."
             php artisan config:clear || echo "Config clear skipped"
@@ -119,7 +119,7 @@ jobs:
             
             # Test public endpoint (no auth required)
             echo "📊 Testing public stats endpoint..."
-            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/api/public/dokter/stats || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/api/public/dokter/stats || echo "000")
             echo "   /api/public/dokter/stats → HTTP $response"
             
             if [ "$response" = "200" ]; then
@@ -127,7 +127,7 @@ jobs:
                 
                 # Test actual response content
                 echo "📋 Sample response:"
-                curl -s https://dokterkuklinik.com/api/public/dokter/stats | head -c 200
+                curl -s https://dokterkuklinic.com/api/public/dokter/stats | head -c 200
                 echo ""
             else
                 echo "❌ Public endpoint failed with HTTP $response"
@@ -137,10 +137,10 @@ jobs:
             echo ""
             echo "📊 Testing other endpoints..."
             
-            response2=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/api/dokter/stats || echo "000")
+            response2=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/api/dokter/stats || echo "000")
             echo "   /api/dokter/stats → HTTP $response2"
             
-            response3=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/api/api/dokter/stats || echo "000")
+            response3=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/api/api/dokter/stats || echo "000")
             echo "   /api/api/dokter/stats → HTTP $response3"
 
       - name: 📊 Verify Laravel Routes
@@ -151,7 +151,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd domains/dokterkuklinik.com/public_html
+            cd domains/dokterkuklinic.com/public_html
             
             echo "📋 Verifying Laravel routes..."
             php artisan route:list | grep -i dokter | head -5 || echo "No dokter routes found in route:list"
@@ -189,7 +189,7 @@ jobs:
             echo "   - GET /api/api/dokter/stats (Auth required)"
             echo ""
             echo "🧪 Test URL:"
-            echo "   https://dokterkuklinik.com/api/public/dokter/stats"
+            echo "   https://dokterkuklinic.com/api/public/dokter/stats"
             echo ""
             echo "🎯 Expected Result:"
             echo "   - No more 500 errors"

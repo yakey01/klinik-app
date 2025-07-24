@@ -88,7 +88,7 @@ jobs:
           
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && yes | php artisan migrate --force --no-interaction"
+            "cd ${DEPLOY_PATH} && php artisan migrate --force"
           
           echo "✅ Standard migration completed"
 
@@ -100,7 +100,7 @@ jobs:
           
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && yes | php artisan migrate:fresh --force --no-interaction"
+            "cd ${DEPLOY_PATH} && php artisan migrate:fresh --force"
           
           echo "✅ Fresh migration completed"
 
@@ -112,7 +112,7 @@ jobs:
           
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && yes | php artisan migrate:fresh --seed --force --no-interaction"
+            "cd ${DEPLOY_PATH} && php artisan migrate:fresh --seed --force"
           
           echo "✅ Fresh migration with seeding completed"
 
@@ -123,7 +123,7 @@ jobs:
           
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && yes | php artisan migrate:rollback --force --no-interaction"
+            "cd ${DEPLOY_PATH} && php artisan migrate:rollback --force"
           
           echo "✅ Migration rollback completed"
 
@@ -134,7 +134,7 @@ jobs:
           
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && yes | php artisan migrate:status --no-interaction --force"
+            "cd ${DEPLOY_PATH} && php artisan migrate:status"
           
           echo "✅ Migration status displayed"
 

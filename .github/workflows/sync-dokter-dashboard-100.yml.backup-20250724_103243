@@ -291,7 +291,7 @@ jobs:
             
             # Run migrations for dokter-related tables
             echo "🔄 Running dokter migrations..."
-            yes | php artisan migrate --force --no-interaction || echo "⚠️ Migration completed with warnings"
+            php artisan migrate --force || echo "⚠️ Migration completed with warnings"
             
             # Run dokter seeders
             echo "🌱 Running dokter seeders..."

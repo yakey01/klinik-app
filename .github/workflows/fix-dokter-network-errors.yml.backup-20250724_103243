@@ -216,7 +216,7 @@ jobs:
             echo "🌐 Installing Network Error Fixes"
             echo "================================="
             
-            cd domains/dokterkuklinik.com/public_html
+            cd domains/dokterkuklinic.com/public_html
             
             # Create directories
             mkdir -p resources/js public/css app/Http/Controllers/Api
@@ -241,7 +241,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd domains/dokterkuklinik.com/public_html
+            cd domains/dokterkuklinic.com/public_html
             
             # Add health routes to api.php if not exists
             if ! grep -q "HealthController" routes/api.php; then
@@ -263,7 +263,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd domains/dokterkuklinik.com/public_html
+            cd domains/dokterkuklinic.com/public_html
             
             echo "🎨 Fixing Google Fonts loading issues..."
             
@@ -294,7 +294,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd domains/dokterkuklinik.com/public_html
+            cd domains/dokterkuklinic.com/public_html
             
             echo "🧹 Clearing caches..."
             php artisan config:clear || echo "Config clear skipped"
@@ -321,24 +321,24 @@ jobs:
             
             # Test health endpoint
             echo "📊 Testing health endpoint..."
-            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/api/health || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/api/health || echo "000")
             echo "   /api/health → HTTP $response"
             
             if [ "$response" = "200" ]; then
                 echo "✅ Health endpoint working!"
                 echo "📋 Sample response:"
-                curl -s https://dokterkuklinik.com/api/health | head -c 200
+                curl -s https://dokterkuklinic.com/api/health | head -c 200
                 echo ""
             fi
             
             # Test ping endpoint
             echo "📊 Testing ping endpoint..."
-            response2=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/api/ping || echo "000")
+            response2=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/api/ping || echo "000")
             echo "   /api/ping → HTTP $response2"
             
             # Test dokter stats (should work now)
             echo "📊 Testing dokter stats..."
-            response3=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/api/public/dokter/stats || echo "000")
+            response3=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/api/public/dokter/stats || echo "000")
             echo "   /api/public/dokter/stats → HTTP $response3"
 
       - name: 📋 Network Fixes Summary
@@ -367,9 +367,9 @@ jobs:
             echo "   - Health monitoring endpoints"
             echo ""
             echo "🧪 Test URLs:"
-            echo "   https://dokterkuklinik.com/api/health"
-            echo "   https://dokterkuklinik.com/api/ping"
-            echo "   https://dokterkuklinik.com/api/public/dokter/stats"
+            echo "   https://dokterkuklinic.com/api/health"
+            echo "   https://dokterkuklinic.com/api/ping"
+            echo "   https://dokterkuklinic.com/api/public/dokter/stats"
             echo ""
             echo "📱 Offline Support:"
             echo "   - Dashboard works without internet"

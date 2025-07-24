@@ -41,7 +41,7 @@ jobs:
             echo "🎯 Target: Dokter Mobile App Dashboard"
             echo ""
             
-            cd domains/dokterkuklinik.com/public_html
+            cd domains/dokterkuklinic.com/public_html
             
             # ========================================
             # 1. ENVIRONMENT & DATABASE HEALTH CHECK
@@ -164,20 +164,20 @@ jobs:
             
             # Test main dokter dashboard
             echo "📊 Main Dashboard:"
-            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/dokter || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/dokter || echo "000")
             echo "   /dokter → HTTP $response"
             
             # Test dokter mobile app
             echo "📱 Mobile App:"
-            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/dokter/mobile-app || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/dokter/mobile-app || echo "000")
             echo "   /dokter/mobile-app → HTTP $response"
             
             # Test potential stats API
             echo "📈 Stats API:"
-            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/api/dokter/stats || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/api/dokter/stats || echo "000")
             echo "   /api/dokter/stats → HTTP $response"
             
-            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/dokter/api/stats || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinic.com/dokter/api/stats || echo "000")
             echo "   /dokter/api/stats → HTTP $response"
             
             # ========================================
@@ -298,7 +298,7 @@ jobs:
             echo "🔧 AUTO-FIX: Implementing Critical Fixes"
             echo "========================================"
             
-            cd domains/dokterkuklinik.com/public_html
+            cd domains/dokterkuklinic.com/public_html
             
             # Clear all caches
             echo "🧹 Clearing Laravel caches..."

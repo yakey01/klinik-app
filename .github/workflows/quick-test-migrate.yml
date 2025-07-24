@@ -144,7 +144,7 @@ jobs:
           
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan migrate:status"
+            "cd ${DEPLOY_PATH} && php artisan migrate:status --env=production"
 
       - name: Dry Run Test
         if: github.event.inputs.test_type == 'dry-run'
@@ -154,7 +154,7 @@ jobs:
           
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan migrate --pretend"
+            "cd ${DEPLOY_PATH} && php artisan migrate --pretend --env=production"
           
           echo ""
           echo "✅ Dry-run completed - No actual changes made"
@@ -167,7 +167,7 @@ jobs:
           
           PENDING=$(sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan migrate:status | grep -c 'Pending' || true")
+            "cd ${DEPLOY_PATH} && php artisan migrate:status --env=production | grep -c 'Pending' || true")
           
           if [ "$PENDING" -gt 0 ]; then
             echo "⚠️  Found $PENDING pending migration(s)"
@@ -175,7 +175,7 @@ jobs:
             echo "Pending migrations:"
             sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
               "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-              "cd ${DEPLOY_PATH} && php artisan migrate:status | grep 'Pending'"
+              "cd ${DEPLOY_PATH} && php artisan migrate:status --env=production | grep 'Pending'"
           else
             echo "✅ No pending migrations found"
           fi
@@ -200,7 +200,7 @@ jobs:
           echo "Migration preview (--pretend):"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan migrate --path=database/migrations/*${{ github.event.inputs.migration_file }}* --pretend"
+            "cd ${DEPLOY_PATH} && php artisan migrate --path=database/migrations/*${{ github.event.inputs.migration_file }}* --pretend --env=production"
           
           echo ""
           echo "✅ Single migration test completed (dry-run mode)"
@@ -215,14 +215,14 @@ jobs:
           echo "Last migration batch info:"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan migrate:status | tail -10"
+            "cd ${DEPLOY_PATH} && php artisan migrate:status --env=production | tail -10"
           
           # Simulate rollback
           echo ""
           echo "Rollback preview (--pretend):"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan migrate:rollback --pretend"
+            "cd ${DEPLOY_PATH} && php artisan migrate:rollback --pretend --env=production"
           
           echo ""
           echo "✅ Rollback test completed (no actual rollback performed)"

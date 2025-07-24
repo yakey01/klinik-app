@@ -171,7 +171,7 @@ jobs:
           echo "Running migration status command..."
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && timeout 60 php -r \"putenv('APP_ENV=local'); require 'artisan'; \" migrate:status" || {
+            "cd ${DEPLOY_PATH} && timeout 60 yes | php artisan migrate:status --no-interaction --force" || {
               echo "⚠️  Migration status command failed with exit code $?"
               echo "This could be due to:"
               echo "1. Database connection issues"
@@ -189,7 +189,7 @@ jobs:
           
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php -r \"putenv('APP_ENV=local'); require 'artisan'; \" migrate --pretend"
+            "cd ${DEPLOY_PATH} && yes | php artisan migrate --pretend --no-interaction --force"
           
           echo ""
           echo "✅ Dry-run completed - No actual changes made"
@@ -202,7 +202,7 @@ jobs:
           
           PENDING=$(sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php -r \"putenv('APP_ENV=local'); require 'artisan'; \" migrate:status | grep -c 'Pending' || true")
+            "cd ${DEPLOY_PATH} && yes | php artisan migrate:status --no-interaction --force | grep -c 'Pending' || true")
           
           if [ "$PENDING" -gt 0 ]; then
             echo "⚠️  Found $PENDING pending migration(s)"
@@ -210,7 +210,7 @@ jobs:
             echo "Pending migrations:"
             sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
               "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-              "cd ${DEPLOY_PATH} && php -r \"putenv('APP_ENV=local'); require 'artisan'; \" migrate:status | grep 'Pending'"
+              "cd ${DEPLOY_PATH} && yes | php artisan migrate:status --no-interaction --force | grep 'Pending'"
           else
             echo "✅ No pending migrations found"
           fi
@@ -235,7 +235,7 @@ jobs:
           echo "Migration preview (--pretend):"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php -r \"putenv('APP_ENV=local'); require 'artisan'; \" migrate --path=database/migrations/*${{ github.event.inputs.migration_file }}* --pretend"
+            "cd ${DEPLOY_PATH} && yes | php artisan migrate --path=database/migrations/*${{ github.event.inputs.migration_file }}* --pretend --no-interaction --force"
           
           echo ""
           echo "✅ Single migration test completed (dry-run mode)"
@@ -250,14 +250,14 @@ jobs:
           echo "Last migration batch info:"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php -r \"putenv('APP_ENV=local'); require 'artisan'; \" migrate:status | tail -10"
+            "cd ${DEPLOY_PATH} && yes | php artisan migrate:status --no-interaction --force | tail -10"
           
           # Simulate rollback
           echo ""
           echo "Rollback preview (--pretend):"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php -r \"putenv('APP_ENV=local'); require 'artisan'; \" migrate:rollback --pretend"
+            "cd ${DEPLOY_PATH} && yes | php artisan migrate:rollback --pretend --no-interaction --force"
           
           echo ""
           echo "✅ Rollback test completed (no actual rollback performed)"
@@ -271,13 +271,13 @@ jobs:
           echo "Database tables:"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan db:show"
+            "cd ${DEPLOY_PATH} && yes | php artisan db:show --no-interaction"
           
           echo ""
           echo "Migration table contents (last 10):"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan tinker --execute=\"\\DB::table('migrations')->orderBy('id', 'desc')->limit(10)->get()->each(function(\\\$m) { echo \\\$m->migration . ' (Batch: ' . \\\$m->batch . ')' . PHP_EOL; });\""
+            "cd ${DEPLOY_PATH} && yes | php artisan tinker --execute=\"\\DB::table('migrations')->orderBy('id', 'desc')->limit(10)->get()->each(function(\\\$m) { echo \\\$m->migration . ' (Batch: ' . \\\$m->batch . ')' . PHP_EOL; });\" --no-interaction"
 
       - name: Test Summary
         if: always()

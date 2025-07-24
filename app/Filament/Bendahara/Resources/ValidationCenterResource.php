@@ -150,6 +150,33 @@ class ValidationCenterResource extends Resource
                             ->label('Total'),
                     ]),
 
+                Tables\Columns\TextColumn::make('jaspel_diterima')
+                    ->label('Jaspel Diterima')
+                    ->money('IDR')
+                    ->sortable()
+                    ->getStateUsing(function (Tindakan $record): float {
+                        // Calculate Jaspel based on JenisTindakan percentage
+                        $persentaseJaspel = $record->jenisTindakan->persentase_jaspel ?? 40;
+                        return $record->tarif * ($persentaseJaspel / 100);
+                    })
+                    ->summarize([
+                        Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('Total Jaspel')
+                            ->using(function ($query) {
+                                // Calculate total jaspel based on tarif and percentage
+                                $tindakanRecords = \App\Models\Tindakan::whereIn('id', $query->pluck('id'))
+                                    ->with('jenisTindakan')
+                                    ->get();
+                                    
+                                $total = $tindakanRecords->sum(function ($record) {
+                                    $persentaseJaspel = $record->jenisTindakan->persentase_jaspel ?? 40;
+                                    return $record->tarif * ($persentaseJaspel / 100);
+                                });
+                                return 'Rp ' . number_format($total, 0, ',', '.');
+                            }),
+                    ])
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('status_validasi')
                     ->label('Status')
                     ->badge()
@@ -468,7 +495,8 @@ class ValidationCenterResource extends Resource
                 'paramedis',
                 'nonParamedis',
                 'inputBy',
-                'validatedBy'
+                'validatedBy',
+                'jaspel'
             ]);
     }
 
@@ -476,33 +504,61 @@ class ValidationCenterResource extends Resource
     protected static function quickValidate(Tindakan $record, string $status, ?string $comment = null): void
     {
         try {
-            $record->update([
-                'status_validasi' => $status,
-                'status' => $status === 'approved' ? 'selesai' : 'batal',
-                'validated_by' => Auth::id(),
-                'validated_at' => now(),
-                'komentar_validasi' => $comment ?? ($status === 'approved' ? 'Quick approved' : 'Quick rejected'),
-            ]);
+            // Use database transaction for consistency
+            \DB::transaction(function() use ($record, $status, $comment) {
+                // Map validation status to consistent format
+                $mappedStatus = $status === 'approved' ? 'disetujui' : ($status === 'rejected' ? 'ditolak' : $status);
+                
+                $record->update([
+                    'status_validasi' => $mappedStatus,
+                    'status' => $mappedStatus === 'disetujui' ? 'selesai' : 'batal',
+                    'validated_by' => Auth::id(),
+                    'validated_at' => now(),
+                    'komentar_validasi' => $comment ?? ($mappedStatus === 'disetujui' ? 'Quick approved' : 'Quick rejected'),
+                ]);
 
-            // Auto-generate Jaspel if approved
-            if ($status === 'approved') {
-                try {
-                    $jaspelService = app(\App\Services\JaspelCalculationService::class);
-                    $createdJaspel = $jaspelService->calculateJaspelFromTindakan($record);
+                // Update or create related Jaspel records with matching status
+                if ($mappedStatus === 'disetujui') {
+                    try {
+                        $jaspelService = app(\App\Services\JaspelCalculationService::class);
+                        $createdJaspel = $jaspelService->calculateJaspelFromTindakan($record);
+                        
+                        // Update newly created Jaspel records to 'disetujui' status
+                        if (is_array($createdJaspel)) {
+                            foreach ($createdJaspel as $jaspel) {
+                                if ($jaspel instanceof \App\Models\Jaspel) {
+                                    $jaspel->update([
+                                        'status_validasi' => 'disetujui',
+                                        'validasi_by' => Auth::id(),
+                                        'validasi_at' => now(),
+                                        'catatan_validasi' => 'Auto-approved with Tindakan validation'
+                                    ]);
+                                }
+                            }
+                        }
+                        
+                        $jaspelCount = is_array($createdJaspel) ? count($createdJaspel) : 0;
+                        $GLOBALS['validation_message'] = "Tindakan berhasil disetujui dan {$jaspelCount} record Jaspel dibuat & disetujui";
+                    } catch (\Exception $jaspelError) {
+                        \Log::warning('Failed to auto-generate Jaspel: ' . $jaspelError->getMessage());
+                        $GLOBALS['validation_message'] = 'Tindakan berhasil disetujui (Jaspel akan digenerate manual)';
+                    }
+                } else {
+                    // If rejected, also reject existing Jaspel records
+                    $record->jaspel()->update([
+                        'status_validasi' => 'ditolak',
+                        'validasi_by' => Auth::id(),
+                        'validasi_at' => now(),
+                        'catatan_validasi' => 'Rejected due to Tindakan rejection: ' . ($comment ?? 'Quick rejected')
+                    ]);
                     
-                    $jaspelCount = is_array($createdJaspel) ? count($createdJaspel) : 0;
-                    $message = "Tindakan berhasil disetujui dan {$jaspelCount} record Jaspel dibuat";
-                } catch (\Exception $jaspelError) {
-                    \Log::warning('Failed to auto-generate Jaspel: ' . $jaspelError->getMessage());
-                    $message = 'Tindakan berhasil disetujui (Jaspel akan digenerate manual)';
+                    $GLOBALS['validation_message'] = 'Tindakan berhasil ditolak dan Jaspel terkait diperbarui';
                 }
-            } else {
-                $message = 'Tindakan berhasil ditolak';
-            }
+            });
             
             Notification::make()
                 ->title('✅ Success')
-                ->body($message)
+                ->body($GLOBALS['validation_message'] ?? 'Validasi berhasil')
                 ->success()
                 ->send();
 
@@ -520,19 +576,56 @@ class ValidationCenterResource extends Resource
         try {
             $count = $records->count();
             
-            foreach ($records as $record) {
-                $record->update([
-                    'status_validasi' => $status,
-                    'status' => $status === 'approved' ? 'selesai' : 'batal',
-                    'validated_by' => Auth::id(),
-                    'validated_at' => now(),
-                    'komentar_validasi' => $comment ?? "Bulk {$status} by " . Auth::user()->name,
-                ]);
-            }
+            \DB::transaction(function() use ($records, $status, $comment) {
+                foreach ($records as $record) {
+                    // Map validation status to consistent format
+                    $mappedStatus = $status === 'approved' ? 'disetujui' : ($status === 'rejected' ? 'ditolak' : $status);
+                    
+                    $record->update([
+                        'status_validasi' => $mappedStatus,
+                        'status' => $mappedStatus === 'disetujui' ? 'selesai' : 'batal',
+                        'validated_by' => Auth::id(),
+                        'validated_at' => now(),
+                        'komentar_validasi' => $comment ?? "Bulk {$mappedStatus} by " . Auth::user()->name,
+                    ]);
+
+                    // Handle Jaspel synchronization
+                    if ($mappedStatus === 'disetujui') {
+                        try {
+                            $jaspelService = app(\App\Services\JaspelCalculationService::class);
+                            $createdJaspel = $jaspelService->calculateJaspelFromTindakan($record);
+                            
+                            // Update newly created Jaspel records to 'disetujui' status
+                            if (is_array($createdJaspel)) {
+                                foreach ($createdJaspel as $jaspel) {
+                                    if ($jaspel instanceof \App\Models\Jaspel) {
+                                        $jaspel->update([
+                                            'status_validasi' => 'disetujui',
+                                            'validasi_by' => Auth::id(),
+                                            'validasi_at' => now(),
+                                            'catatan_validasi' => 'Auto-approved with bulk Tindakan validation'
+                                        ]);
+                                    }
+                                }
+                            }
+                        } catch (\Exception $jaspelError) {
+                            \Log::warning('Failed to auto-generate Jaspel for bulk operation: ' . $jaspelError->getMessage());
+                        }
+                    } else {
+                        // If rejected, also reject existing Jaspel records
+                        $record->jaspel()->update([
+                            'status_validasi' => 'ditolak',
+                            'validasi_by' => Auth::id(),
+                            'validasi_at' => now(),
+                            'catatan_validasi' => 'Rejected due to bulk Tindakan rejection: ' . ($comment ?? 'Bulk rejected')
+                        ]);
+                    }
+                }
+            });
 
             $message = $status === 'approved' 
-                ? "Successfully approved {$count} tindakan"
-                : "Successfully rejected {$count} tindakan";
+                ? "Successfully approved {$count} tindakan and synchronized Jaspel records"
+                : "Successfully rejected {$count} tindakan and updated related Jaspel records";
             
             Notification::make()
                 ->title('✅ Bulk Operation Complete')
@@ -552,17 +645,27 @@ class ValidationCenterResource extends Resource
     protected static function revertToPending(Tindakan $record, string $reason): void
     {
         try {
-            $record->update([
-                'status_validasi' => 'pending',
-                'status' => 'pending',
-                'validated_by' => null,
-                'validated_at' => null,
-                'komentar_validasi' => "Reverted by " . Auth::user()->name . ": {$reason}",
-            ]);
+            \DB::transaction(function() use ($record, $reason) {
+                $record->update([
+                    'status_validasi' => 'pending',
+                    'status' => 'pending',
+                    'validated_by' => null,
+                    'validated_at' => null,
+                    'komentar_validasi' => "Reverted by " . Auth::user()->name . ": {$reason}",
+                ]);
+
+                // Also revert related Jaspel records to pending
+                $record->jaspel()->update([
+                    'status_validasi' => 'pending',
+                    'validasi_by' => null,
+                    'validasi_at' => null,
+                    'catatan_validasi' => "Reverted due to Tindakan revert: {$reason}"
+                ]);
+            });
 
             Notification::make()
                 ->title('🔄 Reverted Successfully')
-                ->body('Tindakan has been returned to pending status')
+                ->body('Tindakan and related Jaspel records have been returned to pending status')
                 ->success()
                 ->send();
 

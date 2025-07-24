@@ -97,6 +97,7 @@ class JenisTindakanResource extends Resource
                             ->suffix('%')
                             ->placeholder('40')
                             ->reactive()
+                            ->required()
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 $tarif = floatval($get('tarif') ?? 0);
                                 $persentaseJaspel = floatval($state ?? 40);
@@ -169,6 +170,12 @@ class JenisTindakanResource extends Resource
                 Tables\Columns\TextColumn::make('tarif')
                     ->label('Tarif')
                     ->money('IDR')
+                    ->sortable()
+                    ->alignEnd(),
+
+                Tables\Columns\TextColumn::make('persentase_jaspel')
+                    ->label('% Jaspel')
+                    ->suffix('%')
                     ->sortable()
                     ->alignEnd(),
 

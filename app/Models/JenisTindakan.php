@@ -20,6 +20,7 @@ class JenisTindakan extends Model
         'jasa_dokter',
         'jasa_paramedis',
         'jasa_non_paramedis',
+        'persentase_jaspel',
         'kategori',
         'is_active',
     ];
@@ -29,6 +30,7 @@ class JenisTindakan extends Model
         'jasa_dokter' => 'decimal:2',
         'jasa_paramedis' => 'decimal:2',
         'jasa_non_paramedis' => 'decimal:2',
+        'persentase_jaspel' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 

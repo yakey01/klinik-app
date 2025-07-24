@@ -17,6 +17,56 @@ require __DIR__.'/test-models.php';
 use Illuminate\Support\Facades\Auth;
 
 // Test endpoint for debugging Jaspel data
+Route::get('/test-validation-center', function () {
+    try {
+        $output = "🔍 VALIDATION CENTER DEBUG\n";
+        $output .= "========================\n\n";
+        
+        // Simulate ValidationCenterResource query
+        $query = \App\Models\Tindakan::whereNotNull('input_by')
+            ->with(['jenisTindakan', 'pasien', 'dokter', 'paramedis', 'nonParamedis', 'inputBy', 'validatedBy']);
+        
+        $allRecords = $query->get();
+        $pendingRecords = $query->where('status_validasi', 'pending')->get();
+        
+        $output .= "📊 STATISTICS:\n";
+        $output .= "Total records: " . $allRecords->count() . "\n";
+        $output .= "Pending records: " . $pendingRecords->count() . "\n\n";
+        
+        $output .= "🕐 PENDING RECORDS (should show in UI):\n";
+        foreach($pendingRecords as $t) {
+            $jenisTindakan = $t->jenisTindakan ? $t->jenisTindakan->nama : 'N/A';
+            $pasien = $t->pasien ? $t->pasien->nama : 'N/A';
+            $paramedis = $t->paramedis ? $t->paramedis->nama_lengkap : 'N/A';
+            $inputBy = $t->inputBy ? $t->inputBy->name : 'N/A';
+            
+            $output .= "- ID: {$t->id}\n";
+            $output .= "  Jenis: {$jenisTindakan}\n";
+            $output .= "  Pasien: {$pasien}\n";
+            $output .= "  Paramedis: {$paramedis}\n";
+            $output .= "  Tarif: Rp " . number_format($t->tarif, 0, ',', '.') . "\n";
+            $output .= "  Input By: {$inputBy}\n";
+            $output .= "  Status: {$t->status_validasi}\n";
+            $output .= "  Date: {$t->tanggal_tindakan}\n\n";
+        }
+        
+        $output .= "🔎 NANING SPECIFIC ANALYSIS:\n";
+        $naning = \App\Models\User::where('name', 'LIKE', '%Naning%')->first();
+        $naningTindakan = $allRecords->filter(function($t) use ($naning) {
+            return $t->paramedis && $t->paramedis->user_id == $naning->id;
+        });
+        
+        $output .= "Naning tindakan found: " . $naningTindakan->count() . "\n";
+        foreach($naningTindakan as $t) {
+            $output .= "- Tindakan {$t->id}: Status {$t->status_validasi}, Tarif Rp " . number_format($t->tarif, 0, ',', '.') . "\n";
+        }
+        
+        return response($output)->header('Content-Type', 'text/plain');
+    } catch (\Exception $e) {
+        return response('Error: ' . $e->getMessage(), 500);
+    }
+});
+
 Route::get('/test-jaspel-data', function () {
     try {
         $naning = \App\Models\User::where('name', 'LIKE', '%Naning%')
@@ -40,8 +90,34 @@ Route::get('/test-jaspel-data', function () {
             $output .= "- ID: {$jaspel->id}, Jenis: {$jenis}, Nominal: Rp " . number_format($jaspel->nominal, 0, ',', '.') . ", Status: {$jaspel->status_validasi}\n";
         }
         
+        $pendingTotal = $jaspelRecords->where('status_validasi', 'pending')->sum('nominal');
         $totalPaid = $jaspelRecords->where('status_validasi', 'disetujui')->sum('nominal');
         $output .= "\n💰 Total Paid: Rp " . number_format($totalPaid, 0, ',', '.');
+        $output .= "\n⏳ Total Pending: Rp " . number_format($pendingTotal, 0, ',', '.');
+        
+        // Test mobile API simulation
+        $output .= "\n\n🔬 MOBILE API SIMULATION:";
+        Auth::login($naning);
+        
+        $jaspelController = new \App\Http\Controllers\Api\V2\Jaspel\JaspelController(
+            app(\App\Services\JaspelCalculationService::class)
+        );
+        $request = new \Illuminate\Http\Request();
+        $apiResponse = $jaspelController->getMobileJaspelData($request);
+        $apiData = $apiResponse->getData(true);
+        
+        if ($apiData['success']) {
+            $summary = $apiData['data']['summary'];
+            $output .= "\n✅ API Success:";
+            $output .= "\n  - Total Pending: Rp " . number_format($summary['total_pending'], 0, ',', '.');
+            $output .= "\n  - Total Paid: Rp " . number_format($summary['total_paid'], 0, ',', '.');
+            $output .= "\n  - Pending Count: " . $summary['count_pending'];
+            $output .= "\n  - Items Returned: " . count($apiData['data']['jaspel_items']);
+        } else {
+            $output .= "\n❌ API Error: " . $apiData['message'];
+        }
+        
+        Auth::logout();
         
         return response($output)->header('Content-Type', 'text/plain');
     } catch (\Exception $e) {

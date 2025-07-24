@@ -89,28 +89,38 @@ class WorkLocationResource extends Resource
                         Forms\Components\Grid::make(3)
                             ->schema([
                                 Forms\Components\TextInput::make('latitude')
-                                    ->label('🌍 Latitude (Auto-Detected)')
+                                    ->label('Latitude')
                                     ->required()
                                     ->numeric()
                                     ->step(0.000001)
-                                    ->placeholder('Auto-detecting GPS...')
-                                    ->helperText('Koordinat lintang - auto-detect dari GPS atau set manual dari peta')
+                                    ->placeholder('Contoh: -6.2088200 (Jakarta)')
+                                    ->helperText('Koordinat lintang - terisi otomatis dari peta')
                                     ->reactive()
                                     ->live()
-                                    ->readOnly(false)
-                                    ->disabled(false),
+                                    ->afterStateUpdated(function (callable $get, callable $set, $state): void {
+                                        $lat = $get('latitude');
+                                        $lng = $get('longitude');
+                                        if ($lat && $lng) {
+                                            $set('map_coordinates', ['lat' => (float) $lat, 'lng' => (float) $lng]);
+                                        }
+                                    }),
 
                                 Forms\Components\TextInput::make('longitude')
-                                    ->label('🌍 Longitude (Auto-Detected)')
+                                    ->label('Longitude')
                                     ->required()
                                     ->numeric()
                                     ->step(0.000001)
-                                    ->placeholder('Auto-detecting GPS...')
-                                    ->helperText('Koordinat bujur - auto-detect dari GPS atau set manual dari peta')
+                                    ->placeholder('Contoh: 106.8238800 (Jakarta)')
+                                    ->helperText('Koordinat bujur - terisi otomatis dari peta')
                                     ->reactive()
                                     ->live()
-                                    ->readOnly(false)
-                                    ->disabled(false)
+                                    ->afterStateUpdated(function (callable $get, callable $set, $state): void {
+                                        $lat = $get('latitude');
+                                        $lng = $get('longitude');
+                                        if ($lat && $lng) {
+                                            $set('map_coordinates', ['lat' => (float) $lat, 'lng' => (float) $lng]);
+                                        }
+                                    })
                                     ->suffixAction(
                                         Forms\Components\Actions\Action::make('openMaps')
                                             ->label('🗺️ Lihat di Maps')
@@ -152,14 +162,14 @@ class WorkLocationResource extends Resource
                             ]),
 
                         Forms\Components\Placeholder::make('location_tips')
-                            ->label('🎯 Auto GPS Detection:')
+                            ->label('💡 Tips Penggunaan Peta:')
                             ->content('
-                                • 🚀 **Auto-Detection**: GPS akan otomatis terdeteksi saat form dibuka
-                                • 📍 **Manual Override**: Klik pada peta atau drag marker untuk mengubah lokasi
-                                • 🔄 **Re-detect GPS**: Klik tombol GPS untuk deteksi ulang lokasi
-                                • 🗺️ **Interactive Map**: Zoom dan klik peta untuk set lokasi manual
-                                • ✅ **Auto-Fill**: Latitude dan longitude akan terisi otomatis
-                                • 🎯 **Akurasi Tinggi**: Menggunakan GPS high accuracy mode
+                                • Klik tombol "🌐 Get Location" untuk deteksi GPS otomatis
+                                • Klik pada peta untuk memindahkan marker ke lokasi yang diinginkan
+                                • Drag marker pada peta untuk mengubah posisi secara manual
+                                • Zoom in/out dengan scroll mouse atau kontrol peta
+                                • Koordinat latitude dan longitude akan terisi otomatis saat memilih lokasi
+                                • Setelah marker dipindahkan, koordinat akan langsung terupdate
                             ')
                             ->columnSpanFull(),
                     ]),

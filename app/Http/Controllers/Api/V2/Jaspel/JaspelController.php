@@ -284,12 +284,9 @@ class JaspelController extends Controller
         try {
             $user = Auth::user();
             
-            // Get Jaspel records from validated tindakan
+            // Get ALL Jaspel records (including pending validation from bendahara)
             $jaspelQuery = Jaspel::where('user_id', $user->id)
-                ->with(['tindakan.jenisTindakan', 'tindakan.pasien', 'validasiBy'])
-                ->whereHas('tindakan', function($query) {
-                    $query->where('status_validasi', 'approved');
-                });
+                ->with(['tindakan.jenisTindakan', 'tindakan.pasien', 'validasiBy']);
 
             // Apply filters
             $month = $request->get('month', now()->month);
@@ -307,10 +304,10 @@ class JaspelController extends Controller
 
             $jaspelData = $jaspelQuery->orderBy('tanggal', 'desc')->get();
 
-            // Calculate summaries
-            $totalPaid = $jaspelData->where('status_validasi', 'disetujui')->sum('nominal');
+            // Calculate summaries - include all validation statuses
+            $totalPaid = $jaspelData->whereIn('status_validasi', ['disetujui', 'approved'])->sum('nominal');
             $totalPending = $jaspelData->where('status_validasi', 'pending')->sum('nominal');
-            $totalRejected = $jaspelData->where('status_validasi', 'ditolak')->sum('nominal');
+            $totalRejected = $jaspelData->whereIn('status_validasi', ['ditolak', 'rejected'])->sum('nominal');
 
             // Format data for mobile app
             $formattedData = $jaspelData->map(function($jaspel) {
@@ -323,7 +320,7 @@ class JaspelController extends Controller
                     'tanggal' => $jaspel->tanggal->format('Y-m-d'),
                     'jenis' => $jenisTindakan ? $jenisTindakan->nama : 'Jaspel ' . ucwords(str_replace('_', ' ', $jaspel->jenis_jaspel)),
                     'jumlah' => (int) $jaspel->nominal,
-                    'status' => $jaspel->status_validasi === 'disetujui' ? 'paid' : 
+                    'status' => in_array($jaspel->status_validasi, ['disetujui', 'approved']) ? 'paid' : 
                                ($jaspel->status_validasi === 'pending' ? 'pending' : 'rejected'),
                     'keterangan' => $jaspel->keterangan ?: (
                         $pasien ? "Pasien: {$pasien->nama}" : 
@@ -343,9 +340,9 @@ class JaspelController extends Controller
                         'total_paid' => (int) $totalPaid,
                         'total_pending' => (int) $totalPending,
                         'total_rejected' => (int) $totalRejected,
-                        'count_paid' => $jaspelData->where('status_validasi', 'disetujui')->count(),
+                        'count_paid' => $jaspelData->whereIn('status_validasi', ['disetujui', 'approved'])->count(),
                         'count_pending' => $jaspelData->where('status_validasi', 'pending')->count(),
-                        'count_rejected' => $jaspelData->where('status_validasi', 'ditolak')->count(),
+                        'count_rejected' => $jaspelData->whereIn('status_validasi', ['ditolak', 'rejected'])->count(),
                     ]
                 ],
                 'meta' => [

@@ -203,6 +203,8 @@ jobs:
             APP_ENV=production
             APP_KEY=
             APP_DEBUG=false
+            # Force non-interactive mode for all artisan commands
+            LARAVEL_FORCE_NON_INTERACTIVE=true
             APP_URL=https://dokterkuklinik.com
             LOG_CHANNEL=stack
             LOG_DEPRECATIONS_CHANNEL=null
@@ -423,6 +425,11 @@ jobs:
             
             # Set non-interactive mode for deployment
             export DEBIAN_FRONTEND=noninteractive
+            export LARAVEL_FORCE_NON_INTERACTIVE=true
+            export LARAVEL_ENV=production
+            # Disable interactive prompts
+            export CI=true
+            export COMPOSER_NO_INTERACTION=1
             
             # First try the PHP test script
             if php test-db-connection.php 2>&1; then
@@ -472,10 +479,12 @@ jobs:
             echo ""
             
             echo "🔧 Running Laravel optimization commands..."
-            php artisan config:clear
-            php artisan cache:clear
-            php artisan view:clear
-            php artisan route:clear
+            # Disable interactive mode globally
+            echo "🔧 Disabling interactive mode for Laravel..."
+            php artisan config:clear --no-interaction
+            php artisan cache:clear --no-interaction
+            php artisan view:clear --no-interaction
+            php artisan route:clear --no-interaction
             
             # Handle migrations based on connection status and input
             SKIP_MIGRATIONS="${{ github.event.inputs.skip_migrations || 'false' }}"
@@ -505,10 +514,10 @@ jobs:
               
               # Check migration status before running
               echo "📊 Checking current migration status..."
-              php artisan migrate:status --no-interaction || echo "Could not check migration status"
+              php -d memory_limit=512M artisan migrate:status --no-interaction --force || echo "Could not check migration status"
               
               echo "🗄️ Running database migrations..."
-              php artisan migrate --force --no-interaction || {
+              php -d memory_limit=512M artisan migrate --force --no-interaction --verbose || {
                 echo "❌ Migration failed! Attempting to diagnose..."
                 
                 # Test Laravel's database connection

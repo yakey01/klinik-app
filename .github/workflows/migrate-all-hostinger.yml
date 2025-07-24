@@ -1,0 +1,207 @@
+name: 🚀 Migrate All Data to Hostinger
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_type:
+        description: 'Type of migration'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - fresh
+          - fresh-seed
+          - rollback
+      force_yes:
+        description: 'Force yes to all prompts'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+  HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
+  HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
+  DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+
+jobs:
+  migrate-all:
+    name: 🗄️ Migrate All Data to Hostinger
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Install sshpass
+        run: |
+          echo "🔧 Installing sshpass..."
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Verify Environment Variables
+        run: |
+          echo "🔍 Verifying environment variables..."
+          echo "HOSTINGER_HOST: ${HOSTINGER_HOST:-'NOT_SET'}"
+          echo "HOSTINGER_USERNAME: ${HOSTINGER_USERNAME:-'NOT_SET'}"
+          echo "DEPLOY_PATH: ${DEPLOY_PATH:-'NOT_SET'}"
+          echo "Password set: $([ -n "${HOSTINGER_PASSWORD}" ] && echo 'YES' || echo 'NO')"
+          
+          if [ -z "${HOSTINGER_HOST}" ] || [ -z "${HOSTINGER_USERNAME}" ] || [ -z "${HOSTINGER_PASSWORD}" ] || [ -z "${DEPLOY_PATH}" ]; then
+            echo "❌ Missing required environment variables!"
+            exit 1
+          fi
+          echo "✅ All environment variables are set"
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "Host *" > ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Test Server Connection
+        run: |
+          echo "🔗 Testing server connection..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "echo '✅ SSH connection successful' && pwd"
+
+      - name: Check Laravel Environment
+        run: |
+          echo "🔍 Checking Laravel environment..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && echo 'Current directory:' && pwd && echo 'Laravel artisan exists:' && ls -la artisan && echo 'PHP version:' && php -v"
+
+      - name: Check Database Connection
+        run: |
+          echo "🗄️ Testing database connection..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php artisan tinker --execute=\"try { \\DB::connection()->getPdo(); echo '✅ Database connection OK'; } catch (Exception \\\$e) { echo '❌ Database error: ' . \\\$e->getMessage(); }\" --no-interaction"
+
+      - name: Show Current Migration Status
+        run: |
+          echo "📊 Current migration status:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php artisan migrate:status --no-interaction"
+
+      - name: Run Standard Migration
+        if: github.event.inputs.migration_type == 'standard'
+        run: |
+          echo "🔄 Running standard migration..."
+          echo "Migration type: ${{ github.event.inputs.migration_type }}"
+          echo "Force yes: ${{ github.event.inputs.force_yes }}"
+          
+          if [ "${{ github.event.inputs.force_yes }}" = "true" ]; then
+            echo "Using yes command to auto-answer all prompts..."
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+              "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+              "cd ${DEPLOY_PATH} && yes | php artisan migrate --force --no-interaction"
+          else
+            echo "Running without auto-answer..."
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+              "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+              "cd ${DEPLOY_PATH} && php artisan migrate --force --no-interaction"
+          fi
+          
+          echo "✅ Standard migration completed"
+
+      - name: Run Fresh Migration
+        if: github.event.inputs.migration_type == 'fresh'
+        run: |
+          echo "🔄 Running fresh migration (WARNING: This will drop all tables!)..."
+          echo "Migration type: ${{ github.event.inputs.migration_type }}"
+          echo "Force yes: ${{ github.event.inputs.force_yes }}"
+          
+          if [ "${{ github.event.inputs.force_yes }}" = "true" ]; then
+            echo "Using yes command to auto-answer all prompts..."
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+              "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+              "cd ${DEPLOY_PATH} && yes | php artisan migrate:fresh --force --no-interaction"
+          else
+            echo "Running without auto-answer..."
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+              "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+              "cd ${DEPLOY_PATH} && php artisan migrate:fresh --force --no-interaction"
+          fi
+          
+          echo "✅ Fresh migration completed"
+
+      - name: Run Fresh Migration with Seeding
+        if: github.event.inputs.migration_type == 'fresh-seed'
+        run: |
+          echo "🔄 Running fresh migration with seeding (WARNING: This will drop all tables!)..."
+          echo "Migration type: ${{ github.event.inputs.migration_type }}"
+          echo "Force yes: ${{ github.event.inputs.force_yes }}"
+          
+          if [ "${{ github.event.inputs.force_yes }}" = "true" ]; then
+            echo "Using yes command to auto-answer all prompts..."
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+              "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+              "cd ${DEPLOY_PATH} && yes | php artisan migrate:fresh --seed --force --no-interaction"
+          else
+            echo "Running without auto-answer..."
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+              "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+              "cd ${DEPLOY_PATH} && php artisan migrate:fresh --seed --force --no-interaction"
+          fi
+          
+          echo "✅ Fresh migration with seeding completed"
+
+      - name: Run Migration Rollback
+        if: github.event.inputs.migration_type == 'rollback'
+        run: |
+          echo "🔄 Running migration rollback..."
+          echo "Migration type: ${{ github.event.inputs.migration_type }}"
+          echo "Force yes: ${{ github.event.inputs.force_yes }}"
+          
+          if [ "${{ github.event.inputs.force_yes }}" = "true" ]; then
+            echo "Using yes command to auto-answer all prompts..."
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+              "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+              "cd ${DEPLOY_PATH} && yes | php artisan migrate:rollback --force --no-interaction"
+          else
+            echo "Running without auto-answer..."
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+              "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+              "cd ${DEPLOY_PATH} && php artisan migrate:rollback --force --no-interaction"
+          fi
+          
+          echo "✅ Migration rollback completed"
+
+      - name: Show Final Migration Status
+        run: |
+          echo "📊 Final migration status:"
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php artisan migrate:status --no-interaction"
+
+      - name: Clear Laravel Caches
+        run: |
+          echo "🧹 Clearing Laravel caches..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php artisan config:clear --no-interaction && php artisan cache:clear --no-interaction && php artisan view:clear --no-interaction && php artisan route:clear --no-interaction"
+
+      - name: Optimize for Production
+        run: |
+          echo "⚡ Optimizing for production..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && php artisan config:cache --no-interaction && php artisan route:cache --no-interaction"
+
+      - name: Migration Summary
+        if: always()
+        run: |
+          echo "🎉 Migration Summary"
+          echo "=================="
+          echo "✅ Server: ${HOSTINGER_HOST}"
+          echo "✅ Path: ${DEPLOY_PATH}"
+          echo "✅ Migration Type: ${{ github.event.inputs.migration_type }}"
+          echo "✅ Force Yes: ${{ github.event.inputs.force_yes }}"
+          echo "✅ Timestamp: $(date)"
+          echo ""
+          echo "📝 Migration completed successfully!"
+          echo "🌐 Check your application at: https://dokterkuklinik.com" 

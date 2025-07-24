@@ -13,10 +13,9 @@ class TindakanPolicy
      */
     public function viewAny(User $user): bool
     {
-        // Allow users with input_transactions, view-procedures, or validate_transactions permission to view procedures
-        return $user->hasPermissionTo('input_transactions') || 
-               $user->hasPermissionTo('view_tindakan') || 
-               $user->hasPermissionTo('validate_transactions');
+        // Allow users with view-procedures or view_tindakan permission to view procedures
+        return $user->can('view-procedures') || 
+               $user->can('view_tindakan');
     }
 
     /**
@@ -24,10 +23,9 @@ class TindakanPolicy
      */
     public function view(User $user, Tindakan $tindakan): bool
     {
-        // Allow users with input_transactions, view-procedures, or validate_transactions permission to view procedures
-        return $user->hasPermissionTo('input_transactions') || 
-               $user->hasPermissionTo('view_tindakan') || 
-               $user->hasPermissionTo('validate_transactions');
+        // Allow users with view-procedures or view_tindakan permission to view procedures  
+        return $user->can('view-procedures') || 
+               $user->can('view_tindakan');
     }
 
     /**
@@ -35,8 +33,8 @@ class TindakanPolicy
      */
     public function create(User $user): bool
     {
-        // Allow users with input_transactions permission to create procedures
-        return $user->can('input_transactions') || $user->can('create_tindakan');
+        // Allow users with create-procedures or create_tindakan permission to create procedures
+        return $user->can('create-procedures') || $user->can('create_tindakan');
     }
 
     /**

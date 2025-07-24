@@ -27,7 +27,7 @@ class PetugasPanelProvider extends PanelProvider
         return $panel
             ->id('petugas')
             ->path('petugas')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('Petugas Dashboard')
             ->viteTheme('resources/css/filament/petugas/theme.css')
             ->colors([
@@ -90,6 +90,7 @@ class PetugasPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
+                \App\Http\Middleware\RedirectToUnifiedAuth::class,
                 Authenticate::class,
                 \App\Http\Middleware\PetugasMiddleware::class,
             ])

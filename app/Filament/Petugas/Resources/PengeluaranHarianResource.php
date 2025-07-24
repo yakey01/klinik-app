@@ -33,7 +33,7 @@ class PengeluaranHarianResource extends Resource
     
     protected static ?string $modelLabel = 'Pengeluaran Harian';
     
-    protected static ?string $navigationGroup = '📊 Input Data Harian';
+    protected static ?string $navigationGroup = '📊 Data Entry Harian';
 
     protected static ?int $navigationSort = 3;
 

@@ -32,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->authGuard('web')
             ->brandName('🏥 Dokterku Admin Portal')
             ->viteTheme('resources/css/filament/admin/theme.css')
@@ -77,9 +77,9 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Resources\FaceRecognitionResource::class,
                 \App\Filament\Resources\GpsSpoofingDetectionResource::class,
                 \App\Filament\Resources\GpsSpoofingConfigResource::class,
-                \App\Filament\Resources\ValidasiLokasiResource::class,
-                \App\Filament\Resources\UserDeviceResource::class,
+                // \App\Filament\Resources\UserDeviceResource::class, // REMOVED: Admin panel access for user devices
                 \App\Filament\Resources\EmployeeCardResource::class,
+                // \App\Filament\Resources\LocationResource::class, // REMOVED: Admin panel access for locations
                 \App\Filament\Resources\WorkLocationResource::class,
                 \App\Filament\Resources\KalenderKerjaResource::class,
                 \App\Filament\Resources\JadwalJagaResource::class,
@@ -116,6 +116,7 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
+                \App\Http\Middleware\RedirectToUnifiedAuth::class,
                 Authenticate::class,
                 \App\Http\Middleware\AdminMiddleware::class,
             ])

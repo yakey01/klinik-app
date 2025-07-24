@@ -1,0 +1,238 @@
+name: Fix Hostinger Admin Login
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'diagnose'
+        type: choice
+        options:
+          - diagnose
+          - fix-password
+          - fix-all
+          - reset-admin
+      admin_password:
+        description: 'New admin password (if resetting)'
+        required: false
+        default: 'admin123'
+
+jobs:
+  fix-hostinger-login:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fix Hostinger Admin Login
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            echo "🔧 Fixing Hostinger Admin Login..."
+            echo "Action: ${{ github.event.inputs.action }}"
+            echo "=========================================="
+            
+            cd domains/dokterkuklinic.com/public_html/dokterku
+            
+            # Get DB credentials from .env
+            DB_HOST=$(grep "^DB_HOST=" .env | cut -d'=' -f2)
+            DB_USER=$(grep "^DB_USERNAME=" .env | cut -d'=' -f2)
+            DB_PASS=$(grep "^DB_PASSWORD=" .env | cut -d'=' -f2)
+            DB_NAME=$(grep "^DB_DATABASE=" .env | cut -d'=' -f2)
+            
+            echo "Database: $DB_NAME"
+            echo "Host: $DB_HOST"
+            echo ""
+            
+            # DIAGNOSE - Check current admin status
+            if [ "${{ github.event.inputs.action }}" = "diagnose" ] || [ "${{ github.event.inputs.action }}" = "fix-all" ]; then
+              echo "🔍 DIAGNOSIS - Checking Admin User Status"
+              echo "========================================"
+              
+              echo "1. Checking users table for admin..."
+              mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "
+              SELECT 
+                  id, 
+                  name, 
+                  username, 
+                  email, 
+                  role_id, 
+                  is_active,
+                  CASE WHEN password IS NOT NULL THEN 'YES' ELSE 'NO' END as has_password,
+                  LENGTH(password) as password_length,
+                  created_at,
+                  updated_at
+              FROM users 
+              WHERE username = 'admin' 
+                 OR email = 'admin@dokterku.com'
+                 OR email LIKE '%admin%'
+              ORDER BY id;
+              " 2>/dev/null || echo "❌ Failed to query users table"
+              
+              echo ""
+              echo "2. Checking available roles..."
+              mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "
+              SELECT id, name, display_name FROM roles ORDER BY id;
+              " 2>/dev/null || echo "❌ Failed to query roles table"
+              
+              echo ""
+              echo "3. Testing Laravel artisan..."
+              if [ -f "artisan" ]; then
+                php artisan --version 2>/dev/null || echo "❌ Cannot run artisan"
+              else
+                echo "❌ Laravel artisan not found"
+              fi
+              
+              echo ""
+              echo "4. Checking Laravel logs..."
+              if [ -f "storage/logs/laravel.log" ]; then
+                echo "Recent auth-related errors:"
+                tail -20 storage/logs/laravel.log | grep -i "auth\|login\|password" || echo "No recent auth errors"
+              else
+                echo "❌ No Laravel log file found"
+              fi
+            fi
+            
+            # FIX PASSWORD - Update admin password
+            if [ "${{ github.event.inputs.action }}" = "fix-password" ] || [ "${{ github.event.inputs.action }}" = "fix-all" ]; then
+              echo ""
+              echo "🔧 FIXING ADMIN PASSWORD"
+              echo "========================"
+              
+              # Check if admin exists
+              ADMIN_EXISTS=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "SELECT COUNT(*) FROM users WHERE email = 'admin@dokterku.com';" -s -N 2>/dev/null || echo "0")
+              
+              if [ "$ADMIN_EXISTS" -gt 0 ]; then
+                echo "Updating existing admin password..."
+                
+                # Get admin role ID
+                ADMIN_ROLE_ID=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "SELECT id FROM roles WHERE name = 'admin' LIMIT 1;" -s -N 2>/dev/null || echo "1")
+                
+                # Update admin password using Laravel hash
+                php artisan tinker --execute="
+                DB::table('users')->where('email', 'admin@dokterku.com')->update([
+                  'password' => Hash::make('${{ github.event.inputs.admin_password }}'),
+                  'role_id' => $ADMIN_ROLE_ID,
+                  'is_active' => 1,
+                  'updated_at' => now()
+                ]);
+                echo '✅ Admin password updated successfully';
+                " 2>/dev/null || echo "❌ Failed to update password via tinker"
+                
+              else
+                echo "Creating new admin user..."
+                
+                # Get admin role ID
+                ADMIN_ROLE_ID=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "SELECT id FROM roles WHERE name = 'admin' LIMIT 1;" -s -N 2>/dev/null || echo "1")
+                
+                # Create new admin using Laravel
+                php artisan tinker --execute="
+                DB::table('users')->insert([
+                  'name' => 'Administrator',
+                  'username' => 'admin',
+                  'email' => 'admin@dokterku.com',
+                  'password' => Hash::make('${{ github.event.inputs.admin_password }}'),
+                  'role_id' => $ADMIN_ROLE_ID,
+                  'is_active' => 1,
+                  'email_verified_at' => now(),
+                  'created_at' => now(),
+                  'updated_at' => now()
+                ]);
+                echo '✅ New admin user created successfully';
+                " 2>/dev/null || echo "❌ Failed to create admin via tinker"
+              fi
+              
+              # Verify password
+              echo "Verifying admin password..."
+              php artisan tinker --execute="
+              \$admin = DB::table('users')->where('email', 'admin@dokterku.com')->first();
+              if (\$admin && Hash::check('${{ github.event.inputs.admin_password }}', \$admin->password)) {
+                echo '✅ Password verification: SUCCESS';
+              } else {
+                echo '❌ Password verification: FAILED';
+              }
+              " 2>/dev/null || echo "❌ Failed to verify password"
+            fi
+            
+            # RESET ADMIN - Complete reset
+            if [ "${{ github.event.inputs.action }}" = "reset-admin" ]; then
+              echo ""
+              echo "🔄 RESETTING ADMIN USER COMPLETELY"
+              echo "==================================="
+              
+              # Get admin role ID
+              ADMIN_ROLE_ID=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "SELECT id FROM roles WHERE name = 'admin' LIMIT 1;" -s -N 2>/dev/null || echo "1")
+              
+              # Delete existing admin users
+              mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "
+              DELETE FROM users WHERE email = 'admin@dokterku.com' OR username = 'admin';
+              " 2>/dev/null || echo "❌ Failed to delete existing admin"
+              
+              # Create fresh admin
+              php artisan tinker --execute="
+              DB::table('users')->insert([
+                'name' => 'Administrator',
+                'username' => 'admin',
+                'email' => 'admin@dokterku.com',
+                'password' => Hash::make('${{ github.event.inputs.admin_password }}'),
+                'role_id' => $ADMIN_ROLE_ID,
+                'is_active' => 1,
+                'email_verified_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now()
+              ]);
+              \$admin = DB::table('users')->where('email', 'admin@dokterku.com')->first();
+              echo '✅ Admin completely reset - ID: ' . \$admin->id;
+              " 2>/dev/null || echo "❌ Failed to reset admin"
+            fi
+            
+            # CLEAR CACHES - For fix-all option
+            if [ "${{ github.event.inputs.action }}" = "fix-all" ]; then
+              echo ""
+              echo "🧹 CLEARING CACHES AND OPTIMIZING"
+              echo "=================================="
+              
+              php artisan cache:clear 2>/dev/null || echo "❌ Cannot clear cache"
+              php artisan config:clear 2>/dev/null || echo "❌ Cannot clear config"
+              php artisan route:clear 2>/dev/null || echo "❌ Cannot clear routes"
+              php artisan view:clear 2>/dev/null || echo "❌ Cannot clear views"
+              
+              echo "✅ Caches cleared"
+              
+              # Fix permissions
+              chmod -R 775 storage/ 2>/dev/null || echo "❌ Cannot fix storage permissions"
+              chmod -R 775 bootstrap/cache/ 2>/dev/null || echo "❌ Cannot fix bootstrap cache permissions"
+              
+              echo "✅ Permissions fixed"
+            fi
+            
+            # FINAL STATUS CHECK
+            echo ""
+            echo "📋 FINAL ADMIN STATUS"
+            echo "===================="
+            
+            mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "
+            SELECT 
+                id, 
+                name, 
+                username, 
+                email, 
+                role_id, 
+                is_active,
+                CASE WHEN password IS NOT NULL THEN 'YES' ELSE 'NO' END as has_password,
+                created_at
+            FROM users 
+            WHERE email = 'admin@dokterku.com'
+            ORDER BY id;
+            " 2>/dev/null || echo "❌ Failed to check final status"
+            
+            echo ""
+            echo "🎉 ADMIN LOGIN FIX COMPLETED!"
+            echo "============================="
+            echo "✅ Try logging in with:"
+            echo "   Email: admin@dokterku.com"
+            echo "   Password: ${{ github.event.inputs.admin_password }}"
+            echo "   URL: https://dokterkuklinik.com/login"

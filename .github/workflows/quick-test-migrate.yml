@@ -154,7 +154,7 @@ jobs:
           
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan migrate --pretend --env=production"
+            "cd ${DEPLOY_PATH} && php artisan migrate --pretend --force --env=production"
           
           echo ""
           echo "✅ Dry-run completed - No actual changes made"
@@ -200,7 +200,7 @@ jobs:
           echo "Migration preview (--pretend):"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan migrate --path=database/migrations/*${{ github.event.inputs.migration_file }}* --pretend --env=production"
+            "cd ${DEPLOY_PATH} && php artisan migrate --path=database/migrations/*${{ github.event.inputs.migration_file }}* --pretend --force --env=production"
           
           echo ""
           echo "✅ Single migration test completed (dry-run mode)"
@@ -222,7 +222,7 @@ jobs:
           echo "Rollback preview (--pretend):"
           sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && php artisan migrate:rollback --pretend --env=production"
+            "cd ${DEPLOY_PATH} && php artisan migrate:rollback --pretend --force --env=production"
           
           echo ""
           echo "✅ Rollback test completed (no actual rollback performed)"

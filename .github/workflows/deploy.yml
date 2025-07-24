@@ -171,6 +171,14 @@ jobs:
             
             cd domains/dokterkuklinik.com/public_html/dokterku
             
+            # Debug SSH environment
+            echo "🔍 Debugging SSH environment..."
+            echo "Current directory: $(pwd)"
+            echo "PHP version: $(php -v | head -1)"
+            echo "Laravel artisan exists: $([ -f artisan ] && echo 'Yes' || echo 'No')"
+            echo "Directory contents:"
+            ls -la | head -10
+            
             echo "📦 Downloading Composer 2 for server deployment..."
             php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
             php composer-setup.php --2 --install-dir=. --filename=composer2
@@ -497,10 +505,10 @@ jobs:
               
               # Check migration status before running
               echo "📊 Checking current migration status..."
-              php artisan migrate:status || echo "Could not check migration status"
+              php artisan migrate:status --no-interaction || echo "Could not check migration status"
               
               echo "🗄️ Running database migrations..."
-              php artisan migrate --force || {
+              php artisan migrate --force --no-interaction || {
                 echo "❌ Migration failed! Attempting to diagnose..."
                 
                 # Test Laravel's database connection
@@ -512,7 +520,7 @@ jobs:
                   } catch (Exception \$e) {
                     echo 'Laravel DB connection error: ' . \$e->getMessage();
                   }
-                " || echo "Tinker test failed"
+                " --no-interaction || echo "Tinker test failed"
                 
                 # Check if it's a migration-specific issue
                 echo "🔍 Checking if migrations table exists..."
@@ -523,7 +531,7 @@ jobs:
                   } catch (Exception \$e) {
                     echo 'Could not check migrations table: ' . \$e->getMessage();
                   }
-                " || echo "Migrations table check failed"
+                " --no-interaction || echo "Migrations table check failed"
                 
                 echo "⚠️ Migrations failed but deployment will continue"
                 echo "⚠️ Please check migration issues manually"

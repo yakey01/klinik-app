@@ -145,7 +145,7 @@ jobs:
           set -o pipefail
           
           echo "Testing SSH connection first..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "echo 'SSH OK' && pwd" || {
               echo "❌ SSH connection failed"
@@ -153,7 +153,7 @@ jobs:
             }
           
           echo "Testing directory access..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && pwd && ls -la artisan" || {
               echo "❌ Cannot access deployment path or artisan file"
@@ -161,7 +161,7 @@ jobs:
             }
           
           echo "Testing PHP and Laravel..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php -v && php artisan --version" || {
               echo "❌ PHP or Laravel not working"
@@ -169,7 +169,7 @@ jobs:
             }
           
           echo "Running migration status command..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && timeout 60 php artisan migrate:status --env=production" || {
               echo "⚠️  Migration status command failed with exit code $?"
@@ -187,7 +187,7 @@ jobs:
           echo "🧪 Running migration dry-run test..."
           echo "===================================="
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate --pretend --force --env=production"
           
@@ -200,7 +200,7 @@ jobs:
           echo "🔍 Checking for pending migrations..."
           echo "====================================="
           
-          PENDING=$(sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          PENDING=$(sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:status --env=production | grep -c 'Pending' || true")
           
@@ -208,7 +208,7 @@ jobs:
             echo "⚠️  Found $PENDING pending migration(s)"
             echo ""
             echo "Pending migrations:"
-            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
               "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
               "cd ${DEPLOY_PATH} && php artisan migrate:status --env=production | grep 'Pending'"
           else
@@ -223,7 +223,7 @@ jobs:
           
           # First check if migration exists
           echo "Checking if migration file exists..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && ls -la database/migrations/*${{ github.event.inputs.migration_file }}*" || {
               echo "❌ Migration file not found!"
@@ -233,7 +233,7 @@ jobs:
           # Show what the migration would do
           echo ""
           echo "Migration preview (--pretend):"
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate --path=database/migrations/*${{ github.event.inputs.migration_file }}* --pretend --force --env=production"
           
@@ -248,14 +248,14 @@ jobs:
           
           # Show last batch info
           echo "Last migration batch info:"
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:status --env=production | tail -10"
           
           # Simulate rollback
           echo ""
           echo "Rollback preview (--pretend):"
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -t -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:rollback --pretend --force --env=production"
           

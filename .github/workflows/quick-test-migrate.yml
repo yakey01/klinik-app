@@ -52,7 +52,7 @@ jobs:
       - name: Check server connection
         run: |
           echo "🔍 Testing connection to Hostinger..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o ConnectTimeout=10 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 -o ConnectTimeout=10 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "echo 'Connection successful!' && cd ${DEPLOY_PATH} && pwd"
 
@@ -61,7 +61,7 @@ jobs:
           echo "📊 Current migration status:"
           echo "============================"
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:status"
 
@@ -71,7 +71,7 @@ jobs:
           echo "🧪 Running migration dry-run test..."
           echo "===================================="
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate --pretend"
           
@@ -84,7 +84,7 @@ jobs:
           echo "🔍 Checking for pending migrations..."
           echo "====================================="
           
-          PENDING=$(sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          PENDING=$(sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:status | grep -c 'Pending' || true")
           
@@ -92,7 +92,7 @@ jobs:
             echo "⚠️  Found $PENDING pending migration(s)"
             echo ""
             echo "Pending migrations:"
-            sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
               "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
               "cd ${DEPLOY_PATH} && php artisan migrate:status | grep 'Pending'"
           else
@@ -107,7 +107,7 @@ jobs:
           
           # First check if migration exists
           echo "Checking if migration file exists..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && ls -la database/migrations/*${{ github.event.inputs.migration_file }}*" || {
               echo "❌ Migration file not found!"
@@ -117,7 +117,7 @@ jobs:
           # Show what the migration would do
           echo ""
           echo "Migration preview (--pretend):"
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate --path=database/migrations/*${{ github.event.inputs.migration_file }}* --pretend"
           
@@ -132,14 +132,14 @@ jobs:
           
           # Show last batch info
           echo "Last migration batch info:"
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:status | tail -10"
           
           # Simulate rollback
           echo ""
           echo "Rollback preview (--pretend):"
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:rollback --pretend"
           
@@ -153,13 +153,13 @@ jobs:
           echo "==============================="
           
           echo "Database tables:"
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan db:show"
           
           echo ""
           echo "Migration table contents (last 10):"
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan tinker --execute=\"\\DB::table('migrations')->orderBy('id', 'desc')->limit(10)->get()->each(function(\\\$m) { echo \\\$m->migration . ' (Batch: ' . \\\$m->batch . ')' . PHP_EOL; });\""
 

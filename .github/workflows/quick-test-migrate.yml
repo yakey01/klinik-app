@@ -52,7 +52,13 @@ jobs:
       - name: Check server connection
         run: |
           echo "🔍 Testing connection to Hostinger..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 -o ConnectTimeout=10 \
+          echo "Host: ${HOSTINGER_HOST}"
+          echo "Username: ${HOSTINGER_USERNAME}"
+          echo "Deploy Path: ${DEPLOY_PATH}"
+          echo "Password length: ${#HOSTINGER_PASSWORD}"
+          echo ""
+          echo "Attempting SSH connection with verbose output..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -v -p 65002 -o ConnectTimeout=10 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "echo 'Connection successful!' && cd ${DEPLOY_PATH} && pwd"
 

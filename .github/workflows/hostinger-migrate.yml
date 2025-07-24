@@ -65,7 +65,7 @@ jobs:
       - name: Check server connection
         run: |
           echo "🔍 Testing connection to Hostinger..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -o ConnectTimeout=10 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 -o ConnectTimeout=10 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "echo 'Connection successful!' && cd ${DEPLOY_PATH} && pwd"
 
@@ -75,7 +75,7 @@ jobs:
           echo "💾 Creating database backup before destructive operation..."
           BACKUP_NAME="backup_$(date +%Y%m%d_%H%M%S).sql"
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan db:backup ${BACKUP_NAME} || echo 'Backup command not available'"
           
@@ -86,7 +86,7 @@ jobs:
         run: |
           echo "🗄️ Running standard database migration..."
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate --force"
           
@@ -98,7 +98,7 @@ jobs:
           echo "🗄️ Running fresh migration (DROP ALL TABLES)..."
           echo "⚠️  This will DELETE all existing data!"
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:fresh --force"
           
@@ -110,7 +110,7 @@ jobs:
           echo "🗄️ Running fresh migration with seeding..."
           echo "⚠️  This will DELETE all data and reseed!"
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:fresh --seed --force"
           
@@ -121,7 +121,7 @@ jobs:
         run: |
           echo "🗄️ Rolling back last migration batch..."
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:rollback --force"
           
@@ -132,7 +132,7 @@ jobs:
         run: |
           echo "🗄️ Checking migration status..."
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan migrate:status"
           
@@ -143,7 +143,7 @@ jobs:
         run: |
           echo "🧹 Clearing caches after migration..."
           
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && php artisan config:clear && php artisan cache:clear"
           

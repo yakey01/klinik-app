@@ -41,26 +41,101 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sshpass
 
+      - name: Debug Environment Variables
+        run: |
+          set -x
+          echo "🔍 Environment Variable Verification"
+          echo "===================================="
+          echo "HOSTINGER_HOST: ${HOSTINGER_HOST:-'NOT_SET'}"
+          echo "HOSTINGER_USERNAME: ${HOSTINGER_USERNAME:-'NOT_SET'}"
+          echo "DEPLOY_PATH: ${DEPLOY_PATH:-'NOT_SET'}"
+          echo "Password set: $([ -n "${HOSTINGER_PASSWORD}" ] && echo 'YES' || echo 'NO')"
+          echo "Password length: ${#HOSTINGER_PASSWORD}"
+          echo ""
+          
+          # Check if all required variables are set
+          if [ -z "${HOSTINGER_HOST}" ]; then
+            echo "❌ HOSTINGER_HOST is not set!"
+            exit 1
+          fi
+          if [ -z "${HOSTINGER_USERNAME}" ]; then
+            echo "❌ HOSTINGER_USERNAME is not set!"
+            exit 1
+          fi
+          if [ -z "${HOSTINGER_PASSWORD}" ]; then
+            echo "❌ HOSTINGER_PASSWORD is not set!"
+            exit 1
+          fi
+          if [ -z "${DEPLOY_PATH}" ]; then
+            echo "❌ DEPLOY_PATH is not set!"
+            exit 1
+          fi
+          
+          echo "✅ All environment variables are set"
+
       - name: Configure SSH
         run: |
+          set -x
           mkdir -p ~/.ssh
           echo "Host *" > ~/.ssh/config
           echo "  StrictHostKeyChecking no" >> ~/.ssh/config
           echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+          echo "  LogLevel DEBUG3" >> ~/.ssh/config
           chmod 600 ~/.ssh/config
+          echo "SSH config created:"
+          cat ~/.ssh/config
+
+      - name: Test network connectivity
+        run: |
+          set -x
+          echo "🌐 Testing network connectivity first..."
+          echo "======================================="
+          
+          # Test basic connectivity
+          echo "Testing ping to host..."
+          ping -c 3 "${HOSTINGER_HOST}" || echo "Ping failed - may be blocked"
+          
+          echo "Testing telnet to SSH port..."
+          timeout 10 bash -c "</dev/tcp/${HOSTINGER_HOST}/65002" && echo "Port 65002 is open" || echo "Port 65002 connection failed"
+          
+          echo "Testing with nc (netcat)..."
+          nc -zv "${HOSTINGER_HOST}" 65002 || echo "nc connection to port 65002 failed"
 
       - name: Check server connection
         run: |
-          echo "🔍 Testing connection to Hostinger..."
+          set -x
+          echo "🔍 Testing SSH connection to Hostinger..."
+          echo "=========================================="
           echo "Host: ${HOSTINGER_HOST}"
           echo "Username: ${HOSTINGER_USERNAME}"
           echo "Deploy Path: ${DEPLOY_PATH}"
           echo "Password length: ${#HOSTINGER_PASSWORD}"
           echo ""
-          echo "Attempting SSH connection with verbose output..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -v -p 65002 -o ConnectTimeout=10 \
+          
+          # First attempt with maximum verbosity
+          echo "Attempting SSH connection with triple verbose output..."
+          echo "Command: sshpass -p '[MASKED]' ssh -vvv -p 65002 -o ConnectTimeout=10 -o BatchMode=no '${HOSTINGER_USERNAME}@${HOSTINGER_HOST}' 'echo Connection successful && cd ${DEPLOY_PATH} && pwd'"
+          echo ""
+          
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -vvv -p 65002 -o ConnectTimeout=10 -o BatchMode=no \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "echo 'Connection successful!' && cd ${DEPLOY_PATH} && pwd"
+            "echo 'Connection successful!' && cd ${DEPLOY_PATH} && pwd" || {
+              echo ""
+              echo "❌ SSH connection failed with exit code $?"
+              echo "🔍 Debugging information:"
+              echo "- Host: ${HOSTINGER_HOST}"
+              echo "- Port: 65002"
+              echo "- Username: ${HOSTINGER_USERNAME}"
+              echo "- Password length: ${#HOSTINGER_PASSWORD}"
+              echo ""
+              echo "🔧 Possible issues:"
+              echo "1. Incorrect credentials"
+              echo "2. SSH port blocked or wrong"
+              echo "3. Server not allowing password authentication"
+              echo "4. Firewall blocking GitHub Actions IPs"
+              echo ""
+              exit 1
+            }
 
       - name: Check current migration status
         run: |

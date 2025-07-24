@@ -205,6 +205,8 @@ jobs:
             APP_DEBUG=false
             # Force non-interactive mode for all artisan commands
             LARAVEL_FORCE_NON_INTERACTIVE=true
+            LARAVEL_NON_INTERACTIVE=true
+            LARAVEL_FORCE=true
             APP_URL=https://dokterkuklinik.com
             LOG_CHANNEL=stack
             LOG_DEPRECATIONS_CHANNEL=null
@@ -430,6 +432,9 @@ jobs:
             # Disable interactive prompts
             export CI=true
             export COMPOSER_NO_INTERACTION=1
+            # Force Laravel to be non-interactive
+            export LARAVEL_NON_INTERACTIVE=true
+            export LARAVEL_FORCE=true
             
             # First try the PHP test script
             if php test-db-connection.php 2>&1; then
@@ -497,6 +502,10 @@ jobs:
             else
               echo "🗄️ Preparing database migrations..."
               
+              # Force disable interactive mode for Laravel
+              echo "🔧 Disabling Laravel interactive mode..."
+              echo "yes" | php artisan migrate:status > /dev/null 2>&1 || echo "Migration status check completed"
+              
               # Create backup directory
               mkdir -p ~/backups/database
               BACKUP_FILE="~/backups/database/backup_$(date +%Y%m%d_%H%M%S).sql"
@@ -514,14 +523,14 @@ jobs:
               
               # Check migration status before running
               echo "📊 Checking current migration status..."
-              php -d memory_limit=512M artisan migrate:status --no-interaction --force || echo "Could not check migration status"
+              yes | php -d memory_limit=512M artisan migrate:status --no-interaction --force || echo "Could not check migration status"
               
               echo "🗄️ Running database migrations..."
-              php -d memory_limit=512M artisan migrate --force --no-interaction --verbose || {
+              yes | php -d memory_limit=512M artisan migrate --force --no-interaction --verbose || {
                 echo "❌ Migration failed! Attempting to diagnose..."
                 
                 # Test Laravel's database connection
-                php artisan tinker --execute="
+                yes | php artisan tinker --execute="
                   try {
                     \DB::connection()->getPdo();
                     echo 'Laravel DB connection: OK';
@@ -533,7 +542,7 @@ jobs:
                 
                 # Check if it's a migration-specific issue
                 echo "🔍 Checking if migrations table exists..."
-                php artisan tinker --execute="
+                yes | php artisan tinker --execute="
                   try {
                     \$exists = \DB::table('migrations')->exists();
                     echo 'Migrations table exists: ' . (\$exists ? 'Yes' : 'No');

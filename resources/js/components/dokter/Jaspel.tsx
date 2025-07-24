@@ -333,7 +333,45 @@ export function Jaspel() {
         </motion.div>
       </motion.div>
 
-      {/* Tabs */}
+      {/* Clean Empty State - Only Orange Card */}
+      {jaspelData.length === 0 && (
+        <motion.div 
+          variants={item}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="space-y-6"
+        >
+          {/* Minimalist Information Card with Pink Gradient - Enlarged */}
+          <motion.div
+            className="relative overflow-hidden rounded-xl bg-gradient-to-r from-pink-400 to-rose-500 p-6 shadow-lg"
+            whileHover={{ 
+              scale: 1.01,
+              boxShadow: "0 8px 25px -8px rgba(244, 114, 182, 0.4)"
+            }}
+          >
+            <div className="flex items-center gap-4">
+              {/* Simple Warning Icon - Enlarged */}
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">⚠️</span>
+              </div>
+              
+              {/* Compact Content - Enlarged */}
+              <div className="flex-1">
+                <h4 className="text-white font-semibold text-base mb-2">
+                  Belum ada data Jaspel
+                </h4>
+                <p className="text-pink-50 text-sm leading-relaxed">
+                  Data muncul setelah divalidasi bendahara
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Tabs - Only show if we have data */}
+      {jaspelData.length > 0 && (
       <motion.div variants={item}>
         <Tabs defaultValue="semua" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
@@ -469,6 +507,7 @@ export function Jaspel() {
           </TabsContent>
         </Tabs>
       </motion.div>
+      )}
     </motion.div>
   );
 }

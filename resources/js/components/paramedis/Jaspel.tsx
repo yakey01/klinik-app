@@ -55,9 +55,9 @@ export function Jaspel() {
   const [currentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear] = useState(new Date().getFullYear());
 
-  // Fetch Jaspel data from API
+  // WORLD-CLASS: Fetch Jaspel data with multiple endpoint fallback
   const fetchJaspelData = async (month?: number, year?: number) => {
-    console.log('🔍 [JASPEL DEBUG] Starting fetchJaspelData...', { month, year });
+    console.log('🔍 [JASPEL DEBUG] Starting WORLD-CLASS fetchJaspelData...', { month, year });
     setIsLoading(true);
     setError(null);
     
@@ -73,52 +73,85 @@ export function Jaspel() {
       if (month) params.append('month', month.toString());
       if (year) params.append('year', year.toString());
 
-      const url = `/api/v2/jaspel/mobile-data?${params}`;
-      console.log('📡 [JASPEL DEBUG] Calling API:', url);
-
-      const headers: any = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      };
-
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      console.log('📋 [JASPEL DEBUG] Request headers:', headers);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers,
-        credentials: 'include', // Include cookies for session auth
-      });
-
-      console.log('📊 [JASPEL DEBUG] Response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ [JASPEL DEBUG] API Error:', response.status, errorText);
-        
-        if (response.status === 401) {
-          throw new Error('Sesi telah berakhir, silakan login kembali');
-        }
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-      }
-
-      const result: JaspelApiResponse = await response.json();
-      console.log('✅ [JASPEL DEBUG] API Success:', result);
+      // WORLD-CLASS: Try multiple endpoints for maximum reliability
+      const urls = [
+        `/paramedis/api/v2/jaspel/mobile-data?${params}`,
+        `/api/v2/jaspel/mobile-data-alt?${params}`
+      ];
       
-      if (result.success) {
-        console.log('📋 [JASPEL DEBUG] Setting data:', {
-          items: result.data.jaspel_items.length,
-          summary: result.data.summary
-        });
-        setJaspelData(result.data.jaspel_items);
-        setSummary(result.data.summary);
-      } else {
-        throw new Error(result.message || 'Gagal mengambil data Jaspel');
+      console.log('🔍 [DEEP DEBUG] All URLs to try:', urls);
+      console.log('🔍 [DEEP DEBUG] Current window location:', window.location.href);
+      console.log('🔍 [DEEP DEBUG] Base URL:', window.location.origin);
+      
+      let lastError = null;
+      
+      for (const url of urls) {
+        try {
+          console.log('📡 [JASPEL DEBUG] Trying endpoint:', url);
+          console.log('🔍 [DEEP DEBUG] Full URL being requested:', window.location.origin + url);
+
+          const headers: any = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          };
+
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+
+          console.log('📋 [JASPEL DEBUG] Request headers:', headers);
+
+          const response = await fetch(url, {
+            method: 'GET',
+            headers,
+            credentials: 'include', // Include cookies for session auth
+          });
+
+          console.log('📊 [JASPEL DEBUG] Response status:', response.status);
+          console.log('🔍 [DEEP DEBUG] Response URL:', response.url);
+          console.log('🔍 [DEEP DEBUG] Response headers:', Object.fromEntries(response.headers.entries()));
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ [JASPEL DEBUG] API Error:', response.status, errorText);
+            
+            // Store error for potential fallback
+            lastError = new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+            
+            if (response.status === 401) {
+              lastError = new Error('Sesi telah berakhir, silakan login kembali');
+            }
+            
+            // Try next endpoint
+            continue;
+          }
+
+          const result: JaspelApiResponse = await response.json();
+          console.log('✅ [JASPEL DEBUG] API Success with', url, ':', result);
+          
+          if (result.success) {
+            console.log('📋 [JASPEL DEBUG] Setting data:', {
+              items: result.data.jaspel_items.length,
+              summary: result.data.summary,
+              endpoint_used: url
+            });
+            setJaspelData(result.data.jaspel_items);
+            setSummary(result.data.summary);
+            return; // Success, exit the function
+          } else {
+            lastError = new Error(result.message || 'Gagal mengambil data Jaspel');
+            continue; // Try next endpoint
+          }
+        } catch (endpointError) {
+          console.error('🔄 [JASPEL DEBUG] Endpoint failed:', url, endpointError);
+          lastError = endpointError instanceof Error ? endpointError : new Error('Network error');
+          continue; // Try next endpoint
+        }
       }
+      
+      // If we reach here, all endpoints failed
+      throw lastError || new Error('Semua endpoint gagal diakses');
     } catch (err) {
       console.error('Error fetching Jaspel data:', err);
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil data');
@@ -222,7 +255,7 @@ export function Jaspel() {
                 <div>
                   <h2 className="text-xl font-semibold text-white text-heading-mobile">Jaspel</h2>
                   <p className="text-emerald-100 dark:text-emerald-200 text-sm font-medium text-mobile-friendly">
-                    Pendapatan dari tindakan yang divalidasi
+                    Sistem WORLD-CLASS - Pendapatan dari tindakan tervalidasi
                   </p>
                 </div>
               </div>
@@ -264,34 +297,60 @@ export function Jaspel() {
         </motion.div>
       )}
 
-      {/* Loading State */}
+      {/* Loading State - WORLD-CLASS UX */}
       {isLoading && (
         <motion.div variants={item}>
-          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3 text-blue-800 dark:text-blue-200">
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                <p className="font-medium">Memuat data Jaspel...</p>
+          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 text-blue-800 dark:text-blue-200">
+                <div className="relative">
+                  <RefreshCw className="w-6 h-6 animate-spin" />
+                  <div className="absolute inset-0 w-6 h-6 border-2 border-blue-300 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <div>
+                  <p className="font-semibold text-lg">Memuat data Jaspel...</p>
+                  <p className="text-sm text-blue-600 dark:text-blue-300">Mengambil data terbaru dari sistem WORLD-CLASS</p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
       )}
 
-      {/* Empty State */}
+      {/* Clean Empty State - Only Orange Card */}
       {!isLoading && !error && jaspelData.length === 0 && (
-        <motion.div variants={item}>
-          <Card className="bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700">
-            <CardContent className="p-8 text-center">
-              <div className="flex flex-col items-center gap-3 text-gray-600 dark:text-gray-400">
-                <Wallet className="w-12 h-12" />
-                <div>
-                  <p className="font-medium">Belum ada data Jaspel</p>
-                  <p className="text-sm">Data akan muncul setelah tindakan Anda divalidasi oleh bendahara</p>
-                </div>
+        <motion.div 
+          variants={item}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="space-y-6"
+        >
+          {/* Minimalist Information Card with Pink Gradient - Enlarged */}
+          <motion.div
+            className="relative overflow-hidden rounded-xl bg-gradient-to-r from-pink-400 to-rose-500 p-6 shadow-lg"
+            whileHover={{ 
+              scale: 1.01,
+              boxShadow: "0 8px 25px -8px rgba(244, 114, 182, 0.4)"
+            }}
+          >
+            <div className="flex items-center gap-4">
+              {/* Simple Warning Icon - Enlarged */}
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">⚠️</span>
               </div>
-            </CardContent>
-          </Card>
+              
+              {/* Compact Content - Enlarged */}
+              <div className="flex-1">
+                <h4 className="text-white font-semibold text-base mb-2">
+                  Belum ada data Jaspel
+                </h4>
+                <p className="text-pink-50 text-sm leading-relaxed">
+                  Data muncul setelah divalidasi bendahara
+                </p>
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
       )}
 
@@ -309,7 +368,7 @@ export function Jaspel() {
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-green-100 dark:text-green-200 font-medium">Total Dibayar</p>
+                  <p className="text-sm text-green-100 dark:text-green-200 font-medium">Total Tervalidasi</p>
                   <p className="text-lg font-semibold">{formatCurrency(totalPaid)}</p>
                 </div>
               </div>
@@ -350,7 +409,7 @@ export function Jaspel() {
               Pending
             </TabsTrigger>
             <TabsTrigger value="paid" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm font-medium transition-colors duration-300">
-              Dibayar
+              Tervalidasi
             </TabsTrigger>
           </TabsList>
 
@@ -371,11 +430,18 @@ export function Jaspel() {
                           <h4 className="text-base font-semibold text-high-contrast">{dataItem.jenis}</h4>
                           <p className="text-sm text-muted-foreground font-medium">{dataItem.keterangan}</p>
                         </div>
-                        <Badge className={`${getStatusColor(dataItem.status)} border font-medium`}>
-                          {dataItem.status === 'pending' && 'Pending'}
-                          {dataItem.status === 'paid' && 'Dibayar'}
-                          {dataItem.status === 'rejected' && 'Ditolak'}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge className={`${getStatusColor(dataItem.status)} border font-medium`}>
+                            {dataItem.status === 'pending' && 'Menunggu'}
+                            {dataItem.status === 'paid' && 'Tervalidasi'}
+                            {dataItem.status === 'rejected' && 'Ditolak'}
+                          </Badge>
+                          {dataItem.validated_by && (
+                            <span className="text-xs text-muted-foreground">
+                              oleh {dataItem.validated_by}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="flex justify-between items-center">
@@ -422,7 +488,7 @@ export function Jaspel() {
                             <h4 className="text-base font-semibold text-high-contrast">{dataItem.jenis}</h4>
                             <p className="text-sm text-muted-foreground font-medium">{dataItem.keterangan}</p>
                           </div>
-                          <Badge className={`${getStatusColor(dataItem.status)} font-medium`}>Pending</Badge>
+                          <Badge className={`${getStatusColor(dataItem.status)} font-medium`}>Menunggu</Badge>
                         </div>
                         
                         <div className="flex justify-between items-center">
@@ -457,7 +523,7 @@ export function Jaspel() {
                             <h4 className="text-base font-semibold text-high-contrast">{dataItem.jenis}</h4>
                             <p className="text-sm text-muted-foreground font-medium">{dataItem.keterangan}</p>
                           </div>
-                          <Badge className={`${getStatusColor(dataItem.status)} font-medium`}>Dibayar</Badge>
+                          <Badge className={`${getStatusColor(dataItem.status)} font-medium`}>Tervalidasi</Badge>
                         </div>
                         
                         <div className="flex justify-between items-center">

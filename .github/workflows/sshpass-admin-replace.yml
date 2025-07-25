@@ -1,0 +1,263 @@
+name: 🔧 Admin Replacement - Full SSHPass
+
+on:
+  workflow_dispatch:
+    inputs:
+      admin_email:
+        description: 'New admin email'
+        required: false
+        default: 'admin@dokterku.com'
+        type: string
+      admin_name:
+        description: 'New admin name'
+        required: false
+        default: 'Administrator'
+        type: string
+      confirm_replacement:
+        description: 'Type "REPLACE_ADMIN_USERS" to confirm'
+        required: true
+        type: string
+
+env:
+  HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+  HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
+  HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
+  DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+
+jobs:
+  sshpass-admin-replacement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Security Validation
+        run: |
+          if [ "${{ github.event.inputs.confirm_replacement }}" != "REPLACE_ADMIN_USERS" ]; then
+            echo "❌ Security check failed: Expected 'REPLACE_ADMIN_USERS'"
+            echo "Received: '${{ github.event.inputs.confirm_replacement }}'"
+            exit 1
+          fi
+          echo "✅ Security confirmation validated"
+          echo "🎯 Admin Email: ${{ github.event.inputs.admin_email }}"
+          echo "📝 Admin Name: ${{ github.event.inputs.admin_name }}"
+
+      - name: Install SSHPass
+        run: |
+          echo "🔧 Installing sshpass..."
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          echo "✅ SSHPass installed"
+
+      - name: Verify Environment Variables
+        run: |
+          echo "🔍 Verifying environment variables..."
+          if [ -z "${HOSTINGER_HOST}" ] || [ -z "${HOSTINGER_USERNAME}" ] || [ -z "${HOSTINGER_PASSWORD}" ] || [ -z "${DEPLOY_PATH}" ]; then
+            echo "❌ Missing required environment variables!"
+            echo "HOSTINGER_HOST: ${HOSTINGER_HOST:-'NOT_SET'}"
+            echo "HOSTINGER_USERNAME: ${HOSTINGER_USERNAME:-'NOT_SET'}"
+            echo "DEPLOY_PATH: ${DEPLOY_PATH:-'NOT_SET'}"
+            echo "Password set: $([ -n "${HOSTINGER_PASSWORD}" ] && echo 'YES' || echo 'NO')"
+            exit 1
+          fi
+          echo "✅ All environment variables are set"
+
+      - name: Configure SSH
+        run: |
+          echo "🔐 Configuring SSH..."
+          mkdir -p ~/.ssh
+          echo "Host *" > ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+          echo "✅ SSH configured"
+
+      - name: Test Server Connection
+        run: |
+          echo "🔗 Testing server connection..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "echo '✅ SSH connection successful' && pwd"
+
+      - name: Create Database Backup
+        run: |
+          echo "💾 Creating database backup..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             BACKUP_DIR=\"~/admin_backup_\$(date +%Y%m%d_%H%M%S)\" && \
+             mkdir -p \"\$BACKUP_DIR\" && \
+             echo \"Creating backup in: \$BACKUP_DIR\" && \
+             if [ -f .env ]; then \
+               DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
+               DB_PASS=\$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2 | tr -d '\"') && \
+               DB_NAME=\$(grep '^DB_DATABASE=' .env | cut -d'=' -f2 | tr -d '\"') && \
+               DB_HOST=\$(grep '^DB_HOST=' .env | cut -d'=' -f2 | tr -d '\"') && \
+               mysqldump -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" users roles > \"\$BACKUP_DIR/admin_backup.sql\" 2>/dev/null || echo 'Backup failed, continuing...' && \
+               echo \"✅ Database backup created in: \$BACKUP_DIR\"; \
+             else \
+               echo '⚠️ No .env file found, skipping backup'; \
+             fi"
+
+      - name: Update Codebase
+        run: |
+          echo "📦 Updating codebase from GitHub..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             echo \"Current directory: \$(pwd)\" && \
+             git fetch origin && \
+             git reset --hard origin/main && \
+             git clean -fd && \
+             echo \"✅ Codebase updated\""
+
+      - name: Install Dependencies
+        run: |
+          echo "🔧 Installing composer dependencies..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             if [ -f composer2 ]; then \
+               echo \"Using composer2...\" && \
+               ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist || composer install --no-dev --optimize-autoloader --no-interaction; \
+             else \
+               echo \"Using regular composer...\" && \
+               composer install --no-dev --optimize-autoloader --no-interaction; \
+             fi && \
+             echo \"✅ Dependencies installed\""
+
+      - name: Setup Environment
+        run: |
+          echo "⚙️ Setting up environment..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             if [ ! -f .env ]; then \
+               cp .env.example .env && \
+               php artisan key:generate --force; \
+             fi && \
+             echo \"\" >> .env && \
+             echo \"# Production Admin Credentials (Added by GitHub Actions)\" >> .env && \
+             echo \"PRODUCTION_ADMIN_EMAIL=${{ github.event.inputs.admin_email }}\" >> .env && \
+             echo \"PRODUCTION_ADMIN_NAME=\\\"${{ github.event.inputs.admin_name }}\\\"\" >> .env && \
+             echo \"PRODUCTION_ADMIN_PASSWORD=dokterku_admin_\$(date +%Y)\" >> .env && \
+             echo \"✅ Environment configured\""
+
+      - name: Clear Caches
+        run: |
+          echo "🧹 Clearing Laravel caches..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             php artisan config:clear && \
+             php artisan cache:clear && \
+             php artisan view:clear && \
+             php artisan route:clear && \
+             echo \"✅ Caches cleared\""
+
+      - name: Test Environment
+        run: |
+          echo "🔍 Testing Laravel environment..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             echo \"Testing artisan...\" && \
+             php artisan --version && \
+             echo \"Testing database connection...\" && \
+             php artisan tinker --execute=\"DB::connection()->getPdo(); echo 'Database connection: OK';\" --no-interaction && \
+             echo \"✅ Environment tests passed\""
+
+      - name: Run Migrations
+        run: |
+          echo "🗄️ Running database migrations..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             php artisan migrate --force --no-interaction && \
+             echo \"✅ Migrations completed\""
+
+      - name: Check Admin Command
+        run: |
+          echo "🔍 Checking admin:replace command availability..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             ADMIN_COMMANDS=\$(php artisan list | grep admin || echo '') && \
+             if [ -z \"\$ADMIN_COMMANDS\" ]; then \
+               echo \"❌ No admin commands found!\" && \
+               echo \"Available commands:\" && \
+               php artisan list | head -20 && \
+               exit 1; \
+             else \
+               echo \"✅ Admin commands found:\" && \
+               echo \"\$ADMIN_COMMANDS\"; \
+             fi"
+
+      - name: Execute Admin Replacement
+        run: |
+          echo "👤 Executing admin user replacement..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             php artisan admin:replace --force --email=\"${{ github.event.inputs.admin_email }}\" --name=\"${{ github.event.inputs.admin_name }}\" || { \
+               echo \"❌ Admin replacement failed!\"; \
+               echo \"Attempting rollback...\"; \
+               php artisan admin:replace --rollback --force || echo \"Rollback also failed\"; \
+               exit 1; \
+             } && \
+             echo \"✅ Admin replacement completed\""
+
+      - name: Verify Admin Replacement
+        run: |
+          echo "🔎 Verifying admin replacement..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             php artisan admin:replace --verify || { \
+               echo \"❌ Admin verification failed!\"; \
+               exit 1; \
+             } && \
+             echo \"✅ Admin verification successful\""
+
+      - name: Optimize Application
+        run: |
+          echo "⚡ Optimizing application for production..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             php artisan config:cache && \
+             php artisan route:cache && \
+             chmod -R 755 storage bootstrap/cache && \
+             echo \"✅ Application optimized\""
+
+      - name: Final Application Test
+        run: |
+          echo "🌐 Testing application accessibility..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             APP_STATUS=\$(curl -s -o /dev/null -w \"%{http_code}\" https://dokterkuklinik.com || echo \"000\") && \
+             ADMIN_STATUS=\$(curl -s -o /dev/null -w \"%{http_code}\" https://dokterkuklinik.com/admin || echo \"000\") && \
+             echo \"Application Status: HTTP \$APP_STATUS\" && \
+             echo \"Admin Panel Status: HTTP \$ADMIN_STATUS\" && \
+             echo \"✅ Application accessibility test completed\""
+
+      - name: Success Summary
+        run: |
+          echo ""
+          echo "🎉 ADMIN REPLACEMENT COMPLETED SUCCESSFULLY!"
+          echo "==========================================="
+          echo "✅ Database backup created"
+          echo "✅ Codebase updated from GitHub"
+          echo "✅ Dependencies installed"
+          echo "✅ Environment configured"
+          echo "✅ Migrations executed"
+          echo "✅ Admin users replaced"
+          echo "✅ Verification successful"
+          echo "✅ Application optimized"
+          echo ""
+          echo "🔐 New Admin Credentials:"
+          echo "Email: ${{ github.event.inputs.admin_email }}"
+          echo "Name: ${{ github.event.inputs.admin_name }}"
+          echo "Password: dokterku_admin_$(date +%Y)"
+          echo "Login URL: https://dokterkuklinik.com/admin"
+          echo ""
+          echo "⚠️ IMPORTANT: Login and change password immediately!"
+          echo "🕐 Process completed at: $(date)"

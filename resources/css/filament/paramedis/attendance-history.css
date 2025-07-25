@@ -1,0 +1,212 @@
+/* Attendance History Table Optimizations */
+
+/* Mobile responsiveness for attendance table */
+@media (max-width: 768px) {
+    /* Stack table columns on mobile */
+    .fi-ta-table {
+        font-size: 0.875rem;
+    }
+    
+    /* Optimize column widths for mobile */
+    .fi-ta-cell {
+        padding: 0.5rem 0.25rem;
+    }
+    
+    /* Hide less important columns on mobile */
+    .fi-ta-col-location_name_in {
+        display: none;
+    }
+    
+    /* Make status badges smaller */
+    .fi-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    /* Even more compact on small screens */
+    .fi-ta-table {
+        font-size: 0.8rem;
+    }
+    
+    /* Hide additional columns */
+    .fi-ta-header-cell:nth-child(n+5),
+    .fi-ta-cell:nth-child(n+5) {
+        display: none;
+    }
+    
+    /* Show only essential columns: Date, Check In, Check Out, Total Hours */
+    .fi-ta-header-cell:nth-child(1),
+    .fi-ta-header-cell:nth-child(2),
+    .fi-ta-header-cell:nth-child(3),
+    .fi-ta-header-cell:nth-child(4),
+    .fi-ta-cell:nth-child(1),
+    .fi-ta-cell:nth-child(2),
+    .fi-ta-cell:nth-child(3),
+    .fi-ta-cell:nth-child(4) {
+        display: table-cell;
+    }
+}
+
+/* Scrollable table for large datasets */
+.attendance-history-wrapper {
+    overflow-x: auto;
+    max-height: 70vh;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(229 231 235);
+}
+
+.attendance-history-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.attendance-history-wrapper::-webkit-scrollbar-track {
+    background: rgb(243 244 246);
+    border-radius: 4px;
+}
+
+.attendance-history-wrapper::-webkit-scrollbar-thumb {
+    background: rgb(156 163 175);
+    border-radius: 4px;
+}
+
+.attendance-history-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgb(107 114 128);
+}
+
+/* Dark mode scrollbar */
+.dark .attendance-history-wrapper::-webkit-scrollbar-track {
+    background: rgb(55 65 81);
+}
+
+.dark .attendance-history-wrapper::-webkit-scrollbar-thumb {
+    background: rgb(75 85 99);
+}
+
+.dark .attendance-history-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgb(107 114 128);
+}
+
+/* Optimized column widths */
+.fi-ta-col-date {
+    width: 140px;
+    min-width: 140px;
+}
+
+.fi-ta-col-time_in,
+.fi-ta-col-time_out {
+    width: 90px;
+    min-width: 90px;
+}
+
+.fi-ta-col-total_working_hours {
+    width: 150px;
+    min-width: 150px;
+}
+
+.fi-ta-col-status {
+    width: 100px;
+    min-width: 100px;
+}
+
+.fi-ta-col-location_name_in {
+    width: 200px;
+    min-width: 150px;
+    max-width: 250px;
+}
+
+/* Sticky header for long tables */
+.fi-ta-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.dark .fi-ta-header {
+    background: rgb(17 24 39);
+}
+
+/* Enhanced pagination */
+.fi-pagination {
+    padding: 1rem;
+    border-top: 1px solid rgb(229 231 235);
+    background: rgb(249 250 251);
+}
+
+.dark .fi-pagination {
+    border-color: rgb(55 65 81);
+    background: rgb(17 24 39);
+}
+
+/* Loading state improvements */
+.fi-ta-skeleton {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Filter badges */
+.fi-ta-filters .fi-badge {
+    margin: 0.25rem;
+}
+
+/* Compact filter layout */
+.fi-ta-filters-form {
+    gap: 0.5rem;
+}
+
+/* Stats widget optimizations */
+.fi-stats-overview {
+    gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+    .fi-stats-overview {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .fi-stats-overview {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Modal optimizations */
+.fi-modal-content {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.attendance-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+/* Performance optimizations */
+.fi-ta-table {
+    contain: layout;
+    will-change: scroll-position;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    .fi-ta-skeleton {
+        animation: none;
+    }
+    
+    .fi-ta-table {
+        scroll-behavior: auto;
+    }
+}

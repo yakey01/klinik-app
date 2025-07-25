@@ -210,6 +210,19 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
+// 🎯 World-Class Work Location Assignment API
+Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::prefix('work-location-assignments')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Admin\WorkLocationAssignmentController::class, 'getDashboardData']);
+        Route::get('/recommendations/{user}', [App\Http\Controllers\Admin\WorkLocationAssignmentController::class, 'getRecommendations']);
+        Route::post('/smart-assignment', [App\Http\Controllers\Admin\WorkLocationAssignmentController::class, 'smartAssignment']);
+        Route::post('/bulk-smart-assignment', [App\Http\Controllers\Admin\WorkLocationAssignmentController::class, 'bulkSmartAssignment']);
+        Route::post('/manual-assignment', [App\Http\Controllers\Admin\WorkLocationAssignmentController::class, 'manualAssignment']);
+        Route::get('/history', [App\Http\Controllers\Admin\WorkLocationAssignmentController::class, 'getAssignmentHistory']);
+        Route::delete('/remove-assignment', [App\Http\Controllers\Admin\WorkLocationAssignmentController::class, 'removeAssignment']);
+    });
+});
+
 // Public WorkLocation endpoint for attendance systems
 Route::get('/work-locations/active', function () {
     $locations = WorkLocation::active()->get(['id', 'name', 'latitude', 'longitude', 'radius_meters', 'location_type', 'address']);
@@ -390,6 +403,8 @@ Route::prefix('v2')->group(function () {
                 Route::post('/checkin', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkIn']);
                 Route::post('/checkout', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkOut']);
                 Route::post('/refresh-work-location', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'refreshWorkLocation']);
+                Route::get('/work-location/status', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getWorkLocationStatus']);
+                Route::post('/work-location/check-and-assign', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkAndAssignWorkLocation']);
             });
 
             // Dokter dashboard - Mobile app API endpoints
@@ -437,6 +452,11 @@ Route::prefix('v2')->group(function () {
                 Route::get('/schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'schedules']);
                 Route::get('/weekly-schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getWeeklySchedule']);
                 Route::get('/igd-schedules', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getIgdSchedules']);
+                
+                // Work location endpoints
+                Route::post('/refresh-work-location', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'refreshWorkLocation']);
+                Route::get('/work-location/status', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'getWorkLocationStatus']);
+                Route::post('/work-location/check-and-assign', [App\Http\Controllers\Api\V2\Dashboards\DokterDashboardController::class, 'checkAndAssignWorkLocation']);
                 
                 // Attendance endpoints
                 Route::get('/attendance/status', function () {

@@ -81,6 +81,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Resources\EmployeeCardResource::class,
                 // \App\Filament\Resources\LocationResource::class, // REMOVED: Admin panel access for locations
                 \App\Filament\Resources\WorkLocationResource::class,
+                \App\Filament\Resources\WorkLocationAssignmentResource::class,
                 \App\Filament\Resources\KalenderKerjaResource::class,
                 \App\Filament\Resources\JadwalJagaResource::class,
                 \App\Filament\Resources\ShiftTemplateResource::class,

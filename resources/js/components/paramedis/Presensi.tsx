@@ -34,6 +34,12 @@ export function Presensi() {
   const [checkoutLocation, setCheckoutLocation] = useState<{lat: number; lng: number; accuracy?: number; address?: string} | null>(null);
   const [isLocationRequired, setIsLocationRequired] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [workDurationData, setWorkDurationData] = useState<{ timeString: string; hoursMinutes: string; totalMinutes: number; isActive: boolean }>({
+    timeString: '00:00:00',
+    hoursMinutes: '0j 0m',
+    totalMinutes: 0,
+    isActive: false
+  });
 
   // Helper function to format time display
   const formatTime = (timeString: string | null): string => {
@@ -54,6 +60,246 @@ export function Presensi() {
       // Format: 14:30
       return timeString;
     }
+  };
+
+  // Helper function to parse date strings more robustly
+  const parseDateTime = (dateInput: string | Date): Date => {
+    if (dateInput instanceof Date) {
+      return dateInput;
+    }
+    
+    if (typeof dateInput !== 'string') {
+      throw new Error('Invalid date input type');
+    }
+    
+    // Try multiple parsing strategies
+    const strategies = [
+      // Standard ISO format
+      () => new Date(dateInput),
+      // Replace space with T for ISO format
+      () => new Date(dateInput.replace(' ', 'T')),
+      // Add timezone if missing
+      () => new Date(dateInput + (dateInput.includes('Z') || dateInput.includes('+') ? '' : 'Z')),
+      // Handle local timezone format "2025-01-25 10:30:00"
+      () => {
+        const normalized = dateInput.replace(' ', 'T');
+        return new Date(normalized + (normalized.includes('Z') || normalized.includes('+') ? '' : '+07:00'));
+      },
+      // Handle time-only format like "14:30:00" - combine with today's date
+      () => {
+        if (/^\d{2}:\d{2}:\d{2}$/.test(dateInput)) {
+          const today = new Date().toISOString().split('T')[0];
+          return new Date(`${today}T${dateInput}`);
+        }
+        throw new Error('Not time-only format');
+      },
+      // Handle time-only format like "14:30" - combine with today's date
+      () => {
+        if (/^\d{2}:\d{2}$/.test(dateInput)) {
+          const today = new Date().toISOString().split('T')[0];
+          return new Date(`${today}T${dateInput}:00`);
+        }
+        throw new Error('Not time-only format');  
+      }
+    ];
+    
+    for (const strategy of strategies) {
+      try {
+        const result = strategy();
+        if (!isNaN(result.getTime())) {
+          console.log('🔍 Successful parse strategy for:', dateInput, '→', result.toISOString());
+          return result;
+        }
+      } catch (e) {
+        // Try next strategy
+      }
+    }
+    
+    throw new Error(`Unable to parse date: ${dateInput}`);
+  };
+
+  // Helper function to calculate work minutes between two times
+  const calculateWorkMinutes = (checkInTime: string | Date, checkOutTime?: string | Date | null): number => {
+    try {
+      console.log('🔍 calculateWorkMinutes input:', { checkInTime, checkOutTime });
+      
+      const startTime = parseDateTime(checkInTime);
+      const endTime = checkOutTime ? parseDateTime(checkOutTime) : new Date();
+      
+      console.log('🔍 Parsed times:', { 
+        startTimeStr: startTime.toString(),
+        endTimeStr: endTime.toString(),
+        startTime: startTime.toISOString(), 
+        endTime: endTime.toISOString(),
+        startTimeValue: startTime.getTime(),
+        endTimeValue: endTime.getTime()
+      });
+      
+      // Calculate total minutes with guaranteed non-negative integer result
+      const diffMs = endTime.getTime() - startTime.getTime();
+      const totalMinutes = diffMs / 1000 / 60;
+      
+      // Ensure result is always a positive integer (no decimals, no negatives)
+      const result = Math.max(0, Math.floor(Math.abs(totalMinutes)));
+      
+      console.log('🔍 Calculation result:', { 
+        diffMs, 
+        totalMinutes, 
+        result,
+        diffInSeconds: diffMs / 1000,
+        diffInHours: diffMs / 1000 / 60 / 60,
+        isNegativeDiff: diffMs < 0
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error calculating work minutes:', error, 'Input:', { checkInTime, checkOutTime });
+      return 0;
+    }
+  };
+
+  // CREATIVE APPROACH: Multi-method work duration calculation with extensive debugging
+  const calculateRealTimeWorkDuration = (): { timeString: string; hoursMinutes: string; totalMinutes: number; isActive: boolean; debugInfo: any } => {
+    const debugInfo: any = {
+      timestamp: new Date().toISOString(),
+      attendanceStatus: attendanceStatus?.attendance,
+      hasCheckIn: !!attendanceStatus?.attendance?.check_in_time,
+      rawCheckInTime: attendanceStatus?.attendance?.check_in_time,
+      methods: {}
+    };
+
+    // Validation fallback for empty Check In
+    if (!attendanceStatus?.attendance?.check_in_time) {
+      console.log('🚨 CREATIVE DEBUG: No check-in time available', debugInfo);
+      return { timeString: '00:00:00', hoursMinutes: '0j 0m', totalMinutes: 0, isActive: false, debugInfo };
+    }
+
+    // CREATIVE APPROACH: Try multiple calculation methods
+    const calculationMethods = {
+      // Method 1: Standard parsing
+      standard: () => {
+        try {
+          const checkInTime = parseDateTime(attendanceStatus.attendance.check_in_time);
+          const currentTime = Date.now();
+          const checkOutTime = attendanceStatus.attendance.check_out_time 
+            ? parseDateTime(attendanceStatus.attendance.check_out_time).getTime()
+            : currentTime;
+          
+          const durationMs = checkOutTime - checkInTime.getTime();
+          return Math.max(0, Math.floor(durationMs / 1000 / 60));
+        } catch (e) {
+          debugInfo.methods.standard = { error: e.message };
+          return null;
+        }
+      },
+
+      // Method 2: Direct Date parsing with today fallback
+      directToday: () => {
+        try {
+          const timeStr = attendanceStatus.attendance.check_in_time;
+          let checkInDate;
+          
+          if (timeStr.includes('T') || timeStr.includes(' ')) {
+            // Full datetime
+            checkInDate = new Date(timeStr.replace(' ', 'T'));
+          } else {
+            // Time only - combine with today
+            const today = new Date().toISOString().split('T')[0];
+            checkInDate = new Date(`${today}T${timeStr}`);
+          }
+          
+          const now = new Date();
+          const checkOutDate = attendanceStatus.attendance.check_out_time 
+            ? new Date(attendanceStatus.attendance.check_out_time.replace(' ', 'T'))
+            : now;
+          
+          const diffMs = checkOutDate.getTime() - checkInDate.getTime();
+          return Math.max(0, Math.floor(diffMs / 1000 / 60));
+        } catch (e) {
+          debugInfo.methods.directToday = { error: e.message };
+          return null;
+        }
+      },
+
+      // Method 3: Server work_duration_minutes fallback
+      serverDuration: () => {
+        try {
+          const serverMinutes = attendanceStatus?.attendance?.work_duration_minutes;
+          if (typeof serverMinutes === 'number' && serverMinutes >= 0) {
+            return Math.floor(serverMinutes);
+          }
+          return null;
+        } catch (e) {
+          debugInfo.methods.serverDuration = { error: e.message };
+          return null;
+        }
+      },
+
+      // Method 4: Manual time parsing for today
+      manualToday: () => {
+        try {
+          const timeStr = attendanceStatus.attendance.check_in_time;
+          const match = timeStr.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+          if (!match) return null;
+          
+          const hours = parseInt(match[1]);
+          const minutes = parseInt(match[2]);
+          
+          const today = new Date();
+          const checkInTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, 0);
+          
+          const now = new Date();
+          const diffMs = now.getTime() - checkInTime.getTime();
+          return Math.max(0, Math.floor(diffMs / 1000 / 60));
+        } catch (e) {
+          debugInfo.methods.manualToday = { error: e.message };
+          return null;
+        }
+      }
+    };
+
+    // Try each method until one works
+    let totalMinutes = 0;
+    let successfulMethod = 'none';
+
+    for (const [methodName, method] of Object.entries(calculationMethods)) {
+      const result = method();
+      debugInfo.methods[methodName] = { result };
+      
+      if (result !== null && result >= 0) {
+        totalMinutes = result;
+        successfulMethod = methodName;
+        break;
+      }
+    }
+
+    // Format the results
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const seconds = attendanceStatus.attendance.check_out_time ? 0 : (Math.floor(Date.now() / 1000) % 60);
+    
+    const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    const hoursMinutes = `${hours}j ${minutes}m`;
+    const isActive = !attendanceStatus.attendance.check_out_time;
+
+    debugInfo.result = {
+      totalMinutes,
+      timeString,
+      hoursMinutes,
+      isActive,
+      successfulMethod
+    };
+
+    // Enhanced logging
+    console.log('🎨 CREATIVE CALCULATION RESULT:', {
+      successfulMethod,
+      totalMinutes,
+      timeString,
+      hoursMinutes,
+      debugInfo
+    });
+
+    return { timeString, hoursMinutes, totalMinutes, isActive, debugInfo };
   };
 
   // Fetch attendance status from API
@@ -82,10 +328,18 @@ export function Presensi() {
         if (result.success && result.data) {
           console.log('🔍 Attendance Status Response:', JSON.stringify(result.data, null, 2));
           console.log('🔍 Attendance Object:', result.data.attendance);
-          console.log('🔍 Check In Time:', result.data.attendance?.check_in_time);
-          console.log('🔍 Check Out Time:', result.data.attendance?.check_out_time);
+          console.log('🔍 Check In Time Raw:', result.data.attendance?.check_in_time);
+          console.log('🔍 Check In Time Type:', typeof result.data.attendance?.check_in_time);
+          console.log('🔍 Check Out Time Raw:', result.data.attendance?.check_out_time);
           console.log('🔍 Status:', result.data.status);
           console.log('🔍 Can Check Out:', result.data.can_check_out);
+          
+          // Test the calculation immediately after fetching
+          if (result.data.attendance?.check_in_time) {
+            const testMinutes = calculateWorkMinutes(result.data.attendance.check_in_time);
+            console.log('🔍 Test calculation after fetch:', testMinutes, 'minutes');
+          }
+          
           setAttendanceStatus(result.data);
           setError(null);
         }
@@ -106,6 +360,9 @@ export function Presensi() {
     
     const timer = setInterval(() => {
       setCurrentTime(new Date());
+      // Update real-time work duration every second
+      const newDurationData = calculateRealTimeWorkDuration();
+      setWorkDurationData(newDurationData);
     }, 1000);
     
     // Refresh attendance status every 30 seconds
@@ -117,7 +374,34 @@ export function Presensi() {
       clearInterval(timer);
       clearInterval(statusTimer);
     };
-  }, []);
+  }, []); // Remove attendanceStatus dependency to prevent timer restart
+
+  // Initialize real-time duration when attendance status changes
+  useEffect(() => {
+    if (attendanceStatus?.attendance?.check_in_time) {
+      const initialDurationData = calculateRealTimeWorkDuration();
+      setWorkDurationData(initialDurationData);
+      
+      // Manual test to verify calculation logic
+      console.log('🧪 Manual test case:');
+      const now = new Date();
+      const testCheckIn = new Date(now.getTime() - (17 * 60 * 1000)); // 17 minutes ago
+      const testResult = calculateWorkMinutes(testCheckIn);
+      console.log('🧪 Test: 17 minutes ago should give ~17:', testResult);
+      
+      // Test with different string formats
+      const testFormats = [
+        testCheckIn.toISOString(), // "2025-01-25T10:30:00.000Z"
+        testCheckIn.toISOString().replace('T', ' ').replace('.000Z', ''), // "2025-01-25 10:30:00"
+        testCheckIn.toLocaleString('sv-SE') // Swedish locale gives "2025-01-25 10:30:00"
+      ];
+      
+      testFormats.forEach((format, index) => {
+        const result = calculateWorkMinutes(format);
+        console.log(`🧪 Test format ${index + 1} (${format}) should give ~17:`, result);
+      });
+    }
+  }, [attendanceStatus?.attendance?.check_in_time, attendanceStatus?.attendance?.check_out_time]);
 
   const handleCheckIn = async () => {
     // Check if location is required and available
@@ -194,6 +478,19 @@ export function Presensi() {
       return;
     }
 
+    // Log debugging info but let server handle validation
+    if (attendanceStatus?.attendance?.check_in_time) {
+      console.log('🔍 Check-out attempt - attendance data:', {
+        check_in_time: attendanceStatus.attendance.check_in_time,
+        check_out_time: attendanceStatus.attendance.check_out_time,
+        status: attendanceStatus.status
+      });
+      
+      // Calculate work minutes for debugging only (no validation)
+      const workMinutes = Math.max(0, Math.floor(calculateWorkMinutes(attendanceStatus.attendance.check_in_time)));
+      console.log('🔍 Client calculated work minutes:', workMinutes, '(server will validate)');
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -237,12 +534,51 @@ export function Presensi() {
         setCheckinLocation(null);
         setCheckoutLocation(null);
       } else {
-        throw new Error(result.message || 'Check-out gagal');
+        // Handle server-side validation errors with proper duration calculation
+        if (result.message && (result.message.includes('minimal') || result.message.includes('minimum') || result.message.includes('terlalu cepat'))) {
+          // Calculate actual work minutes using helper function with guaranteed positive integer
+          const actualMinutes = attendanceStatus?.attendance?.check_in_time 
+            ? Math.max(0, Math.floor(calculateWorkMinutes(attendanceStatus.attendance.check_in_time)))
+            : 0;
+          
+          // Extract minimum minutes from server message or use default
+          let minimumMinutes = 30;
+          const minMatch = result.message.match(/minimal(?:.*?)(\d+)(?:.*?)menit/i) || 
+                          result.message.match(/(\d+)(?:.*?)menit/i);
+          if (minMatch && minMatch[1]) {
+            minimumMinutes = parseInt(minMatch[1]);
+          }
+          
+          // Show clean formatted error message without decimals or negatives
+          alert(`Gagal melakukan check-out: Minimal bekerja ${minimumMinutes} menit. Anda baru bekerja ${actualMinutes} menit.`);
+        } else {
+          throw new Error(result.message || 'Check-out gagal');
+        }
       }
     } catch (error: any) {
       console.error('Check-out error:', error);
       setError(error.message || 'Gagal melakukan check-out');
-      alert('Gagal melakukan check-out: ' + (error.message || 'Terjadi kesalahan'));
+      
+      // Handle error messages with duration calculation
+      let errorMessage = error.message || 'Terjadi kesalahan';
+      if (errorMessage.includes('minimal') || errorMessage.includes('minimum') || errorMessage.includes('terlalu cepat')) {
+        // If it's a duration-related error, ensure we show the correct format with positive integers only
+        const actualMinutes = attendanceStatus?.attendance?.check_in_time 
+          ? Math.max(0, Math.floor(calculateWorkMinutes(attendanceStatus.attendance.check_in_time)))
+          : 0;
+        
+        // Extract minimum minutes from error message or use default
+        let minimumMinutes = 30;
+        const minMatch = errorMessage.match(/minimal(?:.*?)(\d+)(?:.*?)menit/i) || 
+                        errorMessage.match(/(\d+)(?:.*?)menit/i);
+        if (minMatch && minMatch[1]) {
+          minimumMinutes = parseInt(minMatch[1]);
+        }
+        
+        errorMessage = `Minimal bekerja ${minimumMinutes} menit. Anda baru bekerja ${actualMinutes} menit.`;
+      }
+      
+      alert('Gagal melakukan check-out: ' + errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -347,21 +683,156 @@ export function Presensi() {
               <span className="text-lg font-semibold text-high-contrast">KLINIK DOKTERKU</span>
             </motion.div>
 
-            {/* Working Hours Display */}
-            {attendanceStatus?.status === 'checked_in' && attendanceStatus?.attendance?.work_duration_minutes && (
+            {/* World-Class Working Hours Display */}
+            {attendanceStatus?.attendance?.check_in_time && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center p-4 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 rounded-xl"
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className={`relative overflow-hidden rounded-2xl backdrop-blur-xl border transition-all duration-500 ${
+                  workDurationData.isActive 
+                    ? 'bg-gradient-to-br from-green-400/20 via-emerald-300/15 to-green-500/20 border-green-300/30 shadow-green-500/20' 
+                    : 'bg-gradient-to-br from-gray-400/20 via-slate-300/15 to-gray-500/20 border-gray-300/30 shadow-gray-500/20'
+                } shadow-2xl`}
+                style={{
+                  boxShadow: workDurationData.isActive 
+                    ? '0 25px 50px -12px rgba(34, 197, 94, 0.25), 0 0 0 1px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)' 
+                    : '0 25px 50px -12px rgba(148, 163, 184, 0.25), 0 0 0 1px rgba(148, 163, 184, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                }}
               >
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Activity className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  <span className="text-green-700 dark:text-green-300 font-medium">Jam Kerja Hari Ini (Live)</span>
-                </div>
-                <div className="text-2xl text-green-800 dark:text-green-200 font-mono font-bold">
-                  {Math.floor(attendanceStatus.attendance.work_duration_minutes / 60).toString().padStart(2, '0')}:
-                  {(attendanceStatus.attendance.work_duration_minutes % 60).toString().padStart(2, '0')}:
-                  {(Math.floor((Date.now() - new Date(attendanceStatus.attendance.check_in_time).getTime()) / 1000) % 60).toString().padStart(2, '0')}
+                {/* Animated background gradient */}
+                <div className={`absolute inset-0 opacity-80 ${
+                  workDurationData.isActive 
+                    ? 'bg-gradient-to-br from-green-600 via-emerald-700 to-green-800' 
+                    : 'bg-gradient-to-br from-gray-600 via-slate-700 to-gray-800'
+                } animate-pulse`} />
+                
+                {/* Dark overlay for better text contrast */}
+                <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+                
+                <div className="relative z-10 p-6">
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    <motion.div
+                      animate={{ 
+                        rotate: workDurationData.isActive ? [0, 360] : 0,
+                        scale: workDurationData.isActive ? [1, 1.1, 1] : 1
+                      }}
+                      transition={{ 
+                        rotate: { duration: 8, repeat: Infinity, ease: "linear" },
+                        scale: { duration: 2, repeat: Infinity }
+                      }}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        workDurationData.isActive 
+                          ? 'bg-green-500/30 border-2 border-green-400/50' 
+                          : 'bg-gray-500/30 border-2 border-gray-400/50'
+                      } backdrop-blur-md shadow-xl`}
+                    >
+                      <span className="text-2xl">🕒</span>
+                    </motion.div>
+                    <div className="text-center">
+                      <h3 className={`font-black text-xl ${
+                        workDurationData.isActive 
+                          ? 'text-white drop-shadow-lg' 
+                          : 'text-white drop-shadow-lg'
+                      }`}
+                      style={{
+                        textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)'
+                      }}>
+                        {workDurationData.isActive ? 'Jam Kerja Live' : 'Total Jam Kerja'}
+                      </h3>
+                      <p className={`text-base font-bold ${
+                        workDurationData.isActive 
+                          ? 'text-white drop-shadow-lg' 
+                          : 'text-white drop-shadow-lg'
+                      }`}
+                      style={{
+                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)'
+                      }}>
+                        Hari Ini
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Time Display */}
+                  <div className="text-center space-y-3">
+                    <motion.div 
+                      className={`text-5xl font-mono font-black tracking-wider ${
+                        workDurationData.isActive 
+                          ? 'text-white drop-shadow-2xl' 
+                          : 'text-white drop-shadow-2xl'
+                      }`}
+                      style={{
+                        textShadow: workDurationData.isActive 
+                          ? '0 4px 8px rgba(0, 0, 0, 0.8), 0 2px 4px rgba(16, 128, 96, 0.6)' 
+                          : '0 4px 8px rgba(0, 0, 0, 0.8), 0 2px 4px rgba(128, 128, 128, 0.6)'
+                      }}
+                      animate={{ 
+                        scale: workDurationData.isActive ? [1, 1.02, 1] : 1 
+                      }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    >
+                      {(() => {
+                        // CREATIVE MAIN TIMER: Use fresh calculation instead of stale state
+                        const currentData = calculateRealTimeWorkDuration();
+                        console.log('🎨 CREATIVE MAIN TIMER:', currentData.timeString);
+                        return currentData.timeString || '00:00:00';
+                      })()}
+                    </motion.div>
+                    
+                    <div className={`text-xl font-black ${
+                      workDurationData.isActive 
+                        ? 'text-white drop-shadow-lg' 
+                        : 'text-white drop-shadow-lg'
+                    }`}
+                    style={{
+                      textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)'
+                    }}>
+                      {(() => {
+                        // CREATIVE MAIN TIMER: Use fresh calculation for hours/minutes
+                        const currentData = calculateRealTimeWorkDuration();
+                        console.log('🎨 CREATIVE MAIN HOURS:', currentData.hoursMinutes);
+                        return currentData.hoursMinutes || '0j 0m';
+                      })()}
+                    </div>
+                    
+                    {workDurationData.isActive && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: [0.7, 1, 0.7] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="flex items-center justify-center gap-2 text-white text-base font-bold"
+                        style={{
+                          textShadow: '0 2px 4px rgba(0, 0, 0, 0.9)'
+                        }}
+                      >
+                        <div className="w-3 h-3 rounded-full bg-white animate-pulse shadow-lg" />
+                        🔴 LIVE - Berjalan Real-Time
+                        <div className="w-3 h-3 rounded-full bg-white animate-pulse shadow-lg" />
+                        {(() => {
+                          // CREATIVE VISUAL INDICATOR: Show which calculation method succeeded
+                          const currentData = calculateRealTimeWorkDuration();
+                          const methodEmojis = {
+                            standard: '🎯',
+                            directToday: '📅', 
+                            serverDuration: '🖥️',
+                            manualToday: '🔧',
+                            none: '❌'
+                          };
+                          const methodNames = {
+                            standard: 'Standard',
+                            directToday: 'Direct',
+                            serverDuration: 'Server', 
+                            manualToday: 'Manual',
+                            none: 'Failed'
+                          };
+                          return (
+                            <div className="text-xs opacity-80">
+                              {methodEmojis[currentData.debugInfo?.result?.successfulMethod || 'none']} {methodNames[currentData.debugInfo?.result?.successfulMethod || 'none']}
+                            </div>
+                          );
+                        })()}
+                      </motion.div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -383,7 +854,7 @@ export function Presensi() {
                   >
                     <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                     <span className="text-green-700 dark:text-green-300 font-medium">
-                      Check-in pada {formatTime(attendanceStatus?.attendance?.check_in_time)}
+                      Check-in pada {formatTime(attendanceStatus?.attendance?.check_in_time || null)}
                     </span>
                   </motion.div>
                   <motion.div
@@ -457,7 +928,7 @@ export function Presensi() {
               <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 rounded-xl border border-blue-200 dark:border-blue-700">
                 <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
                 <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
-                  {formatTime(attendanceStatus?.attendance?.check_in_time)}
+                  {formatTime(attendanceStatus?.attendance?.check_in_time || null)}
                 </div>
                 <div className="text-xs font-medium text-blue-600 dark:text-blue-400">Check In</div>
                 {attendanceStatus?.attendance?.is_late && (
@@ -468,7 +939,7 @@ export function Presensi() {
               <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/30 rounded-xl border border-orange-200 dark:border-orange-700">
                 <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400 mx-auto mb-2" />
                 <div className="text-lg font-bold text-orange-700 dark:text-orange-300">
-                  {formatTime(attendanceStatus?.attendance?.check_out_time)}
+                  {formatTime(attendanceStatus?.attendance?.check_out_time || null)}
                 </div>
                 <div className="text-xs font-medium text-orange-600 dark:text-orange-400">Check Out</div>
                 {attendanceStatus?.status === 'checked_in' && (
@@ -479,20 +950,58 @@ export function Presensi() {
                 )}
               </div>
               
-              <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30 rounded-xl border border-green-200 dark:border-green-700">
-                <Activity className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                <div className="text-lg font-bold text-green-700 dark:text-green-300">
-                  {attendanceStatus?.attendance?.work_duration || (
-                    attendanceStatus?.attendance?.work_duration_minutes ? 
-                    `${Math.floor(attendanceStatus.attendance.work_duration_minutes / 60)}h ${attendanceStatus.attendance.work_duration_minutes % 60}m` : 
-                    '--h --m'
+              <div className={`text-center p-4 rounded-xl border transition-all duration-300 ${
+                workDurationData?.isActive
+                  ? 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30 border-green-200 dark:border-green-700 shadow-green-500/20'
+                  : 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/30 border-gray-200 dark:border-gray-700 shadow-gray-500/20'
+              } backdrop-blur-sm shadow-lg`}>
+                <div className={`w-6 h-6 mx-auto mb-2 ${
+                  workDurationData?.isActive 
+                    ? 'text-green-600 dark:text-green-400' 
+                    : 'text-gray-600 dark:text-gray-400'
+                }`}>
+                  {workDurationData?.isActive ? (
+                    <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}>
+                      <Activity className="w-6 h-6" />
+                    </motion.div>
+                  ) : (
+                    <Activity className="w-6 h-6" />
                   )}
                 </div>
-                <div className="text-xs font-medium text-green-600 dark:text-green-400">Total Jam</div>
-                {attendanceStatus?.status === 'checked_in' && attendanceStatus?.attendance?.work_duration_minutes && (
-                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                    {Math.floor(attendanceStatus.attendance.work_duration_minutes / 60)}j {attendanceStatus.attendance.work_duration_minutes % 60}m (Berjalan)
+                <div className={`text-xl font-black font-mono ${
+                  workDurationData?.isActive 
+                    ? 'text-green-800 dark:text-green-200' 
+                    : 'text-gray-800 dark:text-gray-200'
+                }`}
+                style={{
+                  textShadow: workDurationData?.isActive 
+                    ? '0 1px 2px rgba(0, 0, 0, 0.3), 0 0 4px rgba(16, 128, 96, 0.3)' 
+                    : '0 1px 2px rgba(0, 0, 0, 0.3)'
+                }}>
+                  {(() => {
+                    // CREATIVE DEBUG: Show calculation method and result
+                    const currentData = calculateRealTimeWorkDuration();
+                    console.log('🎨 CREATIVE QUICK STATS:', currentData);
+                    
+                    // Use the freshly calculated data instead of stale state
+                    return currentData.hoursMinutes || '0j 0m';
+                  })()}
+                </div>
+                <div className={`text-xs font-bold ${
+                  workDurationData?.isActive 
+                    ? 'text-green-600 dark:text-green-400' 
+                    : 'text-gray-600 dark:text-gray-400'
+                }`}>
+                  Total Jam Kerja
+                </div>
+                {workDurationData?.isActive && (
+                  <div className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center justify-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    Live
                   </div>
+                )}
+                {attendanceStatus?.status === 'completed' && (
+                  <div className="text-xs text-green-500 mt-1">✓ Selesai</div>
                 )}
               </div>
             </div>

@@ -416,6 +416,21 @@ class JadwalJagaResource extends Resource
                     ->badge()
                     ->color('info')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('jam_shift')
+                    ->label('Jam')
+                    ->getStateUsing(function (JadwalJaga $record): string {
+                        if ($record->jam_jaga_custom) {
+                            return $record->jam_shift . ' (Custom)';
+                        }
+                        
+                        return $record->jam_shift;
+                    })
+                    ->badge()
+                    ->color(function (JadwalJaga $record): string {
+                        return $record->jam_jaga_custom ? 'success' : 'info';
+                    })
+                    ->sortable(false)
+                    ->searchable(false),
                 Tables\Columns\TextColumn::make('peran')
                     ->label('Peran')
                     ->badge()

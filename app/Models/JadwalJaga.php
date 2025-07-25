@@ -73,6 +73,28 @@ class JadwalJaga extends Model
     }
 
     /**
+     * Get effective end time from template
+     */
+    public function getEffectiveEndTimeAttribute(): string
+    {
+        return $this->shiftTemplate->jam_pulang_format;
+    }
+
+    /**
+     * Get formatted time range for display
+     */
+    public function getJamShiftAttribute(): string
+    {
+        if ($this->jam_jaga_custom) {
+            $customTime = \Carbon\Carbon::parse($this->jam_jaga_custom)->format('H:i');
+            $endTime = $this->effective_end_time;
+            return "{$customTime} - {$endTime}";
+        }
+        
+        return "{$this->effective_start_time} - {$this->effective_end_time}";
+    }
+
+    /**
      * Check if this schedule is for today and if it's still valid to be created
      */
     public function isValidForToday(): bool

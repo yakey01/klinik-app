@@ -13,7 +13,8 @@ class PendapatanHarianPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('view-finances') || 
+        return $user->hasRole('petugas') ||
+               $user->hasPermissionTo('view-finances') || 
                $user->hasPermissionTo('create-finances') ||
                $user->hasPermissionTo('validate_transactions');
     }
@@ -23,10 +24,11 @@ class PendapatanHarianPolicy
      */
     public function view(User $user, PendapatanHarian $pendapatanHarian): bool
     {
-        return ($user->hasPermissionTo('view-finances') || 
+        return ($user->hasRole('petugas') ||
+                $user->hasPermissionTo('view-finances') || 
                 $user->hasPermissionTo('create-finances') ||
                 $user->hasPermissionTo('validate_transactions')) &&
-               ($pendapatanHarian->input_by === $user->id || 
+               ($pendapatanHarian->user_id === $user->id || 
                 $user->hasPermissionTo('validate_transactions'));
     }
 
@@ -35,7 +37,8 @@ class PendapatanHarianPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('create-finances');
+        return $user->hasRole('petugas') ||
+               $user->hasPermissionTo('create-finances');
     }
 
     /**
@@ -43,10 +46,11 @@ class PendapatanHarianPolicy
      */
     public function update(User $user, PendapatanHarian $pendapatanHarian): bool
     {
-        return ($user->hasPermissionTo('update_pendapatan') || 
+        return ($user->hasRole('petugas') ||
+                $user->hasPermissionTo('update_pendapatan') || 
                 $user->hasPermissionTo('input_transactions') ||
                 $user->hasPermissionTo('validate_transactions')) &&
-               ($pendapatanHarian->input_by === $user->id || 
+               ($pendapatanHarian->user_id === $user->id || 
                 $user->hasPermissionTo('validate_transactions'));
     }
 
@@ -55,9 +59,10 @@ class PendapatanHarianPolicy
      */
     public function delete(User $user, PendapatanHarian $pendapatanHarian): bool
     {
-        return ($user->hasPermissionTo('delete_pendapatan') ||
+        return ($user->hasRole('petugas') ||
+                $user->hasPermissionTo('delete_pendapatan') ||
                 $user->hasPermissionTo('input_transactions')) &&
-               ($pendapatanHarian->input_by === $user->id || 
+               ($pendapatanHarian->user_id === $user->id || 
                 $user->hasRole('admin'));
     }
 

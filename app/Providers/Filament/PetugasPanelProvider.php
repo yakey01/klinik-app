@@ -64,7 +64,7 @@ class PetugasPanelProvider extends PanelProvider
                     ->collapsed(true)
                     ->collapsible(),
                 NavigationGroup::make('📊 Data Entry Harian')
-                    ->collapsed(true)
+                    ->collapsed(false)
                     ->collapsible(),
                 NavigationGroup::make('💰 Manajemen Transaksi')
                     ->collapsed(true)

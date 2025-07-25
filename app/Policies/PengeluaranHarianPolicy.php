@@ -13,7 +13,8 @@ class PengeluaranHarianPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('view-finances') || 
+        return $user->hasRole('petugas') ||
+               $user->hasPermissionTo('view-finances') || 
                $user->hasPermissionTo('create-finances') ||
                $user->hasPermissionTo('validate_transactions');
     }
@@ -23,10 +24,11 @@ class PengeluaranHarianPolicy
      */
     public function view(User $user, PengeluaranHarian $pengeluaranHarian): bool
     {
-        return ($user->hasPermissionTo('view-finances') || 
+        return ($user->hasRole('petugas') ||
+                $user->hasPermissionTo('view-finances') || 
                 $user->hasPermissionTo('create-finances') ||
                 $user->hasPermissionTo('validate_transactions')) &&
-               ($pengeluaranHarian->input_by === $user->id || 
+               ($pengeluaranHarian->user_id === $user->id || 
                 $user->hasPermissionTo('validate_transactions'));
     }
 
@@ -35,7 +37,8 @@ class PengeluaranHarianPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('create-finances');
+        return $user->hasRole('petugas') ||
+               $user->hasPermissionTo('create-finances');
     }
 
     /**
@@ -43,10 +46,11 @@ class PengeluaranHarianPolicy
      */
     public function update(User $user, PengeluaranHarian $pengeluaranHarian): bool
     {
-        return ($user->hasPermissionTo('update_pengeluaran') || 
+        return ($user->hasRole('petugas') ||
+                $user->hasPermissionTo('update_pengeluaran') || 
                 $user->hasPermissionTo('input_transactions') ||
                 $user->hasPermissionTo('validate_transactions')) &&
-               ($pengeluaranHarian->input_by === $user->id || 
+               ($pengeluaranHarian->user_id === $user->id || 
                 $user->hasPermissionTo('validate_transactions'));
     }
 
@@ -55,9 +59,10 @@ class PengeluaranHarianPolicy
      */
     public function delete(User $user, PengeluaranHarian $pengeluaranHarian): bool
     {
-        return ($user->hasPermissionTo('delete_pengeluaran') ||
+        return ($user->hasRole('petugas') ||
+                $user->hasPermissionTo('delete_pengeluaran') ||
                 $user->hasPermissionTo('input_transactions')) &&
-               ($pengeluaranHarian->input_by === $user->id || 
+               ($pengeluaranHarian->user_id === $user->id || 
                 $user->hasRole('admin'));
     }
 

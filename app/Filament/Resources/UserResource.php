@@ -333,6 +333,76 @@ class UserResource extends Resource
                             ->label('Aktif')
                             ->default(true),
                     ])->columns(2),
+
+                Forms\Components\Section::make('📍 Lokasi Kerja')
+                    ->description('Konfigurasi lokasi kerja untuk geofencing dan presensi')
+                    ->schema([
+                        Forms\Components\Select::make('work_location_id')
+                            ->label('Lokasi Kerja')
+                            ->options(\App\Models\WorkLocation::where('is_active', true)->pluck('name', 'id'))
+                            ->nullable()
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('Pilih lokasi kerja')
+                            ->helperText('Diperlukan untuk validasi geofencing presensi. Wajib untuk role Paramedis.')
+                            ->hint(function (Forms\Get $get) {
+                                $roleId = $get('role_id');
+                                if ($roleId) {
+                                    $role = \App\Models\Role::find($roleId);
+                                    if ($role && $role->name === 'paramedis') {
+                                        return '⚠️ Wajib untuk Paramedis';
+                                    }
+                                }
+                                return 'Opsional untuk role lain';
+                            })
+                            ->required(function (Forms\Get $get) {
+                                $roleId = $get('role_id');
+                                $employeeType = $get('employee_type');
+                                
+                                // Required for paramedis role
+                                if ($roleId) {
+                                    $role = \App\Models\Role::find($roleId);
+                                    if ($role && $role->name === 'paramedis') {
+                                        return true;
+                                    }
+                                }
+                                
+                                // Required for pegawai with paramedis type
+                                if ($employeeType === 'paramedis') {
+                                    return true;
+                                }
+                                
+                                return false;
+                            })
+                            ->suffixIcon('heroicon-o-map-pin')
+                            ->live(),
+                            
+                        Forms\Components\Placeholder::make('work_location_info')
+                            ->label('ℹ️ Informasi Lokasi Kerja')
+                            ->content(function (Forms\Get $get) {
+                                $workLocationId = $get('work_location_id');
+                                if (!$workLocationId) {
+                                    return 'Pilih lokasi kerja untuk melihat detail geofencing.';
+                                }
+                                
+                                $workLocation = \App\Models\WorkLocation::find($workLocationId);
+                                if (!$workLocation) {
+                                    return 'Lokasi tidak ditemukan.';
+                                }
+                                
+                                return new \Illuminate\Support\HtmlString("
+                                    <div class='bg-green-50 p-3 rounded border-l-4 border-green-400'>
+                                        <strong class='text-green-800'>📍 {$workLocation->name}</strong><br>
+                                        <span class='text-sm text-green-700'>
+                                            📍 Koordinat: {$workLocation->latitude}, {$workLocation->longitude}<br>
+                                            🎯 Radius: {$workLocation->formatted_radius}<br>
+                                            📧 Alamat: {$workLocation->address}
+                                        </span>
+                                    </div>
+                                ");
+                            })
+                            ->columnSpanFull(),
+                    ])->columns(1),
                     
                 Forms\Components\Section::make('ℹ️ Panduan User Management')
                     ->description('Informasi penting untuk manajemen pengguna')
@@ -411,6 +481,21 @@ class UserResource extends Resource
                     ->badge()
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('workLocation.name')
+                    ->label('📍 Lokasi Kerja')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('Belum diset')
+                    ->color(fn ($record) => $record->workLocation ? 'success' : 'warning')
+                    ->icon(fn ($record) => $record->workLocation ? 'heroicon-o-map-pin' : 'heroicon-o-exclamation-triangle')
+                    ->tooltip(function ($record) {
+                        if (!$record->workLocation) {
+                            return $record->role?->name === 'paramedis' 
+                                ? '⚠️ Paramedis harus memiliki lokasi kerja!' 
+                                : 'Lokasi kerja belum diset';
+                        }
+                        return "📍 {$record->workLocation->name}\n🎯 Radius: {$record->workLocation->formatted_radius}";
+                    }),
                 Tables\Columns\TextColumn::make('nip')
                     ->label('NIP')
                     ->searchable()

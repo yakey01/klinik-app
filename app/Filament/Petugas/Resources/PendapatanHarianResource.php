@@ -38,6 +38,15 @@ class PendapatanHarianResource extends Resource
     
     protected static ?int $navigationSort = 2;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return true;
+    }
 
     public static function form(Form $form): Form
     {

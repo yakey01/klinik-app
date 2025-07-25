@@ -19,6 +19,7 @@ class WorkLocation extends Model
         'radius_meters',
         'is_active',
         'location_type',
+        'unit_kerja',
         'allowed_shifts',
         'working_hours',
         'tolerance_settings',
@@ -301,11 +302,48 @@ class WorkLocation extends Model
         };
     }
 
+
+    /**
+     * Assignment histories for this location
+     */
+    public function assignmentHistories(): HasMany
+    {
+        return $this->hasMany(AssignmentHistory::class);
+    }
+
     /**
      * Check if location requires photo verification
      */
     public function requiresPhoto(): bool
     {
         return $this->require_photo;
+    }
+
+    /**
+     * Get location capacity utilization
+     */
+    public function getCapacityUtilization(int $optimalCapacity = 50): array
+    {
+        $currentCount = $this->users()->count();
+        $percentage = $optimalCapacity > 0 ? round(($currentCount / $optimalCapacity) * 100, 1) : 0;
+        
+        return [
+            'current_users' => $currentCount,
+            'optimal_capacity' => $optimalCapacity,
+            'utilization_percentage' => $percentage,
+            'status' => $this->getCapacityStatus($percentage)
+        ];
+    }
+
+    /**
+     * Get capacity status label
+     */
+    private function getCapacityStatus(float $percentage): string
+    {
+        if ($percentage >= 90) return 'over_capacity';
+        if ($percentage >= 75) return 'high_utilization';
+        if ($percentage >= 50) return 'optimal';
+        if ($percentage >= 25) return 'low_utilization';
+        return 'under_utilized';
     }
 }

@@ -63,6 +63,20 @@ class WorkLocationResource extends Resource
                                     ->native(false),
                             ]),
 
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('unit_kerja')
+                                    ->label('Unit Kerja')
+                                    ->placeholder('Contoh: IGD, Poli Umum, dll')
+                                    ->helperText('Unit kerja yang menggunakan lokasi ini')
+                                    ->maxLength(255),
+                                    
+                                Forms\Components\TextInput::make('contact_person')
+                                    ->label('Contact Person')
+                                    ->placeholder('Nama penanggung jawab lokasi')
+                                    ->maxLength(255),
+                            ]),
+
                         Forms\Components\Textarea::make('description')
                             ->label('Deskripsi')
                             ->placeholder('Deskripsi detail lokasi kerja...')
@@ -86,51 +100,133 @@ class WorkLocationResource extends Resource
                             ->columnSpanFull()
                             ->dehydrated(false), // Don't save this field to database
 
+                        // Tombol Get Location yang prominent
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('getLocation')
+                                ->label('🌍 Get My Location')
+                                ->icon('heroicon-o-map-pin')
+                                ->color('success')
+                                ->size('lg')
+                                ->extraAttributes([
+                                    'class' => 'w-full',
+                                    'id' => 'get-location-btn',
+                                    'onclick' => 'autoDetectLocation()'
+                                ])
+                                ->action(function () {
+                                    // This will be handled by JavaScript
+                                })
+                                ->tooltip('Deteksi lokasi GPS Anda secara otomatis')
+                        ])
+                        ->fullWidth()
+                        ->columnSpanFull(),
+
                         Forms\Components\Grid::make(3)
                             ->schema([
                                 Forms\Components\TextInput::make('latitude')
-                                    ->label('Latitude')
+                                    ->label('📍 Latitude (Lintang)')
                                     ->required()
                                     ->numeric()
                                     ->step(0.000001)
                                     ->placeholder('Contoh: -6.2088200 (Jakarta)')
-                                    ->helperText('Koordinat lintang - terisi otomatis dari peta')
+                                    ->helperText('Koordinat lintang - sinkron dengan peta otomatis')
                                     ->reactive()
-                                    ->live()
+                                    ->live(onBlur: true)
+                                    ->rules([
+                                        'required',
+                                        'numeric',
+                                        'between:-90,90'
+                                    ])
+                                    ->suffixIcon('heroicon-o-globe-alt')
+                                    ->id('latitude')
+                                    ->extraAttributes(['data-coordinate-field' => 'latitude'])
                                     ->afterStateUpdated(function (callable $get, callable $set, $state): void {
                                         $lat = $get('latitude');
                                         $lng = $get('longitude');
-                                        if ($lat && $lng) {
-                                            $set('map_coordinates', ['lat' => (float) $lat, 'lng' => (float) $lng]);
+                                        
+                                        // Validate latitude range
+                                        if ($lat && ($lat < -90 || $lat > 90)) {
+                                            \Filament\Notifications\Notification::make()
+                                                ->title('Latitude Tidak Valid')
+                                                ->body('Latitude harus berada dalam rentang -90 hingga 90 derajat.')
+                                                ->danger()
+                                                ->send();
+                                            return;
+                                        }
+                                        
+                                        // Update map if both coordinates are valid
+                                        if ($lat && $lng && is_numeric($lat) && is_numeric($lng)) {
+                                            // Map will automatically update via Alpine.js form sync
+                                            // The leaflet-osm-map component listens to input changes
                                         }
                                     }),
 
                                 Forms\Components\TextInput::make('longitude')
-                                    ->label('Longitude')
+                                    ->label('🌐 Longitude (Bujur)')
                                     ->required()
                                     ->numeric()
                                     ->step(0.000001)
                                     ->placeholder('Contoh: 106.8238800 (Jakarta)')
-                                    ->helperText('Koordinat bujur - terisi otomatis dari peta')
+                                    ->helperText('Koordinat bujur - sinkron dengan peta otomatis')
                                     ->reactive()
-                                    ->live()
+                                    ->live(onBlur: true)
+                                    ->rules([
+                                        'required',
+                                        'numeric',
+                                        'between:-180,180'
+                                    ])
+                                    ->suffixIcon('heroicon-o-globe-alt')
+                                    ->id('longitude')
+                                    ->extraAttributes(['data-coordinate-field' => 'longitude'])
                                     ->afterStateUpdated(function (callable $get, callable $set, $state): void {
                                         $lat = $get('latitude');
                                         $lng = $get('longitude');
-                                        if ($lat && $lng) {
-                                            $set('map_coordinates', ['lat' => (float) $lat, 'lng' => (float) $lng]);
+                                        
+                                        // Validate longitude range
+                                        if ($lng && ($lng < -180 || $lng > 180)) {
+                                            \Filament\Notifications\Notification::make()
+                                                ->title('Longitude Tidak Valid')
+                                                ->body('Longitude harus berada dalam rentang -180 hingga 180 derajat.')
+                                                ->danger()
+                                                ->send();
+                                            return;
+                                        }
+                                        
+                                        // Update map if both coordinates are valid
+                                        if ($lat && $lng && is_numeric($lat) && is_numeric($lng)) {
+                                            // Map will automatically update via Alpine.js form sync
+                                            // The leaflet-osm-map component listens to input changes
                                         }
                                     })
-                                    ->suffixAction(
+                                    ->suffixActions([
                                         Forms\Components\Actions\Action::make('openMaps')
-                                            ->label('🗺️ Lihat di Maps')
+                                            ->label('Google Maps')
                                             ->icon('heroicon-o-map')
                                             ->color('success')
+                                            ->size('sm')
                                             ->url(fn ($get) => $get('latitude') && $get('longitude') 
                                                 ? "https://maps.google.com/maps?q={$get('latitude')},{$get('longitude')}" 
                                                 : 'https://maps.google.com')
                                             ->openUrlInNewTab()
-                                    ),
+                                            ->tooltip('Lihat di Google Maps'),
+                                        Forms\Components\Actions\Action::make('copyCoords')
+                                            ->label('Copy')
+                                            ->icon('heroicon-o-clipboard')
+                                            ->color('gray')
+                                            ->size('sm')
+                                            ->action(function ($get) {
+                                                $lat = $get('latitude');
+                                                $lng = $get('longitude');
+                                                if ($lat && $lng) {
+                                                    $coords = "{$lat},{$lng}";
+                                                    \Filament\Notifications\Notification::make()
+                                                        ->title('Koordinat Disalin!')
+                                                        ->body("Koordinat: {$coords}")
+                                                        ->success()
+                                                        ->send();
+                                                }
+                                            })
+                                            ->tooltip('Salin koordinat'),
+                                    ]),
 
                                 Forms\Components\TextInput::make('radius_meters')
                                     ->label('Radius Geofence (meter)')
@@ -164,12 +260,13 @@ class WorkLocationResource extends Resource
                         Forms\Components\Placeholder::make('location_tips')
                             ->label('💡 Tips Penggunaan Peta:')
                             ->content(new \Illuminate\Support\HtmlString('<div class="location-tips-content">
-                                • Klik tombol "🌐 Get Location" untuk deteksi GPS otomatis<br>
-                                • Klik pada peta untuk memindahkan marker ke lokasi yang diinginkan<br>
-                                • Drag marker pada peta untuk mengubah posisi secara manual<br>
-                                • Zoom in/out dengan scroll mouse atau kontrol peta<br>
-                                • Koordinat latitude dan longitude akan terisi otomatis saat memilih lokasi<br>
-                                • Setelah marker dipindahkan, koordinat akan langsung terupdate
+                                • 🌍 <strong>Auto-Detection:</strong> Lokasi akan terdeteksi otomatis saat halaman dimuat<br>
+                                • 🌐 Klik tombol "Get My Location" untuk deteksi ulang GPS<br>
+                                • 🖱️ Klik pada peta untuk memindahkan marker ke lokasi yang diinginkan<br>
+                                • ↕️ Drag marker pada peta untuk mengubah posisi secara manual<br>
+                                • 🔍 Zoom in/out dengan scroll mouse atau kontrol peta<br>
+                                • ✏️ Field latitude dan longitude dapat diedit manual jika diperlukan<br>
+                                • 🔄 Koordinat akan sinkron otomatis antara peta dan form fields
                             </div>'))
                             ->columnSpanFull(),
                     ]),

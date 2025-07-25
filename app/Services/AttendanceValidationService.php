@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\JadwalJaga;
 use App\Models\WorkLocation;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class AttendanceValidationService
 {
@@ -55,43 +56,64 @@ class AttendanceValidationService
     public function validateWorkLocation(User $user, float $latitude, float $longitude, ?float $accuracy = null): array
     {
         // Always refresh user relationship to get latest work location data
-        $user->load('workLocation');
+        $user->load(['workLocation', 'location']);
+        
+        // Clear any cached work location data
+        Cache::forget("user_work_location_{$user->id}");
         
         // Get fresh work location data (force refresh from database)
-        $workLocation = $user->workLocation?->fresh();
+        $workLocation = WorkLocation::where('id', $user->work_location_id)
+            ->where('is_active', true)
+            ->first();
         
         if (!$workLocation) {
+            // Double-check by loading fresh user data
+            $freshUser = User::find($user->id);
+            if ($freshUser && $freshUser->work_location_id) {
+                $workLocation = WorkLocation::find($freshUser->work_location_id);
+            }
+            
             // Fallback to legacy location if work location not set
-            $location = $user->location;
-            if (!$location) {
+            if (!$workLocation) {
+                $location = $user->location;
+                if (!$location) {
+                    // Log for debugging
+                    \Log::warning('User has no work location assigned', [
+                        'user_id' => $user->id,
+                        'user_name' => $user->name,
+                        'work_location_id' => $user->work_location_id,
+                        'location_id' => $user->location_id
+                    ]);
+                    
+                    return [
+                        'valid' => false,
+                        'message' => 'Anda belum memiliki lokasi kerja yang ditetapkan. Hubungi admin untuk pengaturan.',
+                        'code' => 'NO_WORK_LOCATION'
+                    ];
+                }
+                
+                // Use legacy location validation
+                if (!$location->isWithinGeofence($latitude, $longitude)) {
+                    $distance = $location->getDistanceFrom($latitude, $longitude);
+                    return [
+                        'valid' => false,
+                        'message' => "Anda berada di luar area kerja yang diizinkan. Jarak Anda dari lokasi kerja adalah " . round($distance) . " meter, sedangkan radius yang diizinkan adalah " . $location->radius . " meter.",
+                        'code' => 'OUTSIDE_GEOFENCE',
+                        'data' => [
+                            'distance' => round($distance),
+                            'allowed_radius' => $location->radius,
+                            'location_name' => $location->name
+                        ]
+                    ];
+                }
+                
                 return [
-                    'valid' => false,
-                    'message' => 'Anda belum memiliki lokasi kerja yang ditetapkan. Hubungi admin untuk pengaturan.',
-                    'code' => 'NO_WORK_LOCATION'
+                    'valid' => true,
+                    'message' => 'Lokasi valid (menggunakan lokasi lama)',
+                    'code' => 'VALID_LEGACY_LOCATION',
+                    'location' => $location
                 ];
             }
-            
-            // Use legacy location validation
-            if (!$location->isWithinGeofence($latitude, $longitude)) {
-                $distance = $location->getDistanceFrom($latitude, $longitude);
-                return [
-                    'valid' => false,
-                    'message' => "Anda berada di luar area kerja yang diizinkan. Jarak Anda dari lokasi kerja adalah " . round($distance) . " meter, sedangkan radius yang diizinkan adalah " . $location->radius . " meter.",
-                    'code' => 'OUTSIDE_GEOFENCE',
-                    'data' => [
-                        'distance' => round($distance),
-                        'allowed_radius' => $location->radius,
-                        'location_name' => $location->name
-                    ]
-                ];
-            }
-            
-            return [
-                'valid' => true,
-                'message' => 'Lokasi valid (menggunakan lokasi lama)',
-                'code' => 'VALID_LEGACY_LOCATION',
-                'location' => $location
-            ];
         }
         
         // Validate work location is active

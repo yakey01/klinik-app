@@ -1022,4 +1022,242 @@ class DokterDashboardController extends Controller
             return 'Selamat Malam';
         }
     }
+
+    /**
+     * Force refresh work location data by clearing relevant caches
+     */
+    public function refreshWorkLocation(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Clear relevant caches
+            $cacheKeys = [
+                "dokter_dashboard_stats_{$user->id}",
+                "user_work_location_{$user->id}",
+                "attendance_status_{$user->id}"
+            ];
+            
+            foreach ($cacheKeys as $key) {
+                Cache::forget($key);
+            }
+            
+            // Force reload user work location
+            $user->load('workLocation');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Work location data refreshed successfully',
+                'data' => [
+                    'work_location' => $user->workLocation ? [
+                        'id' => $user->workLocation->id,
+                        'name' => $user->workLocation->name,
+                        'address' => $user->workLocation->address,
+                        'coordinates' => [
+                            'latitude' => (float) $user->workLocation->latitude,
+                            'longitude' => (float) $user->workLocation->longitude,
+                        ],
+                        'radius_meters' => $user->workLocation->radius_meters,
+                        'is_active' => $user->workLocation->is_active,
+                        'updated_at' => $user->workLocation->updated_at->toISOString(),
+                    ] : null,
+                    'cache_cleared' => $cacheKeys,
+                    'timestamp' => now()->toISOString()
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to refresh work location: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get work location status only (lightweight endpoint for polling)
+     */
+    public function getWorkLocationStatus(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Get fresh work location data
+            $user->load('workLocation');
+            $workLocation = $user->workLocation?->fresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Work location status retrieved',
+                'data' => [
+                    'work_location' => $workLocation ? [
+                        'id' => $workLocation->id,
+                        'name' => $workLocation->name,
+                        'address' => $workLocation->address,
+                        'coordinates' => [
+                            'latitude' => (float) $workLocation->latitude,
+                            'longitude' => (float) $workLocation->longitude,
+                        ],
+                        'radius_meters' => $workLocation->radius_meters,
+                        'is_active' => $workLocation->is_active,
+                        'updated_at' => $workLocation->updated_at?->toISOString(),
+                    ] : null,
+                    'user_id' => $user->id,
+                    'timestamp' => now()->toISOString(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error fetching work location status', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch work location status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check and auto-assign work location if available
+     */
+    public function checkAndAssignWorkLocation(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check if user already has work location
+            if ($user->work_location_id) {
+                $workLocation = \App\Models\WorkLocation::find($user->work_location_id);
+                if ($workLocation && $workLocation->is_active) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Work location already assigned',
+                        'data' => [
+                            'work_location' => [
+                                'id' => $workLocation->id,
+                                'name' => $workLocation->name,
+                                'address' => $workLocation->address,
+                                'is_active' => $workLocation->is_active
+                            ]
+                        ]
+                    ]);
+                }
+            }
+            
+            // Try to find a suitable work location based on user's dokter data
+            $dokter = $user->dokter;
+            if (!$dokter) {
+                // Try pegawai relation if dokter not found
+                $pegawai = $user->pegawai;
+                if (!$pegawai) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No dokter or pegawai data found for user',
+                        'data' => null
+                    ], 404);
+                }
+                
+                // Use pegawai data for matching
+                $workLocation = \App\Models\WorkLocation::where('is_active', true)
+                    ->where(function($query) use ($pegawai) {
+                        if ($pegawai->unit_kerja) {
+                            $query->where('name', 'LIKE', '%' . $pegawai->unit_kerja . '%')
+                                  ->orWhere('unit_kerja', $pegawai->unit_kerja);
+                        }
+                        if ($pegawai->jenis_pegawai) {
+                            $query->orWhere('location_type', $pegawai->jenis_pegawai);
+                        }
+                    })
+                    ->first();
+            } else {
+                // Look for work location based on dokter's unit_kerja or specialization
+                $workLocation = \App\Models\WorkLocation::where('is_active', true)
+                    ->where(function($query) use ($dokter) {
+                        // Try to match by unit kerja
+                        if ($dokter->unit_kerja) {
+                            $query->where('name', 'LIKE', '%' . $dokter->unit_kerja . '%')
+                                  ->orWhere('unit_kerja', $dokter->unit_kerja);
+                        }
+                        // Try to match by location type
+                        $query->orWhere('location_type', 'Dokter')
+                              ->orWhere('location_type', 'dokter');
+                    })
+                    ->first();
+            }
+            
+            // If no match found, get the first active work location (default)
+            if (!$workLocation) {
+                $workLocation = \App\Models\WorkLocation::where('is_active', true)
+                    ->orderBy('created_at', 'asc')
+                    ->first();
+            }
+            
+            if ($workLocation) {
+                // Assign work location to user
+                $user->work_location_id = $workLocation->id;
+                $user->save();
+                
+                // Clear caches
+                $cacheKeys = [
+                    "dokter_dashboard_stats_{$user->id}",
+                    "user_work_location_{$user->id}",
+                    "attendance_status_{$user->id}"
+                ];
+                
+                foreach ($cacheKeys as $key) {
+                    Cache::forget($key);
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Work location assigned successfully',
+                    'data' => [
+                        'work_location' => [
+                            'id' => $workLocation->id,
+                            'name' => $workLocation->name,
+                            'address' => $workLocation->address,
+                            'coordinates' => [
+                                'latitude' => (float) $workLocation->latitude,
+                                'longitude' => (float) $workLocation->longitude,
+                            ],
+                            'radius_meters' => $workLocation->radius_meters,
+                            'is_active' => $workLocation->is_active
+                        ],
+                        'assignment_reason' => $dokter && $dokter->unit_kerja ? 
+                            "Matched by unit kerja: {$dokter->unit_kerja}" : 
+                            'Assigned default active location'
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'No active work location found in the system',
+                'data' => null
+            ], 404);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in checkAndAssignWorkLocation', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check/assign work location: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

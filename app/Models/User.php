@@ -209,6 +209,22 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(UangDuduk::class);
     }
 
+    /**
+     * Assignment history relationship
+     */
+    public function assignmentHistories(): HasMany
+    {
+        return $this->hasMany(AssignmentHistory::class);
+    }
+
+    /**
+     * Assignments made by this user (as admin/manager)
+     */
+    public function assignmentsMade(): HasMany
+    {
+        return $this->hasMany(AssignmentHistory::class, 'assigned_by');
+    }
+
     public function pendapatanInput(): HasMany
     {
         return $this->hasMany(Pendapatan::class, 'input_by');

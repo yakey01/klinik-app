@@ -66,13 +66,19 @@ production-*.sh
 setup-*.sh
 install-*.sh
 
-# Debug & Testing Files (SECURITY RISK)
+# Debug & Testing Files (SECURITY RISK) - More restrictive
+test_*.php
 *-test.php
+*_test.php
+simple-*.php
 *-debug.php
 *-fix.php
 *-temp.php
 *-backup.php
 *-restore.php
+assign_*.php
+check_*.php
+verify_*.php
 debug-*.sh
 test-*.sh
 fix-*.sh
@@ -112,12 +118,18 @@ FINAL_*.md
 *-TEST_REPORT.md
 *-FIX.md
 
-# Backup Directories
+# Backup Directories (more restrictive)
 backups/
 backup/
 old-files/
+old-backup/
+old/
+temp-files/
 components_legacy_backup/
 *.backup
+*backup*
+temp/
+tmp/
 
 # Logs and Analysis
 storage/logs/

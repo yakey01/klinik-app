@@ -1,0 +1,310 @@
+name: 🔧 Hostinger Admin Fix - Direct SSH
+
+on:
+  workflow_dispatch:
+    inputs:
+      admin_email:
+        description: 'New admin email'
+        required: false
+        default: 'admin@dokterku.com'
+        type: string
+      admin_name:
+        description: 'New admin name'
+        required: false
+        default: 'Administrator'
+        type: string
+      confirm_replacement:
+        description: 'Type "REPLACE_ADMIN_USERS" to confirm'
+        required: true
+        type: string
+
+jobs:
+  hostinger-admin-replacement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Security Check
+        run: |
+          if [ "${{ github.event.inputs.confirm_replacement }}" != "REPLACE_ADMIN_USERS" ]; then
+            echo "❌ Security check failed: Expected 'REPLACE_ADMIN_USERS'"
+            echo "Received: '${{ github.event.inputs.confirm_replacement }}'"
+            exit 1
+          fi
+          echo "✅ Security confirmation validated"
+          echo "Target: ${{ github.event.inputs.admin_email }}"
+
+      - name: Setup SSH Tools
+        run: |
+          echo "🔧 Installing SSH tools..."
+          sudo apt-get update
+          sudo apt-get install -y sshpass mysql-client
+          
+          echo "🔐 Creating SSH config..."
+          mkdir -p ~/.ssh
+          cat > ~/.ssh/config << 'EOF'
+          Host hostinger
+            HostName 153.92.8.132
+            User u454362045
+            Port 65002
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            LogLevel ERROR
+            ConnectTimeout 30
+            ServerAliveInterval 60
+          EOF
+          chmod 600 ~/.ssh/config
+          echo "✅ SSH tools ready"
+
+      - name: Test SSH Connection
+        run: |
+          echo "🔗 Testing SSH connection to Hostinger..."
+          echo "Host: 153.92.8.132"
+          echo "User: u454362045"
+          echo "Port: 65002"
+          
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "echo 'SSH connection successful!' && whoami && pwd && echo 'Server time:' && date"
+
+      - name: Find Project Directory
+        run: |
+          echo "📂 Looking for project directory..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "echo 'Home directory contents:' && ls -la && \
+             echo '' && \
+             echo 'Looking for domains directory:' && \
+             if [ -d 'domains' ]; then \
+               echo 'Found domains directory' && ls -la domains/; \
+             else \
+               echo 'No domains directory found'; \
+             fi && \
+             echo '' && \
+             echo 'Looking for dokterku project:' && \
+             find . -name '*dokter*' -type d 2>/dev/null | head -5 || echo 'No dokterku directories found'"
+
+      - name: Access Project Directory
+        run: |
+          echo "🎯 Accessing project directory..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "PROJECT_PATH='domains/dokterkuklinik.com/public_html/dokterku' && \
+             if [ -d \"\$PROJECT_PATH\" ]; then \
+               echo \"✅ Found project at: \$PROJECT_PATH\" && \
+               cd \"\$PROJECT_PATH\" && \
+               echo \"Current directory: \$(pwd)\" && \
+               echo \"Project contents:\" && ls -la | head -10 && \
+               echo \"Checking .env file:\" && \
+               if [ -f '.env' ]; then \
+                 echo \"✅ .env file exists\" && ls -la .env; \
+               else \
+                 echo \"❌ .env file not found\" && \
+                 if [ -f '.env.example' ]; then echo \"Found .env.example\"; fi; \
+               fi; \
+             else \
+               echo \"❌ Project directory not found: \$PROJECT_PATH\" && \
+               exit 1; \
+             fi"
+
+      - name: Create Database Backup
+        run: |
+          echo "💾 Creating database backup..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "cd domains/dokterkuklinik.com/public_html/dokterku && \
+             BACKUP_DIR=\"~/admin_backup_\$(date +%Y%m%d_%H%M%S)\" && \
+             mkdir -p \"\$BACKUP_DIR\" && \
+             echo \"Backup directory: \$BACKUP_DIR\" && \
+             if [ -f .env ]; then \
+               DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
+               DB_PASS=\$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2 | tr -d '\"') && \
+               DB_NAME=\$(grep '^DB_DATABASE=' .env | cut -d'=' -f2 | tr -d '\"') && \
+               DB_HOST=\$(grep '^DB_HOST=' .env | cut -d'=' -f2 | tr -d '\"') && \
+               echo \"Database: \$DB_NAME on \$DB_HOST\" && \
+               mysqldump -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" users roles > \"\$BACKUP_DIR/admin_backup.sql\" 2>/dev/null && \
+               echo \"✅ Database backup created\" && ls -lh \"\$BACKUP_DIR\"; \
+             else \
+               echo \"⚠️ No .env file, skipping database backup\"; \
+             fi"
+
+      - name: Update Codebase
+        run: |
+          echo "📦 Updating codebase..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "cd domains/dokterkuklinik.com/public_html/dokterku && \
+             echo \"Pulling latest code...\" && \
+             git fetch origin && \
+             git reset --hard origin/main && \
+             git clean -fd && \
+             echo \"✅ Codebase updated\" && \
+             echo \"Latest commit:\" && git log --oneline -1"
+
+      - name: Setup Environment
+        run: |
+          echo "⚙️ Setting up environment..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "cd domains/dokterkuklinik.com/public_html/dokterku && \
+             echo \"Installing dependencies...\" && \
+             if [ -f composer2 ]; then \
+               ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist; \
+             else \
+               composer install --no-dev --optimize-autoloader --no-interaction; \
+             fi && \
+             echo \"Clearing caches...\" && \
+             php artisan config:clear && \
+             php artisan cache:clear && \
+             echo \"Running migrations...\" && \
+             php artisan migrate --force --no-interaction && \
+             echo \"✅ Environment setup completed\""
+
+      - name: Check Current Admin Users
+        run: |
+          echo "👥 Checking current admin users..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "cd domains/dokterkuklinik.com/public_html/dokterku && \
+             DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_PASS=\$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_NAME=\$(grep '^DB_DATABASE=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_HOST=\$(grep '^DB_HOST=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             echo \"Current admin users:\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               SELECT u.id, u.name, u.email, u.username, r.name as role_name 
+               FROM users u 
+               LEFT JOIN roles r ON u.role_id = r.id 
+               WHERE r.name = 'admin' OR u.email LIKE '%admin%' 
+               ORDER BY u.id;
+             \" 2>/dev/null || echo \"Error checking users\""
+
+      - name: Execute Direct Admin Replacement
+        run: |
+          echo "🔥 Executing direct admin replacement..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "cd domains/dokterkuklinik.com/public_html/dokterku && \
+             DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_PASS=\$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_NAME=\$(grep '^DB_DATABASE=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_HOST=\$(grep '^DB_HOST=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             NEW_PASSWORD=\$(php -r \"echo password_hash('dokterku_admin_\$(date +%Y)', PASSWORD_BCRYPT);\") && \
+             echo \"Step 1: Ensure admin role exists...\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               INSERT IGNORE INTO roles (name, display_name, created_at, updated_at) 
+               VALUES ('admin', 'Administrator', NOW(), NOW());
+             \" && \
+             ADMIN_ROLE_ID=\$(mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -s -N -e \"SELECT id FROM roles WHERE name = 'admin' LIMIT 1;\") && \
+             echo \"Admin role ID: \$ADMIN_ROLE_ID\" && \
+             echo \"Step 2: Delete existing admin users...\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               DELETE FROM users WHERE role_id = \$ADMIN_ROLE_ID OR email LIKE '%admin%' OR username = 'admin';
+             \" && \
+             echo \"Step 3: Create new admin user...\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               INSERT INTO users (name, username, email, password, role_id, is_active, email_verified_at, created_at, updated_at) 
+               VALUES (
+                 '${{ github.event.inputs.admin_name }}',
+                 'admin',
+                 '${{ github.event.inputs.admin_email }}',
+                 '\$NEW_PASSWORD',
+                 \$ADMIN_ROLE_ID,
+                 1,
+                 NOW(),
+                 NOW(),
+                 NOW()
+               );
+             \" && \
+             echo \"✅ Admin user replacement completed\""
+
+      - name: Verify New Admin
+        run: |
+          echo "🔍 Verifying new admin user..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "cd domains/dokterkuklinik.com/public_html/dokterku && \
+             DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_PASS=\$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_NAME=\$(grep '^DB_DATABASE=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_HOST=\$(grep '^DB_HOST=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             echo \"New admin user verification:\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               SELECT u.id, u.name, u.email, u.username, r.name as role_name, 
+                      CASE WHEN u.password IS NOT NULL THEN 'YES' ELSE 'NO' END as has_password,
+                      u.is_active, u.created_at 
+               FROM users u 
+               LEFT JOIN roles r ON u.role_id = r.id 
+               WHERE u.email = '${{ github.event.inputs.admin_email }}';
+             \" && \
+             USER_COUNT=\$(mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -s -N -e \"SELECT COUNT(*) FROM users WHERE email = '${{ github.event.inputs.admin_email }}';\") && \
+             if [ \"\$USER_COUNT\" -eq 1 ]; then \
+               echo \"✅ Admin verification successful\"; \
+             else \
+               echo \"❌ Admin verification failed\"; \
+               exit 1; \
+             fi"
+
+      - name: Optimize Application
+        run: |
+          echo "⚡ Optimizing application..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "cd domains/dokterkuklinik.com/public_html/dokterku && \
+             php artisan config:cache && \
+             php artisan route:cache && \
+             chmod -R 755 storage bootstrap/cache && \
+             echo \"✅ Application optimized\""
+
+      - name: Final Success Summary
+        run: |
+          echo ""
+          echo "🎉 HOSTINGER ADMIN REPLACEMENT SUCCESSFUL!"
+          echo "========================================"
+          echo "✅ SSH connection established"
+          echo "✅ Database backup created"
+          echo "✅ Codebase updated"
+          echo "✅ Dependencies installed"
+          echo "✅ Admin users replaced"
+          echo "✅ Verification completed"
+          echo "✅ Application optimized"
+          echo ""
+          echo "🔐 NEW ADMIN CREDENTIALS:"
+          echo "========================"
+          echo "Email: ${{ github.event.inputs.admin_email }}"
+          echo "Name: ${{ github.event.inputs.admin_name }}"
+          echo "Username: admin"
+          echo "Password: dokterku_admin_$(date +%Y)"
+          echo "URL: https://dokterkuklinik.com/admin"
+          echo ""
+          echo "⚠️ IMPORTANT: Login and change password immediately!"
+          echo "🕐 Completed at: $(date)"

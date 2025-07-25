@@ -218,39 +218,8 @@ jobs:
             echo "📊 Running admin verification with detailed diagnostics..."
             echo "========================================================"
             
-            # Create a temporary script for better error capture
-            cat > temp_verify.php << 'VERIFY_EOF'
-<?php
-require_once 'vendor/autoload.php';
-$app = require_once 'bootstrap/app.php';
-$kernel = $app->make('Illuminate\Contracts\Console\Kernel');
-
-try {
-    $exitCode = $kernel->handle(
-        $input = new \Symfony\Component\Console\Input\ArrayInput([
-            'command' => 'admin:replace',
-            '--verify' => true,
-            '--no-interaction' => true,
-        ]),
-        $output = new \Symfony\Component\Console\Output\BufferedOutput()
-    );
-    
-    echo $output->fetch();
-    
-    if ($exitCode === 0) {
-        echo "\n✅ VERIFICATION SUCCESSFUL\n";
-    } else {
-        echo "\n❌ VERIFICATION FAILED (Exit Code: $exitCode)\n";
-        exit($exitCode);
-    }
-} catch (Exception $e) {
-    echo "❌ VERIFICATION EXCEPTION: " . $e->getMessage() . "\n";
-    echo "📋 Stack trace:\n" . $e->getTraceAsString() . "\n";
-    exit(1);
-}
-VERIFY_EOF
-            
-            php temp_verify.php 2>&1 || {
+            # Run admin verification with simple approach
+            php artisan admin:replace --verify --no-interaction -v 2>&1 || {
               echo "";
               echo "❌ ADMIN VERIFICATION FAILED - COMPREHENSIVE DEBUGGING";
               echo "=====================================================";
@@ -285,16 +254,12 @@ VERIFY_EOF
               echo "storage: $(ls -ld storage)";
               echo "bootstrap/cache: $(ls -ld bootstrap/cache)";
               
-              # Clean up temp file
-              rm -f temp_verify.php;
               
               echo "";
               echo "❌ STOPPING WORKFLOW DUE TO VERIFICATION FAILURE";
               exit 1;
             }
             
-            # Clean up temp file
-            rm -f temp_verify.php
             
             echo ""
             echo "🎉 PRE-DEPLOYMENT VERIFICATION COMPLETED SUCCESSFULLY!"

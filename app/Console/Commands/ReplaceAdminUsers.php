@@ -34,20 +34,38 @@ class ReplaceAdminUsers extends Command
      */
     public function handle()
     {
-        $this->info('🚀 Admin User Replacement Tool');
-        $this->info('=====================================');
+        try {
+            $this->info('🚀 Admin User Replacement Tool');
+            $this->info('=====================================');
 
-        // Handle different modes
-        if ($this->option('verify')) {
-            return $this->verifyAdminSetup();
+            // Handle different modes
+            if ($this->option('verify')) {
+                return $this->verifyAdminSetup();
+            }
+
+            if ($this->option('rollback')) {
+                return $this->rollbackAdminUsers();
+            }
+
+            // Main replacement flow
+            return $this->replaceAdminUsers();
+
+        } catch (\Throwable $e) {
+            $this->error('❌ CRITICAL ERROR in Admin Replace Command: ' . $e->getMessage());
+            $this->error('Stack trace: ' . $e->getTraceAsString());
+            
+            // Log the error
+            Log::error('Admin Replace Command Critical Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'options' => $this->options(),
+                'environment' => app()->environment(),
+            ]);
+            
+            return 1;
         }
-
-        if ($this->option('rollback')) {
-            return $this->rollbackAdminUsers();
-        }
-
-        // Main replacement flow
-        return $this->replaceAdminUsers();
     }
 
     /**
@@ -230,23 +248,47 @@ class ReplaceAdminUsers extends Command
             $this->info('🔍 Verifying Current Admin Setup');
             $this->info('================================');
 
+            // Log verification start
+            Log::info('Admin verification started', [
+                'command' => 'admin:replace --verify',
+                'options' => $this->options(),
+                'environment' => app()->environment(),
+            ]);
+
             // Test database connection first
             try {
-                DB::connection()->getPdo();
+                $pdo = DB::connection()->getPdo();
                 $this->info('✅ Database connection successful');
+                $this->info('Database name: ' . DB::connection()->getDatabaseName());
+                Log::info('Database connection successful', [
+                    'database' => DB::connection()->getDatabaseName(),
+                    'driver' => DB::connection()->getDriverName(),
+                ]);
             } catch (\Exception $e) {
                 $this->error('❌ Database connection failed: ' . $e->getMessage());
+                Log::error('Database connection failed', [
+                    'error' => $e->getMessage(),
+                    'config' => [
+                        'host' => config('database.connections.mysql.host'),
+                        'database' => config('database.connections.mysql.database'),
+                        'username' => config('database.connections.mysql.username'),
+                    ]
+                ]);
                 return 1;
             }
 
             // Check if tables exist
             if (!Schema::hasTable('roles')) {
                 $this->error('❌ Roles table does not exist');
+                Log::error('Roles table does not exist');
+                $this->info('Available tables: ' . implode(', ', Schema::getTableListing()));
                 return 1;
             }
 
             if (!Schema::hasTable('users')) {
                 $this->error('❌ Users table does not exist');
+                Log::error('Users table does not exist');
+                $this->info('Available tables: ' . implode(', ', Schema::getTableListing()));
                 return 1;
             }
 
@@ -256,8 +298,13 @@ class ReplaceAdminUsers extends Command
             $adminRole = null;
             try {
                 $adminRole = Role::where('name', 'admin')->first();
+                Log::info('Admin role query executed', [
+                    'found' => $adminRole ? true : false,
+                    'role_id' => $adminRole ? $adminRole->id : null,
+                ]);
             } catch (\Exception $e) {
                 $this->error('❌ Error querying roles table: ' . $e->getMessage());
+                Log::error('Error querying roles table', ['error' => $e->getMessage()]);
                 return 1;
             }
             
@@ -266,9 +313,12 @@ class ReplaceAdminUsers extends Command
                 
                 try {
                     $allRoles = Role::all();
-                    $this->info('Available roles: ' . $allRoles->pluck('name')->implode(', '));
+                    $roleNames = $allRoles->pluck('name')->toArray();
+                    $this->info('Available roles: ' . implode(', ', $roleNames));
+                    Log::warning('Admin role not found', ['available_roles' => $roleNames]);
                 } catch (\Exception $e) {
                     $this->error('❌ Error querying all roles: ' . $e->getMessage());
+                    Log::error('Error querying all roles', ['error' => $e->getMessage()]);
                 }
                 
                 $this->error('❌ Admin role not found');
@@ -284,16 +334,28 @@ class ReplaceAdminUsers extends Command
                 // Also check users with admin role via relationships (if using spatie/permission)
                 $adminUsersViaRoles = collect();
                 try {
-                    if (method_exists(User::class, 'role')) {
+                    if (method_exists(User::class, 'roles')) {
                         $adminUsersViaRoles = User::whereHas('roles', function ($query) {
                             $query->where('name', 'admin');
                         })->get();
                     }
                 } catch (\Exception $e) {
-                    // Ignore if spatie/permission is not being used
+                    Log::info('Spatie permission check skipped', ['reason' => $e->getMessage()]);
                 }
                 
                 $allAdminUsers = $adminUsers->merge($adminUsersViaRoles)->unique('id');
+                
+                Log::info('Admin users found', [
+                    'count' => $allAdminUsers->count(),
+                    'users' => $allAdminUsers->map(function ($user) {
+                        return [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'role_id' => $user->role_id,
+                        ];
+                    })->toArray(),
+                ]);
                 
                 if ($allAdminUsers->isEmpty()) {
                     $this->warn('⚠️  No admin users found');
@@ -304,6 +366,17 @@ class ReplaceAdminUsers extends Command
                     foreach ($allUsers as $user) {
                         $this->info("   - {$user->name} ({$user->email}) [Role ID: {$user->role_id}]");
                     }
+                    
+                    Log::warning('No admin users found', [
+                        'sample_users' => $allUsers->map(function ($user) {
+                            return [
+                                'id' => $user->id,
+                                'name' => $user->name,
+                                'email' => $user->email,
+                                'role_id' => $user->role_id,
+                            ];
+                        })->toArray(),
+                    ]);
                     
                     return 1;
                 }
@@ -319,6 +392,10 @@ class ReplaceAdminUsers extends Command
                         }
                     } catch (\Exception $e) {
                         $canAccess = 'Error: ' . $e->getMessage();
+                        Log::warning('Panel access check failed', [
+                            'user_id' => $user->id,
+                            'error' => $e->getMessage(),
+                        ]);
                     }
                     
                     $this->info("   - {$user->name} ({$user->email}) - Panel Access: {$canAccess}");
@@ -326,15 +403,26 @@ class ReplaceAdminUsers extends Command
 
             } catch (\Exception $e) {
                 $this->error('❌ Error querying admin users: ' . $e->getMessage());
+                Log::error('Error querying admin users', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
                 return 1;
             }
 
             $this->info('✅ Admin setup verification completed');
+            Log::info('Admin verification completed successfully');
             return 0;
 
         } catch (\Exception $e) {
             $this->error('❌ Verification failed with unexpected error: ' . $e->getMessage());
             $this->error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Admin verification failed with unexpected error', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return 1;
         }
     }

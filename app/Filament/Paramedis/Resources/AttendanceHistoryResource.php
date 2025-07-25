@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Builder;
 class AttendanceHistoryResource extends Resource
 {
     protected static ?string $model = Attendance::class;
+    
+    protected static ?string $cluster = null;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 

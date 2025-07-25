@@ -226,39 +226,117 @@ class ReplaceAdminUsers extends Command
      */
     private function verifyAdminSetup(): int
     {
-        $this->info('🔍 Verifying Current Admin Setup');
-        $this->info('================================');
+        try {
+            $this->info('🔍 Verifying Current Admin Setup');
+            $this->info('================================');
 
-        $adminRole = Role::where('name', 'admin')->first();
-        
-        if (!$adminRole) {
-            $this->error('❌ Admin role not found');
-            return 1;
-        }
+            // Test database connection first
+            try {
+                DB::connection()->getPdo();
+                $this->info('✅ Database connection successful');
+            } catch (\Exception $e) {
+                $this->error('❌ Database connection failed: ' . $e->getMessage());
+                return 1;
+            }
 
-        $this->info('✅ Admin role exists: ' . $adminRole->display_name);
+            // Check if tables exist
+            if (!Schema::hasTable('roles')) {
+                $this->error('❌ Roles table does not exist');
+                return 1;
+            }
 
-        $adminUsers = User::where('role_id', $adminRole->id)->get();
-        
-        if ($adminUsers->isEmpty()) {
-            $this->warn('⚠️  No admin users found');
-            return 1;
-        }
+            if (!Schema::hasTable('users')) {
+                $this->error('❌ Users table does not exist');
+                return 1;
+            }
 
-        $this->info('✅ Found ' . $adminUsers->count() . ' admin users:');
-        
-        foreach ($adminUsers as $user) {
-            $canAccess = 'Unknown';
-            if (method_exists($user, 'canAccessPanel')) {
-                $adminPanel = filament('admin')->getPanel();
-                $canAccess = $user->canAccessPanel($adminPanel) ? 'Yes' : 'No';
+            $this->info('✅ Required tables exist');
+
+            // Check for admin role
+            $adminRole = null;
+            try {
+                $adminRole = Role::where('name', 'admin')->first();
+            } catch (\Exception $e) {
+                $this->error('❌ Error querying roles table: ' . $e->getMessage());
+                return 1;
             }
             
-            $this->info("   - {$user->name} ({$user->email}) - Panel Access: {$canAccess}");
-        }
+            if (!$adminRole) {
+                $this->warn('⚠️  Admin role not found, checking for any roles...');
+                
+                try {
+                    $allRoles = Role::all();
+                    $this->info('Available roles: ' . $allRoles->pluck('name')->implode(', '));
+                } catch (\Exception $e) {
+                    $this->error('❌ Error querying all roles: ' . $e->getMessage());
+                }
+                
+                $this->error('❌ Admin role not found');
+                return 1;
+            }
 
-        $this->info('✅ Admin setup verification completed');
-        return 0;
+            $this->info('✅ Admin role exists: ' . ($adminRole->display_name ?: $adminRole->name));
+
+            // Check for admin users
+            try {
+                $adminUsers = User::where('role_id', $adminRole->id)->get();
+                
+                // Also check users with admin role via relationships (if using spatie/permission)
+                $adminUsersViaRoles = collect();
+                try {
+                    if (method_exists(User::class, 'role')) {
+                        $adminUsersViaRoles = User::whereHas('roles', function ($query) {
+                            $query->where('name', 'admin');
+                        })->get();
+                    }
+                } catch (\Exception $e) {
+                    // Ignore if spatie/permission is not being used
+                }
+                
+                $allAdminUsers = $adminUsers->merge($adminUsersViaRoles)->unique('id');
+                
+                if ($allAdminUsers->isEmpty()) {
+                    $this->warn('⚠️  No admin users found');
+                    
+                    // Show all users for debugging
+                    $allUsers = User::limit(10)->get();
+                    $this->info('Sample users in database:');
+                    foreach ($allUsers as $user) {
+                        $this->info("   - {$user->name} ({$user->email}) [Role ID: {$user->role_id}]");
+                    }
+                    
+                    return 1;
+                }
+
+                $this->info('✅ Found ' . $allAdminUsers->count() . ' admin users:');
+                
+                foreach ($allAdminUsers as $user) {
+                    $canAccess = 'Unknown';
+                    try {
+                        if (method_exists($user, 'canAccessPanel')) {
+                            $adminPanel = filament('admin')->getPanel();
+                            $canAccess = $user->canAccessPanel($adminPanel) ? 'Yes' : 'No';
+                        }
+                    } catch (\Exception $e) {
+                        $canAccess = 'Error: ' . $e->getMessage();
+                    }
+                    
+                    $this->info("   - {$user->name} ({$user->email}) - Panel Access: {$canAccess}");
+                }
+
+            } catch (\Exception $e) {
+                $this->error('❌ Error querying admin users: ' . $e->getMessage());
+                return 1;
+            }
+
+            $this->info('✅ Admin setup verification completed');
+            return 0;
+
+        } catch (\Exception $e) {
+            $this->error('❌ Verification failed with unexpected error: ' . $e->getMessage());
+            $this->error('Stack trace: ' . $e->getTraceAsString());
+            return 1;
+        }
     }
 
     /**

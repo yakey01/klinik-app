@@ -97,7 +97,28 @@ jobs:
             cp .env "$BACKUP_DIR/env_backup" || echo "No .env to backup"
             
             echo "🔍 Current admin users before replacement:"
-            php artisan admin:replace --verify || echo "Admin verify command failed"
+            echo "📋 Testing Laravel environment..."
+            php artisan --version || echo "⚠️ Artisan not working"
+            
+            echo "🔧 Installing/updating dependencies if needed..."
+            composer install --no-dev --optimize-autoloader --no-interaction || echo "⚠️ Composer install had issues"
+            
+            echo "🗄️ Running migrations to ensure all tables exist..."
+            php artisan migrate --force --no-interaction || echo "⚠️ Migration had issues"
+            
+            echo "📊 Running admin verification with detailed output..."
+            php artisan admin:replace --verify --no-interaction -v 2>&1 || {
+              echo "❌ Admin verify command failed - debugging...";
+              echo "🔍 Checking if command exists...";
+              php artisan list | grep admin || echo "No admin commands found";
+              echo "📋 Recent Laravel logs:";
+              if [ -f storage/logs/laravel.log ]; then
+                tail -20 storage/logs/laravel.log | grep -A3 -B3 -i "error\|exception\|fatal" || echo "No recent errors found";
+              else
+                echo "No Laravel log file found";
+              fi;
+              echo "⚠️ Admin verification failed but continuing with backup...";
+            }
 
   replace-admin-users:
     needs: backup-and-prepare

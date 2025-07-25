@@ -4,11 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Calendar, Clock, Download, BarChart3, Activity, Target, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Calendar, Clock, Download, BarChart3, Activity, Target, CheckCircle, XCircle, AlertTriangle, Filter } from 'lucide-react';
 
 export function Laporan() {
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [attendanceStats, setAttendanceStats] = useState<any>(null);
+  const [loadingAttendance, setLoadingAttendance] = useState(true);
+  const [filterPeriod, setFilterPeriod] = useState('month'); // 'month', 'week', 'today'
 
   useEffect(() => {
     // Fetch real dashboard stats from API
@@ -36,64 +41,68 @@ export function Laporan() {
         setLoadingStats(false);
       }
     };
+
+    // Fetch attendance/presensi data from API
+    const fetchAttendanceData = async () => {
+      try {
+        setLoadingAttendance(true);
+        const params = new URLSearchParams();
+        params.append('filter', filterPeriod);
+        
+        const response = await fetch(`/api/v2/dashboards/paramedis/presensi?${params}`, {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          }
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            // Transform API data to match UI format
+            const transformedData = result.data.history.map((attendance: any) => ({
+              id: attendance.id,
+              tanggal: attendance.date,
+              hari: new Date(attendance.date).toLocaleDateString('id-ID', { weekday: 'long' }),
+              masuk: attendance.time_in || '-',
+              keluar: attendance.time_out || '-',
+              totalJam: attendance.work_duration || '0 jam',
+              status: attendance.status === 'on_time' ? 'present' : 
+                     attendance.status === 'late' ? 'late' : 
+                     attendance.status === 'early_leave' ? 'present' : 'absent',
+              shift: 'Shift', // Default since not in API
+              lokasi: attendance.location_name_in || 'Lokasi Kerja'
+            }));
+            
+            setAttendanceData(transformedData);
+            setAttendanceStats(result.data.stats);
+          }
+        } else {
+          console.error('Failed to fetch attendance data:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching attendance data:', error);
+      } finally {
+        setLoadingAttendance(false);
+      }
+    };
     
     fetchDashboardStats();
-  }, []);
-  const attendanceData = [
-    {
-      id: '1',
-      tanggal: '2025-01-17',
-      hari: 'Kamis',
-      masuk: '07:00',
-      keluar: '15:00',
-      totalJam: '8 jam',
-      status: 'present',
-      shift: 'Pagi',
-      lokasi: 'Pendaftaran'
-    },
-    {
-      id: '2',
-      tanggal: '2025-01-16',
-      hari: 'Rabu',
-      masuk: '07:15',
-      keluar: '15:05',
-      totalJam: '7 jam 50 menit',
-      status: 'late',
-      shift: 'Pagi',
-      lokasi: 'Pelayanan'
-    },
-    {
-      id: '3',
-      tanggal: '2025-01-15',
-      hari: 'Selasa',
-      masuk: '15:00',
-      keluar: '23:00',
-      totalJam: '8 jam',
-      status: 'present',
-      shift: 'Siang',
-      lokasi: 'Dokter Jaga'
-    },
-    {
-      id: '4',
-      tanggal: '2025-01-14',
-      hari: 'Senin',
-      masuk: '-',
-      keluar: '-',
-      totalJam: '0 jam',
-      status: 'absent',
-      shift: 'Pagi',
-      lokasi: 'Pendaftaran'
-    }
-  ];
+    fetchAttendanceData();
+  }, [filterPeriod]);
 
   // Use real attendance data from API or fallback
-  const monthlyStats = dashboardStats ? {
-    totalHadir: 18,
-    totalTerlambat: 3,
-    totalTidakHadir: 2,
-    totalJamKerja: 144,
-    rataRataJamPerHari: 8.0,
-    tingkatKehadiran: Math.round(dashboardStats.performance?.attendance_rate || 0)
+  const monthlyStats = attendanceStats ? {
+    totalHadir: attendanceStats.on_time || 0,
+    totalTerlambat: attendanceStats.late || 0,
+    totalTidakHadir: Math.max(0, attendanceStats.total_days - attendanceStats.on_time - attendanceStats.late),
+    totalJamKerja: Math.round(attendanceStats.total_hours || 0),
+    rataRataJamPerHari: attendanceStats.total_days > 0 ? 
+      Math.round((attendanceStats.total_hours / attendanceStats.total_days) * 10) / 10 : 0,
+    tingkatKehadiran: dashboardStats?.performance?.attendance_rate ? 
+      Math.round(dashboardStats.performance.attendance_rate) : 
+      (attendanceStats.total_days > 0 ? 
+        Math.round(((attendanceStats.on_time + attendanceStats.late) / attendanceStats.total_days) * 100) : 0)
   } : {
     totalHadir: 0,
     totalTerlambat: 0,
@@ -284,14 +293,43 @@ export function Laporan() {
       <motion.div variants={item}>
         <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-high-contrast">
-              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              Riwayat Presensi
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-high-contrast">
+                <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                Riwayat Presensi
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-500" />
+                <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Hari Ini</SelectItem>
+                    <SelectItem value="week">Minggu Ini</SelectItem>
+                    <SelectItem value="month">Bulan Ini</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <motion.div variants={container} className="space-y-3">
-              {attendanceData.map((record, index) => (
+            {loadingAttendance ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-20"></div>
+                  </div>
+                ))}
+              </div>
+            ) : attendanceData.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">Belum ada data presensi bulan ini</p>
+              </div>
+            ) : (
+              <motion.div variants={container} className="space-y-3">
+                {attendanceData.map((record, index) => (
                 <motion.div
                   key={record.id}
                   variants={item}
@@ -354,8 +392,9 @@ export function Laporan() {
                     </CardContent>
                   </Card>
                 </motion.div>
-              ))}
-            </motion.div>
+                ))}
+              </motion.div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

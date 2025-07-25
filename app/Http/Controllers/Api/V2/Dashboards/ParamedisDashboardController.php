@@ -95,8 +95,8 @@ class ParamedisDashboardController extends Controller
                         'message' => $attendanceStatus['message'],
                         'can_check_in' => $attendanceStatus['can_check_in'],
                         'can_check_out' => $attendanceStatus['can_check_out'],
-                        'check_in_time' => $attendanceToday ? $attendanceToday->time_in?->format('H:i') : null,
-                        'check_out_time' => $attendanceToday ? $attendanceToday->time_out?->format('H:i') : null,
+                        'check_in_time' => $attendanceToday ? $attendanceToday->time_in?->format('Y-m-d H:i:s') : null,
+                        'check_out_time' => $attendanceToday ? $attendanceToday->time_out?->format('Y-m-d H:i:s') : null,
                         'work_duration' => $attendanceToday ? $attendanceToday->formatted_work_duration : null,
                         'work_duration_minutes' => $attendanceToday && $attendanceToday->time_in && $attendanceToday->time_out 
                             ? $attendanceToday->work_duration 
@@ -216,8 +216,8 @@ class ParamedisDashboardController extends Controller
                     'attendance' => $attendance ? [
                         'id' => $attendance->id,
                         'date' => $attendance->date->format('Y-m-d'),
-                        'check_in_time' => $attendance->time_in?->format('H:i:s'),
-                        'check_out_time' => $attendance->time_out?->format('H:i:s'),
+                        'check_in_time' => $attendance->time_in?->format('Y-m-d H:i:s'),
+                        'check_out_time' => $attendance->time_out?->format('Y-m-d H:i:s'),
                         'work_duration' => $attendance->formatted_work_duration,
                         'work_duration_minutes' => $attendance->time_in && $attendance->time_out 
                             ? $attendance->work_duration 
@@ -497,26 +497,53 @@ class ParamedisDashboardController extends Controller
         try {
             $user = Auth::user();
             $today = Carbon::today();
+            $filter = $request->get('filter', 'month'); // default to month
             
             // Presensi hari ini
             $attendanceToday = Attendance::where('user_id', $user->id)
                 ->whereDate('date', $today)
                 ->first();
 
-            // History presensi bulan ini
-            $attendanceHistory = Attendance::where('user_id', $user->id)
-                ->whereMonth('date', Carbon::now()->month)
-                ->whereYear('date', Carbon::now()->year)
-                ->orderByDesc('date')
-                ->get();
+            // Build query based on filter
+            $query = Attendance::where('user_id', $user->id);
+            
+            switch ($filter) {
+                case 'today':
+                    $query->whereDate('date', $today);
+                    break;
+                case 'week':
+                    $query->whereBetween('date', [
+                        Carbon::now()->startOfWeek(),
+                        Carbon::now()->endOfWeek()
+                    ]);
+                    break;
+                case 'month':
+                default:
+                    $query->whereMonth('date', Carbon::now()->month)
+                          ->whereYear('date', Carbon::now()->year);
+                    break;
+            }
 
-            // Stats presensi
+            // History presensi based on filter
+            $attendanceHistory = $query->orderByDesc('date')->get();
+
+            // Stats presensi based on filtered data
+            $totalWorkDuration = 0;
+            foreach ($attendanceHistory as $attendance) {
+                if ($attendance->work_duration) {
+                    $totalWorkDuration += $attendance->work_duration;
+                }
+            }
+            
             $attendanceStats = [
                 'total_days' => $attendanceHistory->count(),
                 'on_time' => $attendanceHistory->where('status', 'on_time')->count(),
                 'late' => $attendanceHistory->where('status', 'late')->count(),
                 'early_leave' => $attendanceHistory->where('status', 'early_leave')->count(),
-                'total_hours' => $attendanceHistory->sum('work_duration_minutes') / 60
+                'absent' => $attendanceHistory->where('status', 'absent')->count(),
+                'total_hours' => round($totalWorkDuration / 60, 1),
+                'filter_applied' => $filter,
+                'filter_period' => $this->getFilterPeriodLabel($filter)
             ];
 
             return response()->json([
@@ -1134,6 +1161,139 @@ class ParamedisDashboardController extends Controller
                 'message' => 'Failed to fetch work location status',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Check and auto-assign work location if available
+     */
+    public function checkAndAssignWorkLocation(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check if user already has work location
+            if ($user->work_location_id) {
+                $workLocation = WorkLocation::find($user->work_location_id);
+                if ($workLocation && $workLocation->is_active) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Work location already assigned',
+                        'data' => [
+                            'work_location' => [
+                                'id' => $workLocation->id,
+                                'name' => $workLocation->name,
+                                'address' => $workLocation->address,
+                                'is_active' => $workLocation->is_active
+                            ]
+                        ]
+                    ]);
+                }
+            }
+            
+            // Try to find a suitable work location based on user's pegawai data
+            $pegawai = $user->pegawai;
+            if (!$pegawai) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No pegawai data found for user',
+                    'data' => null
+                ], 404);
+            }
+            
+            // Look for work location based on unit_kerja or name matching
+            $workLocation = WorkLocation::where('is_active', true)
+                ->where(function($query) use ($pegawai, $user) {
+                    // Try to match by unit kerja
+                    if ($pegawai->unit_kerja) {
+                        $query->where('name', 'LIKE', '%' . $pegawai->unit_kerja . '%')
+                              ->orWhere('unit_kerja', $pegawai->unit_kerja);
+                    }
+                    // Try to match by location type
+                    if ($pegawai->jenis_pegawai) {
+                        $query->orWhere('location_type', $pegawai->jenis_pegawai);
+                    }
+                })
+                ->first();
+            
+            // If no match found, get the first active work location (default)
+            if (!$workLocation) {
+                $workLocation = WorkLocation::where('is_active', true)
+                    ->orderBy('created_at', 'asc')
+                    ->first();
+            }
+            
+            if ($workLocation) {
+                // Assign work location to user
+                $user->work_location_id = $workLocation->id;
+                $user->save();
+                
+                // Clear caches
+                $cacheKeys = [
+                    "paramedis_dashboard_stats_{$user->id}",
+                    "user_work_location_{$user->id}",
+                    "attendance_status_{$user->id}"
+                ];
+                
+                foreach ($cacheKeys as $key) {
+                    Cache::forget($key);
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Work location assigned successfully',
+                    'data' => [
+                        'work_location' => [
+                            'id' => $workLocation->id,
+                            'name' => $workLocation->name,
+                            'address' => $workLocation->address,
+                            'coordinates' => [
+                                'latitude' => (float) $workLocation->latitude,
+                                'longitude' => (float) $workLocation->longitude,
+                            ],
+                            'radius_meters' => $workLocation->radius_meters,
+                            'is_active' => $workLocation->is_active
+                        ],
+                        'assignment_reason' => $pegawai->unit_kerja ? 
+                            "Matched by unit kerja: {$pegawai->unit_kerja}" : 
+                            'Assigned default active location'
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'No active work location found in the system',
+                'data' => null
+            ], 404);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in checkAndAssignWorkLocation', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check/assign work location: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get filter period label for UI display
+     */
+    private function getFilterPeriodLabel($filter)
+    {
+        switch ($filter) {
+            case 'today':
+                return 'Hari Ini';
+            case 'week':
+                return 'Minggu Ini';
+            case 'month':
+            default:
+                return 'Bulan Ini';
         }
     }
 }

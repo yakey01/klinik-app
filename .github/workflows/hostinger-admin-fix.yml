@@ -153,26 +153,50 @@ jobs:
              echo \"Directory contents before update:\" && ls -la && \
              echo \"Removing old dokterku directory...\" && \
              rm -rf dokterku && \
-             echo \"Cloning fresh repository...\" && \
-             git clone https://github.com/yakey01/klinik-app.git dokterku && \
-             echo \"✅ Fresh clone completed\" && \
-             echo \"Verifying clone success...\" && \
+             echo \"Testing git and network connectivity...\" && \
+             git --version && \
+             echo \"Attempting to clone repository...\" && \
+             git clone https://github.com/yakey01/klinik-app.git dokterku || { \
+               echo \"❌ Git clone failed, trying alternative methods...\"; \
+               echo \"Attempting with different clone options...\"; \
+               git clone --depth 1 https://github.com/yakey01/klinik-app.git dokterku || { \
+                 echo \"❌ Shallow clone also failed\"; \
+                 echo \"Attempting wget download...\"; \
+                 wget -O main.zip https://github.com/yakey01/klinik-app/archive/refs/heads/main.zip && \
+                 unzip -q main.zip && \
+                 mv klinik-app-main dokterku && \
+                 rm main.zip && \
+                 echo \"✅ Downloaded via wget\" || { \
+                   echo \"❌ All download methods failed\"; \
+                   exit 1; \
+                 }; \
+               }; \
+             } && \
+             echo \"✅ Repository download completed\" && \
+             echo \"Verifying download success...\" && \
+             if [ ! -d dokterku ]; then \
+               echo \"❌ dokterku directory not created\"; \
+               exit 1; \
+             fi && \
              cd dokterku && \
              echo \"Project directory: \$(pwd)\" && \
-             echo \"Git status:\" && git status && \
-             echo \"Latest commit: \$(git log --oneline -1)\" && \
              echo \"Directory contents:\" && ls -la && \
+             echo \"File count: \$(find . -type f | wc -l)\" && \
+             echo \"Directory size: \$(du -sh .)\" && \
              echo \"Checking essential files:\" && \
              if [ -f composer.json ]; then \
-               echo \"✅ composer.json found\"; \
+               echo \"✅ composer.json found\" && \
+               echo \"Composer.json preview:\" && head -10 composer.json; \
              else \
-               echo \"❌ composer.json missing!\"; \
+               echo \"❌ composer.json missing!\" && \
+               echo \"Available files:\" && find . -name '*.json' -o -name '*.php' | head -10 && \
                exit 1; \
              fi && \
              if [ -f artisan ]; then \
                echo \"✅ artisan found\"; \
              else \
-               echo \"❌ artisan missing!\"; \
+               echo \"❌ artisan missing!\" && \
+               echo \"Available PHP files:\" && find . -name '*.php' | head -10 && \
                exit 1; \
              fi && \
              echo \"✅ All essential files verified\""

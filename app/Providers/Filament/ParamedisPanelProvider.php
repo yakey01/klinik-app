@@ -45,7 +45,6 @@ class ParamedisPanelProvider extends PanelProvider
             ->resources([
                 \App\Filament\Paramedis\Resources\AttendanceResource::class,
                 \App\Filament\Paramedis\Resources\AttendanceHistoryResource::class,
-                \App\Filament\Resources\AttendanceRecapResource::class,
             ])
             ->pages([
                 \App\Filament\Paramedis\Pages\RedirectToMobileApp::class,

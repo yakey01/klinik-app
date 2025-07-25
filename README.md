@@ -48,7 +48,7 @@ Dokterku is a comprehensive healthcare management system designed for modern med
 ## 🚀 Quick Start
 
 ### Prerequisites
-- PHP 8.2 or higher (required for Laravel 11.x)
+- PHP 8.3 or higher (required for Filament 3.x dependencies)
 - Node.js 18.x or higher
 - Composer
 - Git

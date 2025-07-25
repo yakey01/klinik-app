@@ -1349,6 +1349,29 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('paramedis.mobile-app');
         })->name('jadwal-jaga');
         
+        // Riwayat Presensi - redirect to Filament resource
+        Route::get('/riwayat-presensi', function () {
+            return redirect('/paramedis/attendance-histories');
+        })->name('riwayat-presensi');
+        
+        // Alternative route names for discoverability  
+        Route::get('/history', function () {
+            return redirect('/paramedis/attendance-histories');
+        })->name('history');
+        
+        Route::get('/attendance-history', function () {
+            return redirect('/paramedis/attendance-histories');
+        })->name('attendance-history');
+        
+        // DIRECT ACCESS untuk laporan presensi (seperti jaspel)
+        Route::get('/laporan-presensi', function () {
+            return redirect('/paramedis/attendance-histories');
+        })->name('laporan-presensi');
+        
+        Route::get('/presensi-saya', function () {
+            return redirect('/paramedis/attendance-histories');
+        })->name('presensi-saya');
+        
         // Removed fallback route to prevent infinite redirects
     });
     

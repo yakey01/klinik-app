@@ -149,25 +149,33 @@ jobs:
             u454362045@153.92.8.132 \
             "echo \"Preparing codebase update...\" && \
              cd domains/dokterkuklinik.com/public_html && \
-             if [ ! -d \"dokterku/.git\" ]; then \
-               echo \"Git repository not found, cloning fresh...\" && \
-               rm -rf dokterku && \
-               git clone https://github.com/yakey01/klinik-app.git dokterku && \
-               echo \"✅ Fresh clone completed\"; \
-             else \
-               echo \"Git repository found, updating...\" && \
-               cd dokterku && \
-               git fetch origin && \
-               git reset --hard origin/main && \
-               git clean -fd && \
-               echo \"✅ Repository updated\"; \
-             fi && \
-             echo \"Final verification:\" && \
+             echo \"Current location: \$(pwd)\" && \
+             echo \"Directory contents before update:\" && ls -la && \
+             echo \"Removing old dokterku directory...\" && \
+             rm -rf dokterku && \
+             echo \"Cloning fresh repository...\" && \
+             git clone https://github.com/yakey01/klinik-app.git dokterku && \
+             echo \"✅ Fresh clone completed\" && \
+             echo \"Verifying clone success...\" && \
              cd dokterku && \
-             echo \"Current directory: \$(pwd)\" && \
+             echo \"Project directory: \$(pwd)\" && \
+             echo \"Git status:\" && git status && \
              echo \"Latest commit: \$(git log --oneline -1)\" && \
-             echo \"Key files check:\" && \
-             ls -la composer.json artisan .env 2>/dev/null || echo \"Some key files missing\""
+             echo \"Directory contents:\" && ls -la && \
+             echo \"Checking essential files:\" && \
+             if [ -f composer.json ]; then \
+               echo \"✅ composer.json found\"; \
+             else \
+               echo \"❌ composer.json missing!\"; \
+               exit 1; \
+             fi && \
+             if [ -f artisan ]; then \
+               echo \"✅ artisan found\"; \
+             else \
+               echo \"❌ artisan missing!\"; \
+               exit 1; \
+             fi && \
+             echo \"✅ All essential files verified\""
 
       - name: Setup Environment
         run: |

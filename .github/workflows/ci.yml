@@ -56,14 +56,15 @@ jobs:
         touch database/testing.sqlite
 
     - name: Run database migrations
-      run: php artisan migrate --no-interaction --force
+      run: |
+        php artisan migrate:fresh --no-interaction --force --seed
       env:
         APP_ENV: testing
         DB_CONNECTION: sqlite
         DB_DATABASE: database/testing.sqlite
 
     - name: Run PHP tests
-      run: php artisan test --parallel
+      run: php artisan test --parallel --without-tty
       env:
         APP_ENV: testing
         DB_CONNECTION: sqlite

@@ -150,54 +150,47 @@ jobs:
             "echo \"Preparing codebase update...\" && \
              cd domains/dokterkuklinik.com/public_html && \
              echo \"Current location: \$(pwd)\" && \
-             echo \"Directory contents before update:\" && ls -la && \
              echo \"Removing old dokterku directory...\" && \
              rm -rf dokterku && \
-             echo \"Testing git and network connectivity...\" && \
-             git --version && \
-             echo \"Attempting to clone repository...\" && \
-             git clone https://github.com/yakey01/klinik-app.git dokterku || { \
-               echo \"❌ Git clone failed, trying alternative methods...\"; \
-               echo \"Attempting with different clone options...\"; \
-               git clone --depth 1 https://github.com/yakey01/klinik-app.git dokterku || { \
-                 echo \"❌ Shallow clone also failed\"; \
-                 echo \"Attempting wget download...\"; \
-                 wget -O main.zip https://github.com/yakey01/klinik-app/archive/refs/heads/main.zip && \
-                 unzip -q main.zip && \
-                 mv klinik-app-main dokterku && \
-                 rm main.zip && \
-                 echo \"✅ Downloaded via wget\" || { \
-                   echo \"❌ All download methods failed\"; \
-                   exit 1; \
-                 }; \
-               }; \
-             } && \
-             echo \"✅ Repository download completed\" && \
-             echo \"Verifying download success...\" && \
+             echo \"Downloading repository via wget (most reliable)...\" && \
+             wget -O main.zip https://github.com/yakey01/klinik-app/archive/refs/heads/main.zip && \
+             echo \"✅ Download completed, extracting...\" && \
+             unzip -q main.zip && \
+             mv klinik-app-main dokterku && \
+             rm main.zip && \
+             echo \"✅ Repository deployed successfully\" && \
+             echo \"Verifying deployment...\" && \
              if [ ! -d dokterku ]; then \
-               echo \"❌ dokterku directory not created\"; \
+               echo \"❌ dokterku directory not created after extraction\"; \
                exit 1; \
              fi && \
              cd dokterku && \
              echo \"Project directory: \$(pwd)\" && \
-             echo \"Directory contents:\" && ls -la && \
-             echo \"File count: \$(find . -type f | wc -l)\" && \
-             echo \"Directory size: \$(du -sh .)\" && \
-             echo \"Checking essential files:\" && \
+             echo \"Directory contents:\" && ls -la | head -15 && \
+             echo \"Total files: \$(find . -type f | wc -l)\" && \
+             echo \"Directory size: \$(du -sh . 2>/dev/null || echo 'Unknown')\" && \
+             echo \"Verifying essential files...\" && \
              if [ -f composer.json ]; then \
                echo \"✅ composer.json found\" && \
-               echo \"Composer.json preview:\" && head -10 composer.json; \
+               echo \"Composer.json content (first 10 lines):\" && \
+               head -10 composer.json; \
              else \
-               echo \"❌ composer.json missing!\" && \
-               echo \"Available files:\" && find . -name '*.json' -o -name '*.php' | head -10 && \
+               echo \"❌ CRITICAL: composer.json missing!\" && \
+               echo \"Available JSON files:\" && find . -name '*.json' && \
+               echo \"Directory structure:\" && find . -type d | head -10 && \
                exit 1; \
              fi && \
              if [ -f artisan ]; then \
                echo \"✅ artisan found\"; \
              else \
-               echo \"❌ artisan missing!\" && \
-               echo \"Available PHP files:\" && find . -name '*.php' | head -10 && \
+               echo \"❌ CRITICAL: artisan missing!\" && \
+               echo \"Available PHP files:\" && find . -name '*.php' | head -5 && \
                exit 1; \
+             fi && \
+             if [ -f .env.example ]; then \
+               echo \"✅ .env.example found\"; \
+             else \
+               echo \"⚠️ .env.example not found\"; \
              fi && \
              echo \"✅ All essential files verified\""
 
@@ -224,21 +217,28 @@ jobs:
                exit 1; \
              fi && \
              echo \"✅ artisan file found\" && \
-             echo \"Installing dependencies with Composer 2...\" && \
+             echo \"Setting up Composer 2...\" && \
+             echo \"Current directory for composer: \$(pwd)\" && \
+             echo \"Verifying composer.json exists:\" && \
+             if [ ! -f composer.json ]; then \
+               echo \"❌ CRITICAL ERROR: composer.json not found in \$(pwd)\"; \
+               echo \"Directory contents:\"; \
+               ls -la; \
+               exit 1; \
+             fi && \
+             echo \"✅ composer.json confirmed present\" && \
              if [ ! -f composer2 ]; then \
-               echo \"Downloading Composer 2...\" && \
-               php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\" && \
-               php composer-setup.php --2 --install-dir=. --filename=composer2 && \
-               php -r \"unlink('composer-setup.php');\" && \
+               echo \"Installing Composer 2...\" && \
+               curl -sS https://getcomposer.org/installer | php -- --install-dir=. --filename=composer2 --2 && \
                chmod +x composer2 && \
-               echo \"✅ Composer 2 installed\"; \
+               echo \"✅ Composer 2 installed successfully\"; \
              else \
                echo \"✅ Composer 2 already exists\"; \
              fi && \
-             echo \"Verifying Composer 2 version...\" && \
+             echo \"Verifying Composer 2 installation:\" && \
              ./composer2 --version && \
-             echo \"Using Composer 2 for dependencies...\" && \
-             ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist && \
+             echo \"Installing PHP dependencies with Composer 2...\" && \
+             ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts && \
              echo \"✅ Dependencies installed\" && \
              echo \"Setting up .env file...\" && \
              if [ ! -f .env ]; then \

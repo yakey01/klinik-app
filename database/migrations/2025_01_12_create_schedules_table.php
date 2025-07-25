@@ -11,22 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('schedules', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('shift_id')->nullable()->constrained()->onDelete('set null');
-            $table->date('date');
-            $table->boolean('is_day_off')->default(false);
-            $table->text('notes')->nullable();
-            $table->timestamps();
-            
-            // Indexes
-            $table->index(['user_id', 'date']);
-            $table->index('date');
-            
-            // Unique constraint to prevent duplicate schedules
-            $table->unique(['user_id', 'date']);
-        });
+        if (!Schema::hasTable('schedules')) {
+            Schema::create('schedules', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                $table->foreignId('shift_id')->nullable()->constrained()->onDelete('set null');
+                $table->date('date');
+                $table->boolean('is_day_off')->default(false);
+                $table->text('notes')->nullable();
+                $table->timestamps();
+                
+                // Indexes
+                $table->index(['user_id', 'date']);
+                $table->index('date');
+                
+                // Unique constraint to prevent duplicate schedules
+                $table->unique(['user_id', 'date']);
+            });
+        }
     }
 
     /**

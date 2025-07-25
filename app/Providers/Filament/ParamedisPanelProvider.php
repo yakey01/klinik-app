@@ -47,9 +47,11 @@ class ParamedisPanelProvider extends PanelProvider
                 \App\Filament\Paramedis\Resources\AttendanceHistoryResource::class,
             ])
             ->pages([
+                \App\Filament\Paramedis\Pages\Dashboard::class,
                 \App\Filament\Paramedis\Pages\RedirectToMobileApp::class,
             ])
             ->widgets([
+                \App\Filament\Paramedis\Widgets\QuickAccessWidget::class,
                 \App\Filament\Paramedis\Widgets\AttendanceHistoryStatsWidget::class,
             ])
             ->middleware([

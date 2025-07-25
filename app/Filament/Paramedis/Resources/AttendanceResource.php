@@ -24,15 +24,15 @@ class AttendanceResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
 
-    protected static ?string $navigationLabel = 'Presensi';
+    protected static ?string $navigationLabel = '✏️ Input Presensi';
 
-    protected static ?string $modelLabel = 'Presensi';
+    protected static ?string $modelLabel = 'Input Presensi';
 
-    protected static ?string $pluralModelLabel = 'Data Presensi';
+    protected static ?string $pluralModelLabel = 'Input Presensi';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
 
-    protected static ?string $navigationGroup = 'Presensi & Kehadiran';
+    protected static ?string $navigationGroup = '📅 PRESENSI & LAPORAN';
 
     public static function form(Form $form): Form
     {

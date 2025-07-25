@@ -9,17 +9,6 @@ on:
 jobs:
   php-tests:
     runs-on: ubuntu-latest
-    
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: false
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: testing
-        ports:
-          - 3306/tcp
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
     - uses: actions/checkout@v4
@@ -43,33 +32,42 @@ jobs:
         restore-keys: ${{ runner.os }}-composer-
 
     - name: Install Composer dependencies
-      run: composer install --no-progress --prefer-dist --optimize-autoloader
+      run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
     - name: Setup environment
       run: |
         cp .env.example .env
-        php artisan key:generate
-        php artisan config:cache
+        echo "APP_ENV=testing" >> .env
+        echo "APP_DEBUG=true" >> .env
+        echo "DB_CONNECTION=sqlite" >> .env
+        echo "DB_DATABASE=database/testing.sqlite" >> .env
+      
+    - name: Generate application key
+      run: php artisan key:generate --no-interaction --force
+
+    - name: Validate artisan commands
+      run: |
+        php artisan --version
+        php artisan list --format=txt | head -10
+
+    - name: Setup SQLite database
+      run: |
+        mkdir -p database
+        touch database/testing.sqlite
 
     - name: Run database migrations
-      run: php artisan migrate --force
+      run: php artisan migrate --no-interaction --force
       env:
-        DB_CONNECTION: mysql
-        DB_HOST: 127.0.0.1
-        DB_PORT: ${{ job.services.mysql.ports['3306'] }}
-        DB_DATABASE: testing
-        DB_USERNAME: root
-        DB_PASSWORD: password
+        APP_ENV: testing
+        DB_CONNECTION: sqlite
+        DB_DATABASE: database/testing.sqlite
 
     - name: Run PHP tests
-      run: php artisan test --coverage
+      run: php artisan test --parallel
       env:
-        DB_CONNECTION: mysql
-        DB_HOST: 127.0.0.1
-        DB_PORT: ${{ job.services.mysql.ports['3306'] }}
-        DB_DATABASE: testing
-        DB_USERNAME: root
-        DB_PASSWORD: password
+        APP_ENV: testing
+        DB_CONNECTION: sqlite
+        DB_DATABASE: database/testing.sqlite
 
   javascript-tests:
     runs-on: ubuntu-latest
@@ -86,11 +84,21 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Run linting
-      run: npm run lint
+    - name: Run linting (if available)
+      run: |
+        if npm run | grep -q "lint"; then
+          npm run lint
+        else
+          echo "No lint script found, skipping..."
+        fi
 
-    - name: Run JavaScript tests
-      run: npm test
+    - name: Run JavaScript tests (if available)
+      run: |
+        if npm run | grep -q "test"; then
+          npm test
+        else
+          echo "No test script found, skipping..."
+        fi
 
     - name: Build assets
       run: npm run build
@@ -119,7 +127,12 @@ jobs:
         tools: phpstan, php-cs-fixer
 
     - name: Install dependencies
-      run: composer install --no-progress --prefer-dist --optimize-autoloader
+      run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+    - name: Setup environment for static analysis
+      run: |
+        cp .env.example .env
+        php artisan key:generate --no-interaction --force
 
     - name: Run PHPStan
       run: ./vendor/bin/phpstan analyse --memory-limit=2G

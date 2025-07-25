@@ -16,17 +16,17 @@ class AttendanceHistoryResource extends Resource
 {
     protected static ?string $model = Attendance::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationLabel = 'Riwayat Presensi';
+    protected static ?string $navigationLabel = '📊 Laporan Presensi Saya';
 
-    protected static ?string $modelLabel = 'Riwayat Presensi';
+    protected static ?string $modelLabel = 'Laporan Presensi';
 
-    protected static ?string $pluralModelLabel = 'Riwayat Presensi';
+    protected static ?string $pluralModelLabel = 'Laporan Presensi';
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $navigationGroup = 'Presensi & Kehadiran';
+    protected static ?string $navigationGroup = '📅 PRESENSI & LAPORAN';
 
     public static function form(Form $form): Form
     {

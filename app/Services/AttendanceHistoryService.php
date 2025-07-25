@@ -56,8 +56,8 @@ class AttendanceHistoryService
                 return $timeOut->diffInMinutes($timeIn);
             });
 
-        $totalHours = intval($totalMinutes / 60);
-        $remainingMinutes = $totalMinutes % 60;
+        $totalHours = (int) floor($totalMinutes / 60);
+        $remainingMinutes = (int) ($totalMinutes % 60);
 
         return [
             'total_days' => $summary->total_days ?? 0,

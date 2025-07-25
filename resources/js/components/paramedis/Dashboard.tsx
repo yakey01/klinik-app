@@ -556,7 +556,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         </Card>
       </motion.div>
 
-      {/* Jaspel Summary */}
+      {/* Enhanced Jaspel Summary with Progress */}
       <motion.div variants={item}>
         <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
           <CardContent className="p-6">
@@ -567,7 +567,11 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-high-contrast text-subheading-mobile">Jaspel Bulan Ini</h3>
-                  <p className="text-sm text-medium-contrast font-medium text-mobile-friendly">Pendapatan layanan medis</p>
+                  <p className="text-sm text-medium-contrast font-medium text-mobile-friendly">
+                    {dashboardStats?.period_info && (
+                      <>Progress {dashboardStats.period_info.month_progress}% bulan ini</>
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="text-right">
@@ -580,6 +584,36 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                 </div>
               </div>
             </div>
+            
+            {/* Progress Bar */}
+            {dashboardStats?.period_info && (
+              <div className="mb-4">
+                <div className="flex justify-between text-xs text-medium-contrast mb-1">
+                  <span>Hari ke-{dashboardStats.period_info.days_passed}</span>
+                  <span>{dashboardStats.period_info.days_in_month} hari total</span>
+                </div>
+                <Progress 
+                  value={dashboardStats.period_info.month_progress} 
+                  className="h-2 bg-emerald-100 dark:bg-emerald-950/30" 
+                />
+              </div>
+            )}
+            
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3">
+                <div className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">Rata-rata Harian</div>
+                <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                  Rp {(dashboardStats?.daily_average || 0).toLocaleString('id-ID')}
+                </div>
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3">
+                <div className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">Estimasi Mingguan</div>
+                <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                  Rp {(dashboardStats?.jaspel_weekly || 0).toLocaleString('id-ID')}
+                </div>
+              </div>
+            </div>
+            
             <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Bulan Lalu</span>

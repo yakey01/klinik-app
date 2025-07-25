@@ -19,6 +19,17 @@ interface DashboardData {
   growth_percent: number;
   paramedis_name: string;
   last_month_total: number;
+  daily_average?: number;
+  jaspel_weekly?: number;
+  attendance_rate?: number;
+  shifts_this_month?: number;
+  period_info?: {
+    month_progress: number;
+    days_passed: number;
+    days_in_month: number;
+    current_month: number;
+    current_year: number;
+  };
 }
 
 export function JaspelDashboardCard() {
@@ -32,6 +43,7 @@ export function JaspelDashboardCard() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchData = async () => {
     try {
@@ -49,6 +61,7 @@ export function JaspelDashboardCard() {
         const result = await response.json();
         console.log('🌟 WORLD-CLASS Dashboard Data:', result);
         setData(result);
+        setLastUpdated(new Date());
       }
     } catch (error) {
       console.error('❌ Failed to fetch dashboard data:', error);
@@ -150,7 +163,12 @@ export function JaspelDashboardCard() {
           {/* Main Amount */}
           <div className="mb-6">
             <div className="flex items-baseline space-x-2 mb-2">
-              <span className="text-white/70 text-sm font-medium">Jaspel Bulan Ini</span>
+              <span className="text-white/70 text-sm font-medium">
+                Jaspel {data.period_info ? 
+                  new Date(data.period_info.current_year, data.period_info.current_month - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : 
+                  'Bulan Ini'
+                }
+              </span>
               <Sparkles className="w-4 h-4 text-yellow-300" />
             </div>
             <div className="text-4xl font-bold text-white mb-2">
@@ -167,8 +185,8 @@ export function JaspelDashboardCard() {
             </div>
           </div>
 
-          {/* Breakdown Cards */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Enhanced Breakdown Cards */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
             {/* Pending Card */}
             <motion.div
               whileHover={{ scale: 1.02 }}
@@ -202,13 +220,59 @@ export function JaspelDashboardCard() {
             </motion.div>
           </div>
 
-          {/* User Info */}
+          {/* Progress Indicator */}
+          {data.period_info && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-white/80 text-sm font-medium">Progress Bulan Ini</span>
+                <span className="text-white font-bold text-sm">{data.period_info.month_progress}%</span>
+              </div>
+              <div className="w-full bg-white/20 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-yellow-400 to-orange-400 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${data.period_info.month_progress}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between text-xs text-white/70 mt-1">
+                <span>Hari ke-{data.period_info.days_passed}</span>
+                <span>{data.period_info.days_in_month} hari total</span>
+              </div>
+            </div>
+          )}
+
+          {/* Additional Stats Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+              <div className="text-white/70 text-xs font-medium">Harian</div>
+              <div className="text-white font-bold text-sm">
+                {formatCurrency(data.daily_average || 0)}
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+              <div className="text-white/70 text-xs font-medium">Mingguan</div>
+              <div className="text-white font-bold text-sm">
+                {formatCurrency(data.jaspel_weekly || 0)}
+              </div>
+            </div>
+          </div>
+
+          {/* User Info with Last Updated */}
           <div className="mt-6 pt-4 border-t border-white/20">
-            <div className="flex items-center space-x-2">
-              <CreditCard className="w-4 h-4 text-white/70" />
-              <span className="text-white/70 text-sm">
-                Data untuk: <span className="text-white font-medium">{data.paramedis_name}</span>
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <CreditCard className="w-4 h-4 text-white/70" />
+                <span className="text-white/70 text-sm">
+                  Data untuk: <span className="text-white font-medium">{data.paramedis_name}</span>
+                </span>
+              </div>
+              {lastUpdated && (
+                <div className="text-white/60 text-xs">
+                  Update: {lastUpdated.toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

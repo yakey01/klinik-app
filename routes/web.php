@@ -432,10 +432,16 @@ Route::get('/test-paramedis-dashboard-api', function () {
             return response()->json(['error' => 'User not found'], 404);
         }
         
+        // Get current month and year dynamically
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+        $lastMonth = now()->subMonth()->month;
+        $lastMonthYear = now()->subMonth()->year;
+        
         // Get comprehensive Jaspel data
         $enhancedService = app(\App\Services\EnhancedJaspelService::class);
-        $currentData = $enhancedService->getComprehensiveJaspelData($user, 7, 2025);
-        $lastData = $enhancedService->getComprehensiveJaspelData($user, 6, 2025);
+        $currentData = $enhancedService->getComprehensiveJaspelData($user, $currentMonth, $currentYear);
+        $lastData = $enhancedService->getComprehensiveJaspelData($user, $lastMonth, $lastMonthYear);
         
         // Calculate growth percentage
         $currentTotal = $currentData['summary']['total_pending'] + $currentData['summary']['total_paid'];
@@ -448,23 +454,70 @@ Route::get('/test-paramedis-dashboard-api', function () {
             $growthPercent = 100; // 100% growth from 0
         }
         
+        // Calculate weekly estimate based on current week progress
+        $daysInMonth = now()->daysInMonth;
+        $daysPassed = now()->day;
+        $dailyAverage = $daysPassed > 0 ? $currentTotal / $daysPassed : 0;
+        $weeklyEstimate = $dailyAverage * 7;
+        
+        // Get attendance data for current month
+        $paramedis = \App\Models\Pegawai::where('user_id', $user->id)
+            ->where('jenis_pegawai', 'Paramedis')
+            ->first();
+        
+        $shiftsThisMonth = 0;
+        $attendanceRate = 0;
+        
+        if ($paramedis) {
+            // Count actual shifts worked this month from tindakan
+            $shiftsThisMonth = \App\Models\Tindakan::where('paramedis_id', $paramedis->id)
+                ->whereMonth('tanggal_tindakan', $currentMonth)
+                ->whereYear('tanggal_tindakan', $currentYear)
+                ->distinct('tanggal_tindakan')
+                ->count();
+            
+            // Calculate attendance rate (shifts worked / expected shifts)
+            $expectedShifts = $daysPassed; // Assuming 1 shift per day maximum
+            $attendanceRate = $expectedShifts > 0 ? ($shiftsThisMonth / $expectedShifts) * 100 : 0;
+        }
+        
         // Return dashboard data in expected format
         return response()->json([
             'jaspel_monthly' => $currentTotal,
-            'jaspel_weekly' => round($currentTotal / 4), // Rough weekly estimate
-            'minutes_worked' => 720, // Could be from attendance data
-            'shifts_this_month' => 22, // Could be from schedule data
+            'jaspel_weekly' => round($weeklyEstimate), // More accurate weekly estimate
+            'daily_average' => round($dailyAverage),
+            'attendance_rate' => round($attendanceRate, 1),
+            'shifts_this_month' => $shiftsThisMonth,
             'paramedis_name' => $user->name,
             'paramedis_specialty' => 'Paramedis',
             'pending_jaspel' => $currentData['summary']['total_pending'],
             'approved_jaspel' => $currentData['summary']['total_paid'],
-            'today_attendance' => null,
             'growth_percent' => round($growthPercent, 1),
             'last_month_total' => $lastTotal,
-            'debug_info' => [
-                'user_id' => $user->id,
-                'current_month_data' => $currentData['summary'],
-                'last_month_data' => $lastData['summary']
+            'period_info' => [
+                'current_month' => $currentMonth,
+                'current_year' => $currentYear,
+                'days_passed' => $daysPassed,
+                'days_in_month' => $daysInMonth,
+                'month_progress' => round(($daysPassed / $daysInMonth) * 100, 1)
+            ],
+            'stats' => [
+                'jaspel_month' => $currentTotal,
+                'jaspel_last_month' => $lastTotal,
+                'jaspel_growth_percent' => round($growthPercent, 1),
+                'patients_today' => 0, // Could be calculated from today's tindakan
+                'tindakan_today' => 0, // Could be calculated from today's tindakan
+                'shifts_week' => round($weeklyEstimate / ($currentTotal > 0 ? $currentTotal : 1) * $shiftsThisMonth)
+            ],
+            'performance' => [
+                'attendance_rate' => round($attendanceRate, 1),
+                'patient_satisfaction' => 92, // Could be from feedback system
+                'attendance_rank' => 1, // Could be calculated
+                'total_staff' => 10 // Could be from staff count
+            ],
+            'user' => [
+                'name' => $user->name,
+                'work_location' => null // Could be enhanced with location data
             ]
         ]);
         

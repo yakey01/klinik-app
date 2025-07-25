@@ -1,6 +1,6 @@
 # Dokterku Healthcare Management System
 
-[![Laravel](https://img.shields.io/badge/Laravel-10.x-red.svg)](https://laravel.com)
+[![Laravel](https://img.shields.io/badge/Laravel-11.x-red.svg)](https://laravel.com)
 [![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org)
 [![Filament](https://img.shields.io/badge/Filament-3.x-orange.svg)](https://filamentphp.com)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -28,7 +28,7 @@ Dokterku is a comprehensive healthcare management system designed for modern med
 ## 🛠️ Technology Stack
 
 ### Backend
-- **Laravel 10.x**: PHP framework with robust API capabilities
+- **Laravel 11.x**: PHP framework with robust API capabilities
 - **Filament 3.x**: Modern admin panel builder
 - **MySQL/MariaDB**: Primary database
 - **Laravel Sanctum**: API authentication
@@ -48,7 +48,7 @@ Dokterku is a comprehensive healthcare management system designed for modern med
 ## 🚀 Quick Start
 
 ### Prerequisites
-- PHP 8.1 or higher
+- PHP 8.2 or higher (required for Laravel 11.x)
 - Node.js 18.x or higher
 - Composer
 - Git

@@ -1680,3 +1680,60 @@ Route::get('/test-js', function () {
     </body>
     </html>';
 })->name('test.js');
+
+// Test route untuk akses AttendanceHistoryResource langsung
+Route::get('/test-attendance-resource', function () {
+    try {
+        // Login as Sabita for testing
+        $sabita = \App\Models\User::where('email', 'ee@dd.com')->first();
+        if (!$sabita) {
+            return response()->json(['error' => 'Sabita not found']);
+        }
+        
+        \Illuminate\Support\Facades\Auth::login($sabita);
+        
+        // Test if resource is registered
+        $panel = \Filament\Facades\Filament::getPanel('paramedis');
+        $resources = $panel->getResources();
+        
+        $attendanceResource = null;
+        foreach ($resources as $resource) {
+            if (str_contains($resource, 'AttendanceHistoryResource')) {
+                $attendanceResource = $resource;
+                break;
+            }
+        }
+        
+        if (!$attendanceResource) {
+            return response()->json([
+                'error' => 'AttendanceHistoryResource not found in panel',
+                'all_resources' => $resources
+            ]);
+        }
+        
+        // Test the service
+        $service = new \App\Services\AttendanceHistoryService();
+        $data = $service->getUserAttendanceHistory($sabita->id, [], 10, 1);
+        
+        return response()->json([
+            'success' => true,
+            'user' => ['id' => $sabita->id, 'name' => $sabita->name, 'email' => $sabita->email],
+            'resource_found' => $attendanceResource,
+            'data_count' => $data->total(),
+            'test_urls' => [
+                'resource_url' => url('/paramedis/attendance-histories'),
+                'dashboard_url' => url('/paramedis'),
+                'direct_url' => url('/paramedis/laporan-presensi')
+            ],
+            'message' => 'AttendanceHistoryResource berhasil terdaftar dan berfungsi!'
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    } finally {
+        \Illuminate\Support\Facades\Auth::logout();
+    }
+});

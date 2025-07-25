@@ -195,6 +195,45 @@ After seeding, these accounts are available:
 - **Paramedis**: perawat@dokterku.com / perawat123
 - **Non-Paramedis**: asisten@dokterku.com / asisten123
 
+## Admin User Management
+
+### Production Admin Replacement
+The system includes comprehensive admin user replacement functionality for production deployments:
+
+```bash
+# Test admin replacement (development only)
+php artisan admin:test-replacement
+
+# Replace admin users (production)
+php artisan admin:replace --email=admin@dokterku.com --name="Administrator"
+
+# Verify admin setup
+php artisan admin:replace --verify
+
+# Rollback to previous admin users
+php artisan admin:replace --rollback
+```
+
+### GitHub Actions Deployment
+Use the **"Replace Admin Users (Production Only)"** workflow in GitHub Actions for safe production admin replacement:
+1. Go to Actions tab → "Replace Admin Users (Production Only)"
+2. Enter confirmation text: `REPLACE_ADMIN_USERS`
+3. Set admin email and name
+4. Enable rollback for safety
+5. Monitor deployment progress
+
+### Environment Variables
+```env
+# Production Admin Configuration
+PRODUCTION_ADMIN_EMAIL=admin@dokterku.com
+PRODUCTION_ADMIN_NAME="Administrator"
+PRODUCTION_ADMIN_USERNAME=admin
+PRODUCTION_ADMIN_PASSWORD=your_secure_password
+
+# Deployment Control
+DEPLOY_WITH_ADMIN_REPLACEMENT=false
+```
+
 ## Critical Integration Points
 
 ### Filament Plugin Dependencies

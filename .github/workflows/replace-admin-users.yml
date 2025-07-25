@@ -1,0 +1,324 @@
+name: Replace Admin Users (Production Only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      admin_email:
+        description: 'New admin email'
+        required: false
+        default: 'admin@dokterku.com'
+        type: string
+      admin_name:
+        description: 'New admin name'
+        required: false
+        default: 'Administrator'
+        type: string
+      confirm_replacement:
+        description: 'Type "REPLACE_ADMIN_USERS" to confirm'
+        required: true
+        type: string
+      enable_rollback:
+        description: 'Enable rollback on failure'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  PHP_VERSION: "8.3"
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation input
+        run: |
+          if [ "${{ github.event.inputs.confirm_replacement }}" != "REPLACE_ADMIN_USERS" ]; then
+            echo "❌ Security check failed: Confirmation text does not match"
+            echo "Expected: REPLACE_ADMIN_USERS"
+            echo "Received: ${{ github.event.inputs.confirm_replacement }}"
+            exit 1
+          fi
+          echo "✅ Security confirmation validated"
+
+      - name: Environment validation
+        run: |
+          echo "🔍 Deployment Environment Check:"
+          echo "Target: Production (Hostinger)"
+          echo "Repository: ${{ github.repository }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Admin Email: ${{ github.event.inputs.admin_email }}"
+          echo "Admin Name: ${{ github.event.inputs.admin_name }}"
+          echo "Rollback Enabled: ${{ github.event.inputs.enable_rollback }}"
+
+  backup-and-prepare:
+    needs: security-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create pre-deployment backup
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 300s
+          script: |
+            set -e
+            echo "🚀 Starting admin replacement backup process..."
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            # Create backup directory
+            mkdir -p ~/backups/admin_replacement
+            BACKUP_DIR="~/backups/admin_replacement/$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+            
+            echo "💾 Creating comprehensive database backup..."
+            if grep -q "DB_CONNECTION=mysql" .env; then
+              DB_USER=$(grep "^DB_USERNAME=" .env | cut -d'=' -f2 | tr -d '"')
+              DB_PASS=$(grep "^DB_PASSWORD=" .env | cut -d'=' -f2 | tr -d '"')
+              DB_NAME=$(grep "^DB_DATABASE=" .env | cut -d'=' -f2 | tr -d '"')
+              DB_HOST=$(grep "^DB_HOST=" .env | cut -d'=' -f2 | tr -d '"')
+              
+              # Full database backup
+              mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_DIR/full_database_backup.sql"
+              
+              # Specific admin tables backup
+              mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" users roles role_user model_has_roles > "$BACKUP_DIR/admin_tables_backup.sql"
+              
+              echo "✅ Database backup created: $BACKUP_DIR"
+              echo "📊 Backup size:"
+              ls -lh "$BACKUP_DIR"
+            else
+              echo "⚠️ Non-MySQL database detected, skipping MySQL backup"
+            fi
+            
+            # Backup current application state
+            cp .env "$BACKUP_DIR/env_backup" || echo "No .env to backup"
+            
+            echo "🔍 Current admin users before replacement:"
+            php artisan admin:replace --verify || echo "Admin verify command failed"
+
+  replace-admin-users:
+    needs: backup-and-prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy code and replace admin users
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 600s
+          command_timeout: 120s
+          script: |
+            set -e
+            echo "🚀 Starting admin user replacement deployment..."
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            # Step 1: Pull latest code from GitHub
+            echo "📦 Updating codebase from GitHub..."
+            git fetch origin
+            git reset --hard origin/main
+            git clean -fd
+            
+            # Step 2: Install/update dependencies
+            echo "📦 Installing dependencies..."
+            if [ ! -f composer2 ]; then
+              php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+              php composer-setup.php --2 --install-dir=. --filename=composer2
+              php -r "unlink('composer-setup.php');"
+            fi
+            
+            ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+            
+            # Step 3: Environment setup
+            echo "🔧 Setting up environment variables..."
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              php artisan key:generate --force
+            fi
+            
+            # Add production admin credentials to environment
+            echo "" >> .env
+            echo "# Production Admin Credentials (Added by GitHub Actions)" >> .env
+            echo "PRODUCTION_ADMIN_EMAIL=${{ github.event.inputs.admin_email }}" >> .env
+            echo "PRODUCTION_ADMIN_NAME=\"${{ github.event.inputs.admin_name }}\"" >> .env
+            echo "PRODUCTION_ADMIN_USERNAME=admin" >> .env
+            echo "PRODUCTION_ADMIN_PASSWORD=dokterku_admin_$(date +%Y)" >> .env
+            
+            # Step 4: Clear caches
+            echo "🧹 Clearing application caches..."
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan view:clear
+            php artisan route:clear
+            
+            # Step 5: Test database connection
+            echo "🔍 Testing database connection..."
+            php -r "
+              require 'vendor/autoload.php';
+              \$app = require_once 'bootstrap/app.php';
+              \$kernel = \$app->make('Illuminate\\Contracts\\Console\\Kernel');
+              \$kernel->bootstrap();
+              try {
+                \$pdo = DB::connection()->getPdo();
+                echo 'SUCCESS: Database connection established' . PHP_EOL;
+                echo 'Database: ' . DB::connection()->getDatabaseName() . PHP_EOL;
+              } catch (Exception \$e) {
+                echo 'ERROR: ' . \$e->getMessage() . PHP_EOL;
+                exit(1);
+              }
+            "
+            
+            # Step 6: Run admin replacement command
+            echo "👤 Executing admin user replacement..."
+            php artisan admin:replace --force --email="${{ github.event.inputs.admin_email }}" --name="${{ github.event.inputs.admin_name }}" || {
+              echo "❌ Admin replacement failed!"
+              
+              if [ "${{ github.event.inputs.enable_rollback }}" = "true" ]; then
+                echo "🔄 Attempting automatic rollback..."
+                php artisan admin:replace --rollback --force || echo "Rollback also failed"
+              fi
+              
+              exit 1
+            }
+            
+            # Step 7: Verify admin replacement
+            echo "🔍 Verifying admin replacement..."
+            php artisan admin:replace --verify || {
+              echo "❌ Admin verification failed!"
+              exit 1
+            }
+            
+            # Step 8: Optimize for production
+            echo "⚡ Optimizing for production..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache || echo "View cache skipped"
+            
+            # Step 9: Set permissions
+            echo "🔐 Setting file permissions..."
+            chmod -R 755 storage bootstrap/cache
+            chmod 644 .env
+            
+            echo "✅ Admin user replacement completed successfully!"
+
+  verify-replacement:
+    needs: replace-admin-users
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post-deployment verification
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 120s
+          script: |
+            echo "🔍 Running post-deployment verification..."
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            # Test admin panel access
+            echo "🌐 Testing admin panel accessibility..."
+            ADMIN_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/admin || echo "000")
+            
+            if [ "$ADMIN_RESPONSE" = "200" ]; then
+              echo "✅ Admin panel is accessible (HTTP $ADMIN_RESPONSE)"
+            else
+              echo "⚠️ Admin panel returned HTTP $ADMIN_RESPONSE"
+            fi
+            
+            # Verify admin user in database
+            echo "👤 Verifying admin user in database..."
+            php artisan admin:replace --verify
+            
+            # Check application health
+            echo "❤️ Application health check..."
+            APP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com || echo "000")
+            
+            if [ "$APP_RESPONSE" = "200" ]; then
+              echo "✅ Application is healthy (HTTP $APP_RESPONSE)"
+            else
+              echo "⚠️ Application health check: HTTP $APP_RESPONSE"
+              echo "📋 Recent logs:"
+              tail -10 storage/logs/laravel.log || echo "No logs available"
+            fi
+            
+            # Display new admin credentials
+            echo ""
+            echo "🎉 ADMIN REPLACEMENT SUCCESSFUL!"
+            echo "=================================="
+            echo "🔐 New Admin Credentials:"
+            echo "Email: ${{ github.event.inputs.admin_email }}"
+            echo "Name: ${{ github.event.inputs.admin_name }}"
+            echo "Panel: https://dokterkuklinik.com/admin"
+            echo ""
+            echo "⚠️ IMPORTANT: Please login and change the password immediately!"
+
+  notify-completion:
+    needs: [verify-replacement]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Deployment notification
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo "📊 Admin Replacement Summary"
+            echo "============================"
+            echo "Repository: ${{ github.repository }}"
+            echo "Triggered by: ${{ github.actor }}"
+            echo "Branch: ${{ github.ref_name }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Status: ${{ job.status }}"
+            echo "Admin Email: ${{ github.event.inputs.admin_email }}"
+            echo "Admin Name: ${{ github.event.inputs.admin_name }}"
+            echo "Rollback Enabled: ${{ github.event.inputs.enable_rollback }}"
+            echo "Timestamp: $(date)"
+            echo ""
+            echo "🤖 Admin replacement automated by Claude AI"
+            echo "🔗 Workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  rollback-on-failure:
+    needs: [replace-admin-users]
+    runs-on: ubuntu-latest
+    if: failure() && github.event.inputs.enable_rollback == 'true'
+    steps:
+      - name: Emergency rollback
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 300s
+          script: |
+            echo "🚨 EMERGENCY ROLLBACK INITIATED"
+            echo "==============================="
+            cd domains/dokterkuklinik.com/public_html/dokterku
+            
+            echo "🔄 Attempting to rollback admin users..."
+            php artisan admin:replace --rollback --force || {
+              echo "❌ Automatic rollback failed!"
+              echo "🆘 Manual intervention required!"
+              echo ""
+              echo "Manual Recovery Steps:"
+              echo "1. Check ~/backups/admin_replacement/ for database backups"
+              echo "2. Restore from latest backup if needed"
+              echo "3. Verify admin panel access"
+              echo "4. Contact system administrator"
+              exit 1
+            }
+            
+            echo "✅ Emergency rollback completed"
+            echo "🔍 Verifying rollback..."
+            php artisan admin:replace --verify
+            
+            echo "📧 Please check admin panel access immediately!"

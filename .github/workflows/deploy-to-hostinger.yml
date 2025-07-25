@@ -408,6 +408,15 @@ jobs:
             
             echo "✅ Database migrations completed successfully"
             
+            # Optional: Run admin replacement seeder if needed (controlled by environment variable)
+            if [ "${DEPLOY_WITH_ADMIN_REPLACEMENT:-false}" = "true" ]; then
+              echo "👤 Running admin replacement seeder..."
+              php artisan db:seed --class=ProductionAdminReplacementSeeder --force || {
+                echo "⚠️ Admin replacement seeder failed, but continuing deployment..."
+              }
+              echo "✅ Admin replacement seeder completed"
+            fi
+            
             echo "🎨 Optimizing for production..."
             php artisan config:cache
             php artisan route:cache

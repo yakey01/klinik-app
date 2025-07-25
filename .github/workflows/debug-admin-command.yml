@@ -1,0 +1,264 @@
+name: 🔍 Debug Admin Command Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_level:
+        description: 'Debug level (basic, detailed, comprehensive)'
+        required: false
+        default: 'detailed'
+        type: choice
+        options:
+          - basic
+          - detailed
+          - comprehensive
+
+jobs:
+  debug-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Admin Command Environment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 300s
+          script: |
+            set -e
+            echo "🔍 DEBUG: Admin Command Environment Analysis"
+            echo "============================================="
+            echo "Debug Level: ${{ github.event.inputs.debug_level }}"
+            echo "Timestamp: $(date)"
+            echo ""
+            
+            # Navigate to project directory
+            echo "📂 Navigating to project directory..."
+            cd domains/dokterkuklinik.com/public_html/dokterku || {
+              echo "❌ FAILED: Cannot access project directory"
+              echo "📋 Available directories in home:"
+              ls -la ~/ | head -10
+              echo "📋 Looking for domains directory:"
+              find ~ -name "domains" -type d 2>/dev/null || echo "No domains directory found"
+              exit 1
+            }
+            
+            echo "✅ Successfully accessed project directory: $(pwd)"
+            echo ""
+            
+            # Basic environment check
+            echo "🏗️ BASIC ENVIRONMENT CHECK"
+            echo "=========================="
+            echo "Current directory: $(pwd)"
+            echo "User: $(whoami)"
+            echo "PHP version: $(php -v | head -1)"
+            echo "Disk space: $(df -h . | tail -1)"
+            echo ""
+            
+            echo "📂 Project structure:"
+            ls -la | head -15
+            echo ""
+            
+            # Check Laravel files
+            echo "🎯 LARAVEL INSTALLATION CHECK"
+            echo "============================="
+            
+            if [ -f "artisan" ]; then
+              echo "✅ Laravel artisan found"
+              echo "📋 Artisan permissions: $(ls -la artisan)"
+            else
+              echo "❌ Laravel artisan NOT FOUND"
+              echo "📂 Looking for artisan in subdirectories:"
+              find . -name "artisan" -type f 2>/dev/null || echo "No artisan file found anywhere"
+            fi
+            
+            if [ -f "composer.json" ]; then
+              echo "✅ composer.json found"
+            else
+              echo "❌ composer.json NOT FOUND"
+            fi
+            
+            if [ -d "vendor" ]; then
+              echo "✅ vendor directory exists"
+              echo "📋 Vendor size: $(du -sh vendor 2>/dev/null | cut -f1)"
+            else
+              echo "❌ vendor directory NOT FOUND"
+            fi
+            
+            if [ -f ".env" ]; then
+              echo "✅ .env file exists"
+              echo "📋 .env permissions: $(ls -la .env)"
+            else
+              echo "❌ .env file NOT FOUND"
+              if [ -f ".env.example" ]; then
+                echo "📋 .env.example found"
+              else
+                echo "❌ .env.example also NOT FOUND"
+              fi
+            fi
+            echo ""
+            
+            # Detailed checks (if requested)
+            if [ "${{ github.event.inputs.debug_level }}" != "basic" ]; then
+              echo "🔧 DETAILED ENVIRONMENT ANALYSIS"
+              echo "================================"
+              
+              # Composer check
+              echo "📦 Composer Analysis:"
+              if command -v composer >/dev/null 2>&1; then
+                echo "✅ Composer available: $(composer --version | head -1)"
+              else
+                echo "❌ Composer command not found"
+              fi
+              
+              if [ -f "composer2" ]; then
+                echo "✅ Composer2 script found: $(ls -la composer2)"
+              else
+                echo "❌ Composer2 script not found"
+              fi
+              
+              # Try to run artisan if it exists
+              if [ -f "artisan" ]; then
+                echo ""
+                echo "🎯 Artisan Functionality Test:"
+                
+                echo "Testing basic artisan..."
+                if php artisan --version 2>/dev/null; then
+                  echo "✅ Artisan is working"
+                  
+                  echo ""
+                  echo "📋 Available artisan commands:"
+                  php artisan list | head -20
+                  
+                  echo ""
+                  echo "🔍 Looking for admin commands specifically:"
+                  ADMIN_COMMANDS=$(php artisan list | grep admin || echo "None found")
+                  echo "$ADMIN_COMMANDS"
+                  
+                else
+                  echo "❌ Artisan is not working"
+                  echo "📋 Error output:"
+                  php artisan --version 2>&1 | head -10
+                fi
+              fi
+              
+              # Database connection test
+              echo ""
+              echo "🗄️ Database Connection Test:"
+              if [ -f ".env" ] && [ -f "artisan" ]; then
+                echo "Testing database connection via tinker..."
+                php artisan tinker --execute="
+                  try {
+                    DB::connection()->getPdo();
+                    echo 'SUCCESS: Database connected to ' . DB::connection()->getDatabaseName() . PHP_EOL;
+                  } catch (Exception \$e) {
+                    echo 'ERROR: ' . \$e->getMessage() . PHP_EOL;
+                  }
+                " --no-interaction 2>&1 || echo "Tinker test failed"
+              else
+                echo "❌ Cannot test database (missing .env or artisan)"
+              fi
+              
+              # Check Console Commands directory
+              echo ""
+              echo "📂 Console Commands Analysis:"
+              if [ -d "app/Console/Commands" ]; then
+                echo "✅ Console Commands directory exists"
+                echo "📋 Custom commands found:"
+                ls -la app/Console/Commands/ | grep -v "^total" | head -10
+              else
+                echo "❌ Console Commands directory not found"
+                echo "📂 Checking app structure:"
+                ls -la app/ 2>/dev/null | head -10 || echo "No app directory"
+              fi
+            fi
+            
+            # Comprehensive checks (if requested)
+            if [ "${{ github.event.inputs.debug_level }}" == "comprehensive" ]; then
+              echo ""
+              echo "🔬 COMPREHENSIVE SYSTEM ANALYSIS"
+              echo "================================"
+              
+              echo "🔍 PHP Configuration:"
+              echo "Loaded extensions:"
+              php -m | head -20
+              echo ""
+              echo "PHP.ini location: $(php --ini | head -1)"
+              echo ""
+              
+              echo "🔍 System Resources:"
+              echo "Memory usage: $(free -h 2>/dev/null | head -2 || echo 'Memory info not available')"
+              echo "CPU info: $(nproc 2>/dev/null || echo 'CPU info not available') cores"
+              echo ""
+              
+              echo "🔍 File Permissions Analysis:"
+              echo "Project root: $(ls -ld .)"
+              echo "Storage: $(ls -ld storage 2>/dev/null || echo 'No storage directory')"
+              echo "Bootstrap cache: $(ls -ld bootstrap/cache 2>/dev/null || echo 'No bootstrap/cache')"
+              echo ""
+              
+              echo "🔍 Laravel Logs (if available):"
+              if [ -f "storage/logs/laravel.log" ]; then
+                echo "Laravel log exists, last 10 lines:"
+                tail -10 storage/logs/laravel.log
+              else
+                echo "No Laravel log file found"
+              fi
+              
+              echo ""
+              echo "🔍 Environment Variables (DB only):"
+              if [ -f ".env" ]; then
+                grep "^DB_" .env || echo "No DB variables in .env"
+              fi
+              
+              echo ""
+              echo "🔍 Recently Modified Files:"
+              find . -type f -mtime -1 -ls 2>/dev/null | head -10 || echo "Cannot list recent files"
+            fi
+            
+            echo ""
+            echo "🎯 DIAGNOSIS SUMMARY"
+            echo "==================="
+            
+            # Summary check
+            ISSUES_FOUND=0
+            
+            if [ ! -f "artisan" ]; then
+              echo "❌ Missing: Laravel artisan file"
+              ISSUES_FOUND=$((ISSUES_FOUND + 1))
+            fi
+            
+            if [ ! -f ".env" ]; then
+              echo "❌ Missing: .env configuration file"
+              ISSUES_FOUND=$((ISSUES_FOUND + 1))
+            fi
+            
+            if [ ! -d "vendor" ]; then
+              echo "❌ Missing: vendor directory (composer dependencies)"
+              ISSUES_FOUND=$((ISSUES_FOUND + 1))
+            fi
+            
+            ADMIN_CMD_CHECK=$(php artisan list 2>/dev/null | grep "admin:replace" || echo "")
+            if [ -z "$ADMIN_CMD_CHECK" ]; then
+              echo "❌ Missing: admin:replace command not registered"
+              ISSUES_FOUND=$((ISSUES_FOUND + 1))
+            fi
+            
+            if [ $ISSUES_FOUND -eq 0 ]; then
+              echo "✅ No critical issues found - environment appears ready"
+              echo ""
+              echo "🎉 RECOMMENDATION: Environment should support admin:replace command"
+            else
+              echo "⚠️ Found $ISSUES_FOUND critical issue(s) that need to be resolved"
+              echo ""
+              echo "🔧 NEXT STEPS:"
+              echo "1. Fix the issues listed above"
+              echo "2. Run 'composer install' if vendor directory is missing"
+              echo "3. Copy .env.example to .env if configuration is missing"
+              echo "4. Ensure all migrations are run: php artisan migrate"
+              echo "5. Re-run this debug workflow to verify fixes"
+            fi
+            
+            echo ""
+            echo "📊 Debug analysis completed at $(date)"

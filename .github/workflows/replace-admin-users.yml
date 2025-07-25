@@ -96,29 +96,209 @@ jobs:
             # Backup current application state
             cp .env "$BACKUP_DIR/env_backup" || echo "No .env to backup"
             
-            echo "🔍 Current admin users before replacement:"
-            echo "📋 Testing Laravel environment..."
-            php artisan --version || echo "⚠️ Artisan not working"
+            echo "🔍 Preparing admin replacement environment..."
+            echo "========================================"
             
-            echo "🔧 Installing/updating dependencies if needed..."
-            composer install --no-dev --optimize-autoloader --no-interaction || echo "⚠️ Composer install had issues"
+            # Step 1: Verify directory and basic setup
+            echo "📂 Current working directory: $(pwd)"
+            echo "📋 Directory contents:"
+            ls -la | head -10
             
-            echo "🗄️ Running migrations to ensure all tables exist..."
-            php artisan migrate --force --no-interaction || echo "⚠️ Migration had issues"
+            # Step 2: Check Laravel installation
+            echo ""
+            echo "🏗️ Checking Laravel installation..."
+            if [ ! -f "artisan" ]; then
+              echo "❌ CRITICAL: Laravel artisan file not found!"
+              echo "📂 Current directory contents:"
+              ls -la
+              exit 1
+            fi
+            echo "✅ Laravel artisan found"
             
-            echo "📊 Running admin verification with detailed output..."
-            php artisan admin:replace --verify --no-interaction -v 2>&1 || {
-              echo "❌ Admin verify command failed - debugging...";
-              echo "🔍 Checking if command exists...";
-              php artisan list | grep admin || echo "No admin commands found";
-              echo "📋 Recent Laravel logs:";
-              if [ -f storage/logs/laravel.log ]; then
-                tail -20 storage/logs/laravel.log | grep -A3 -B3 -i "error\|exception\|fatal" || echo "No recent errors found";
+            # Step 3: Check .env file
+            echo ""
+            echo "🔧 Checking environment configuration..."
+            if [ ! -f ".env" ]; then
+              echo "❌ CRITICAL: .env file not found!"
+              if [ -f ".env.example" ]; then
+                echo "📋 Copying .env.example to .env..."
+                cp .env.example .env
+                echo "🔑 Generating application key..."
+                php artisan key:generate --force --no-interaction
+              else
+                echo "❌ No .env.example found either!"
+                exit 1
+              fi
+            fi
+            echo "✅ Environment file exists"
+            
+            # Step 4: Install/update composer dependencies
+            echo ""
+            echo "📦 Installing/updating composer dependencies..."
+            
+            # Check if composer2 exists, if not use regular composer
+            if [ -f "composer2" ]; then
+              echo "Using composer2..."
+              ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist 2>&1 || {
+                echo "❌ Composer2 install failed, trying regular composer...";
+                composer install --no-dev --optimize-autoloader --no-interaction 2>&1 || {
+                  echo "❌ CRITICAL: Both composer2 and composer failed!";
+                  exit 1;
+                }
+              }
+            else
+              echo "Using regular composer..."
+              composer install --no-dev --optimize-autoloader --no-interaction 2>&1 || {
+                echo "❌ CRITICAL: Composer install failed!";
+                echo "📋 Composer error output above";
+                exit 1;
+              }
+            fi
+            echo "✅ Composer dependencies installed"
+            
+            # Step 5: Test basic artisan functionality
+            echo ""
+            echo "🎯 Testing basic artisan functionality..."
+            php artisan --version 2>&1 || {
+              echo "❌ CRITICAL: Artisan is not working!";
+              echo "📋 PHP version:";
+              php -v;
+              echo "📋 PHP modules:";
+              php -m | head -20;
+              exit 1;
+            }
+            echo "✅ Artisan is working"
+            
+            # Step 6: Test database connection
+            echo ""
+            echo "🗄️ Testing database connection..."
+            php artisan tinker --execute="
+              try {
+                DB::connection()->getPdo();
+                echo 'SUCCESS: Database connection established\n';
+                echo 'Database: ' . DB::connection()->getDatabaseName() . '\n';
+              } catch (Exception \$e) {
+                echo 'ERROR: Database connection failed: ' . \$e->getMessage() . '\n';
+                exit(1);
+              }
+            " --no-interaction 2>&1 || {
+              echo "❌ CRITICAL: Database connection failed!";
+              echo "📋 Database configuration from .env:";
+              grep "^DB_" .env || echo "No DB_ variables found in .env";
+              exit 1;
+            }
+            echo "✅ Database connection successful"
+            
+            # Step 7: Run migrations if needed
+            echo ""
+            echo "🗄️ Ensuring database schema is up to date..."
+            php artisan migrate --force --no-interaction 2>&1 || {
+              echo "⚠️ Migration had issues, checking status...";
+              php artisan migrate:status --no-interaction || echo "Cannot check migration status";
+            }
+            echo "✅ Database schema checked"
+            
+            # Step 8: Check if admin command exists
+            echo ""
+            echo "🔍 Checking for admin:replace command..."
+            ADMIN_COMMANDS=$(php artisan list | grep admin || echo "")
+            if [ -z "$ADMIN_COMMANDS" ]; then
+              echo "❌ CRITICAL: No admin commands found!";
+              echo "📋 Available artisan commands:";
+              php artisan list | head -20;
+              echo "📂 Checking Console Commands directory:";
+              ls -la app/Console/Commands/ || echo "Console Commands directory not found";
+              exit 1;
+            fi
+            echo "✅ Admin commands found:";
+            echo "$ADMIN_COMMANDS"
+            
+            # Step 9: Run admin verification with comprehensive error handling
+            echo ""
+            echo "📊 Running admin verification with detailed diagnostics..."
+            echo "========================================================"
+            
+            # Create a temporary script for better error capture
+            cat > temp_verify.php << 'VERIFY_EOF'
+<?php
+require_once 'vendor/autoload.php';
+$app = require_once 'bootstrap/app.php';
+$kernel = $app->make('Illuminate\Contracts\Console\Kernel');
+
+try {
+    $exitCode = $kernel->handle(
+        $input = new \Symfony\Component\Console\Input\ArrayInput([
+            'command' => 'admin:replace',
+            '--verify' => true,
+            '--no-interaction' => true,
+        ]),
+        $output = new \Symfony\Component\Console\Output\BufferedOutput()
+    );
+    
+    echo $output->fetch();
+    
+    if ($exitCode === 0) {
+        echo "\n✅ VERIFICATION SUCCESSFUL\n";
+    } else {
+        echo "\n❌ VERIFICATION FAILED (Exit Code: $exitCode)\n";
+        exit($exitCode);
+    }
+} catch (Exception $e) {
+    echo "❌ VERIFICATION EXCEPTION: " . $e->getMessage() . "\n";
+    echo "📋 Stack trace:\n" . $e->getTraceAsString() . "\n";
+    exit(1);
+}
+VERIFY_EOF
+            
+            php temp_verify.php 2>&1 || {
+              echo "";
+              echo "❌ ADMIN VERIFICATION FAILED - COMPREHENSIVE DEBUGGING";
+              echo "=====================================================";
+              
+              echo "📋 Laravel Application Log (last 30 lines):";
+              if [ -f "storage/logs/laravel.log" ]; then
+                tail -30 storage/logs/laravel.log;
               else
                 echo "No Laravel log file found";
               fi;
-              echo "⚠️ Admin verification failed but continuing with backup...";
+              
+              echo "";
+              echo "📋 PHP Error Log (if available):";
+              if [ -f "/var/log/php_errors.log" ]; then
+                tail -10 /var/log/php_errors.log;
+              elif [ -f "storage/logs/php_errors.log" ]; then
+                tail -10 storage/logs/php_errors.log;
+              else
+                echo "No PHP error log found";
+              fi;
+              
+              echo "";
+              echo "📋 System Information:";
+              echo "PHP Version: $(php -v | head -1)";
+              echo "Laravel Version: $(php artisan --version)";
+              echo "Current User: $(whoami)";
+              echo "Disk Space: $(df -h . | tail -1)";
+              
+              echo "";
+              echo "📋 File Permissions:";
+              echo "artisan: $(ls -la artisan)";
+              echo "storage: $(ls -ld storage)";
+              echo "bootstrap/cache: $(ls -ld bootstrap/cache)";
+              
+              # Clean up temp file
+              rm -f temp_verify.php;
+              
+              echo "";
+              echo "❌ STOPPING WORKFLOW DUE TO VERIFICATION FAILURE";
+              exit 1;
             }
+            
+            # Clean up temp file
+            rm -f temp_verify.php
+            
+            echo ""
+            echo "🎉 PRE-DEPLOYMENT VERIFICATION COMPLETED SUCCESSFULLY!"
+            echo "====================================================="
 
   replace-admin-users:
     needs: backup-and-prepare

@@ -29,7 +29,7 @@ class AttendanceRecapResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Rekapitulasi Absensi';
 
-    protected static ?string $navigationGroup = '📅 KALENDAR DAN JADWAL';
+    protected static ?string $navigationGroup = '📊 Laporan & Analisis';
 
     protected static ?int $navigationSort = 33;
 

@@ -36,24 +36,86 @@ jobs:
           fi
           echo "✅ Security confirmation validated"
 
-      - name: Setup Tools
+      - name: Setup Tools and SSH Config
         run: |
           echo "🔧 Installing required tools..."
           sudo apt-get update
           sudo apt-get install -y sshpass mysql-client
-          echo "✅ Tools installed"
+          
+          echo "🔐 Configuring SSH..."
+          mkdir -p ~/.ssh
+          cat > ~/.ssh/config << 'EOF'
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            LogLevel ERROR
+            ConnectTimeout 30
+            ServerAliveInterval 60
+            ServerAliveCountMax 3
+          EOF
+          chmod 600 ~/.ssh/config
+          echo "✅ Tools and SSH config ready"
+
+      - name: Debug Environment Variables
+        run: |
+          echo "🔍 Debugging environment variables..."
+          echo "HOSTINGER_HOST: ${HOSTINGER_HOST:-'NOT_SET'}"
+          echo "HOSTINGER_USERNAME: ${HOSTINGER_USERNAME:-'NOT_SET'}"
+          echo "DEPLOY_PATH: ${DEPLOY_PATH:-'NOT_SET'}"
+          echo "Password length: ${#HOSTINGER_PASSWORD}"
+          
+          if [ -z "${HOSTINGER_HOST}" ] || [ -z "${HOSTINGER_USERNAME}" ] || [ -z "${HOSTINGER_PASSWORD}" ] || [ -z "${DEPLOY_PATH}" ]; then
+            echo "❌ Missing required environment variables!"
+            exit 1
+          fi
+          echo "✅ All environment variables are set"
+
+      - name: Test Basic SSH Connection
+        run: |
+          echo "🔗 Testing basic SSH connection..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -o ConnectTimeout=30 \
+            -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "echo 'SSH connection successful' && whoami && pwd"
 
       - name: Test Connection and Environment
         run: |
-          echo "🔗 Testing server connection..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          echo "📂 Testing project directory access..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
-            "cd ${DEPLOY_PATH} && echo 'Connected to:' && pwd && ls -la .env"
+            "echo 'Testing directory access...' && \
+             if [ -d '${DEPLOY_PATH}' ]; then \
+               echo 'Directory exists: ${DEPLOY_PATH}' && \
+               cd '${DEPLOY_PATH}' && \
+               echo 'Current directory:' && pwd && \
+               echo 'Directory contents:' && ls -la | head -10 && \
+               echo 'Checking .env file:' && \
+               if [ -f '.env' ]; then \
+                 echo '.env file exists' && ls -la .env; \
+               else \
+                 echo '.env file not found'; \
+               fi; \
+             else \
+               echo 'Directory does not exist: ${DEPLOY_PATH}' && \
+               echo 'Home directory contents:' && ls -la; \
+             fi"
 
       - name: Create Database Backup
         run: |
           echo "💾 Creating comprehensive database backup..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && \
              BACKUP_DIR=\"~/admin_replacement_backup_\$(date +%Y%m%d_%H%M%S)\" && \
@@ -72,7 +134,11 @@ jobs:
       - name: Update Codebase
         run: |
           echo "📦 Updating codebase..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && \
              git fetch origin && \
@@ -83,7 +149,11 @@ jobs:
       - name: Setup Dependencies and Environment
         run: |
           echo "🔧 Setting up environment..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && \
              if [ -f composer2 ]; then \
@@ -99,7 +169,11 @@ jobs:
       - name: Check Current Admin Users
         run: |
           echo "👥 Checking current admin users..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && \
              DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
@@ -118,7 +192,11 @@ jobs:
       - name: Execute Direct Admin Replacement
         run: |
           echo "🔥 Executing direct admin replacement..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && \
              DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
@@ -158,7 +236,11 @@ jobs:
       - name: Verify New Admin User
         run: |
           echo "🔍 Verifying new admin user..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && \
              DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
@@ -185,7 +267,11 @@ jobs:
       - name: Clear Laravel Caches
         run: |
           echo "🧹 Clearing Laravel caches..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && \
              php artisan config:clear && \
@@ -200,7 +286,11 @@ jobs:
       - name: Test Application Access
         run: |
           echo "🌐 Testing application access..."
-          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o LogLevel=ERROR \
+            -p 65002 \
             "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
             "cd ${DEPLOY_PATH} && \
              APP_STATUS=\$(curl -s -o /dev/null -w \"%{http_code}\" https://dokterkuklinik.com || echo \"000\") && \

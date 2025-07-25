@@ -1,0 +1,127 @@
+name: 🔍 Debug Server Directory
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Server Directory Structure
+        run: |
+          echo "🔍 Debugging server directory structure..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "echo 'Home directory:' && pwd && \
+             echo 'Home contents:' && ls -la && \
+             echo '' && \
+             echo 'Checking domains directory:' && \
+             if [ -d domains ]; then \
+               echo 'Domains directory exists' && \
+               ls -la domains/ && \
+               echo '' && \
+               echo 'Checking dokterkuklinik.com:' && \
+               if [ -d domains/dokterkuklinik.com ]; then \
+                 ls -la domains/dokterkuklinik.com/ && \
+                 echo '' && \
+                 echo 'Checking public_html:' && \
+                 if [ -d domains/dokterkuklinik.com/public_html ]; then \
+                   ls -la domains/dokterkuklinik.com/public_html/ && \
+                   echo '' && \
+                   echo 'Checking dokterku:' && \
+                   if [ -d domains/dokterkuklinik.com/public_html/dokterku ]; then \
+                     echo 'dokterku directory exists:' && \
+                     ls -la domains/dokterkuklinik.com/public_html/dokterku/ && \
+                     echo '' && \
+                     echo 'File count in dokterku:' && \
+                     find domains/dokterkuklinik.com/public_html/dokterku -type f | wc -l && \
+                     echo 'Looking for composer.json:' && \
+                     find domains/dokterkuklinik.com/public_html/dokterku -name 'composer.json' -type f && \
+                     echo 'Looking for artisan:' && \
+                     find domains/dokterkuklinik.com/public_html/dokterku -name 'artisan' -type f; \
+                   else \
+                     echo 'dokterku directory does not exist'; \
+                   fi; \
+                 else \
+                   echo 'public_html directory does not exist'; \
+                 fi; \
+               else \
+                 echo 'dokterkuklinik.com directory does not exist'; \
+               fi; \
+             else \
+               echo 'domains directory does not exist'; \
+             fi && \
+             echo '' && \
+             echo 'Testing git and network:' && \
+             git --version && \
+             echo 'Testing GitHub connectivity:' && \
+             ping -c 3 github.com || echo 'Ping failed' && \
+             echo 'Testing wget:' && \
+             wget --version | head -1"
+
+      - name: Test Manual Git Clone
+        run: |
+          echo "🧪 Testing manual git clone..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "cd /tmp && \
+             echo 'Testing git clone in /tmp:' && \
+             rm -rf test-clone && \
+             git clone https://github.com/yakey01/klinik-app.git test-clone && \
+             echo 'Clone result:' && \
+             if [ -d test-clone ]; then \
+               echo 'Clone successful' && \
+               cd test-clone && \
+               echo 'Files in cloned repo:' && \
+               ls -la && \
+               echo 'Looking for composer.json:' && \
+               if [ -f composer.json ]; then \
+                 echo 'composer.json found in clone:' && \
+                 head -5 composer.json; \
+               else \
+                 echo 'composer.json NOT found in clone'; \
+               fi && \
+               echo 'Cleaning up test clone:' && \
+               cd .. && rm -rf test-clone; \
+             else \
+               echo 'Clone failed - directory not created'; \
+             fi"
+
+      - name: Test Manual Wget Download
+        run: |
+          echo "📥 Testing manual wget download..."
+          sshpass -p "LaTahzan@01" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -p 65002 \
+            u454362045@153.92.8.132 \
+            "cd /tmp && \
+             echo 'Testing wget download in /tmp:' && \
+             rm -rf test-wget klinik-app-main main.zip && \
+             wget -O main.zip https://github.com/yakey01/klinik-app/archive/refs/heads/main.zip && \
+             echo 'Download completed, extracting...' && \
+             unzip -q main.zip && \
+             echo 'Extraction completed' && \
+             if [ -d klinik-app-main ]; then \
+               echo 'Extraction successful' && \
+               cd klinik-app-main && \
+               echo 'Files in downloaded repo:' && \
+               ls -la && \
+               echo 'Looking for composer.json:' && \
+               if [ -f composer.json ]; then \
+                 echo 'composer.json found in download:' && \
+                 head -5 composer.json; \
+               else \
+                 echo 'composer.json NOT found in download'; \
+               fi && \
+               echo 'Cleaning up test download:' && \
+               cd .. && rm -rf klinik-app-main main.zip; \
+             else \
+               echo 'Extraction failed - directory not created'; \
+             fi"

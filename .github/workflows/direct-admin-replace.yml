@@ -1,0 +1,242 @@
+name: 🔥 Direct Admin Replacement - Database Approach
+
+on:
+  workflow_dispatch:
+    inputs:
+      admin_email:
+        description: 'New admin email'
+        required: false
+        default: 'admin@dokterku.com'
+        type: string
+      admin_name:
+        description: 'New admin name'
+        required: false
+        default: 'Administrator'
+        type: string
+      confirm_replacement:
+        description: 'Type "REPLACE_ADMIN_USERS" to confirm'
+        required: true
+        type: string
+
+env:
+  HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+  HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
+  HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
+  DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+
+jobs:
+  direct-admin-replacement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Security Check
+        run: |
+          if [ "${{ github.event.inputs.confirm_replacement }}" != "REPLACE_ADMIN_USERS" ]; then
+            echo "❌ Security check failed: Expected 'REPLACE_ADMIN_USERS'"
+            exit 1
+          fi
+          echo "✅ Security confirmation validated"
+
+      - name: Setup Tools
+        run: |
+          echo "🔧 Installing required tools..."
+          sudo apt-get update
+          sudo apt-get install -y sshpass mysql-client
+          echo "✅ Tools installed"
+
+      - name: Test Connection and Environment
+        run: |
+          echo "🔗 Testing server connection..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && echo 'Connected to:' && pwd && ls -la .env"
+
+      - name: Create Database Backup
+        run: |
+          echo "💾 Creating comprehensive database backup..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             BACKUP_DIR=\"~/admin_replacement_backup_\$(date +%Y%m%d_%H%M%S)\" && \
+             mkdir -p \"\$BACKUP_DIR\" && \
+             echo \"Backup directory: \$BACKUP_DIR\" && \
+             DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_PASS=\$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_NAME=\$(grep '^DB_DATABASE=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_HOST=\$(grep '^DB_HOST=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             echo \"Database: \$DB_NAME on \$DB_HOST\" && \
+             mysqldump -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" > \"\$BACKUP_DIR/full_backup.sql\" && \
+             mysqldump -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" users roles > \"\$BACKUP_DIR/admin_tables.sql\" && \
+             echo \"✅ Database backup created: \$BACKUP_DIR\" && \
+             ls -lh \"\$BACKUP_DIR\""
+
+      - name: Update Codebase
+        run: |
+          echo "📦 Updating codebase..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             git fetch origin && \
+             git reset --hard origin/main && \
+             git clean -fd && \
+             echo \"✅ Codebase updated\""
+
+      - name: Setup Dependencies and Environment
+        run: |
+          echo "🔧 Setting up environment..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             if [ -f composer2 ]; then \
+               ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist; \
+             else \
+               composer install --no-dev --optimize-autoloader --no-interaction; \
+             fi && \
+             php artisan config:clear && \
+             php artisan cache:clear && \
+             php artisan migrate --force --no-interaction && \
+             echo \"✅ Environment ready\""
+
+      - name: Check Current Admin Users
+        run: |
+          echo "👥 Checking current admin users..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_PASS=\$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_NAME=\$(grep '^DB_DATABASE=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_HOST=\$(grep '^DB_HOST=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             echo \"Current admin users:\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               SELECT u.id, u.name, u.email, u.username, r.name as role_name, u.created_at 
+               FROM users u 
+               LEFT JOIN roles r ON u.role_id = r.id 
+               WHERE r.name = 'admin' OR u.email LIKE '%admin%' 
+               ORDER BY u.id;
+             \" || echo \"Error checking current users\""
+
+      - name: Execute Direct Admin Replacement
+        run: |
+          echo "🔥 Executing direct admin replacement..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_PASS=\$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_NAME=\$(grep '^DB_DATABASE=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_HOST=\$(grep '^DB_HOST=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             NEW_PASSWORD=\$(php -r \"echo password_hash('dokterku_admin_\$(date +%Y)', PASSWORD_BCRYPT);\") && \
+             echo \"Generated password hash\" && \
+             echo \"Step 1: Ensure admin role exists...\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               INSERT IGNORE INTO roles (name, display_name, created_at, updated_at) 
+               VALUES ('admin', 'Administrator', NOW(), NOW());
+             \" && \
+             ADMIN_ROLE_ID=\$(mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -s -N -e \"SELECT id FROM roles WHERE name = 'admin' LIMIT 1;\") && \
+             echo \"Admin role ID: \$ADMIN_ROLE_ID\" && \
+             echo \"Step 2: Delete existing admin users...\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               DELETE FROM users WHERE role_id = \$ADMIN_ROLE_ID OR email LIKE '%admin%' OR username = 'admin';
+             \" && \
+             echo \"Step 3: Create new admin user...\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               INSERT INTO users (name, username, email, password, role_id, is_active, email_verified_at, created_at, updated_at) 
+               VALUES (
+                 '${{ github.event.inputs.admin_name }}',
+                 'admin',
+                 '${{ github.event.inputs.admin_email }}',
+                 '\$NEW_PASSWORD',
+                 \$ADMIN_ROLE_ID,
+                 1,
+                 NOW(),
+                 NOW(),
+                 NOW()
+               );
+             \" && \
+             echo \"✅ Admin user replacement completed successfully\""
+
+      - name: Verify New Admin User
+        run: |
+          echo "🔍 Verifying new admin user..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             DB_USER=\$(grep '^DB_USERNAME=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_PASS=\$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_NAME=\$(grep '^DB_DATABASE=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             DB_HOST=\$(grep '^DB_HOST=' .env | cut -d'=' -f2 | tr -d '\"') && \
+             echo \"New admin user verification:\" && \
+             mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -e \"
+               SELECT u.id, u.name, u.email, u.username, r.name as role_name, 
+                      CASE WHEN u.password IS NOT NULL THEN 'YES' ELSE 'NO' END as has_password,
+                      u.is_active, u.created_at 
+               FROM users u 
+               LEFT JOIN roles r ON u.role_id = r.id 
+               WHERE u.email = '${{ github.event.inputs.admin_email }}';
+             \" && \
+             USER_COUNT=\$(mysql -h \"\$DB_HOST\" -u \"\$DB_USER\" -p\"\$DB_PASS\" \"\$DB_NAME\" -s -N -e \"SELECT COUNT(*) FROM users WHERE email = '${{ github.event.inputs.admin_email }}';\") && \
+             if [ \"\$USER_COUNT\" -eq 1 ]; then \
+               echo \"✅ Admin user verification successful\"; \
+             else \
+               echo \"❌ Admin user verification failed - user count: \$USER_COUNT\"; \
+               exit 1; \
+             fi"
+
+      - name: Clear Laravel Caches
+        run: |
+          echo "🧹 Clearing Laravel caches..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             php artisan config:clear && \
+             php artisan cache:clear && \
+             php artisan view:clear && \
+             php artisan route:clear && \
+             php artisan config:cache && \
+             php artisan route:cache && \
+             chmod -R 755 storage bootstrap/cache && \
+             echo \"✅ Laravel optimization completed\""
+
+      - name: Test Application Access
+        run: |
+          echo "🌐 Testing application access..."
+          sshpass -p "${HOSTINGER_PASSWORD}" ssh -p 65002 \
+            "${HOSTINGER_USERNAME}@${HOSTINGER_HOST}" \
+            "cd ${DEPLOY_PATH} && \
+             APP_STATUS=\$(curl -s -o /dev/null -w \"%{http_code}\" https://dokterkuklinik.com || echo \"000\") && \
+             ADMIN_STATUS=\$(curl -s -o /dev/null -w \"%{http_code}\" https://dokterkuklinik.com/admin || echo \"000\") && \
+             echo \"Application Status: HTTP \$APP_STATUS\" && \
+             echo \"Admin Panel Status: HTTP \$ADMIN_STATUS\" && \
+             if [ \"\$APP_STATUS\" = \"200\" ] || [ \"\$APP_STATUS\" = \"302\" ]; then \
+               echo \"✅ Application is accessible\"; \
+             else \
+               echo \"⚠️ Application may have issues (HTTP \$APP_STATUS)\"; \
+             fi"
+
+      - name: Success Summary
+        run: |
+          echo ""
+          echo "🎉 DIRECT ADMIN REPLACEMENT COMPLETED!"
+          echo "===================================="
+          echo "✅ Database backup created"
+          echo "✅ Codebase updated"
+          echo "✅ Dependencies installed"
+          echo "✅ Admin users deleted"
+          echo "✅ New admin user created"
+          echo "✅ Verification successful"
+          echo "✅ Application optimized"
+          echo ""
+          echo "🔐 NEW ADMIN CREDENTIALS:"
+          echo "========================="
+          echo "Email: ${{ github.event.inputs.admin_email }}"
+          echo "Name: ${{ github.event.inputs.admin_name }}"
+          echo "Username: admin"
+          echo "Password: dokterku_admin_$(date +%Y)"
+          echo "URL: https://dokterkuklinik.com/admin"
+          echo ""
+          echo "⚠️ IMPORTANT NOTES:"
+          echo "- Login with the credentials above"
+          echo "- Change password immediately after first login"
+          echo "- Database backup available in ~/admin_replacement_backup_*"
+          echo ""
+          echo "🕐 Deployment completed at: $(date)"

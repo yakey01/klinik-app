@@ -34,7 +34,8 @@ class JenisTindakanResource extends Resource
                             ->label('Kode Tindakan')
                             ->required()
                             ->unique(ignoreRecord: true)
-                            ->placeholder('Contoh: KONS001')
+                            ->placeholder('Auto-generated: TDK-001, TDK-002, dst.')
+                            ->helperText('Kode akan dibuat otomatis dengan format TDK-XXX. Anda dapat mengedit jika diperlukan.')
                             ->maxLength(20)
                             ->columnSpan(1),
 

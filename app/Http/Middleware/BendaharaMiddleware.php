@@ -25,7 +25,7 @@ class BendaharaMiddleware
                 'url' => $request->fullUrl(),
             ]);
             
-            return redirect()->route('filament.bendahara.auth.login');
+            return redirect('/login');
         }
 
         // Check if user has bendahara role
@@ -50,7 +50,7 @@ class BendaharaMiddleware
             ]);
 
             Auth::logout();
-            return redirect()->route('filament.bendahara.auth.login')
+            return redirect('/login')
                 ->with('error', 'Akun Anda tidak aktif. Hubungi administrator.');
         }
 
@@ -78,7 +78,7 @@ class BendaharaMiddleware
                 ]);
 
                 $request->session()->flush();
-                return redirect()->route('filament.bendahara.auth.login')
+                return redirect('/login')
                     ->with('error', 'Sesi Anda telah berakhir untuk operasi sensitif. Silakan login kembali.');
             }
 

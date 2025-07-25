@@ -115,12 +115,20 @@ export function Jaspel() {
           if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ [JASPEL DEBUG] API Error:', response.status, errorText);
+            console.error('❌ [JASPEL DEBUG] Response headers:', Object.fromEntries(response.headers.entries()));
+            console.error('❌ [JASPEL DEBUG] Request URL was:', response.url);
             
             // Store error for potential fallback
             lastError = new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             
             if (response.status === 401) {
+              console.error('🔐 [AUTH ERROR] 401 Unauthorized - This is likely the root cause!');
               lastError = new Error('Sesi telah berakhir, silakan login kembali');
+            }
+            
+            if (response.status === 403) {
+              console.error('🚫 [PERMISSION ERROR] 403 Forbidden - Role permission issue!');
+              lastError = new Error('Tidak memiliki izin untuk mengakses data Jaspel');
             }
             
             // Try next endpoint
@@ -151,9 +159,13 @@ export function Jaspel() {
       }
       
       // If we reach here, all endpoints failed
+      console.error('🚨 [CRITICAL] All API endpoints failed for Jaspel data');
       throw lastError || new Error('Semua endpoint gagal diakses');
     } catch (err) {
-      console.error('Error fetching Jaspel data:', err);
+      console.error('🔥 [JASPEL ERROR] Final catch - API call completely failed:', err);
+      console.error('🔥 [JASPEL ERROR] Error type:', typeof err);
+      console.error('🔥 [JASPEL ERROR] Error message:', err instanceof Error ? err.message : String(err));
+      console.error('🔥 [JASPEL ERROR] This is why data is showing as empty!');
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil data');
       
       // Fallback to empty data instead of hardcoded data

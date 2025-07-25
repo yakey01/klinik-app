@@ -7,40 +7,119 @@ import { Clock, MapPin, CheckCircle, XCircle, Timer, Activity, Calendar, Map } f
 import LeafletMap from './LeafletMap';
 import GoogleMapsErrorBoundary from './GoogleMapsErrorBoundary';
 
+interface AttendanceStatus {
+  status: string;
+  message: string;
+  can_check_in: boolean;
+  can_check_out: boolean;
+  attendance: {
+    id: number;
+    check_in_time: string | null;
+    check_out_time: string | null;
+    work_duration: string | null;
+    work_duration_minutes: number | null;
+    location_in: string | null;
+    location_out: string | null;
+    status: string;
+    is_late: boolean;
+  } | null;
+}
+
 export function Presensi() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [checkedInAt, setCheckedInAt] = useState<string | null>(null);
-  const [workingHours, setWorkingHours] = useState<string>('00:00:00');
+  const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [checkinLocation, setCheckinLocation] = useState<{lat: number; lng: number; accuracy?: number; address?: string} | null>(null);
   const [checkoutLocation, setCheckoutLocation] = useState<{lat: number; lng: number; accuracy?: number; address?: string} | null>(null);
   const [isLocationRequired, setIsLocationRequired] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Update time every second
+  // Helper function to format time display
+  const formatTime = (timeString: string | null): string => {
+    if (!timeString) return '--:--';
+    
+    // Handle different time formats
+    if (timeString.includes('T')) {
+      // ISO format: 2024-01-01T14:30:00.000000Z
+      return new Date(timeString).toLocaleTimeString('id-ID', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+    } else if (timeString.length > 5) {
+      // Format: 14:30:00
+      return timeString.substring(0, 5);
+    } else {
+      // Format: 14:30
+      return timeString;
+    }
+  };
+
+  // Fetch attendance status from API
+  const fetchAttendanceStatus = async () => {
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      const apiToken = document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
+      
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      };
+      
+      if (apiToken) {
+        headers['Authorization'] = `Bearer ${apiToken}`;
+      }
+      
+      const response = await fetch('/api/v2/dashboards/paramedis/attendance/status', {
+        credentials: 'include',
+        headers
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          console.log('🔍 Attendance Status Response:', JSON.stringify(result.data, null, 2));
+          console.log('🔍 Attendance Object:', result.data.attendance);
+          console.log('🔍 Check In Time:', result.data.attendance?.check_in_time);
+          console.log('🔍 Check Out Time:', result.data.attendance?.check_out_time);
+          console.log('🔍 Status:', result.data.status);
+          console.log('🔍 Can Check Out:', result.data.can_check_out);
+          setAttendanceStatus(result.data);
+          setError(null);
+        }
+      } else {
+        console.error('Failed to fetch attendance status:', response.status);
+        setError('Gagal memuat status presensi');
+      }
+    } catch (error) {
+      console.error('Error fetching attendance status:', error);
+      setError('Gagal memuat status presensi');
+    }
+  };
+
+  // Update time every second and refresh attendance status
   useEffect(() => {
+    // Fetch initial status
+    fetchAttendanceStatus();
+    
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-      
-      // Update working hours if checked in
-      if (isCheckedIn && checkedInAt) {
-        const checkedInTime = new Date();
-        const [hours, minutes] = checkedInAt.split(':');
-        checkedInTime.setHours(parseInt(hours), parseInt(minutes), 0);
-        
-        const diff = new Date().getTime() - checkedInTime.getTime();
-        const workHours = Math.floor(diff / (1000 * 60 * 60));
-        const workMinutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const workSeconds = Math.floor((diff % (1000 * 60)) / 1000);
-        
-        setWorkingHours(`${workHours.toString().padStart(2, '0')}:${workMinutes.toString().padStart(2, '0')}:${workSeconds.toString().padStart(2, '0')}`);
-      }
     }, 1000);
     
-    return () => clearInterval(timer);
-  }, [isCheckedIn, checkedInAt]);
+    // Refresh attendance status every 30 seconds
+    const statusTimer = setInterval(() => {
+      fetchAttendanceStatus();
+    }, 30000);
+    
+    return () => {
+      clearInterval(timer);
+      clearInterval(statusTimer);
+    };
+  }, []);
 
-  const handleCheckIn = () => {
+  const handleCheckIn = async () => {
     // Check if location is required and available
     if (isLocationRequired && !checkinLocation) {
       alert('Mohon pilih lokasi presensi terlebih dahulu menggunakan peta di bawah');
@@ -48,22 +127,61 @@ export function Presensi() {
       return;
     }
 
-    const now = new Date();
-    setIsCheckedIn(true);
-    setCheckedInAt(now.toLocaleTimeString('id-ID', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    }));
+    if (!attendanceStatus?.can_check_in) {
+      alert(attendanceStatus?.message || 'Anda tidak dapat melakukan check-in saat ini');
+      return;
+    }
 
-    // Here you would typically save to database
+    setIsLoading(true);
+    setError(null);
 
-    // Show success notification
-    if (checkinLocation) {
-      alert(`Check-in berhasil!\nLokasi: ${checkinLocation.address || 'Koordinat: ' + checkinLocation.lat + ', ' + checkinLocation.lng}${checkinLocation.accuracy ? '\nAkurasi GPS: ' + Math.round(checkinLocation.accuracy) + ' meter' : ''}`);
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      const apiToken = document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
+      
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      };
+      
+      if (apiToken) {
+        headers['Authorization'] = `Bearer ${apiToken}`;
+      }
+
+      const response = await fetch('/api/v2/dashboards/paramedis/checkin', {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({
+          latitude: checkinLocation?.lat,
+          longitude: checkinLocation?.lng,
+          accuracy: checkinLocation?.accuracy,
+          location_name: checkinLocation?.address || 'Location from Map',
+          notes: 'Check-in from mobile app'
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Refresh attendance status immediately
+        await fetchAttendanceStatus();
+        
+        alert(`Check-in berhasil!\nWaktu: ${result.data.time_in}\nLokasi: ${checkinLocation?.address || 'Koordinat: ' + checkinLocation?.lat + ', ' + checkinLocation?.lng}`);
+      } else {
+        throw new Error(result.message || 'Check-in gagal');
+      }
+    } catch (error: any) {
+      console.error('Check-in error:', error);
+      setError(error.message || 'Gagal melakukan check-in');
+      alert('Gagal melakukan check-in: ' + (error.message || 'Terjadi kesalahan'));
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleCheckOut = () => {
+  const handleCheckOut = async () => {
     // Check if location is required and available for checkout
     if (isLocationRequired && !checkoutLocation) {
       alert('Mohon pilih lokasi check-out terlebih dahulu menggunakan peta di bawah');
@@ -71,32 +189,73 @@ export function Presensi() {
       return;
     }
 
-    setIsCheckedIn(false);
-    setCheckedInAt(null);
-    setWorkingHours('00:00:00');
-
-    // Here you would typically save to database
-
-    // Show success notification
-    if (checkoutLocation) {
-      alert(`Check-out berhasil!\nLokasi: ${checkoutLocation.address || 'Koordinat: ' + checkoutLocation.lat + ', ' + checkoutLocation.lng}${checkoutLocation.accuracy ? '\nAkurasi GPS: ' + Math.round(checkoutLocation.accuracy) + ' meter' : ''}`);
+    if (!attendanceStatus?.can_check_out) {
+      alert(attendanceStatus?.message || 'Anda tidak dapat melakukan check-out saat ini');
+      return;
     }
 
-    // Reset locations for next day
-    setCheckinLocation(null);
-    setCheckoutLocation(null);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      const apiToken = document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
+      
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      };
+      
+      if (apiToken) {
+        headers['Authorization'] = `Bearer ${apiToken}`;
+      }
+
+      const response = await fetch('/api/v2/dashboards/paramedis/checkout', {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({
+          latitude: checkoutLocation?.lat,
+          longitude: checkoutLocation?.lng,
+          accuracy: checkoutLocation?.accuracy,
+          location_name: checkoutLocation?.address || 'Location from Map',
+          notes: 'Check-out from mobile app'
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Refresh attendance status immediately
+        await fetchAttendanceStatus();
+        
+        const workDuration = result.data.work_duration?.hours_minutes || result.data.work_duration?.formatted || 'N/A';
+        alert(`Check-out berhasil!\nWaktu: ${result.data.time_out}\nTotal Jam Kerja: ${workDuration}\nLokasi: ${checkoutLocation?.address || 'Koordinat: ' + checkoutLocation?.lat + ', ' + checkoutLocation?.lng}`);
+        
+        // Reset locations for next day
+        setCheckinLocation(null);
+        setCheckoutLocation(null);
+      } else {
+        throw new Error(result.message || 'Check-out gagal');
+      }
+    } catch (error: any) {
+      console.error('Check-out error:', error);
+      setError(error.message || 'Gagal melakukan check-out');
+      alert('Gagal melakukan check-out: ' + (error.message || 'Terjadi kesalahan'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLocationSelect = (location: {lat: number; lng: number; accuracy?: number; address?: string}) => {
     try {
-      if (!isCheckedIn) {
+      if (attendanceStatus?.can_check_in) {
         // Setting check-in location
         setCheckinLocation(location);
-        // Check-in location set
-      } else {
+      } else if (attendanceStatus?.can_check_out) {
         // Setting check-out location
         setCheckoutLocation(location);
-        // Check-out location set
       }
     } catch (error) {
       // Error setting location
@@ -189,7 +348,7 @@ export function Presensi() {
             </motion.div>
 
             {/* Working Hours Display */}
-            {isCheckedIn && (
+            {attendanceStatus?.status === 'checked_in' && attendanceStatus?.attendance?.work_duration_minutes && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -197,15 +356,19 @@ export function Presensi() {
               >
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Activity className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  <span className="text-green-700 dark:text-green-300 font-medium">Jam Kerja Hari Ini</span>
+                  <span className="text-green-700 dark:text-green-300 font-medium">Jam Kerja Hari Ini (Live)</span>
                 </div>
-                <div className="text-2xl text-green-800 dark:text-green-200 font-mono font-bold">{workingHours}</div>
+                <div className="text-2xl text-green-800 dark:text-green-200 font-mono font-bold">
+                  {Math.floor(attendanceStatus.attendance.work_duration_minutes / 60).toString().padStart(2, '0')}:
+                  {(attendanceStatus.attendance.work_duration_minutes % 60).toString().padStart(2, '0')}:
+                  {(Math.floor((Date.now() - new Date(attendanceStatus.attendance.check_in_time).getTime()) / 1000) % 60).toString().padStart(2, '0')}
+                </div>
               </motion.div>
             )}
 
             {/* Check In/Out Button */}
             <AnimatePresence mode="wait">
-              {isCheckedIn ? (
+              {attendanceStatus?.can_check_out ? (
                 <motion.div
                   key="checked-in"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -219,7 +382,9 @@ export function Presensi() {
                     transition={{ duration: 2, repeat: Infinity }}
                   >
                     <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                    <span className="text-green-700 dark:text-green-300 font-medium">Check-in pada {checkedInAt}</span>
+                    <span className="text-green-700 dark:text-green-300 font-medium">
+                      Check-in pada {formatTime(attendanceStatus?.attendance?.check_in_time)}
+                    </span>
                   </motion.div>
                   <motion.div
                     whileHover={{ scale: 1.02 }}
@@ -227,14 +392,15 @@ export function Presensi() {
                   >
                     <Button 
                       onClick={handleCheckOut}
-                      className="w-full bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 hover:from-red-600 hover:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white shadow-lg h-14 text-lg font-semibold transition-all duration-300"
+                      disabled={isLoading}
+                      className="w-full bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 hover:from-red-600 hover:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white shadow-lg h-14 text-lg font-semibold transition-all duration-300 disabled:opacity-50"
                     >
                       <XCircle className="w-6 h-6 mr-3" />
-                      Check Out
+                      {isLoading ? 'Processing...' : 'Check Out'}
                     </Button>
                   </motion.div>
                 </motion.div>
-              ) : (
+              ) : attendanceStatus?.can_check_in ? (
                 <motion.div
                   key="not-checked-in"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -245,11 +411,25 @@ export function Presensi() {
                 >
                   <Button 
                     onClick={handleCheckIn}
-                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 hover:from-blue-600 hover:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800 text-white shadow-lg h-14 text-lg font-semibold transition-all duration-300"
+                    disabled={isLoading}
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 hover:from-blue-600 hover:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800 text-white shadow-lg h-14 text-lg font-semibold transition-all duration-300 disabled:opacity-50"
                   >
                     <CheckCircle className="w-6 h-6 mr-3" />
-                    Check In
+                    {isLoading ? 'Processing...' : 'Check In'}
                   </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="completed"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="p-4 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl text-center"
+                >
+                  <CheckCircle className="w-6 h-6 text-gray-600 dark:text-gray-400 mx-auto mb-2" />
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">
+                    {attendanceStatus?.message || 'Presensi sudah selesai untuk hari ini'}
+                  </span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -267,29 +447,61 @@ export function Presensi() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+            
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 rounded-xl border border-blue-200 dark:border-blue-700">
                 <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
                 <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
-                  {isCheckedIn ? checkedInAt || '--:--' : '--:--'}
+                  {formatTime(attendanceStatus?.attendance?.check_in_time)}
                 </div>
                 <div className="text-xs font-medium text-blue-600 dark:text-blue-400">Check In</div>
+                {attendanceStatus?.attendance?.is_late && (
+                  <div className="text-xs text-red-500 mt-1">Terlambat</div>
+                )}
               </div>
               
               <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/30 rounded-xl border border-orange-200 dark:border-orange-700">
                 <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400 mx-auto mb-2" />
                 <div className="text-lg font-bold text-orange-700 dark:text-orange-300">
-                  {!isCheckedIn && checkedInAt ? currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                  {formatTime(attendanceStatus?.attendance?.check_out_time)}
                 </div>
                 <div className="text-xs font-medium text-orange-600 dark:text-orange-400">Check Out</div>
+                {attendanceStatus?.status === 'checked_in' && (
+                  <div className="text-xs text-orange-500 mt-1">Belum checkout</div>
+                )}
+                {attendanceStatus?.status === 'completed' && (
+                  <div className="text-xs text-green-500 mt-1">✓ Selesai</div>
+                )}
               </div>
               
               <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30 rounded-xl border border-green-200 dark:border-green-700">
                 <Activity className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                <div className="text-lg font-bold text-green-700 dark:text-green-300">{workingHours.split(':')[0]}h</div>
+                <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                  {attendanceStatus?.attendance?.work_duration || (
+                    attendanceStatus?.attendance?.work_duration_minutes ? 
+                    `${Math.floor(attendanceStatus.attendance.work_duration_minutes / 60)}h ${attendanceStatus.attendance.work_duration_minutes % 60}m` : 
+                    '--h --m'
+                  )}
+                </div>
                 <div className="text-xs font-medium text-green-600 dark:text-green-400">Total Jam</div>
+                {attendanceStatus?.status === 'checked_in' && attendanceStatus?.attendance?.work_duration_minutes && (
+                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    {Math.floor(attendanceStatus.attendance.work_duration_minutes / 60)}j {attendanceStatus.attendance.work_duration_minutes % 60}m (Berjalan)
+                  </div>
+                )}
               </div>
             </div>
+            
+            {attendanceStatus?.message && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
+                Status: {attendanceStatus.message}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -320,21 +532,21 @@ export function Presensi() {
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                    {!isCheckedIn ? 'Lokasi Check-in' : 'Lokasi Check-out'}
+                    {attendanceStatus?.can_check_in ? 'Lokasi Check-in' : 'Lokasi Check-out'}
                   </span>
                 </div>
                 <div className="text-xs text-blue-600 dark:text-blue-400">
-                  {(!isCheckedIn && checkinLocation) ? '✓ Tersimpan' : 
-                   (isCheckedIn && checkoutLocation) ? '✓ Tersimpan' : 
+                  {(attendanceStatus?.can_check_in && checkinLocation) ? '✓ Tersimpan' : 
+                   (attendanceStatus?.can_check_out && checkoutLocation) ? '✓ Tersimpan' : 
                    'Belum dipilih'}
                 </div>
               </div>
               
               {/* Current Location Display */}
-              {((checkinLocation && !isCheckedIn) || (checkoutLocation && isCheckedIn)) && (
+              {((checkinLocation && attendanceStatus?.can_check_in) || (checkoutLocation && attendanceStatus?.can_check_out)) && (
                 <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
                   <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
-                    {!isCheckedIn && checkinLocation && (
+                    {attendanceStatus?.can_check_in && checkinLocation && (
                       <>
                         <p><strong>Check-in:</strong> {checkinLocation.address || `${checkinLocation.lat.toFixed(6)}, ${checkinLocation.lng.toFixed(6)}`}</p>
                         {checkinLocation.accuracy && (
@@ -342,7 +554,7 @@ export function Presensi() {
                         )}
                       </>
                     )}
-                    {isCheckedIn && checkoutLocation && (
+                    {attendanceStatus?.can_check_out && checkoutLocation && (
                       <>
                         <p><strong>Check-out:</strong> {checkoutLocation.address || `${checkoutLocation.lat.toFixed(6)}, ${checkoutLocation.lng.toFixed(6)}`}</p>
                         {checkoutLocation.accuracy && (

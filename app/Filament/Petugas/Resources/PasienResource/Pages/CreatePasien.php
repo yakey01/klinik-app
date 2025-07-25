@@ -20,11 +20,47 @@ class CreatePasien extends CreateRecord
         // Set input_by to current authenticated user
         $data['input_by'] = auth()->id();
         
+        // Set status to verified (auto-active)
+        $data['status'] = 'verified';
+        $data['verified_at'] = now();
+        $data['verified_by'] = auth()->id();
+        
         return $data;
+    }
+
+    protected function getFormSchema(): array
+    {
+        return [
+            'no_rekam_medis' => 'nullable|string|max:20|unique:pasien,no_rekam_medis',
+            'nama' => 'required|string|max:255',
+            'tanggal_lahir' => 'required|date|before_or_equal:today',
+            'jenis_kelamin' => 'required|in:L,P',
+            'alamat' => 'nullable|string|max:500',
+            'no_telepon' => 'nullable|string|max:20',
+        ];
     }
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index');
+        return $this->getResource()::getUrl('create');
+    }
+
+    protected function getCreatedNotificationTitle(): ?string
+    {
+        return 'Pasien berhasil disimpan dan langsung aktif!';
+    }
+
+    protected function afterCreate(): void
+    {
+        // Clear the form for next input
+        $this->form->fill();
+        
+        // Show success message
+        \Filament\Notifications\Notification::make()
+            ->title('✅ Data Pasien Berhasil Disimpan')
+            ->body('Pasien telah terdaftar dan langsung aktif. Form siap untuk input pasien berikutnya.')
+            ->success()
+            ->persistent()
+            ->send();
     }
 }

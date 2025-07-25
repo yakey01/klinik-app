@@ -79,8 +79,8 @@ class ValidasiJaspelResource extends Resource
                             ->label('Status Validasi')
                             ->options([
                                 'pending' => 'Menunggu Validasi',
-                                'approved' => 'Disetujui',
-                                'rejected' => 'Ditolak',
+                                'disetujui' => 'Disetujui',
+                                'ditolak' => 'Ditolak',
                                 'need_revision' => 'Perlu Revisi',
                             ])
                             ->required(),
@@ -142,15 +142,15 @@ class ValidasiJaspelResource extends Resource
                     ->label('Status')
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',
-                        'approved' => 'success',
-                        'rejected' => 'danger',
+                        'disetujui' => 'success',
+                        'ditolak' => 'danger',
                         'need_revision' => 'info',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'pending' => '⏳ Menunggu',
-                        'approved' => '✅ Disetujui',
-                        'rejected' => '❌ Ditolak',
+                        'disetujui' => '✅ Disetujui',
+                        'ditolak' => '❌ Ditolak',
                         'need_revision' => '📝 Revisi',
                         default => ucfirst($state),
                     }),
@@ -203,8 +203,8 @@ class ValidasiJaspelResource extends Resource
                     ->label('Status Validasi')
                     ->options([
                         'pending' => 'Menunggu Validasi',
-                        'approved' => 'Disetujui',
-                        'rejected' => 'Ditolak',
+                        'disetujui' => 'Disetujui',
+                        'ditolak' => 'Ditolak',
                         'need_revision' => 'Perlu Revisi',
                     ]),
 
@@ -238,7 +238,7 @@ class ValidasiJaspelResource extends Resource
                         ->action(function (Jaspel $record, array $data) {
                             try {
                                 $record->update([
-                                    'status_validasi' => 'approved',
+                                    'status_validasi' => 'disetujui',
                                     'nominal' => $data['approved_amount'],
                                     'catatan_validasi' => $data['approval_notes'],
                                     'validasi_by' => Auth::id(),
@@ -290,7 +290,7 @@ class ValidasiJaspelResource extends Resource
                         ->action(function (Jaspel $record, array $data) {
                             try {
                                 $record->update([
-                                    'status_validasi' => 'rejected',
+                                    'status_validasi' => 'ditolak',
                                     'catatan_validasi' => $data['rejection_reason'],
                                     'rejection_category' => $data['rejection_category'],
                                     'validasi_by' => Auth::id(),
@@ -346,7 +346,7 @@ class ValidasiJaspelResource extends Resource
                                 if ($record->status_validasi === 'pending') {
                                     try {
                                         $record->update([
-                                            'status_validasi' => 'approved',
+                                            'status_validasi' => 'disetujui',
                                             'catatan_validasi' => $data['bulk_approval_notes'],
                                             'validasi_by' => Auth::id(),
                                             'validasi_at' => now(),
@@ -396,7 +396,7 @@ class ValidasiJaspelResource extends Resource
                                 'count_today' => Jaspel::whereDate('tanggal', $today)->count(),
                                 'pending_count' => Jaspel::where('status_validasi', 'pending')->count(),
                                 'approved_today' => Jaspel::whereDate('validasi_at', $today)
-                                    ->where('status_validasi', 'approved')->count(),
+                                    ->where('status_validasi', 'disetujui')->count(),
                             ];
 
                             $message = "📊 **RINGKASAN JASPEL HARIAN**\n\n";

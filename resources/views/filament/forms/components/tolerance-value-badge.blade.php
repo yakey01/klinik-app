@@ -1,0 +1,1 @@
+<span class="tolerance-value-badge {{ $bgClass }} {{ $textClass }}">{{ $value }}</span>

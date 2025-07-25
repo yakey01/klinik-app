@@ -11,4 +11,5 @@ return [
     App\Providers\Filament\ManajerPanelProvider::class,
     App\Providers\Filament\ParamedisPanelProvider::class,
     App\Providers\Filament\PetugasPanelProvider::class,
+    App\Providers\Filament\VerifikatorPanelProvider::class,
 ];

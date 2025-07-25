@@ -81,7 +81,7 @@ class SecurityAccessControlTest extends TestCase
     {
         // Test unauthenticated access is denied
         $response = $this->get('/petugas');
-        $response->assertRedirect('/petugas/login');
+        $response->assertRedirect('/login');
         
         // Test authenticated access works
         $this->actingAs($this->petugasUser);

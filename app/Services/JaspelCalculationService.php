@@ -111,8 +111,8 @@ class JaspelCalculationService
             $user = $paramedis;
         }
 
-        // Calculate fee for paramedis
-        $nominalJaspel = $this->calculateParamedisFee($jenisTindakan->tarif);
+        // Calculate fee for paramedis with proper jenis_tindakan context
+        $nominalJaspel = $this->calculateParamedisFee($jenisTindakan->tarif, $jenisTindakan);
 
         // Check if Jaspel already exists for this tindakan and paramedis
         $existingJaspel = Jaspel::where('user_id', $user->id)
@@ -152,13 +152,17 @@ class JaspelCalculationService
     }
 
     /**
-     * Calculate paramedis fee based on tarif
+     * Calculate paramedis fee based on tarif and jenis_tindakan
      */
-    private function calculateParamedisFee($tarif)
+    private function calculateParamedisFee($tarif, $jenisTindakan = null)
     {
-        // Fee calculation logic for paramedis
-        // This can be customized based on actual business rules
-        return $tarif * 0.15; // 15% for paramedis
+        // Prioritize jenis_tindakan persentase_jaspel if available
+        if ($jenisTindakan && $jenisTindakan->persentase_jaspel > 0) {
+            return $tarif * ($jenisTindakan->persentase_jaspel / 100);
+        }
+        
+        // Fallback to standard 15% for paramedis
+        return $tarif * 0.15;
     }
 
     /**

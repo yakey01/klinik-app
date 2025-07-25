@@ -26,6 +26,9 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\UserCreated::class => [
             \App\Listeners\SendTelegramNotification::class,
         ],
+        \App\Events\WorkLocationUpdated::class => [
+            \App\Listeners\ClearWorkLocationCache::class,
+        ],
     ];
 
     /**

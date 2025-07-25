@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\BulkAction;
+use Filament\Tables\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -153,25 +154,17 @@ class ValidationCenterResource extends Resource
                 Tables\Columns\TextColumn::make('jaspel_diterima')
                     ->label('Jaspel Diterima')
                     ->money('IDR')
-                    ->sortable()
-                    ->getStateUsing(function (Tindakan $record): float {
-                        // Calculate Jaspel based on JenisTindakan percentage
-                        $persentaseJaspel = $record->jenisTindakan->persentase_jaspel ?? 40;
-                        return $record->tarif * ($persentaseJaspel / 100);
-                    })
+                    ->sortable(false)
                     ->summarize([
                         Tables\Columns\Summarizers\Summarizer::make()
                             ->label('Total Jaspel')
                             ->using(function ($query) {
-                                // Calculate total jaspel based on tarif and percentage
-                                $tindakanRecords = \App\Models\Tindakan::whereIn('id', $query->pluck('id'))
+                                // Get records and sum their jaspel_diterima accessor
+                                $records = \App\Models\Tindakan::whereIn('id', $query->pluck('id'))
                                     ->with('jenisTindakan')
                                     ->get();
-                                    
-                                $total = $tindakanRecords->sum(function ($record) {
-                                    $persentaseJaspel = $record->jenisTindakan->persentase_jaspel ?? 40;
-                                    return $record->tarif * ($persentaseJaspel / 100);
-                                });
+                                
+                                $total = $records->sum('jaspel_diterima');
                                 return 'Rp ' . number_format($total, 0, ',', '.');
                             }),
                     ])
@@ -303,6 +296,20 @@ class ValidationCenterResource extends Resource
                     ->searchable()
                     ->preload(),
 
+                // Pelaksana Filter (Dokter)
+                Tables\Filters\SelectFilter::make('dokter_id')
+                    ->label('Dokter')
+                    ->relationship('dokter', 'nama_lengkap')
+                    ->searchable()
+                    ->preload(),
+
+                // Pelaksana Filter (Paramedis)
+                Tables\Filters\SelectFilter::make('paramedis_id')
+                    ->label('Paramedis')
+                    ->relationship('paramedis', 'nama_lengkap')
+                    ->searchable()
+                    ->preload(),
+
                 // Custom Date Range Filter
                 Tables\Filters\Filter::make('custom_date_range')
                     ->form([
@@ -397,6 +404,19 @@ class ValidationCenterResource extends Resource
                         ->label('✏️ Edit')
                         ->visible(fn (Tindakan $record): bool => Auth::user()->hasRole(['admin', 'bendahara']))
                         ->modalWidth('4xl'),
+
+                    Tables\Actions\DeleteAction::make()
+                        ->label('🗑️ Delete')
+                        ->color('danger')
+                        ->visible(fn (Tindakan $record): bool => Auth::user()->hasRole(['admin', 'bendahara']))
+                        ->requiresConfirmation()
+                        ->modalHeading('🗑️ Hapus Data Validasi')
+                        ->modalDescription('Apakah Anda yakin ingin menghapus data validasi ini? Data yang telah dihapus tidak dapat dikembalikan.')
+                        ->modalSubmitActionLabel('Ya, Hapus')
+                        ->modalCancelActionLabel('Batal')
+                        ->action(function (Tindakan $record) {
+                            static::handleDelete($record);
+                        }),
                 ])
                 ->label('⚙️ Actions')
                 ->icon('heroicon-o-ellipsis-vertical')
@@ -475,6 +495,26 @@ class ValidationCenterResource extends Resource
                         ])
                         ->action(function (Collection $records, array $data) {
                             static::bulkAssignValidator($records, $data['validator_id']);
+                        }),
+
+                    // Bulk Delete
+                    BulkAction::make('bulk_delete')
+                        ->label('🗑️ Bulk Delete')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('🗑️ Hapus Data Terpilih')
+                        ->modalDescription('Apakah Anda yakin ingin menghapus semua data validasi yang dipilih? Data yang telah dihapus tidak dapat dikembalikan.')
+                        ->modalSubmitActionLabel('Ya, Hapus Semua')
+                        ->modalCancelActionLabel('Batal')
+                        ->form([
+                            Forms\Components\Textarea::make('deletion_reason')
+                                ->label('Alasan Penghapusan')
+                                ->placeholder('Berikan alasan penghapusan data ini...')
+                                ->required(),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            static::handleBulkDelete($records, $data['deletion_reason']);
                         }),
                 ]),
             ])
@@ -714,6 +754,113 @@ class ValidationCenterResource extends Resource
             Notification::make()
                 ->title('❌ Assignment Failed')
                 ->body('Error: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected static function handleDelete(Tindakan $record): void
+    {
+        try {
+            \DB::transaction(function() use ($record) {
+                // Check if this is a critical record (already approved with related Jaspel)
+                if ($record->status_validasi === 'disetujui' && $record->jaspel()->exists()) {
+                    // If approved and has related Jaspel, also soft delete the related Jaspel records
+                    $record->jaspel()->delete();
+                }
+                
+                // Log the deletion activity
+                \Log::info('Tindakan deleted', [
+                    'id' => $record->id,
+                    'jenis_tindakan' => $record->jenisTindakan->nama ?? 'Unknown',
+                    'pasien' => $record->pasien->nama ?? 'Unknown',
+                    'tanggal_tindakan' => $record->tanggal_tindakan,
+                    'deleted_by' => Auth::id(),
+                    'deleted_by_name' => Auth::user()->name,
+                    'deleted_at' => now(),
+                ]);
+                
+                // Soft delete the Tindakan record
+                $record->delete();
+            });
+
+            Notification::make()
+                ->title('✅ Data Berhasil Dihapus')
+                ->body('Data validasi tindakan telah berhasil dihapus. Data terkait juga telah diperbarui.')
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete Tindakan', [
+                'id' => $record->id,
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+            ]);
+
+            Notification::make()
+                ->title('❌ Gagal Menghapus Data')
+                ->body('Terjadi kesalahan saat menghapus data: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected static function handleBulkDelete(Collection $records, string $reason): void
+    {
+        try {
+            $count = $records->count();
+            $deletedCount = 0;
+            $relatedJaspelCount = 0;
+
+            \DB::transaction(function() use ($records, $reason, &$deletedCount, &$relatedJaspelCount) {
+                foreach ($records as $record) {
+                    // Check if this record has related Jaspel
+                    if ($record->status_validasi === 'disetujui' && $record->jaspel()->exists()) {
+                        $jaspelCount = $record->jaspel()->count();
+                        $record->jaspel()->delete();
+                        $relatedJaspelCount += $jaspelCount;
+                    }
+                    
+                    // Log each deletion
+                    \Log::info('Bulk Tindakan deletion', [
+                        'id' => $record->id,
+                        'jenis_tindakan' => $record->jenisTindakan->nama ?? 'Unknown',
+                        'pasien' => $record->pasien->nama ?? 'Unknown',
+                        'tanggal_tindakan' => $record->tanggal_tindakan,
+                        'reason' => $reason,
+                        'deleted_by' => Auth::id(),
+                        'deleted_by_name' => Auth::user()->name,
+                        'deleted_at' => now(),
+                    ]);
+                    
+                    // Soft delete the record
+                    $record->delete();
+                    $deletedCount++;
+                }
+            });
+
+            $message = "Berhasil menghapus {$deletedCount} data validasi tindakan";
+            if ($relatedJaspelCount > 0) {
+                $message .= " dan {$relatedJaspelCount} data Jaspel terkait";
+            }
+
+            Notification::make()
+                ->title('✅ Bulk Delete Berhasil')
+                ->body($message)
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to bulk delete Tindakan', [
+                'records_count' => $records->count(),
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+                'reason' => $reason,
+            ]);
+
+            Notification::make()
+                ->title('❌ Gagal Menghapus Data')
+                ->body('Terjadi kesalahan saat menghapus data: ' . $e->getMessage())
                 ->danger()
                 ->send();
         }

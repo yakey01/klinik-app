@@ -34,6 +34,18 @@ class AutoCodeGeneratorService
     }
     
     /**
+     * Generate next code for JenisTindakan with format TDK-001
+     */
+    public static function generateJenisTindakanCode(): string
+    {
+        $prefix = 'TDK';
+        $separator = '-';
+        $padding = 3;
+        
+        return static::generateCode('jenis_tindakan', 'kode', $prefix, $separator, $padding);
+    }
+    
+    /**
      * Generate next sequential code with transaction safety
      */
     private static function generateCode(string $table, string $column, string $prefix, string $separator, int $padding): string

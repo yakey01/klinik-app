@@ -92,7 +92,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->pages([
                 \App\Filament\Pages\EnhancedAdminDashboard::class,
-                \App\Filament\Pages\AdminProfileSettings::class,
                 \App\Filament\Pages\SystemMonitoring::class,
             ])
             ->widgets([
@@ -124,6 +123,7 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 FilamentFullCalendarPlugin::make(),
             ])
+            ->profile()
             ->tenant(null) // Disable multi-tenancy for now
             ->navigationGroups([
                 NavigationGroup::make('📊 DASHBOARD')

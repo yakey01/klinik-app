@@ -67,10 +67,6 @@
                                 <dd class="font-mono">{{ \App\Models\SystemSetting::get('maintenance_mode', false) ? 'Enabled' : 'Disabled' }}</dd>
                             </div>
                             <div class="flex justify-between">
-                                <dt>Allowed IPs:</dt>
-                                <dd class="font-mono">{{ \App\Models\SystemSetting::get('maintenance_allowed_ips', '127.0.0.1') }}</dd>
-                            </div>
-                            <div class="flex justify-between">
                                 <dt>Message:</dt>
                                 <dd class="font-mono truncate max-w-xs">{{ \App\Models\SystemSetting::get('maintenance_message', 'Default message') }}</dd>
                             </div>
@@ -125,7 +121,6 @@
                         <li><strong>Laravel Down:</strong> Uses Laravel's built-in maintenance mode (php artisan down)</li>
                         <li><strong>Custom Maintenance:</strong> Uses custom middleware for more flexible control</li>
                         <li><strong>Scheduled Maintenance:</strong> Automatically enable/disable maintenance at specific times</li>
-                        <li><strong>IP Whitelisting:</strong> Allow specific IP addresses to bypass maintenance mode</li>
                     </ul>
                 </div>
             </div>

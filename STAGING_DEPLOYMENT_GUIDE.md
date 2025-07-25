@@ -177,9 +177,9 @@ docker-compose -f docker-compose.staging.yml exec app npm run build
 curl -I https://staging.dokterku.com/admin/login
 curl -I https://staging.dokterku.com/manajer/login
 curl -I https://staging.dokterku.com/bendahara/login
-curl -I https://staging.dokterku.com/petugas/login
 curl -I https://staging.dokterku.com/paramedis/login
 curl -I https://staging.dokterku.com/dokter/login
+# Note: /petugas/login removed - uses unified auth at /login
 ```
 
 ### 2. Health Check Validation

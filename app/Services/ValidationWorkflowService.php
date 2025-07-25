@@ -207,7 +207,7 @@ class ValidationWorkflowService
 
             // Update record status
             $record->update([
-                'status_validasi' => 'rejected',
+                'status_validasi' => 'ditolak',
                 'rejected_at' => now(),
                 'rejected_by' => $rejectedBy,
                 'rejection_reason' => $reason,

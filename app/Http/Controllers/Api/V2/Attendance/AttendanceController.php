@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V2\Attendance;
 
 use App\Http\Controllers\Api\V2\BaseApiController;
 use App\Models\Attendance;
+use App\Models\Location;
 use App\Models\WorkLocation;
 use App\Models\User;
+use App\Services\AttendanceValidationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -20,6 +22,12 @@ use Carbon\Carbon;
  */
 class AttendanceController extends BaseApiController
 {
+    protected AttendanceValidationService $validationService;
+    
+    public function __construct(AttendanceValidationService $validationService)
+    {
+        $this->validationService = $validationService;
+    }
     /**
      * @OA\Post(
      *     path="/api/v2/attendance/checkin",
@@ -82,33 +90,43 @@ class AttendanceController extends BaseApiController
         $user = $this->getAuthenticatedUser();
         $today = Carbon::today();
 
-        // Check if user already checked in today
-        $existingAttendance = Attendance::where('user_id', $user->id)
-            ->whereDate('date', $today)
-            ->first();
-
-        if ($existingAttendance) {
+        // Check attendance status for today
+        $attendanceStatus = Attendance::getTodayStatus($user->id);
+        
+        if (!$attendanceStatus['can_check_in']) {
+            $message = $attendanceStatus['status'] === 'checked_in' 
+                ? 'Anda sudah check-in hari ini. Silakan lakukan check-out terlebih dahulu.'
+                : 'Anda sudah menyelesaikan presensi hari ini. Check-in dapat dilakukan kembali besok.';
+                
             return $this->errorResponse(
-                'Anda sudah melakukan check-in hari ini',
+                $message,
                 400,
-                null,
-                'ALREADY_CHECKED_IN'
+                [
+                    'current_status' => $attendanceStatus['status'],
+                    'message' => $attendanceStatus['message'],
+                    'attendance' => $attendanceStatus['attendance'] ? [
+                        'time_in' => $attendanceStatus['attendance']->time_in?->format('H:i:s'),
+                        'time_out' => $attendanceStatus['attendance']->time_out?->format('H:i:s'),
+                        'duration' => $attendanceStatus['attendance']->formatted_work_duration
+                    ] : null
+                ],
+                'CANNOT_CHECK_IN'
             );
         }
 
-        // Validate GPS location
-        $gpsValidation = $this->validateGpsLocation(
-            $request->latitude,
-            $request->longitude,
-            $request->accuracy
-        );
-
-        if (!$gpsValidation['valid']) {
+        // Comprehensive validation using AttendanceValidationService
+        $latitude = (float) $request->latitude;
+        $longitude = (float) $request->longitude;
+        $accuracy = $request->accuracy ? (float) $request->accuracy : null;
+        
+        $validation = $this->validationService->validateCheckin($user, $latitude, $longitude, $accuracy, $today);
+        
+        if (!$validation['valid']) {
             return $this->errorResponse(
-                $gpsValidation['message'],
+                $validation['message'],
                 400,
-                null,
-                'GPS_VALIDATION_FAILED'
+                $validation['data'] ?? null,
+                $validation['code']
             );
         }
 
@@ -118,21 +136,28 @@ class AttendanceController extends BaseApiController
             $faceRecognitionResult = $this->processFaceRecognition($user->id, $request->face_image);
         }
 
-        // Create attendance record
+        // Extract validated data
+        $jadwalJaga = $validation['jadwal_jaga'];
+        $workLocation = $validation['work_location'];
+        $isLate = $validation['code'] === 'VALID_BUT_LATE';
+        
+        // Create attendance record with enhanced data
         $attendance = Attendance::create([
             'user_id' => $user->id,
             'date' => $today,
             'time_in' => Carbon::now(),
-            'latitude_in' => $request->latitude,
-            'longitude_in' => $request->longitude,
-            'accuracy_in' => $request->accuracy,
-            'location_name_in' => $request->location_name ?? $gpsValidation['work_location']?->name,
-            'work_location_id' => $gpsValidation['work_location']?->id,
-            'status' => 'present',
-            'notes_in' => $request->notes,
-            'face_recognition_in' => $faceRecognitionResult,
-            'ip_address_in' => $request->ip(),
-            'user_agent_in' => $request->userAgent(),
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'accuracy' => $accuracy,
+            'latlon_in' => $latitude . ',' . $longitude,
+            'location_name_in' => $request->location_name ?? $workLocation->name,
+            'location_id' => $workLocation instanceof WorkLocation ? null : $workLocation?->id, // Legacy location ID
+            'work_location_id' => $workLocation instanceof WorkLocation ? $workLocation->id : null,
+            'jadwal_jaga_id' => $jadwalJaga->id,
+            'status' => $isLate ? 'late' : 'present',
+            'notes' => $request->notes,
+            'photo_in' => $faceRecognitionResult ? 'face_recognition_stored' : null,
+            'location_validated' => true,
         ]);
 
         // Clear cache
@@ -143,19 +168,31 @@ class AttendanceController extends BaseApiController
             'time_in' => $attendance->time_in->format('H:i:s'),
             'status' => $attendance->status,
             'coordinates' => [
-                'latitude' => $attendance->latitude_in,
-                'longitude' => $attendance->longitude_in,
-                'accuracy' => $attendance->accuracy_in,
+                'latitude' => $attendance->latitude,
+                'longitude' => $attendance->longitude,
+                'accuracy' => $attendance->accuracy,
             ],
             'location' => [
                 'name' => $attendance->location_name_in,
                 'work_location_id' => $attendance->work_location_id,
+                'location_id' => $attendance->location_id, // Legacy support
+            ],
+            'schedule' => [
+                'jadwal_jaga_id' => $attendance->jadwal_jaga_id,
+                'shift_name' => $jadwalJaga->shiftTemplate?->nama_shift ?? 'Unknown',
+                'unit_kerja' => $jadwalJaga->unit_kerja,
+                'is_late' => $isLate,
+            ],
+            'validation_details' => [
+                'message' => $validation['message'],
+                'code' => $validation['code'],
+                'all_validations' => $validation['validations'] ?? null,
             ],
             'face_recognition' => $faceRecognitionResult ? [
                 'verified' => $faceRecognitionResult['verified'] ?? false,
                 'confidence' => $faceRecognitionResult['confidence'] ?? 0,
             ] : null,
-        ], 'Check-in berhasil', 201);
+        ], $validation['message'], 201);
     }
 
     /**
@@ -201,44 +238,23 @@ class AttendanceController extends BaseApiController
         $user = $this->getAuthenticatedUser();
         $today = Carbon::today();
 
-        // Find today's attendance record
-        $attendance = Attendance::where('user_id', $user->id)
-            ->whereDate('date', $today)
-            ->first();
-
-        if (!$attendance) {
+        // Comprehensive validation using AttendanceValidationService
+        $latitude = (float) $request->latitude;
+        $longitude = (float) $request->longitude;
+        $accuracy = $request->accuracy ? (float) $request->accuracy : null;
+        
+        $validation = $this->validationService->validateCheckout($user, $latitude, $longitude, $accuracy, $today);
+        
+        if (!$validation['valid']) {
             return $this->errorResponse(
-                'Anda belum melakukan check-in hari ini',
+                $validation['message'],
                 400,
-                null,
-                'NOT_CHECKED_IN'
+                $validation['data'] ?? null,
+                $validation['code']
             );
         }
 
-        if ($attendance->time_out) {
-            return $this->errorResponse(
-                'Anda sudah melakukan check-out hari ini',
-                400,
-                null,
-                'ALREADY_CHECKED_OUT'
-            );
-        }
-
-        // Validate GPS location
-        $gpsValidation = $this->validateGpsLocation(
-            $request->latitude,
-            $request->longitude,
-            $request->accuracy
-        );
-
-        if (!$gpsValidation['valid']) {
-            return $this->errorResponse(
-                $gpsValidation['message'],
-                400,
-                null,
-                'GPS_VALIDATION_FAILED'
-            );
-        }
+        $attendance = $validation['attendance'];
 
         // Handle face recognition if provided
         $faceRecognitionResult = null;
@@ -246,17 +262,28 @@ class AttendanceController extends BaseApiController
             $faceRecognitionResult = $this->processFaceRecognition($user->id, $request->face_image);
         }
 
-        // Update attendance record
+        // Update attendance record with checkout data
+        $workLocation = $validation['work_location'];
+        $checkoutTime = Carbon::now();
+        
         $attendance->update([
-            'time_out' => Carbon::now(),
-            'latitude_out' => $request->latitude,
-            'longitude_out' => $request->longitude,
-            'accuracy_out' => $request->accuracy,
-            'location_name_out' => $gpsValidation['work_location']?->name,
-            'notes_out' => $request->notes,
-            'face_recognition_out' => $faceRecognitionResult,
-            'ip_address_out' => $request->ip(),
-            'user_agent_out' => $request->userAgent(),
+            'time_out' => $checkoutTime,
+            'checkout_latitude' => $latitude,
+            'checkout_longitude' => $longitude,
+            'checkout_accuracy' => $accuracy,
+            'latlon_out' => $latitude . ',' . $longitude,
+            'location_name_out' => $workLocation ? $workLocation->name : 'Location not found',
+            'notes' => ($attendance->notes ? $attendance->notes . ' | ' : '') . 'Check-out: ' . ($request->notes ?? 'Normal check-out'),
+            'photo_out' => $faceRecognitionResult ? 'face_recognition_stored' : null,
+        ]);
+        
+        // Debug logging
+        \Log::info('✅ Checkout Success', [
+            'user_id' => $user->id,
+            'attendance_id' => $attendance->id,
+            'time_in' => $attendance->time_in,
+            'time_out_set' => $checkoutTime,
+            'time_out_after_update' => $attendance->fresh()->time_out
         ]);
 
         // Calculate work duration
@@ -267,16 +294,19 @@ class AttendanceController extends BaseApiController
 
         return $this->successResponse([
             'attendance_id' => $attendance->id,
+            'time_in' => $attendance->time_in->format('H:i:s'),
             'time_out' => $attendance->time_out->format('H:i:s'),
             'work_duration' => [
                 'minutes' => $workDuration,
+                'hours_minutes' => $attendance->formatted_work_duration,
                 'formatted' => $this->formatWorkDuration($workDuration),
             ],
             'coordinates' => [
-                'latitude' => $attendance->latitude_out,
-                'longitude' => $attendance->longitude_out,
-                'accuracy' => $attendance->accuracy_out,
+                'checkout_latitude' => $attendance->checkout_latitude,
+                'checkout_longitude' => $attendance->checkout_longitude,
+                'checkout_accuracy' => $attendance->checkout_accuracy,
             ],
+            'status' => 'completed',
             'face_recognition' => $faceRecognitionResult ? [
                 'verified' => $faceRecognitionResult['verified'] ?? false,
                 'confidence' => $faceRecognitionResult['confidence'] ?? 0,
@@ -307,7 +337,7 @@ class AttendanceController extends BaseApiController
             function () use ($user) {
                 return Attendance::where('user_id', $user->id)
                     ->whereDate('date', Carbon::today())
-                    ->with('workLocation')
+                    ->with('location')
                     ->first();
             }
         );
@@ -340,9 +370,9 @@ class AttendanceController extends BaseApiController
                 'location' => [
                     'name_in' => $attendance->location_name_in,
                     'name_out' => $attendance->location_name_out,
-                    'work_location' => $attendance->workLocation ? [
-                        'id' => $attendance->workLocation->id,
-                        'name' => $attendance->workLocation->name,
+                    'location' => $attendance->location ? [
+                        'id' => $attendance->location->id,
+                        'name' => $attendance->location->name,
                     ] : null,
                 ],
             ],
@@ -389,7 +419,7 @@ class AttendanceController extends BaseApiController
         $perPage = min($request->get('per_page', 15), 50); // Max 50 items per page
 
         $query = Attendance::where('user_id', $user->id)
-            ->with(['workLocation:id,name'])
+            ->with(['location:id,name'])
             ->orderBy('date', 'desc');
 
         // Filter by month if provided
@@ -416,9 +446,9 @@ class AttendanceController extends BaseApiController
                 'location' => [
                     'name_in' => $attendance->location_name_in,
                     'name_out' => $attendance->location_name_out,
-                    'work_location' => $attendance->workLocation ? [
-                        'id' => $attendance->workLocation->id,
-                        'name' => $attendance->workLocation->name,
+                    'location' => $attendance->location ? [
+                        'id' => $attendance->location->id,
+                        'name' => $attendance->location->name,
                     ] : null,
                 ],
             ];
@@ -485,7 +515,7 @@ class AttendanceController extends BaseApiController
         $gpsConfig = config('api.gps.attendance_validation');
         
         if (!$gpsConfig['enabled']) {
-            return ['valid' => true, 'work_location' => null];
+            return ['valid' => true, 'location' => null];
         }
 
         // Check accuracy requirement
@@ -493,31 +523,23 @@ class AttendanceController extends BaseApiController
             return [
                 'valid' => false,
                 'message' => 'GPS accuracy tidak mencukupi. Diperlukan akurasi maksimal ' . $gpsConfig['required_accuracy'] . ' meter.',
-                'work_location' => null,
+                'location' => null,
             ];
         }
 
-        // Get active work locations
-        $workLocations = Cache::remember(
-            'work_locations:active',
-            config('api.cache.work_locations_ttl', 1800),
-            fn() => WorkLocation::active()->get()
+        // Get all locations (no is_active check needed)
+        $locations = Cache::remember(
+            'locations:all',
+            config('api.cache.locations_ttl', 1800),
+            fn() => Location::all()
         );
 
-        foreach ($workLocations as $location) {
-            $distance = $this->calculateDistance(
-                $latitude,
-                $longitude,
-                $location->latitude,
-                $location->longitude
-            );
-
-            $allowedRadius = $location->radius_meters + $gpsConfig['location_radius_buffer'];
-
-            if ($distance <= $allowedRadius) {
+        foreach ($locations as $location) {
+            if ($location->isWithinGeofence($latitude, $longitude)) {
+                $distance = $location->getDistanceFrom($latitude, $longitude);
                 return [
                     'valid' => true,
-                    'work_location' => $location,
+                    'location' => $location,
                     'distance' => round($distance, 2),
                 ];
             }
@@ -526,30 +548,10 @@ class AttendanceController extends BaseApiController
         return [
             'valid' => false,
             'message' => 'Lokasi Anda tidak berada dalam radius lokasi kerja yang diizinkan.',
-            'work_location' => null,
+            'location' => null,
         ];
     }
 
-    /**
-     * Calculate distance between two coordinates using Haversine formula
-     */
-    private function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
-    {
-        $earthRadius = 6371000; // Earth radius in meters
-
-        $lat1Rad = deg2rad($lat1);
-        $lat2Rad = deg2rad($lat2);
-        $deltaLatRad = deg2rad($lat2 - $lat1);
-        $deltaLonRad = deg2rad($lon2 - $lon1);
-
-        $a = sin($deltaLatRad / 2) * sin($deltaLatRad / 2) +
-            cos($lat1Rad) * cos($lat2Rad) *
-            sin($deltaLonRad / 2) * sin($deltaLonRad / 2);
-
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-
-        return $earthRadius * $c;
-    }
 
     /**
      * Process face recognition (placeholder)

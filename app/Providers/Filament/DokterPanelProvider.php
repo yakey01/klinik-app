@@ -25,7 +25,7 @@ class DokterPanelProvider extends PanelProvider
         return $panel
             ->id('dokter')
             ->path('dokter')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('🩺 Dashboard Dokter')
             ->brandLogo(asset('images/logo-dokter.png'))
             ->favicon(asset('favicon.ico'))
@@ -69,6 +69,7 @@ class DokterPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
+                \App\Http\Middleware\RedirectToUnifiedAuth::class,
                 Authenticate::class,
                 \App\Http\Middleware\DokterMiddleware::class,
             ])

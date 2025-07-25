@@ -6,6 +6,8 @@ use App\Filament\Resources\DokterResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class EditDokter extends EditRecord
 {
@@ -20,19 +22,69 @@ class EditDokter extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        $dokter = $this->getRecord();
+        
+        // Validate NIK uniqueness if provided
+        if (!empty($data['nik'])) {
+            $existing = \App\Models\Dokter::where('nik', $data['nik'])
+                ->where('id', '!=', $dokter->id)
+                ->first();
+            
+            if ($existing) {
+                throw ValidationException::withMessages([
+                    'nik' => "NIK '{$data['nik']}' sudah digunakan oleh dokter '{$existing->nama_lengkap}'. Silakan gunakan NIK yang berbeda."
+                ]);
+            }
+        }
+        
+        // Validate email uniqueness if provided
+        if (!empty($data['email'])) {
+            $existing = \App\Models\Dokter::where('email', $data['email'])
+                ->where('id', '!=', $dokter->id)
+                ->first();
+            
+            if ($existing) {
+                throw ValidationException::withMessages([
+                    'email' => "Email '{$data['email']}' sudah digunakan oleh dokter '{$existing->nama_lengkap}'. Silakan gunakan email yang berbeda."
+                ]);
+            }
+        }
+        
+        // Validate nomor_sip uniqueness if provided
+        if (!empty($data['nomor_sip'])) {
+            $existing = \App\Models\Dokter::where('nomor_sip', $data['nomor_sip'])
+                ->where('id', '!=', $dokter->id)
+                ->first();
+            
+            if ($existing) {
+                throw ValidationException::withMessages([
+                    'nomor_sip' => "Nomor SIP '{$data['nomor_sip']}' sudah digunakan oleh dokter '{$existing->nama_lengkap}'. Silakan gunakan nomor SIP yang berbeda."
+                ]);
+            }
+        }
+        
+        // Validate username uniqueness if provided
+        if (!empty($data['username'])) {
+            $existing = \App\Models\Dokter::where('username', $data['username'])
+                ->where('id', '!=', $dokter->id)
+                ->first();
+            
+            if ($existing) {
+                throw ValidationException::withMessages([
+                    'username' => "Username '{$data['username']}' sudah digunakan oleh dokter '{$existing->nama_lengkap}'. Silakan gunakan username yang berbeda."
+                ]);
+            }
+        }
+        
         // DEBUG: Log data yang diterima dengan detail username
-        \Log::info('EditDokter: Form data received', [
-            'data_keys' => array_keys($data),
+        \Log::info('EditDokter: Form data received and validated', [
+            'dokter_id' => $dokter->id,
             'username_received' => $data['username'] ?? 'NOT_SET',
-            'username_length' => isset($data['username']) ? strlen($data['username']) : 0,
-            'username_bytes' => isset($data['username']) ? bin2hex($data['username']) : 'N/A',
-            'has_password' => isset($data['password']) && !empty($data['password']) ? 'YES' : 'NO',
+            'nik' => $data['nik'] ?? 'NOT_SET',
+            'email' => $data['email'] ?? 'NOT_SET',
+            'nomor_sip' => $data['nomor_sip'] ?? 'NOT_SET',
             'user_role' => auth()->user()?->role?->name,
-            'is_admin' => auth()->user()?->hasRole('admin') ? 'YES' : 'NO',
-            'dokter_id' => $this->getRecord()->id,
-            'current_username_in_db' => $this->getRecord()->username ?? 'NULL_IN_DB',
-            'form_validation_test' => preg_match('/^[a-zA-Z0-9\s.,-]+$/', $data['username'] ?? '') ? 'PASS' : 'FAIL',
-            'full_data' => $data
+            'is_admin' => auth()->user()?->hasRole('admin') ? 'YES' : 'NO'
         ]);
         
         // Always remove password_confirmation field (it's not a database field)
@@ -83,6 +135,55 @@ class EditDokter extends EditRecord
         ]);
         
         return $data;
+    }
+    
+    /**
+     * Handle save with proper error handling for constraint violations
+     */
+    protected function handleRecordUpdate($record, array $data): Model
+    {
+        try {
+            return parent::handleRecordUpdate($record, $data);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() === '23000') {
+                // Handle unique constraint violations with user-friendly messages
+                $message = $this->getConstraintViolationMessage($e);
+                
+                \Filament\Notifications\Notification::make()
+                    ->title('❌ Gagal Menyimpan Perubahan')
+                    ->body($message)
+                    ->danger()
+                    ->persistent()
+                    ->send();
+                    
+                // Stop the save process
+                $this->halt();
+            }
+            
+            throw $e;
+        }
+    }
+    
+    /**
+     * Get user-friendly constraint violation messages for dokter data
+     */
+    private function getConstraintViolationMessage(\Exception $e): string
+    {
+        $message = $e->getMessage();
+        
+        if (str_contains($message, 'dokters.nik') || str_contains($message, 'UNIQUE constraint failed: dokters.nik')) {
+            return 'NIK sudah digunakan oleh dokter lain. Silakan gunakan NIK yang berbeda.';
+        } elseif (str_contains($message, 'dokters.username') || str_contains($message, 'UNIQUE constraint failed: dokters.username')) {
+            return 'Username sudah digunakan oleh dokter lain. Silakan gunakan username yang berbeda.';
+        } elseif (str_contains($message, 'dokters.email') || str_contains($message, 'UNIQUE constraint failed: dokters.email')) {
+            return 'Email sudah digunakan oleh dokter lain. Silakan gunakan email yang berbeda.';
+        } elseif (str_contains($message, 'dokters.nomor_sip') || str_contains($message, 'UNIQUE constraint failed: dokters.nomor_sip')) {
+            return 'Nomor SIP sudah digunakan oleh dokter lain. Silakan gunakan nomor SIP yang berbeda.';
+        } elseif (str_contains($message, 'UNIQUE constraint') || str_contains($message, 'Integrity constraint violation')) {
+            return 'Data yang dimasukkan sudah ada di sistem. Periksa NIK, username, email, atau nomor SIP yang Anda masukkan.';
+        }
+        
+        return 'Terjadi kesalahan saat menyimpan data dokter. Silakan coba lagi.';
     }
     
     protected function afterSave(): void

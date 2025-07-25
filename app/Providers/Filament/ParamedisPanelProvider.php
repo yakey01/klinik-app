@@ -25,7 +25,7 @@ class ParamedisPanelProvider extends PanelProvider
         return $panel
             ->id('paramedis')
             ->path('paramedis')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('🩺 Paramedis Mobile')
             ->brandLogo(asset('images/logo-paramedis.png'))
             ->favicon(asset('favicon.ico'))
@@ -66,6 +66,7 @@ class ParamedisPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
+                \App\Http\Middleware\RedirectToUnifiedAuth::class,
                 Authenticate::class,
                 \App\Http\Middleware\ParamedisMiddleware::class,
             ])

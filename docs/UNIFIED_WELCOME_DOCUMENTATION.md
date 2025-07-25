@@ -22,7 +22,7 @@ Implementasi sistem login unified yang elegan dan profesional untuk aplikasi kli
 - **Panel Integration**: All 6 panels disabled individual login pages
   - ❌ `/admin/login` (disabled)
   - ❌ `/bendahara/login` (disabled)  
-  - ❌ `/petugas/login` (disabled)
+  - ❌ `/petugas/login` (removed - unified auth)
   - ❌ `/manajer/login` (disabled)
   - ❌ `/dokter/login` (disabled)
   - ❌ `/paramedis/login` (disabled)

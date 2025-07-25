@@ -16,7 +16,6 @@ class WorkLocation extends Model
         'address',
         'latitude',
         'longitude',
-        'location',
         'radius_meters',
         'is_active',
         'location_type',
@@ -28,6 +27,13 @@ class WorkLocation extends Model
         'require_photo',
         'strict_geofence',
         'gps_accuracy_required',
+        // Individual tolerance fields for better performance
+        'late_tolerance_minutes',
+        'early_departure_tolerance_minutes',
+        'break_time_minutes',
+        'overtime_threshold_minutes',
+        'checkin_before_shift_minutes',
+        'checkout_after_shift_minutes',
     ];
 
     protected $casts = [
@@ -39,14 +45,37 @@ class WorkLocation extends Model
         'allowed_shifts' => 'array',
         'working_hours' => 'array',
         'tolerance_settings' => 'array',
+        // Individual tolerance fields with validation
+        'late_tolerance_minutes' => 'integer',
+        'early_departure_tolerance_minutes' => 'integer',
+        'break_time_minutes' => 'integer',
+        'overtime_threshold_minutes' => 'integer',
+        'checkin_before_shift_minutes' => 'integer',
+        'checkout_after_shift_minutes' => 'integer',
     ];
 
     /**
-     * Relationship with NonParamedisAttendance
+     * Relationship with Users (paramedis assigned to this location)
      */
-    public function nonParamedisAttendances(): HasMany
+    public function users(): HasMany
     {
-        return $this->hasMany(NonParamedisAttendance::class);
+        return $this->hasMany(User::class, 'work_location_id');
+    }
+
+    /**
+     * Relationship with creator (admin who created this location)
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Relationship with attendances at this location
+     */
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
     }
 
     /**
@@ -72,10 +101,10 @@ class WorkLocation extends Model
         // Calculate distance using Haversine formula
         $distance = $this->calculateDistance($latitude, $longitude);
         
-        // If GPS accuracy is provided, add it to radius for tolerance
+        // Add GPS accuracy tolerance if provided (max 50 meters)
         $effectiveRadius = $this->radius_meters;
-        if ($accuracy && !$this->strict_geofence) {
-            $effectiveRadius += min($accuracy, $this->gps_accuracy_required);
+        if ($accuracy) {
+            $effectiveRadius += min($accuracy, 50);
         }
         
         return $distance <= $effectiveRadius;
@@ -201,16 +230,75 @@ class WorkLocation extends Model
     }
 
     /**
-     * Get tolerance settings
+     * Get tolerance settings (backward compatibility + new individual fields)
      */
     public function getToleranceSettings(): array
     {
-        return $this->tolerance_settings ?? [
-            'late_tolerance_minutes' => 15,
-            'early_departure_tolerance_minutes' => 15,
-            'break_time_minutes' => 60,
-            'overtime_threshold_minutes' => 480, // 8 hours
+        return [
+            'late_tolerance_minutes' => $this->late_tolerance_minutes ?? 15,
+            'early_departure_tolerance_minutes' => $this->early_departure_tolerance_minutes ?? 15,
+            'break_time_minutes' => $this->break_time_minutes ?? 60,
+            'overtime_threshold_minutes' => $this->overtime_threshold_minutes ?? 480,
         ];
+    }
+    
+    /**
+     * Validation rules for tolerance settings
+     */
+    public static function getToleranceValidationRules(): array
+    {
+        return [
+            'late_tolerance_minutes' => 'integer|min:0|max:60',
+            'early_departure_tolerance_minutes' => 'integer|min:0|max:60', 
+            'break_time_minutes' => 'integer|min:15|max:120',
+            'overtime_threshold_minutes' => 'integer|min:420|max:600', // 7-10 hours
+        ];
+    }
+    
+    /**
+     * Get formatted shift time with tolerance
+     */
+    public function getShiftTimeWithTolerance(string $shiftStart, string $shiftEnd): array
+    {
+        $startTime = \Carbon\Carbon::createFromFormat('H:i', $shiftStart);
+        $endTime = \Carbon\Carbon::createFromFormat('H:i', $shiftEnd);
+        
+        $checkInStart = $startTime->copy()->subMinutes($this->late_tolerance_minutes ?? 15);
+        $checkInEnd = $startTime->copy()->addMinutes($this->late_tolerance_minutes ?? 15);
+        $checkOutStart = $endTime->copy()->subMinutes($this->early_departure_tolerance_minutes ?? 15);
+        
+        return [
+            'shift_start' => $shiftStart,
+            'shift_end' => $shiftEnd,
+            'check_in_allowed_from' => $checkInStart->format('H:i'),
+            'check_in_allowed_until' => $checkInEnd->format('H:i'),
+            'check_out_allowed_from' => $checkOutStart->format('H:i'),
+            'late_tolerance' => $this->late_tolerance_minutes ?? 15,
+            'early_departure_tolerance' => $this->early_departure_tolerance_minutes ?? 15,
+        ];
+    }
+    
+    /**
+     * Get tolerance status description
+     */
+    public function getToleranceStatusDescription(int $minutes, string $type): string
+    {
+        return match($type) {
+            'late' => match(true) {
+                $minutes === 0 => '⚡ Tidak ada toleransi - harus tepat waktu',
+                $minutes <= 5 => '🟢 Toleransi ketat - disiplin tinggi',
+                $minutes <= 15 => '🟡 Toleransi normal - standar perusahaan',
+                $minutes <= 30 => '🟠 Toleransi longgar - fleksibel',
+                default => '🔴 Toleransi sangat longgar - perlu review'
+            },
+            'early' => match(true) {
+                $minutes === 0 => '⚡ Harus sampai jam selesai shift',
+                $minutes <= 10 => '🟢 Toleransi minimal',
+                $minutes <= 20 => '🟡 Toleransi standar',
+                default => '🟠 Toleransi fleksibel'
+            },
+            default => 'Pengaturan toleransi'
+        };
     }
 
     /**

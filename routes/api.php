@@ -138,11 +138,28 @@ Route::middleware('auth:sanctum')->group(function () {
                 ->whereIn('status_validasi', ['disetujui', 'approved'])
                 ->sum('nominal');
                 
-            $pendingJaspel = \App\Models\Jaspel::where('user_id', $user->id)
+            // WORLD-CLASS: Calculate comprehensive pending Jaspel from multiple sources
+            // 1. Existing Jaspel records with pending status
+            $pendingJaspelRecords = \App\Models\Jaspel::where('user_id', $user->id)
                 ->whereMonth('tanggal', $thisMonth->month)
                 ->whereYear('tanggal', $thisMonth->year)
                 ->where('status_validasi', 'pending')
                 ->sum('nominal');
+                
+            // 2. Approved Tindakan that haven't generated Jaspel records yet (paramedis portion)
+            $pendingFromTindakan = \App\Models\Tindakan::where('paramedis_id', $paramedis->id)
+                ->whereMonth('tanggal_tindakan', $thisMonth->month)
+                ->whereYear('tanggal_tindakan', $thisMonth->year)
+                ->whereIn('status_validasi', ['approved', 'disetujui'])
+                ->whereDoesntHave('jaspel', function($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                          ->where('jenis_jaspel', 'paramedis');
+                })
+                ->where('jasa_paramedis', '>', 0)
+                ->sum('jasa_paramedis');
+                
+            // Total pending = existing pending Jaspel + paramedis portion of approved Tindakan without Jaspel
+            $pendingJaspel = $pendingJaspelRecords + ($pendingFromTindakan * 0.15); // 15% paramedis calculation
             
             // Shifts and attendance
             $shiftsThisMonth = \App\Models\JadwalJaga::where('pegawai_id', $user->id)
@@ -323,18 +340,40 @@ Route::prefix('v2')->group(function () {
         });
 
         // Jaspel endpoints
-        Route::prefix('jaspel')->middleware(['auth:sanctum'])->group(function () {
-            Route::get('/summary', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'summary']);
-            Route::get('/history', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'history']);
-            Route::get('/monthly-report/{year}/{month}', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'monthlyReport']);
-            Route::get('/yearly-summary/{year}', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'yearlySummary']);
+        Route::prefix('jaspel')->group(function () {
+            // API endpoints requiring token authentication
+            Route::middleware(['auth:sanctum'])->group(function () {
+                Route::get('/summary', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'summary']);
+                Route::get('/history', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'history']);
+                Route::get('/monthly-report/{year}/{month}', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'monthlyReport']);
+                Route::get('/yearly-summary/{year}', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'yearlySummary']);
+                
+                // Admin only endpoint
+                Route::post('/calculate-from-tindakan', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'calculateFromTindakan'])
+                    ->middleware(['role:admin,bendahara']);
+            });
             
-            // Mobile app endpoint for validated tindakan data
-            Route::get('/mobile-data', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'getMobileJaspelData']);
+            // DIAGNOSTIC: Catch misdirected mobile-data requests
+            Route::get('/mobile-data', function () {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'ROUTING_DIAGNOSTIC',
+                    'message' => 'This request was made to /api/v2/jaspel/mobile-data but should go to /paramedis/api/v2/jaspel/mobile-data',
+                    'correct_endpoints' => [
+                        '/paramedis/api/v2/jaspel/mobile-data',
+                        '/api/v2/jaspel/mobile-data-alt'
+                    ],
+                    'debug_info' => [
+                        'requested_path' => request()->path(),
+                        'full_url' => request()->fullUrl(),
+                        'user_agent' => request()->userAgent(),
+                        'referer' => request()->header('referer'),
+                        'auth_user' => auth()->id()
+                    ]
+                ], 404);
+            })->middleware(['throttle:60,1']);
             
-            // Admin only endpoint
-            Route::post('/calculate-from-tindakan', [App\Http\Controllers\Api\V2\Jaspel\JaspelController::class, 'calculateFromTindakan'])
-                ->middleware(['role:admin,bendahara']);
+            // Mobile app endpoint moved to web routes for session compatibility
         });
 
         // Dashboard endpoints with rate limiting
@@ -346,9 +385,11 @@ Route::prefix('v2')->group(function () {
                 Route::get('/jadwal-jaga', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getJadwalJaga']);
                 Route::get('/tindakan', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getTindakan']);
                 Route::get('/presensi', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getPresensi']);
+                Route::get('/attendance/status', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getAttendanceStatus']);
                 Route::get('/schedules', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'schedules']);
                 Route::post('/checkin', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkIn']);
                 Route::post('/checkout', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkOut']);
+                Route::post('/refresh-work-location', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'refreshWorkLocation']);
             });
 
             // Dokter dashboard - Mobile app API endpoints

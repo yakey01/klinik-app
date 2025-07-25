@@ -1,0 +1,31 @@
+{
+  "name": "humaidem/filament-map-picker",
+  "description": "",
+  "license": "MIT",
+  "type": "library",
+  "homepage": "https://github.com/humaidem/filament-map-picker",
+  "support": {
+    "issues": "https://github.com/humaidem/filament-map-picker/issues",
+    "source": "https://github.com/humaidem/filament-map-picker"
+  },
+  "require": {
+    "php": "^8.1",
+    "filament/filament": "^3.0",
+    "spatie/laravel-package-tools": "^1.16"
+  },
+  "autoload": {
+    "psr-4": {
+      "Humaidem\\FilamentMapPicker\\": "src"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Humaidem\\FilamentMapPicker\\FilamentMapPickerServiceProvider"
+      ],
+      "aliases": {
+        "MapPicker": "Humaidem\\FilamentMapPicker\\Facades\\MapPicker"
+      }
+    }
+  }
+}

@@ -292,10 +292,47 @@ class UnifiedAuthController extends Controller
             // Clear any previous intended URL to prevent cross-role redirects
             $request->session()->forget('url.intended');
             
-            // Redirect based on user role
+            // Debug: Log all user roles for redirect analysis
+            Log::info('User role redirect analysis', [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'all_roles' => $user->getRoleNames()->toArray(),
+                'has_admin' => $user->hasRole('admin'),
+                'has_petugas' => $user->hasRole('petugas'),
+                'has_manajer' => $user->hasRole('manajer'),
+                'has_bendahara' => $user->hasRole('bendahara'),
+                'has_dokter' => $user->hasRole('dokter'),
+                'has_paramedis' => $user->hasRole('paramedis'),
+                'has_non_paramedis' => $user->hasRole('non_paramedis'),
+            ]);
+
+            // Redirect based on user role - ORDER MATTERS: most specific roles first
             if ($user->hasRole('admin')) {
                 Log::info('Redirecting admin user to /admin');
                 return redirect('/admin');
+            } elseif ($user->hasRole('bendahara')) {
+                Log::info('Redirecting bendahara user to /bendahara', [
+                    'user_id' => $user->id,
+                    'username' => $user->username
+                ]);
+                return redirect('/bendahara');
+            } elseif ($user->hasRole('manajer')) {
+                Log::info('Redirecting manajer user to /manajer');
+                return redirect('/manajer');
+            } elseif ($user->hasRole('dokter')) {
+                Log::info('Redirecting dokter user to /dokter');
+                return redirect('/dokter');
+            } elseif ($user->hasRole('paramedis')) {
+                Log::info('Redirecting paramedis user to /paramedis');
+                return redirect('/paramedis');
+            } elseif ($user->hasRole('non_paramedis')) {
+                Log::info('Redirecting non_paramedis user to /nonparamedis/dashboard', [
+                    'user_id' => $user->id,
+                    'route_exists' => \Route::has('nonparamedis.dashboard'),
+                    'route_url' => route('nonparamedis.dashboard')
+                ]);
+                return redirect()->route('nonparamedis.dashboard');
             } elseif ($user->hasRole('petugas')) {
                 // Check if this petugas user should be redirected to non-paramedis interface
                 // This handles legacy users who were mapped to 'petugas' but are actually non-paramedis
@@ -310,25 +347,6 @@ class UnifiedAuthController extends Controller
                 }
                 Log::info('Redirecting petugas user to /petugas');
                 return redirect('/petugas');
-            } elseif ($user->hasRole('manajer')) {
-                Log::info('Redirecting manajer user to /manajer');
-                return redirect('/manajer');
-            } elseif ($user->hasRole('bendahara')) {
-                Log::info('Redirecting bendahara user to /bendahara');
-                return redirect('/bendahara');
-            } elseif ($user->hasRole('dokter')) {
-                Log::info('Redirecting dokter user to /dokter');
-                return redirect('/dokter');
-            } elseif ($user->hasRole('paramedis')) {
-                Log::info('Redirecting paramedis user to /paramedis');
-                return redirect('/paramedis');
-            } elseif ($user->hasRole('non_paramedis')) {
-                Log::info('Redirecting non_paramedis user to /nonparamedis/dashboard', [
-                    'user_id' => $user->id,
-                    'route_exists' => \Route::has('nonparamedis.dashboard'),
-                    'route_url' => route('nonparamedis.dashboard')
-                ]);
-                return redirect()->route('nonparamedis.dashboard');
             }
 
             // Default fallback

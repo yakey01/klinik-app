@@ -25,7 +25,7 @@ class BendaharaPanelProvider extends PanelProvider
         return $panel
             ->id('bendahara')
             ->path('bendahara')
-            ->login(CustomLogin::class)
+            ->login(false)
             ->brandName('Bendahara Dashboard')
             ->colors([
                 'primary' => Color::Amber,
@@ -96,7 +96,9 @@ class BendaharaPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
+                \App\Http\Middleware\RedirectToUnifiedAuth::class,
                 Authenticate::class,
+                \App\Http\Middleware\BendaharaMiddleware::class,
             ])
             ->authGuard('web');
     }

@@ -14,6 +14,9 @@ class Attendance extends Model
 
     protected $fillable = [
         'user_id',
+        'location_id',
+        'work_location_id',
+        'jadwal_jaga_id',
         'date',
         'time_in',
         'time_out',
@@ -65,6 +68,30 @@ class Attendance extends Model
     public function userDevice(): BelongsTo
     {
         return $this->belongsTo(UserDevice::class, 'device_id', 'device_id');
+    }
+
+    /**
+     * Relationship dengan Location (legacy)
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    /**
+     * Relationship dengan WorkLocation untuk enhanced geofencing
+     */
+    public function workLocation(): BelongsTo
+    {
+        return $this->belongsTo(WorkLocation::class, 'work_location_id');
+    }
+
+    /**
+     * Relationship dengan JadwalJaga untuk validasi schedule
+     */
+    public function jadwalJaga(): BelongsTo
+    {
+        return $this->belongsTo(JadwalJaga::class, 'jadwal_jaga_id');
     }
 
     /**
@@ -133,6 +160,71 @@ class Attendance extends Model
     public function canCheckOut(): bool
     {
         return $this->time_in && !$this->time_out;
+    }
+
+    /**
+     * Check if user has completed check-out
+     */
+    public function hasCheckedOut(): bool
+    {
+        return $this->time_in && $this->time_out;
+    }
+
+    /**
+     * Check if user can check in for a new day
+     */
+    public static function canCheckInNewDay(int $userId): bool
+    {
+        $todayAttendance = self::getTodayAttendance($userId);
+        
+        // Can check in if no attendance today, or if completed previous day's check-out
+        return !$todayAttendance || $todayAttendance->hasCheckedOut();
+    }
+
+    /**
+     * Get attendance status for today
+     */
+    public static function getTodayStatus(int $userId): array
+    {
+        $attendance = self::getTodayAttendance($userId);
+        
+        if (!$attendance) {
+            return [
+                'status' => 'not_checked_in',
+                'message' => 'Belum check-in hari ini',
+                'can_check_in' => true,
+                'can_check_out' => false,
+                'attendance' => null
+            ];
+        }
+        
+        if ($attendance->canCheckOut()) {
+            return [
+                'status' => 'checked_in',
+                'message' => 'Sudah check-in, belum check-out',
+                'can_check_in' => false,
+                'can_check_out' => true,
+                'attendance' => $attendance
+            ];
+        }
+        
+        if ($attendance->hasCheckedOut()) {
+            return [
+                'status' => 'completed',
+                'message' => 'Check-in dan check-out sudah selesai',
+                'can_check_in' => false,
+                'can_check_out' => false,
+                'attendance' => $attendance
+            ];
+        }
+        
+        return [
+            'status' => 'unknown',
+            'message' => 'Status tidak diketahui',
+            'can_check_in' => false,
+            'can_check_out' => false,
+            'attendance' => $attendance
+        ];
     }
 
     /**

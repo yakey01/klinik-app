@@ -12,7 +12,7 @@ class PetugasMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
-            return redirect()->route('login');
+            return redirect('/login');
         }
 
         $user = Auth::user();

@@ -79,7 +79,7 @@ scrape_configs:
         - https://dokterku.com/admin/login
         - https://dokterku.com/dokter/login
         - https://dokterku.com/paramedis/login
-        - https://dokterku.com/petugas/login
+        # https://dokterku.com/petugas/login - removed, uses unified auth
         - https://dokterku.com/manajer/login
         - https://dokterku.com/bendahara/login
     relabel_configs:

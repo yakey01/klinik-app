@@ -163,19 +163,19 @@ class WorkLocationResource extends Resource
 
                         Forms\Components\Placeholder::make('location_tips')
                             ->label('💡 Tips Penggunaan Peta:')
-                            ->content('
-                                • Klik tombol "🌐 Get Location" untuk deteksi GPS otomatis
-                                • Klik pada peta untuk memindahkan marker ke lokasi yang diinginkan
-                                • Drag marker pada peta untuk mengubah posisi secara manual
-                                • Zoom in/out dengan scroll mouse atau kontrol peta
-                                • Koordinat latitude dan longitude akan terisi otomatis saat memilih lokasi
+                            ->content(new \Illuminate\Support\HtmlString('<div class="location-tips-content">
+                                • Klik tombol "🌐 Get Location" untuk deteksi GPS otomatis<br>
+                                • Klik pada peta untuk memindahkan marker ke lokasi yang diinginkan<br>
+                                • Drag marker pada peta untuk mengubah posisi secara manual<br>
+                                • Zoom in/out dengan scroll mouse atau kontrol peta<br>
+                                • Koordinat latitude dan longitude akan terisi otomatis saat memilih lokasi<br>
                                 • Setelah marker dipindahkan, koordinat akan langsung terupdate
-                            ')
+                            </div>'))
                             ->columnSpanFull(),
                     ]),
 
-                Forms\Components\Section::make('⚙️ Pengaturan Kerja')
-                    ->description('Konfigurasi shift dan jam kerja')
+                Forms\Components\Section::make('⚙️ Shift & Jam Kerja')
+                    ->description('Konfigurasi shift yang diizinkan di lokasi kerja ini')
                     ->schema([
                         Forms\Components\CheckboxList::make('allowed_shifts')
                             ->label('Shift yang Diizinkan')
@@ -191,48 +191,154 @@ class WorkLocationResource extends Resource
                             ])
                             ->columns(3)
                             ->columnSpanFull(),
+                    ])
+                    ->extraAttributes(['class' => 'mb-6'])
+                    ->collapsible()
+                    ->collapsed(true),
 
-                        Forms\Components\KeyValue::make('tolerance_settings')
-                            ->label('Pengaturan Toleransi (menit)')
-                            ->keyLabel('Jenis Toleransi')
-                            ->valueLabel('Durasi (menit)')
-                            ->default([
-                                'late_tolerance_minutes' => 15,
-                                'early_departure_tolerance_minutes' => 15,
-                                'break_time_minutes' => 60,
-                                'overtime_threshold_minutes' => 480,
-                            ])
-                            ->columnSpanFull(),
-                    ]),
-
-                Forms\Components\Section::make('👤 Kontak & Verifikasi')
-                    ->description('Penanggung jawab dan pengaturan keamanan')
+                Forms\Components\Section::make('⏱️ Pengaturan Toleransi Waktu')
+                    ->description('Konfigurasi toleransi waktu check-in dan check-out untuk fleksibilitas presensi')
+                    ->icon('heroicon-o-clock')
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\TextInput::make('contact_person')
-                                    ->label('Penanggung Jawab')
-                                    ->placeholder('Nama penanggung jawab lokasi'),
+                                Forms\Components\TextInput::make('late_tolerance_minutes')
+                                    ->label('⏰ Toleransi Keterlambatan Check-in')
+                                    ->numeric()
+                                    ->default(15)
+                                    ->minValue(0)
+                                    ->maxValue(60)
+                                    ->suffix('menit')
+                                    ->helperText('Berapa menit setelah waktu shift dimulai, pegawai masih bisa check-in tanpa dianggap terlambat')
+                                    ->live()
+                                    ->afterStateUpdated(function (callable $get, callable $set, $state) {
+                                        // Update helper text based on value
+                                        $description = match(true) {
+                                            $state == 0 => '⚡ Tidak ada toleransi - harus tepat waktu',
+                                            $state <= 5 => '🟢 Toleransi ketat - disiplin tinggi',
+                                            $state <= 15 => '🟡 Toleransi normal - standar perusahaan',
+                                            $state <= 30 => '🟠 Toleransi longgar - fleksibel',
+                                            default => '🔴 Toleransi sangat longgar - perlu review'
+                                        };
+                                    }),
 
-                                Forms\Components\TextInput::make('contact_phone')
-                                    ->label('Nomor Telepon')
-                                    ->tel()
-                                    ->placeholder('08123456789'),
+                                Forms\Components\TextInput::make('early_departure_tolerance_minutes')
+                                    ->label('🏃 Toleransi Check-out Lebih Awal')
+                                    ->numeric()
+                                    ->default(15)
+                                    ->minValue(0)
+                                    ->maxValue(60)
+                                    ->suffix('menit')
+                                    ->helperText('Berapa menit sebelum waktu shift berakhir, pegawai sudah bisa check-out'),
                             ]),
 
                         Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Toggle::make('require_photo')
-                                    ->label('Wajib Foto Selfie')
-                                    ->default(true)
-                                    ->helperText('Karyawan wajib upload foto saat absen'),
+                                Forms\Components\TextInput::make('checkin_before_shift_minutes')
+                                    ->label('📅 Check-in Sebelum Shift')
+                                    ->numeric()
+                                    ->default(30)
+                                    ->minValue(5)
+                                    ->maxValue(120)
+                                    ->suffix('menit')
+                                    ->helperText('Berapa menit sebelum shift dimulai, pegawai sudah bisa check-in'),
 
-                                Forms\Components\Toggle::make('is_active')
-                                    ->label('Status Aktif')
-                                    ->default(true)
-                                    ->helperText('Lokasi dapat digunakan untuk absensi'),
+                                Forms\Components\TextInput::make('checkout_after_shift_minutes')
+                                    ->label('⏳ Batas Check-out Setelah Shift')
+                                    ->numeric()
+                                    ->default(60)
+                                    ->minValue(15)
+                                    ->maxValue(180)
+                                    ->suffix('menit')
+                                    ->helperText('Berapa menit setelah shift berakhir, sistem masih menerima check-out'),
                             ]),
-                    ]),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('break_time_minutes')
+                                    ->label('☕ Durasi Istirahat Standar')
+                                    ->numeric()
+                                    ->default(60)
+                                    ->minValue(15)
+                                    ->maxValue(120)
+                                    ->suffix('menit')
+                                    ->helperText('Durasi istirahat standar untuk perhitungan jam kerja efektif'),
+
+                                Forms\Components\TextInput::make('overtime_threshold_minutes')
+                                    ->label('💼 Batas Jam Kerja Normal')
+                                    ->numeric()
+                                    ->default(480)
+                                    ->minValue(420)
+                                    ->maxValue(600)
+                                    ->suffix('menit')
+                                    ->helperText('Batas jam kerja normal sebelum dianggap lembur (8 jam = 480 menit)'),
+                            ]),
+
+                        // Tolerance Preview/Calculator
+                        Forms\Components\Placeholder::make('tolerance_preview')
+                            ->label('📊 Preview Pengaturan Toleransi')
+                            ->content(function (callable $get) {
+                                $late = $get('late_tolerance_minutes') ?? 15;
+                                $early = $get('early_departure_tolerance_minutes') ?? 15;
+                                $before = $get('checkin_before_shift_minutes') ?? 30;
+                                $after = $get('checkout_after_shift_minutes') ?? 60;
+                                
+                                return new \Illuminate\Support\HtmlString("
+                                    <div class='tolerance-preview space-y-3 p-4 bg-gray-50 rounded-lg'>
+                                        <h4 class='font-semibold text-gray-800 mb-3'>💡 Contoh untuk Shift Pagi (08:00-16:00):</h4>
+                                        <div class='grid grid-cols-2 gap-4 text-sm'>
+                                            <div class='bg-blue-50 p-3 rounded border-l-4 border-blue-400'>
+                                                <strong class='text-blue-700'>📥 Check-in:</strong><br>
+                                                • Bisa check-in dari: <code>07:" . sprintf('%02d', 60 - $before) . "</code><br>
+                                                • Dianggap tepat waktu sampai: <code>08:" . sprintf('%02d', $late) . "</code><br>
+                                                • Setelah itu: terlambat
+                                            </div>
+                                            <div class='bg-green-50 p-3 rounded border-l-4 border-green-400'>
+                                                <strong class='text-green-700'>📤 Check-out:</strong><br>
+                                                • Bisa check-out mulai: <code>15:" . sprintf('%02d', 60 - $early) . "</code><br>
+                                                • Shift berakhir: <code>16:00</code><br>
+                                                • Batas akhir check-out: <code>17:" . sprintf('%02d', $after) . "</code>
+                                            </div>
+                                        </div>
+                                        <div class='mt-3 p-2 bg-yellow-50 rounded text-xs text-yellow-800'>
+                                            <strong>⚠️ Catatan:</strong> Pengaturan ini berlaku untuk semua shift di lokasi ini. Pastikan sesuai dengan kebijakan perusahaan.
+                                        </div>
+                                    </div>
+                                ");
+                            })
+                            ->columnSpanFull(),
+
+                        Forms\Components\Placeholder::make('tolerance_tips')
+                            ->label('💡 Tips Pengaturan Toleransi:')
+                            ->content(new \Illuminate\Support\HtmlString('<div class="tolerance-tips-content text-sm space-y-2">
+                                <div class="flex items-start space-x-2">
+                                    <span class="text-green-600">✅</span>
+                                    <span><strong>Toleransi Keterlambatan:</strong> 15 menit adalah standar umum perusahaan</span>
+                                </div>
+                                <div class="flex items-start space-x-2">
+                                    <span class="text-blue-600">📋</span>
+                                    <span><strong>Check-in Awal:</strong> 30 menit sebelum shift memungkinkan persiapan</span>
+                                </div>
+                                <div class="flex items-start space-x-2">
+                                    <span class="text-orange-600">⏰</span>
+                                    <span><strong>Check-out Awal:</strong> 15 menit untuk finishing pekerjaan</span>
+                                </div>
+                                <div class="flex items-start space-x-2">
+                                    <span class="text-purple-600">🔄</span>
+                                    <span><strong>Batas Check-out:</strong> 60 menit untuk handling situasi darurat</span>
+                                </div>
+                                <div class="flex items-start space-x-2">
+                                    <span class="text-red-600">⚠️</span>
+                                    <span><strong>Penting:</strong> Toleransi terlalu longgar dapat mengurangi disiplin kerja</span>
+                                </div>
+                            </div>'))
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
+
+
+
             ]);
     }
 
@@ -284,6 +390,24 @@ class WorkLocationResource extends Resource
                     ->label('🎯 Radius')
                     ->color('warning')
                     ->weight('semibold'),
+
+                Tables\Columns\TextColumn::make('tolerance_info')
+                    ->label('⏱️ Toleransi')
+                    ->formatStateUsing(function ($record) {
+                        $late = $record->late_tolerance_minutes ?? 15;
+                        $early = $record->early_departure_tolerance_minutes ?? 15;
+                        return "📥 {$late}m | 📤 {$early}m";
+                    })
+                    ->tooltip(function ($record) {
+                        $late = $record->late_tolerance_minutes ?? 15;
+                        $early = $record->early_departure_tolerance_minutes ?? 15;
+                        $before = $record->checkin_before_shift_minutes ?? 30;
+                        $after = $record->checkout_after_shift_minutes ?? 60;
+                        return "Check-in: {$late} menit setelah shift\nCheck-out: {$early} menit sebelum shift\nCheck-in awal: {$before} menit\nBatas akhir: {$after} menit";
+                    })
+                    ->color('info')
+                    ->weight('medium')
+                    ->toggleable(),
 
                 Tables\Columns\IconColumn::make('require_photo')
                     ->label('📸 Foto')

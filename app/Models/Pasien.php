@@ -27,10 +27,16 @@ class Pasien extends Model
         'status_pernikahan',
         'kontak_darurat_nama',
         'kontak_darurat_telepon',
+        'input_by',
+        'status',
+        'verified_at',
+        'verified_by',
+        'verification_notes',
     ];
 
     protected $casts = [
         'tanggal_lahir' => 'date',
+        'verified_at' => 'datetime',
     ];
     
     // Custom cache TTL for this model
@@ -93,9 +99,74 @@ class Pasien extends Model
     {
         return [
             'nama' => 'required|string|max:255',
-            'no_rekam_medis' => 'required|string|max:255|unique:pasien,no_rekam_medis',
-            'tanggal_lahir' => 'required|date',
+            'no_rekam_medis' => 'nullable|string|max:255|unique:pasien,no_rekam_medis',
+            'tanggal_lahir' => 'required|date|before_or_equal:today',
             'jenis_kelamin' => 'required|in:L,P',
+            'alamat' => 'nullable|string|max:500',
+            'no_telepon' => 'nullable|string|max:20',
         ];
+    }
+
+    /**
+     * Boot the model
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            if (empty($model->no_rekam_medis)) {
+                $model->no_rekam_medis = 'RM-' . date('Y') . '-' . str_pad(static::count() + 1, 3, '0', STR_PAD_LEFT);
+            }
+            if (empty($model->input_by)) {
+                $model->input_by = auth()->id();
+            }
+            // Auto-set as verified if status not explicitly set
+            if (empty($model->status)) {
+                $model->status = 'verified';
+                $model->verified_at = now();
+                $model->verified_by = auth()->id();
+            }
+        });
+    }
+
+    /**
+     * Relationship with User who created this patient
+     */
+    public function inputBy()
+    {
+        return $this->belongsTo(User::class, 'input_by');
+    }
+
+    /**
+     * Relationship with User who verified this patient
+     */
+    public function verifiedBy()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    /**
+     * Scope for pending patients
+     */
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    /**
+     * Scope for verified patients
+     */
+    public function scopeVerified($query)
+    {
+        return $query->where('status', 'verified');
+    }
+
+    /**
+     * Scope for rejected patients
+     */
+    public function scopeRejected($query)
+    {
+        return $query->where('status', 'rejected');
     }
 }

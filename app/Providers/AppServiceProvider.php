@@ -49,6 +49,9 @@ class AppServiceProvider extends ServiceProvider
         
         // Register audit observer for automated logging
         $this->registerAuditObserver();
+        
+        // Register work location observer for real-time updates
+        $this->registerWorkLocationObserver();
     }
 
     /**
@@ -75,5 +78,13 @@ class AppServiceProvider extends ServiceProvider
                 $model::observe(\App\Observers\AuditObserver::class);
             }
         }
+    }
+
+    /**
+     * Register work location observer for real-time geofencing updates
+     */
+    private function registerWorkLocationObserver(): void
+    {
+        \App\Models\WorkLocation::observe(\App\Observers\WorkLocationObserver::class);
     }
 }

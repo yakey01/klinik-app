@@ -192,4 +192,26 @@ class Tindakan extends Model
             return $this->pendapatan()->count();
         });
     }
+    
+    // Virtual column for Jaspel Diterima (direct calculation from jenis_tindakan)
+    public function getJaspelDiterimaAttribute(): float
+    {
+        return $this->cacheAttribute('jaspel_diterima', function() {
+            // Always calculate based on tarif and persentase_jaspel from jenis_tindakan
+            if (!$this->jenisTindakan) {
+                return 0;
+            }
+            
+            // Get persentase_jaspel from jenis_tindakan
+            $persentaseJaspel = $this->jenisTindakan->persentase_jaspel ?? 0;
+            
+            // If no persentase set, return 0
+            if ($persentaseJaspel <= 0) {
+                return 0;
+            }
+            
+            // Calculate: tarif * (persentase_jaspel / 100)
+            return $this->tarif * ($persentaseJaspel / 100);
+        });
+    }
 }

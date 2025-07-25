@@ -35,9 +35,15 @@ class ParamedisDashboardController extends Controller
                 ], 404);
             }
 
-            // Cache dashboard stats untuk 5 menit
+            // Cache dashboard stats untuk 1 menit (reduced to ensure fresh work location data)
             $cacheKey = "paramedis_dashboard_stats_{$user->id}";
-            $stats = Cache::remember($cacheKey, 300, function () use ($paramedis, $user) {
+            // Force clear cache when work location might have changed
+            if (request()->get('refresh_location')) {
+                Cache::forget($cacheKey);
+            }
+            $stats = Cache::remember($cacheKey, 60, function () use ($paramedis, $user) {
+                // Always ensure we have fresh work location data in cache
+                $user->load('workLocation');
                 $today = Carbon::today();
                 $thisMonth = Carbon::now()->startOfMonth();
                 $thisWeek = Carbon::now()->startOfWeek();
@@ -52,34 +58,53 @@ class ParamedisDashboardController extends Controller
                     ->whereDate('tanggal_tindakan', $today)
                     ->count();
 
-                // WORLD-CLASS: Use Jaspel model for consistent calculation with Jaspel page
-                $jaspelMonth = \App\Models\Jaspel::where('user_id', $user->id)
-                    ->whereMonth('tanggal', $thisMonth->month)
-                    ->whereYear('tanggal', $thisMonth->year)
-                    ->whereIn('status_validasi', ['disetujui', 'approved'])
-                    ->sum('nominal');
+                // WORLD-CLASS: Use Enhanced Jaspel Service for consistent calculation
+                $enhancedService = app(\App\Services\EnhancedJaspelService::class);
+                $currentJaspelData = $enhancedService->getComprehensiveJaspelData($user, date('n'), date('Y'));
+                $lastMonthJaspelData = $enhancedService->getComprehensiveJaspelData($user, date('n') - 1, date('Y'));
+                
+                $jaspelMonth = $currentJaspelData['summary']['total_approved'];
+                $jaspelLastMonth = $lastMonthJaspelData['summary']['total_approved'];
+                
+                // Calculate growth percentage
+                $growthPercent = 0;
+                if ($jaspelLastMonth > 0) {
+                    $growthPercent = (($jaspelMonth - $jaspelLastMonth) / $jaspelLastMonth) * 100;
+                } elseif ($jaspelMonth > 0) {
+                    $growthPercent = 100; // 100% if no data last month but has data this month
+                }
 
                 $shiftsWeek = JadwalJaga::where('pegawai_id', $user->id)
                     ->where('tanggal_jaga', '>=', $thisWeek)
                     ->where('tanggal_jaga', '<=', Carbon::now()->endOfWeek())
                     ->count();
 
-                // Attendance hari ini
-                $attendanceToday = Attendance::where('user_id', $user->id)
-                    ->whereDate('date', $today)
-                    ->first();
+                // Attendance hari ini dengan status detail
+                $attendanceStatus = Attendance::getTodayStatus($user->id);
+                $attendanceToday = $attendanceStatus['attendance'];
 
                 return [
                     'patients_today' => $patientsToday,
                     'tindakan_today' => $tindakanToday,
                     'jaspel_month' => $jaspelMonth,
+                    'jaspel_last_month' => $jaspelLastMonth,
+                    'jaspel_growth_percent' => round($growthPercent, 1),
                     'shifts_week' => $shiftsWeek,
-                    'attendance_today' => $attendanceToday ? [
-                        'check_in' => $attendanceToday->time_in?->format('H:i'),
-                        'check_out' => $attendanceToday->time_out?->format('H:i'),
-                        'status' => $attendanceToday->time_out ? 'checked_out' : 'checked_in',
-                        'duration' => $attendanceToday->formatted_work_duration
-                    ] : null
+                    'attendance_today' => [
+                        'status' => $attendanceStatus['status'],
+                        'message' => $attendanceStatus['message'],
+                        'can_check_in' => $attendanceStatus['can_check_in'],
+                        'can_check_out' => $attendanceStatus['can_check_out'],
+                        'check_in_time' => $attendanceToday ? $attendanceToday->time_in?->format('H:i') : null,
+                        'check_out_time' => $attendanceToday ? $attendanceToday->time_out?->format('H:i') : null,
+                        'work_duration' => $attendanceToday ? $attendanceToday->formatted_work_duration : null,
+                        'work_duration_minutes' => $attendanceToday && $attendanceToday->time_in && $attendanceToday->time_out 
+                            ? $attendanceToday->work_duration 
+                            : ($attendanceToday && $attendanceToday->time_in ? Carbon::now()->diffInMinutes($attendanceToday->time_in) : null),
+                        'location_in' => $attendanceToday ? $attendanceToday->location_name_in : null,
+                        'location_out' => $attendanceToday ? $attendanceToday->location_name_out : null,
+                        'is_late' => $attendanceToday ? $attendanceToday->status === 'late' : false
+                    ]
                 ];
             });
 
@@ -100,7 +125,29 @@ class ParamedisDashboardController extends Controller
                         'jenis_pegawai' => $paramedis->jenis_pegawai,
                         'unit_kerja' => $paramedis->unit_kerja ?? 'Tidak ditentukan',
                         'avatar' => null,
-                        'initials' => strtoupper(substr($user->name, 0, 2))
+                        'initials' => strtoupper(substr($user->name, 0, 2)),
+                        'work_location' => ($freshWorkLocation = $user->workLocation?->fresh()) ? [
+                            'id' => $freshWorkLocation->id,
+                            'name' => $freshWorkLocation->name,
+                            'address' => $freshWorkLocation->address,
+                            'coordinates' => [
+                                'latitude' => (float) $freshWorkLocation->latitude,
+                                'longitude' => (float) $freshWorkLocation->longitude,
+                            ],
+                            'radius_meters' => $freshWorkLocation->radius_meters,
+                            'location_type' => $freshWorkLocation->location_type_label,
+                            'is_active' => $freshWorkLocation->is_active,
+                            'tolerance_settings' => $freshWorkLocation->getToleranceSettings(),
+                        ] : ($user->location ? [
+                            'id' => $user->location->id,
+                            'name' => $user->location->name,
+                            'coordinates' => [
+                                'latitude' => (float) $user->location->latitude,
+                                'longitude' => (float) $user->location->longitude,
+                            ],
+                            'radius_meters' => $user->location->radius,
+                            'legacy' => true
+                        ] : null)
                     ],
                     'paramedis' => [
                         'id' => $paramedis->id,
@@ -128,6 +175,90 @@ class ParamedisDashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal memuat dashboard: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get real-time attendance status
+     */
+    public function getAttendanceStatus(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $attendanceStatus = Attendance::getTodayStatus($user->id);
+            $attendance = $attendanceStatus['attendance'];
+            
+            // Debug logging
+            if ($attendance) {
+                \Log::info('🔍 Attendance Debug', [
+                    'user_id' => $user->id,
+                    'attendance_id' => $attendance->id,
+                    'time_in' => $attendance->time_in,
+                    'time_out' => $attendance->time_out,
+                    'status' => $attendanceStatus['status'],
+                    'can_check_out' => $attendanceStatus['can_check_out']
+                ]);
+            }
+            
+            // Get next schedule info
+            $nextSchedule = $this->getNextSchedule($user);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Status presensi berhasil dimuat',
+                'data' => [
+                    'status' => $attendanceStatus['status'],
+                    'message' => $attendanceStatus['message'],
+                    'can_check_in' => $attendanceStatus['can_check_in'],
+                    'can_check_out' => $attendanceStatus['can_check_out'],
+                    'attendance' => $attendance ? [
+                        'id' => $attendance->id,
+                        'date' => $attendance->date->format('Y-m-d'),
+                        'check_in_time' => $attendance->time_in?->format('H:i:s'),
+                        'check_out_time' => $attendance->time_out?->format('H:i:s'),
+                        'work_duration' => $attendance->formatted_work_duration,
+                        'work_duration_minutes' => $attendance->time_in && $attendance->time_out 
+                            ? $attendance->work_duration 
+                            : ($attendance->time_in ? Carbon::now()->diffInMinutes($attendance->time_in) : null),
+                        'location_in' => $attendance->location_name_in,
+                        'location_out' => $attendance->location_name_out,
+                        'status' => $attendance->status,
+                        'is_late' => $attendance->status === 'late',
+                        'coordinates_in' => [
+                            'latitude' => $attendance->latitude,
+                            'longitude' => $attendance->longitude,
+                        ],
+                        'coordinates_out' => $attendance->checkout_latitude && $attendance->checkout_longitude ? [
+                            'latitude' => $attendance->checkout_latitude,
+                            'longitude' => $attendance->checkout_longitude,
+                        ] : null
+                    ] : null,
+                    'next_schedule' => $nextSchedule,
+                    'work_location' => $user->workLocation ? [
+                        'id' => $user->workLocation->id,
+                        'name' => $user->workLocation->name,
+                        'address' => $user->workLocation->address,
+                        'coordinates' => [
+                            'latitude' => (float) $user->workLocation->latitude,
+                            'longitude' => (float) $user->workLocation->longitude,
+                        ],
+                        'radius_meters' => $user->workLocation->radius_meters,
+                        'is_active' => $user->workLocation->is_active,
+                    ] : null
+                ],
+                'meta' => [
+                    'timestamp' => now()->toISOString(),
+                    'current_time' => Carbon::now()->format('H:i:s'),
+                    'current_date' => Carbon::now()->format('Y-m-d'),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat status presensi: ' . $e->getMessage(),
                 'data' => null
             ], 500);
         }
@@ -214,39 +345,32 @@ class ParamedisDashboardController extends Controller
             $month = $request->get('month', Carbon::now()->month);
             $year = $request->get('year', Carbon::now()->year);
 
-            // WORLD-CLASS: Use Jaspel model for consistent calculation across all endpoints
+            // WORLD-CLASS: Use Enhanced Jaspel Service for consistent data across all endpoints
+            $enhancedService = app(\App\Services\EnhancedJaspelService::class);
+            $comprehensiveData = $enhancedService->getComprehensiveJaspelData($user, $month, $year);
+            
+            // Extract data from enhanced service
+            $summary = $comprehensiveData['summary'];
+            
+            // Old Jaspel query for backwards compatibility with existing breakdown logic
             $jaspelQuery = \App\Models\Jaspel::where('user_id', $user->id)
                 ->whereMonth('tanggal', $month)
                 ->whereYear('tanggal', $year);
 
-            // WORLD-CLASS: Enhanced pending calculation including bendahara validation queue
-            $pendingJaspelRecords = (clone $jaspelQuery)->where('status_validasi', 'pending')->sum('nominal');
-            
-            // Add approved Tindakan awaiting Jaspel generation (paramedis portion)
-            $pendingFromTindakan = \App\Models\Tindakan::where('paramedis_id', $paramedis->id)
-                ->whereMonth('tanggal_tindakan', $month)
-                ->whereYear('tanggal_tindakan', $year)
-                ->whereIn('status_validasi', ['approved', 'disetujui'])
-                ->whereDoesntHave('jaspel', function($query) use ($user) {
-                    $query->where('user_id', $user->id)
-                          ->where('jenis_jaspel', 'paramedis');
-                })
-                ->where('jasa_paramedis', '>', 0)
-                ->sum('jasa_paramedis');
-                
-            $totalPending = $pendingJaspelRecords + ($pendingFromTindakan * 0.15);
+            // Use Enhanced Service summary for accurate totals
+            $totalPending = $summary['total_pending'];
             
             $jaspelStats = [
-                'total' => $jaspelQuery->sum('nominal'),
-                'approved' => $jaspelQuery->whereIn('status_validasi', ['disetujui', 'approved'])->sum('nominal'),
-                'pending' => $totalPending,
+                'total' => $summary['total_paid'] + $summary['total_pending'] + $summary['total_rejected'],
+                'approved' => $summary['total_paid'],
+                'pending' => $summary['total_pending'],
                 'pending_breakdown' => [
-                    'jaspel_records' => $pendingJaspelRecords,
-                    'tindakan_awaiting_jaspel' => $pendingFromTindakan * 0.15,
-                    'total' => $totalPending
+                    'jaspel_records' => $jaspelQuery->where('status_validasi', 'pending')->sum('nominal'),
+                    'tindakan_awaiting_jaspel' => $summary['total_pending'] - $jaspelQuery->where('status_validasi', 'pending')->sum('nominal'),
+                    'total' => $summary['total_pending']
                 ],
-                'rejected' => $jaspelQuery->whereIn('status_validasi', ['ditolak', 'rejected'])->sum('nominal'),
-                'count_tindakan' => $jaspelQuery->count()
+                'rejected' => $summary['total_rejected'],
+                'count_tindakan' => $summary['count_paid'] + $summary['count_pending'] + $summary['count_rejected']
             ];
 
             // Breakdown per hari using Jaspel model
@@ -431,88 +555,57 @@ class ParamedisDashboardController extends Controller
     }
 
     /**
-     * Check-in/Check-out
+     * Enhanced Check-in using AttendanceValidationService
      */
     public function checkIn(Request $request)
     {
         try {
-            $user = Auth::user();
-            $today = Carbon::today();
+            // Use the same validation and logic as AttendanceController
+            $attendanceController = new \App\Http\Controllers\Api\V2\Attendance\AttendanceController(
+                new \App\Services\AttendanceValidationService()
+            );
             
-            // Cek apakah sudah check-in hari ini
-            $attendance = Attendance::where('user_id', $user->id)
-                ->whereDate('date', $today)
-                ->first();
-
-            if ($attendance && $attendance->time_in) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Anda sudah check-in hari ini'
-                ], 422);
-            }
-
-            // Buat record attendance
-            $attendance = Attendance::updateOrCreate([
-                'user_id' => $user->id,
-                'date' => $today
-            ], [
-                'time_in' => Carbon::now(),
-                'location_in' => $request->get('location'),
-                'latitude_in' => $request->get('latitude'),
-                'longitude_in' => $request->get('longitude'),
-                'status' => 'on_time'
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Check-in berhasil',
-                'data' => $attendance
-            ]);
+            return $attendanceController->checkin($request);
 
         } catch (\Exception $e) {
+            \Log::error('ParamedisDashboardController::checkIn error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal check-in: ' . $e->getMessage()
+                'message' => 'Gagal check-in: ' . $e->getMessage(),
+                'data' => null
             ], 500);
         }
     }
 
+    /**
+     * Enhanced Check-out using AttendanceValidationService
+     */
     public function checkOut(Request $request)
     {
         try {
-            $user = Auth::user();
-            $today = Carbon::today();
+            // Use the same validation and logic as AttendanceController
+            $attendanceController = new \App\Http\Controllers\Api\V2\Attendance\AttendanceController(
+                new \App\Services\AttendanceValidationService()
+            );
             
-            $attendance = Attendance::where('user_id', $user->id)
-                ->whereDate('date', $today)
-                ->whereNotNull('time_in')
-                ->whereNull('time_out')
-                ->first();
-
-            if (!$attendance) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Belum check-in atau sudah check-out'
-                ], 422);
-            }
-
-            $attendance->update([
-                'time_out' => Carbon::now(),
-                'location_out' => $request->get('location'),
-                'latitude_out' => $request->get('latitude'),
-                'longitude_out' => $request->get('longitude')
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Check-out berhasil',
-                'data' => $attendance
-            ]);
+            return $attendanceController->checkout($request);
 
         } catch (\Exception $e) {
+            \Log::error('ParamedisDashboardController::checkOut error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal check-out: ' . $e->getMessage()
+                'message' => 'Gagal check-out: ' . $e->getMessage(),
+                'data' => null
             ], 500);
         }
     }
@@ -682,6 +775,7 @@ class ParamedisDashboardController extends Controller
         try {
             $nextSchedule = JadwalJaga::where('pegawai_id', $user->id)
                 ->where('tanggal_jaga', '>=', Carbon::today())
+                ->with('shiftTemplate')
                 ->orderBy('tanggal_jaga')
                 ->first();
 
@@ -689,15 +783,43 @@ class ParamedisDashboardController extends Controller
                 return null;
             }
 
+            // Get shift template information
+            $shiftTemplate = $nextSchedule->shiftTemplate;
+            $shiftName = $shiftTemplate ? $shiftTemplate->nama_shift : 'Shift Tidak Ditentukan';
+            $startTime = $shiftTemplate ? $shiftTemplate->jam_masuk : '08:00';
+            $endTime = $shiftTemplate ? $shiftTemplate->jam_keluar : '16:00';
+
+            // Get work location for validation
+            $workLocation = $user->workLocation;
+            $locationInfo = null;
+            
+            if ($workLocation) {
+                $locationInfo = [
+                    'id' => $workLocation->id,
+                    'name' => $workLocation->name,
+                    'address' => $workLocation->address,
+                    'coordinates' => [
+                        'latitude' => (float) $workLocation->latitude,
+                        'longitude' => (float) $workLocation->longitude,
+                    ],
+                    'radius_meters' => $workLocation->radius_meters,
+                    'shift_allowed' => $shiftTemplate ? $workLocation->isShiftAllowed($shiftTemplate->nama_shift) : true
+                ];
+            }
+
             return [
                 'id' => $nextSchedule->id,
                 'date' => $nextSchedule->tanggal_jaga->format('Y-m-d'),
                 'formatted_date' => $nextSchedule->tanggal_jaga->format('l, d F Y'),
-                'shift_name' => 'Shift Pagi', // Fallback
-                'start_time' => '08:00',
-                'end_time' => '16:00',
+                'shift_name' => $shiftName,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
                 'unit_kerja' => $nextSchedule->unit_kerja ?? 'Unit Kerja',
-                'days_until' => Carbon::today()->diffInDays($nextSchedule->tanggal_jaga)
+                'status_jaga' => $nextSchedule->status_jaga,
+                'days_until' => Carbon::today()->diffInDays($nextSchedule->tanggal_jaga),
+                'is_today' => $nextSchedule->tanggal_jaga->isToday(),
+                'work_location' => $locationInfo,
+                'can_checkin' => $nextSchedule->tanggal_jaga->isToday() && $nextSchedule->status_jaga === 'aktif' && $workLocation && $workLocation->is_active
             ];
         } catch (\Exception $e) {
             return null;
@@ -895,6 +1017,57 @@ class ParamedisDashboardController extends Controller
     }
 
     /**
+     * Force refresh work location data by clearing relevant caches
+     */
+    public function refreshWorkLocation(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Clear relevant caches
+            $cacheKeys = [
+                "paramedis_dashboard_stats_{$user->id}",
+                "user_work_location_{$user->id}",
+                "attendance_status_{$user->id}"
+            ];
+            
+            foreach ($cacheKeys as $key) {
+                Cache::forget($key);
+            }
+            
+            // Force reload user work location
+            $user->load('workLocation');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Work location data refreshed successfully',
+                'data' => [
+                    'work_location' => $user->workLocation ? [
+                        'id' => $user->workLocation->id,
+                        'name' => $user->workLocation->name,
+                        'address' => $user->workLocation->address,
+                        'coordinates' => [
+                            'latitude' => (float) $user->workLocation->latitude,
+                            'longitude' => (float) $user->workLocation->longitude,
+                        ],
+                        'radius_meters' => $user->workLocation->radius_meters,
+                        'is_active' => $user->workLocation->is_active,
+                        'updated_at' => $user->workLocation->updated_at->toISOString(),
+                    ] : null,
+                    'cache_cleared' => $cacheKeys,
+                    'timestamp' => now()->toISOString()
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to refresh work location: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get greeting based on time
      */
     private function getGreeting()
@@ -907,6 +1080,60 @@ class ParamedisDashboardController extends Controller
             return 'Selamat Siang';
         } else {
             return 'Selamat Malam';
+        }
+    }
+
+    /**
+     * Get work location status only (lightweight endpoint for polling)
+     */
+    public function getWorkLocationStatus(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Get fresh work location data
+            $user->load('workLocation');
+            $workLocation = $user->workLocation?->fresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Work location status retrieved',
+                'data' => [
+                    'work_location' => $workLocation ? [
+                        'id' => $workLocation->id,
+                        'name' => $workLocation->name,
+                        'address' => $workLocation->address,
+                        'coordinates' => [
+                            'latitude' => (float) $workLocation->latitude,
+                            'longitude' => (float) $workLocation->longitude,
+                        ],
+                        'radius_meters' => $workLocation->radius_meters,
+                        'is_active' => $workLocation->is_active,
+                        'updated_at' => $workLocation->updated_at?->toISOString(),
+                    ] : null,
+                    'user_id' => $user->id,
+                    'timestamp' => now()->toISOString(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching work location status', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch work location status',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

@@ -47,83 +47,75 @@ class PasienResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Card::make()
+                Forms\Components\Section::make('Data Pasien')
+                    ->description('Masukkan data lengkap pasien. Field dengan tanda (*) wajib diisi.')
                     ->schema([
                         Forms\Components\TextInput::make('no_rekam_medis')
                             ->label('No. Rekam Medis')
-                            ->required()
-                            ->unique(ignoreRecord: true)
                             ->maxLength(20)
-                            ->placeholder('Contoh: RM-2024-001')
-                            ->helperText('Nomor rekam medis akan di-generate otomatis jika dikosongkan')
-                            ->default(fn () => 'RM-' . date('Y') . '-' . str_pad(Pasien::count() + 1, 3, '0', STR_PAD_LEFT)),
+                            ->placeholder('Otomatis di-generate jika kosong')
+                            ->helperText('Nomor rekam medis akan dibuat otomatis jika tidak diisi')
+                            ->unique(ignoreRecord: true)
+                            ->validationMessages([
+                                'unique' => 'Nomor rekam medis sudah digunakan.',
+                                'max' => 'Nomor rekam medis maksimal 20 karakter.',
+                            ]),
                         
                         Forms\Components\TextInput::make('nama')
-                            ->label('Nama Lengkap')
+                            ->label('Nama Lengkap *')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Masukkan nama lengkap pasien'),
+                            ->placeholder('Masukkan nama lengkap pasien')
+                            ->validationMessages([
+                                'required' => 'Nama lengkap wajib diisi.',
+                                'max' => 'Nama lengkap maksimal 255 karakter.',
+                            ]),
                         
                         Forms\Components\DatePicker::make('tanggal_lahir')
-                            ->label('Tanggal Lahir')
+                            ->label('Tanggal Lahir *')
                             ->required()
                             ->maxDate(now())
-                            ->placeholder('Pilih tanggal lahir'),
+                            ->placeholder('Pilih tanggal lahir')
+                            ->validationMessages([
+                                'required' => 'Tanggal lahir wajib diisi.',
+                                'date' => 'Format tanggal tidak valid.',
+                                'before_or_equal' => 'Tanggal lahir tidak boleh lebih dari hari ini.',
+                            ]),
                         
                         Forms\Components\Select::make('jenis_kelamin')
-                            ->label('Jenis Kelamin')
+                            ->label('Jenis Kelamin *')
                             ->required()
                             ->options([
                                 'L' => 'Laki-laki',
                                 'P' => 'Perempuan',
                             ])
-                            ->placeholder('Pilih jenis kelamin'),
+                            ->placeholder('Pilih jenis kelamin')
+                            ->validationMessages([
+                                'required' => 'Jenis kelamin wajib dipilih.',
+                                'in' => 'Pilihan jenis kelamin tidak valid.',
+                            ]),
                         
                         Forms\Components\Textarea::make('alamat')
                             ->label('Alamat')
                             ->maxLength(500)
-                            ->placeholder('Masukkan alamat lengkap')
-                            ->columnSpanFull(),
+                            ->placeholder('Masukkan alamat lengkap (opsional)')
+                            ->columnSpanFull()
+                            ->validationMessages([
+                                'max' => 'Alamat maksimal 500 karakter.',
+                            ]),
                         
                         Forms\Components\TextInput::make('no_telepon')
                             ->label('No. Telepon')
                             ->tel()
                             ->maxLength(20)
-                            ->placeholder('Contoh: 08123456789'),
-                        
-                        Forms\Components\TextInput::make('email')
-                            ->label('Email')
-                            ->email()
-                            ->maxLength(255)
-                            ->placeholder('Contoh: pasien@email.com'),
-                        
-                        Forms\Components\TextInput::make('pekerjaan')
-                            ->label('Pekerjaan')
-                            ->maxLength(100)
-                            ->placeholder('Contoh: Karyawan swasta'),
-                        
-                        Forms\Components\Select::make('status_pernikahan')
-                            ->label('Status Pernikahan')
-                            ->options([
-                                'belum_menikah' => 'Belum Menikah',
-                                'menikah' => 'Menikah',
-                                'janda' => 'Janda',
-                                'duda' => 'Duda',
-                            ])
-                            ->placeholder('Pilih status pernikahan'),
-                        
-                        Forms\Components\TextInput::make('kontak_darurat_nama')
-                            ->label('Nama Kontak Darurat')
-                            ->maxLength(255)
-                            ->placeholder('Nama keluarga/kerabat'),
-                        
-                        Forms\Components\TextInput::make('kontak_darurat_telepon')
-                            ->label('No. Telepon Kontak Darurat')
-                            ->tel()
-                            ->maxLength(20)
-                            ->placeholder('Contoh: 08123456789'),
+                            ->placeholder('Contoh: 081234567890')
+                            ->validationMessages([
+                                'max' => 'Nomor telepon maksimal 20 karakter.',
+                            ]),
                     ])
-                    ->columns(2),
+                    ->columns(2)
+                    ->collapsible()
+                    ->persistCollapsed(false),
             ]);
     }
 
@@ -159,6 +151,28 @@ class PasienResource extends Resource
                         'L' => 'info',
                         'P' => 'success',
                     }),
+
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Status')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'pending' => 'Menunggu Verifikasi',
+                        'verified' => 'Terverifikasi',
+                        'rejected' => 'Ditolak',
+                        default => 'Menunggu Verifikasi',
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'warning',
+                        'verified' => 'success',
+                        'rejected' => 'danger',
+                        default => 'warning',
+                    })
+                    ->icon(fn (string $state): string => match ($state) {
+                        'pending' => 'heroicon-o-clock',
+                        'verified' => 'heroicon-o-check-circle',
+                        'rejected' => 'heroicon-o-x-circle',
+                        default => 'heroicon-o-clock',
+                    }),
                 
                 Tables\Columns\TextColumn::make('no_telepon')
                     ->label('No. Telepon')
@@ -182,6 +196,14 @@ class PasienResource extends Resource
                     ->options([
                         'L' => 'Laki-laki',
                         'P' => 'Perempuan',
+                    ]),
+
+                Tables\Filters\SelectFilter::make('status')
+                    ->label('Status Verifikasi')
+                    ->options([
+                        'pending' => 'Menunggu Verifikasi',
+                        'verified' => 'Terverifikasi',
+                        'rejected' => 'Ditolak',
                     ]),
                 
                 Tables\Filters\Filter::make('tanggal_lahir')
@@ -637,7 +659,7 @@ class PasienResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPasiens::route('/'),
+            'index' => Pages\CreatePasien::route('/'),
             'create' => Pages\CreatePasien::route('/create'),
             'view' => Pages\ViewPasien::route('/{record}'),
             'edit' => Pages\EditPasien::route('/{record}/edit'),

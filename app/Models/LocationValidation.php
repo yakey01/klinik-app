@@ -21,6 +21,18 @@ class LocationValidation extends Model
         'validation_time',
         'attendance_type',
         'notes',
+        
+        // Enhanced security fields
+        'risk_level',
+        'risk_score',
+        'is_spoofed',
+        'action_taken',
+        'detection_results',
+        'spoofing_indicators',
+        'device_fingerprint',
+        'is_blocked',
+        'reviewed_at',
+        'reviewed_by',
     ];
 
     protected $casts = [
@@ -30,6 +42,15 @@ class LocationValidation extends Model
         'distance_from_zone' => 'decimal:2',
         'is_within_zone' => 'boolean',
         'validation_time' => 'datetime',
+        
+        // Enhanced security casts
+        'risk_score' => 'integer',
+        'is_spoofed' => 'boolean',
+        'is_blocked' => 'boolean',
+        'detection_results' => 'array',
+        'spoofing_indicators' => 'array',
+        'device_fingerprint' => 'array',
+        'reviewed_at' => 'datetime',
     ];
 
     /**
@@ -212,5 +233,180 @@ class LocationValidation extends Model
             'distance_from_zone' => $isWithinZone ? 0 : ($distance - $radius),
             'actual_distance' => $distance,
         ];
+    }
+
+    // ===== ENHANCED SECURITY METHODS =====
+
+    /**
+     * Get risk level badge color
+     */
+    public function getRiskLevelColorAttribute(): string
+    {
+        return match ($this->risk_level) {
+            'low' => 'success',
+            'medium' => 'warning', 
+            'high' => 'danger',
+            'critical' => 'danger',
+            default => 'gray'
+        };
+    }
+
+    /**
+     * Get risk level label with emoji
+     */
+    public function getRiskLevelLabelAttribute(): string
+    {
+        return match ($this->risk_level) {
+            'low' => '🟢 Low Risk',
+            'medium' => '🟡 Medium Risk',
+            'high' => '🔴 High Risk', 
+            'critical' => '🚨 Critical Risk',
+            default => '⚪ Unknown'
+        };
+    }
+
+    /**
+     * Get detected spoofing methods as badges
+     */
+    public function getDetectedMethodsBadgesAttribute(): array
+    {
+        if (!$this->spoofing_indicators) {
+            return [];
+        }
+
+        $badges = [];
+        foreach ($this->spoofing_indicators as $method) {
+            $badges[] = [
+                'label' => $method,
+                'color' => 'danger'
+            ];
+        }
+
+        return $badges;
+    }
+
+    /**
+     * Check if validation requires admin review
+     */
+    public function getRequiresReviewAttribute(): bool
+    {
+        return in_array($this->action_taken, ['blocked', 'flagged']) && !$this->reviewed_at;
+    }
+
+    /**
+     * Get reviewer relationship
+     */
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    /**
+     * Scope for spoofed validations
+     */
+    public function scopeSpoofed($query)
+    {
+        return $query->where('is_spoofed', true);
+    }
+
+    /**
+     * Scope for blocked validations
+     */
+    public function scopeBlocked($query)
+    {
+        return $query->where('is_blocked', true);
+    }
+
+    /**
+     * Scope for high risk validations
+     */
+    public function scopeHighRisk($query)
+    {
+        return $query->whereIn('risk_level', ['high', 'critical']);
+    }
+
+    /**
+     * Scope for unreviewed validations
+     */
+    public function scopeUnreviewed($query)
+    {
+        return $query->whereIn('action_taken', ['blocked', 'flagged'])
+                    ->whereNull('reviewed_at');
+    }
+
+    /**
+     * Scope for validations by risk level
+     */
+    public function scopeByRiskLevel($query, string $riskLevel)
+    {
+        return $query->where('risk_level', $riskLevel);
+    }
+
+    /**
+     * Mark validation as reviewed
+     */
+    public function markAsReviewed(User $reviewer, string $notes = null): void
+    {
+        $this->update([
+            'reviewed_by' => $reviewer->id,
+            'reviewed_at' => now(),
+            'notes' => $notes ? ($this->notes ? $this->notes . '; ' . $notes : $notes) : $this->notes
+        ]);
+    }
+
+    /**
+     * Get comprehensive security summary
+     */
+    public function getSecuritySummaryAttribute(): array
+    {
+        return [
+            'geofencing_passed' => $this->is_within_zone,
+            'spoofing_detected' => $this->is_spoofed,
+            'risk_assessment' => [
+                'level' => $this->risk_level,
+                'score' => $this->risk_score,
+                'label' => $this->risk_level_label
+            ],
+            'action_taken' => $this->action_taken,
+            'requires_review' => $this->requires_review,
+            'detection_methods' => $this->spoofing_indicators ?? [],
+            'overall_status' => $this->getOverallSecurityStatus()
+        ];
+    }
+
+    /**
+     * Get overall security status
+     */
+    private function getOverallSecurityStatus(): string
+    {
+        if ($this->is_blocked) return 'BLOCKED';
+        if ($this->is_spoofed) return 'SUSPICIOUS';
+        if (!$this->is_within_zone) return 'OUTSIDE_ZONE';
+        if ($this->risk_level === 'high' || $this->risk_level === 'critical') return 'HIGH_RISK';
+        
+        return 'SECURE';
+    }
+
+    /**
+     * Enhanced validation summary with security metrics
+     */
+    public static function getEnhancedValidationSummary(): array
+    {
+        $basic = self::getValidationSummary();
+        
+        return array_merge($basic, [
+            'security_metrics' => [
+                'total_spoofed' => self::where('is_spoofed', true)->count(),
+                'total_blocked' => self::where('is_blocked', true)->count(),
+                'high_risk_count' => self::whereIn('risk_level', ['high', 'critical'])->count(),
+                'pending_review' => self::unreviewed()->count(),
+                'risk_distribution' => [
+                    'low' => self::where('risk_level', 'low')->count(),
+                    'medium' => self::where('risk_level', 'medium')->count(),
+                    'high' => self::where('risk_level', 'high')->count(),
+                    'critical' => self::where('risk_level', 'critical')->count(),
+                ]
+            ]
+        ]);
     }
 }

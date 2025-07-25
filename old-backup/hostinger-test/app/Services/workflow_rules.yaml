@@ -1,0 +1,389 @@
+# Workflow Automation Rules Configuration
+# Version: 1.0.0
+# Last Updated: 2025-07-16
+
+# Smart Auto-Approval Rules
+smart_auto_approval:
+  enabled: true
+  ml_threshold: 0.85  # 85% confidence required for auto-approval
+  max_amount_override: 2000000  # Maximum amount (IDR) for ML override
+  pattern_confidence_required: 0.90
+  
+  # Model-specific thresholds
+  thresholds:
+    Tindakan:
+      base_threshold: 100000
+      ml_multiplier: 5.0  # Can approve up to 5x base with high confidence
+      max_ml_amount: 500000
+      
+    PendapatanHarian:
+      base_threshold: 500000
+      ml_multiplier: 4.0
+      max_ml_amount: 2000000
+      
+    PengeluaranHarian:
+      base_threshold: 200000
+      ml_multiplier: 3.0
+      max_ml_amount: 600000
+
+  # Risk factors for auto-approval
+  risk_factors:
+    user_history:
+      weight: 0.30
+      max_rejection_rate: 0.10  # Max 10% historical rejection rate
+      min_transactions: 10  # Minimum transaction history required
+      
+    amount_consistency:
+      weight: 0.25
+      deviation_threshold: 0.20  # Max 20% deviation from user's average
+      
+    timing_patterns:
+      weight: 0.15
+      business_hours_bonus: 0.10  # Lower risk during business hours
+      weekend_penalty: 0.05
+      
+    category_familiarity:
+      weight: 0.20
+      min_category_experience: 5  # Min transactions in same category
+      
+    fraud_indicators:
+      weight: 0.10
+      max_fraud_score: 0.05  # Max 5% fraud probability
+
+# Priority Scoring System
+priority_scoring:
+  enabled: true
+  
+  # Weight distribution for priority calculation
+  weights:
+    age: 0.30          # How long item has been pending
+    amount: 0.40       # Transaction amount significance
+    user_history: 0.20 # User reliability and history
+    fraud_risk: 0.10   # Inverse of fraud risk (lower fraud = higher priority)
+  
+  # Age-based scoring
+  age_scoring:
+    immediate: 1.0     # 0-1 hours: highest priority
+    urgent: 0.8        # 1-4 hours: high priority
+    normal: 0.6        # 4-12 hours: medium priority
+    delayed: 0.4       # 12-24 hours: low priority
+    overdue: 1.0       # >24 hours: highest priority again
+  
+  # Amount-based scoring (logarithmic scale)
+  amount_scoring:
+    breakpoints:
+      - amount: 100000
+        score: 0.2
+      - amount: 500000
+        score: 0.4
+      - amount: 1000000
+        score: 0.6
+      - amount: 2000000
+        score: 0.8
+      - amount: 5000000
+        score: 1.0
+  
+  # User history scoring
+  user_history_scoring:
+    new_user: 0.5          # < 10 transactions
+    regular_user: 0.7      # 10-50 transactions, <5% rejection
+    trusted_user: 0.9      # >50 transactions, <2% rejection
+    problematic_user: 0.3  # >10% rejection rate
+
+# Smart Notification Bundling
+notification_bundling:
+  enabled: true
+  bundle_interval: 300  # 5 minutes
+  max_bundle_size: 10
+  priority_bypass: true  # High priority notifications skip bundling
+  
+  # Bundling rules by notification type
+  bundle_rules:
+    validation_submitted:
+      bundle: true
+      max_delay: 300  # 5 minutes
+      min_bundle_size: 3
+      
+    validation_approved:
+      bundle: true
+      max_delay: 600  # 10 minutes
+      min_bundle_size: 2
+      
+    validation_rejected:
+      bundle: false  # Always send immediately
+      priority: high
+      
+    validation_revision:
+      bundle: true
+      max_delay: 180  # 3 minutes
+      min_bundle_size: 2
+      
+    system_alerts:
+      bundle: false  # Always immediate
+      priority: critical
+
+  # Context-aware bundling
+  context_rules:
+    same_user_submissions:
+      bundle_together: true
+      custom_message: "Multiple submissions from {user}"
+      
+    same_category:
+      bundle_together: true
+      custom_message: "{count} {category} transactions"
+      
+    similar_amounts:
+      threshold: 0.10  # Bundle if amounts within 10%
+      bundle_together: true
+
+# Workflow Templates
+workflow_templates:
+  enabled: true
+  auto_apply: true
+  confidence_threshold: 0.8
+  
+  # Template definitions
+  templates:
+    routine_medical:
+      trigger_conditions:
+        - model: "Tindakan"
+        - category: ["konsultasi", "pemeriksaan_rutin"]
+        - amount_range: [50000, 300000]
+        - user_experience: ">= 20"
+      
+      workflow:
+        auto_approve_threshold: 0.8
+        escalation_amount: 500000
+        required_approvers: 1
+        approval_chain: ["bendahara"]
+        
+    high_value_transaction:
+      trigger_conditions:
+        - amount: "> 2000000"
+        - any_model: true
+      
+      workflow:
+        auto_approve: false
+        required_approvers: 2
+        approval_chain: ["supervisor", "manager"]
+        additional_verification: true
+        
+    emergency_procedure:
+      trigger_conditions:
+        - category: ["emergency", "urgent"]
+        - time_constraints: true
+      
+      workflow:
+        priority_boost: 0.9
+        fast_track: true
+        notification_frequency: "immediate"
+        approval_chain: ["bendahara", "supervisor"]
+        
+    recurring_expense:
+      trigger_conditions:
+        - model: "PengeluaranHarian"
+        - pattern: "recurring_monthly"
+        - variance: "< 0.15"
+      
+      workflow:
+        auto_approve_threshold: 0.75
+        reduced_documentation: true
+        approval_chain: ["bendahara"]
+
+# Fraud Detection Rules
+fraud_detection:
+  enabled: true
+  real_time_analysis: true
+  
+  # Fraud indicators and weights
+  indicators:
+    unusual_amount:
+      weight: 0.25
+      threshold_multiplier: 3.0  # 3x user's average
+      
+    off_hours_transaction:
+      weight: 0.15
+      high_risk_hours: [22, 23, 0, 1, 2, 3, 4, 5]
+      
+    rapid_succession:
+      weight: 0.20
+      max_interval: 300  # 5 minutes between transactions
+      max_count: 5
+      
+    amount_patterns:
+      weight: 0.15
+      round_number_penalty: 0.1  # Suspicious round numbers
+      sequential_penalty: 0.2    # Sequential amounts
+      
+    user_deviation:
+      weight: 0.25
+      category_deviation: 0.3    # New category for user
+      location_deviation: 0.2    # Unusual location (if available)
+  
+  # Action thresholds
+  action_thresholds:
+    flag_for_review: 0.3      # 30% fraud probability
+    require_additional_auth: 0.5  # 50% fraud probability
+    auto_reject: 0.8          # 80% fraud probability
+    immediate_escalation: 0.9  # 90% fraud probability
+
+# Pattern Recognition
+pattern_recognition:
+  enabled: true
+  learning_enabled: true
+  
+  # Pattern types to analyze
+  patterns:
+    user_behavior:
+      track_amount_patterns: true
+      track_timing_patterns: true
+      track_category_preferences: true
+      min_history_required: 10
+      
+    seasonal_patterns:
+      track_monthly_trends: true
+      track_weekly_patterns: true
+      track_holiday_impacts: true
+      
+    approval_patterns:
+      track_approver_tendencies: true
+      track_rejection_reasons: true
+      track_processing_times: true
+
+# Performance Optimization
+performance:
+  enabled: true
+  
+  # Caching configuration
+  caching:
+    user_patterns: 3600      # 1 hour
+    fraud_models: 7200       # 2 hours
+    workflow_templates: 1800  # 30 minutes
+    priority_scores: 900     # 15 minutes
+  
+  # Batch processing
+  batch_processing:
+    enabled: true
+    max_batch_size: 50
+    batch_timeout: 30  # seconds
+    parallel_processing: true
+    max_parallel_jobs: 5
+  
+  # Database optimization
+  database:
+    query_timeout: 10  # seconds
+    connection_pooling: true
+    read_replica_usage: true
+
+# Machine Learning Integration
+machine_learning:
+  enabled: true
+  
+  # Model configuration
+  models:
+    approval_prediction:
+      enabled: true
+      confidence_threshold: 0.8
+      retrain_interval: 86400  # 24 hours
+      
+    fraud_detection:
+      enabled: true
+      confidence_threshold: 0.7
+      retrain_interval: 43200  # 12 hours
+      
+    pattern_recognition:
+      enabled: true
+      confidence_threshold: 0.75
+      retrain_interval: 172800  # 48 hours
+  
+  # Training data requirements
+  training:
+    min_samples: 1000
+    validation_split: 0.2
+    test_split: 0.1
+    feature_importance_threshold: 0.05
+
+# Escalation Rules
+escalation:
+  enabled: true
+  
+  # Escalation triggers
+  triggers:
+    high_amount:
+      threshold: 5000000  # 5M IDR
+      escalate_to: "manager"
+      
+    high_fraud_risk:
+      threshold: 0.7  # 70% fraud probability
+      escalate_to: "security_team"
+      
+    multiple_rejections:
+      threshold: 3  # 3 rejections from same user
+      escalate_to: "supervisor"
+      
+    processing_delay:
+      threshold: 86400  # 24 hours
+      escalate_to: "supervisor"
+  
+  # Escalation paths
+  paths:
+    bendahara:
+      next_level: "supervisor"
+      auto_escalate_after: 28800  # 8 hours
+      
+    supervisor:
+      next_level: "manager"
+      auto_escalate_after: 14400  # 4 hours
+      
+    manager:
+      next_level: "director"
+      auto_escalate_after: 86400  # 24 hours
+
+# Audit and Compliance
+audit:
+  enabled: true
+  
+  # Audit trail requirements
+  trail:
+    log_all_decisions: true
+    log_ml_predictions: true
+    log_pattern_matches: true
+    retention_period: 2592000  # 30 days
+    
+  # Compliance checks
+  compliance:
+    financial_regulations: true
+    data_protection: true
+    audit_readiness: true
+    
+  # Reporting
+  reporting:
+    daily_summary: true
+    weekly_analysis: true
+    monthly_compliance_report: true
+    real_time_alerts: true
+
+# Monitoring and Alerts
+monitoring:
+  enabled: true
+  
+  # Performance metrics
+  metrics:
+    processing_time: true
+    approval_rates: true
+    false_positive_rates: true
+    user_satisfaction: true
+    
+  # Alert thresholds
+  alerts:
+    processing_time_threshold: 300  # 5 minutes
+    approval_rate_drop_threshold: 0.2  # 20% drop
+    false_positive_rate_threshold: 0.1  # 10%
+    system_error_threshold: 0.05  # 5%
+    
+  # Notification channels for system alerts
+  notification_channels:
+    email: true
+    slack: true
+    telegram: true
+    sms: false

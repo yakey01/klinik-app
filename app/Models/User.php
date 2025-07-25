@@ -29,6 +29,8 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $fillable = [
         'role_id',
+        'location_id',
+        'work_location_id',
         'pegawai_id',
         'name',
         'email',
@@ -49,7 +51,7 @@ class User extends Authenticatable implements FilamentUser
         'emergency_contact_phone',
         'profile_photo_path',
         // Work settings
-        'default_work_location_id',
+        'default_location_id',
         'auto_check_out',
         'overtime_alerts',
         // Notification settings
@@ -114,6 +116,22 @@ class User extends Authenticatable implements FilamentUser
     public function customRole(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    /**
+     * Work location relationship for geofencing (legacy)
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    /**
+     * Work location relationship for enhanced geofencing and scheduling
+     */
+    public function workLocation(): BelongsTo
+    {
+        return $this->belongsTo(WorkLocation::class, 'work_location_id');
     }
 
     /**
@@ -216,10 +234,7 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Tindakan::class, 'input_by');
     }
 
-    public function locationValidations(): HasMany
-    {
-        return $this->hasMany(LocationValidation::class);
-    }
+    // LocationValidation relationship removed - functionality moved to GPS spoofing detection
 
     public function gpsSpoofingDetections(): HasMany
     {
@@ -239,6 +254,11 @@ class User extends Authenticatable implements FilamentUser
     public function schedules(): HasMany
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    public function jadwalJagas(): HasMany
+    {
+        return $this->hasMany(JadwalJaga::class);
     }
     
     // Relationship to dokter if user is a dokter

@@ -8,7 +8,7 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\User;
 use App\Models\WorkLocation;
-use App\Services\GpsValidationService;
+use App\Services\LocationSecurityService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,11 +20,11 @@ use Illuminate\Support\Str;
 
 class NonParamedisDashboardController extends Controller
 {
-    protected GpsValidationService $gpsService;
+    protected LocationSecurityService $locationSecurityService;
 
-    public function __construct(GpsValidationService $gpsService)
+    public function __construct(LocationSecurityService $locationSecurityService)
     {
-        $this->gpsService = $gpsService;
+        $this->locationSecurityService = $locationSecurityService;
     }
     /**
      * Standardized success response
@@ -318,27 +318,38 @@ class NonParamedisDashboardController extends Controller
                 return $this->errorResponse('Anda sudah melakukan check-in hari ini', 422);
             }
             
-            // Validate GPS location using service
-            $gpsValidation = $this->gpsService->validateLocation(
-                $request->latitude, 
-                $request->longitude, 
-                $request->accuracy
+            // Comprehensive location security analysis
+            $locationData = [
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'accuracy' => $request->accuracy,
+                'is_mock' => $request->is_mock ?? false,
+                'developer_mode' => $request->developer_mode ?? false,
+                'rooted' => $request->rooted ?? false,
+            ];
+            
+            $securityAnalysis = $this->locationSecurityService->analyzeLocationSecurity(
+                $user, 
+                $locationData, 
+                'check_in'
             );
             
-            if (!$gpsValidation['is_valid']) {
+            if (!$securityAnalysis['success']) {
                 return $this->errorResponse(
-                    $this->gpsService->getValidationMessage($gpsValidation),
+                    $securityAnalysis['message'],
                     422,
                     [
-                        'gps_validation' => $gpsValidation,
-                        'distance' => $gpsValidation['distance'],
-                        'gps_quality' => $this->gpsService->getGpsQuality($request->accuracy)
+                        'security_analysis' => $securityAnalysis,
+                        'risk_level' => $securityAnalysis['risk_level'],
+                        'location_valid' => $securityAnalysis['location_valid'],
+                        'security_passed' => $securityAnalysis['security_passed']
                     ]
                 );
             }
             
-            // Determine work location
-            $workLocationId = $request->work_location_id ?? $gpsValidation['location']['id'] ?? null;
+            // Determine work location from security analysis
+            $workLocationId = $request->work_location_id ?? 
+                             ($securityAnalysis['geofencing']['closest_location']->id ?? null);
             
             // Create or update attendance record
             $attendance = NonParamedisAttendance::updateOrCreate(
@@ -352,8 +363,8 @@ class NonParamedisDashboardController extends Controller
                     'check_in_latitude' => $request->latitude,
                     'check_in_longitude' => $request->longitude,
                     'check_in_accuracy' => $request->accuracy ?? 0,
-                    'check_in_distance' => $gpsValidation['distance'],
-                    'check_in_valid_location' => $gpsValidation['is_valid'],
+                    'check_in_distance' => $securityAnalysis['geofencing']['distance_from_zone'],
+                    'check_in_valid_location' => $securityAnalysis['location_valid'],
                     'status' => 'checked_in',
                     'approval_status' => 'pending',
                     'device_info' => [
@@ -363,7 +374,8 @@ class NonParamedisDashboardController extends Controller
                     ],
                     'gps_metadata' => [
                         'accuracy' => $request->accuracy,
-                        'validation_result' => $gpsValidation,
+                        'security_analysis' => $securityAnalysis,
+                        'validation_record_id' => $securityAnalysis['validation_record_id'],
                         'timestamp' => now()->toISOString()
                     ]
                 ]
@@ -373,8 +385,13 @@ class NonParamedisDashboardController extends Controller
                 'attendance_id' => $attendance->id,
                 'check_in_time' => $attendance->check_in_time->format('H:i:s'),
                 'status' => 'checked_in',
-                'location' => $gpsValidation['location'],
-                'distance' => $gpsValidation['distance']
+                'location' => $securityAnalysis['geofencing']['closest_location'],
+                'distance' => $securityAnalysis['geofencing']['distance_from_zone'],
+                'security_status' => [
+                    'risk_level' => $securityAnalysis['risk_level'],
+                    'location_valid' => $securityAnalysis['location_valid'],
+                    'security_passed' => $securityAnalysis['security_passed']
+                ]
             ]);
             
         } catch (\Exception $e) {
@@ -417,11 +434,20 @@ class NonParamedisDashboardController extends Controller
                 return $this->errorResponse('Tidak ditemukan data check-in hari ini', 422);
             }
             
-            // Validate GPS location using service
-            $gpsValidation = $this->gpsService->validateLocation(
-                $request->latitude, 
-                $request->longitude, 
-                $request->accuracy
+            // Comprehensive location security analysis for check-out
+            $locationData = [
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'accuracy' => $request->accuracy,
+                'is_mock' => $request->is_mock ?? false,
+                'developer_mode' => $request->developer_mode ?? false,
+                'rooted' => $request->rooted ?? false,
+            ];
+            
+            $securityAnalysis = $this->locationSecurityService->analyzeLocationSecurity(
+                $user, 
+                $locationData, 
+                'check_out'
             );
             
             // Calculate work duration
@@ -434,8 +460,8 @@ class NonParamedisDashboardController extends Controller
                 'check_out_latitude' => $request->latitude,
                 'check_out_longitude' => $request->longitude,
                 'check_out_accuracy' => $request->accuracy ?? 0,
-                'check_out_distance' => $gpsValidation['distance'],
-                'check_out_valid_location' => $gpsValidation['is_valid'],
+                'check_out_distance' => $securityAnalysis['geofencing']['distance_from_zone'],
+                'check_out_valid_location' => $securityAnalysis['location_valid'],
                 'total_work_minutes' => $workDurationMinutes,
                 'status' => 'checked_out',
                 'approval_status' => 'pending' // Will be auto-approved later by admin or system
@@ -447,8 +473,13 @@ class NonParamedisDashboardController extends Controller
                 'work_duration_hours' => round($workDurationMinutes / 60, 1),
                 'work_duration_formatted' => $attendance->formatted_work_duration,
                 'status' => 'checked_out',
-                'location_valid' => $gpsValidation['is_valid'],
-                'distance' => $gpsValidation['distance']
+                'location' => $securityAnalysis['geofencing']['closest_location'],
+                'distance' => $securityAnalysis['geofencing']['distance_from_zone'],
+                'security_status' => [
+                    'risk_level' => $securityAnalysis['risk_level'],
+                    'location_valid' => $securityAnalysis['location_valid'],
+                    'security_passed' => $securityAnalysis['security_passed']
+                ]
             ]);
             
         } catch (\Exception $e) {

@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'manajer' => \App\Http\Middleware\ManajerMiddleware::class,
             'petugas' => \App\Http\Middleware\PetugasMiddleware::class,
             'paramedis' => \App\Http\Middleware\ParamedisMiddleware::class,
+            'verifikator' => \App\Http\Middleware\VerifikatorMiddleware::class,
             'device.binding' => \App\Http\Middleware\DeviceBindingMiddleware::class,
             'anti.gps.spoofing' => \App\Http\Middleware\AntiGpsSpoofingMiddleware::class,
             // API v2 middleware
@@ -32,8 +33,6 @@ return Application::configure(basePath: dirname(__DIR__))
             // Performance middleware
             'cache.response' => \App\Http\Middleware\CacheResponseMiddleware::class,
             'log.requests' => \App\Http\Middleware\LogRequestsMiddleware::class,
-            // Authentication redirect middleware
-            'redirect.unified.login' => \App\Http\Middleware\RedirectToUnifiedLogin::class,
             // CSRF token refresh middleware
             'refresh.csrf' => \App\Http\Middleware\RefreshCsrfToken::class,
             // Session cleanup middleware
@@ -46,10 +45,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Temporarily disabled for debugging
         // $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
         
-        // Add redirect to unified login for Filament panels
+        // Add session cleanup middleware to web group
         $middleware->web(append: [
             \App\Http\Middleware\ClearStaleSessionMiddleware::class,
-            \App\Http\Middleware\RedirectToUnifiedLogin::class,
         ]);
         
         // Add rate limiting to authentication routes

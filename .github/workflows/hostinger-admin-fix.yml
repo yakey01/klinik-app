@@ -192,14 +192,21 @@ jobs:
                exit 1; \
              fi && \
              echo \"✅ artisan file found\" && \
-             echo \"Installing dependencies...\" && \
-             if [ -f composer2 ]; then \
-               echo \"Using composer2...\" && \
-               ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist; \
+             echo \"Installing dependencies with Composer 2...\" && \
+             if [ ! -f composer2 ]; then \
+               echo \"Downloading Composer 2...\" && \
+               php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\" && \
+               php composer-setup.php --2 --install-dir=. --filename=composer2 && \
+               php -r \"unlink('composer-setup.php');\" && \
+               chmod +x composer2 && \
+               echo \"✅ Composer 2 installed\"; \
              else \
-               echo \"Using regular composer...\" && \
-               composer install --no-dev --optimize-autoloader --no-interaction; \
+               echo \"✅ Composer 2 already exists\"; \
              fi && \
+             echo \"Verifying Composer 2 version...\" && \
+             ./composer2 --version && \
+             echo \"Using Composer 2 for dependencies...\" && \
+             ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist && \
              echo \"✅ Dependencies installed\" && \
              echo \"Setting up .env file...\" && \
              if [ ! -f .env ]; then \

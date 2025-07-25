@@ -147,13 +147,27 @@ jobs:
             -o UserKnownHostsFile=/dev/null \
             -p 65002 \
             u454362045@153.92.8.132 \
-            "cd domains/dokterkuklinik.com/public_html/dokterku && \
-             echo \"Pulling latest code...\" && \
-             git fetch origin && \
-             git reset --hard origin/main && \
-             git clean -fd && \
-             echo \"✅ Codebase updated\" && \
-             echo \"Latest commit:\" && git log --oneline -1"
+            "echo \"Preparing codebase update...\" && \
+             cd domains/dokterkuklinik.com/public_html && \
+             if [ ! -d \"dokterku/.git\" ]; then \
+               echo \"Git repository not found, cloning fresh...\" && \
+               rm -rf dokterku && \
+               git clone https://github.com/yakey01/klinik-app.git dokterku && \
+               echo \"✅ Fresh clone completed\"; \
+             else \
+               echo \"Git repository found, updating...\" && \
+               cd dokterku && \
+               git fetch origin && \
+               git reset --hard origin/main && \
+               git clean -fd && \
+               echo \"✅ Repository updated\"; \
+             fi && \
+             echo \"Final verification:\" && \
+             cd dokterku && \
+             echo \"Current directory: \$(pwd)\" && \
+             echo \"Latest commit: \$(git log --oneline -1)\" && \
+             echo \"Key files check:\" && \
+             ls -la composer.json artisan .env 2>/dev/null || echo \"Some key files missing\""
 
       - name: Setup Environment
         run: |
@@ -164,15 +178,45 @@ jobs:
             -p 65002 \
             u454362045@153.92.8.132 \
             "cd domains/dokterkuklinik.com/public_html/dokterku && \
+             echo \"Verifying project structure...\" && \
+             echo \"Current directory: \$(pwd)\" && \
+             if [ ! -f composer.json ]; then \
+               echo \"❌ composer.json not found, aborting.\" && \
+               echo \"Directory contents:\" && ls -la && \
+               exit 1; \
+             fi && \
+             echo \"✅ composer.json found\" && \
+             if [ ! -f artisan ]; then \
+               echo \"❌ artisan file not found, aborting.\" && \
+               echo \"Directory contents:\" && ls -la && \
+               exit 1; \
+             fi && \
+             echo \"✅ artisan file found\" && \
              echo \"Installing dependencies...\" && \
              if [ -f composer2 ]; then \
+               echo \"Using composer2...\" && \
                ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist; \
              else \
+               echo \"Using regular composer...\" && \
                composer install --no-dev --optimize-autoloader --no-interaction; \
+             fi && \
+             echo \"✅ Dependencies installed\" && \
+             echo \"Setting up .env file...\" && \
+             if [ ! -f .env ]; then \
+               if [ -f .env.example ]; then \
+                 cp .env.example .env && \
+                 echo \"✅ .env created from .env.example\"; \
+               else \
+                 echo \"⚠️ No .env.example found\"; \
+               fi; \
+             else \
+               echo \"✅ .env file already exists\"; \
              fi && \
              echo \"Clearing caches...\" && \
              php artisan config:clear && \
              php artisan cache:clear && \
+             echo \"Testing artisan functionality...\" && \
+             php artisan --version && \
              echo \"Running migrations...\" && \
              php artisan migrate --force --no-interaction && \
              echo \"✅ Environment setup completed\""

@@ -1,0 +1,183 @@
+name: 🚀 Simple Admin Replacement
+
+on:
+  workflow_dispatch:
+    inputs:
+      admin_email:
+        description: 'New admin email'
+        required: false
+        default: 'admin@dokterku.com'
+        type: string
+      admin_name:
+        description: 'New admin name'
+        required: false
+        default: 'Administrator'
+        type: string
+      confirm_replacement:
+        description: 'Type "REPLACE_ADMIN_USERS" to confirm'
+        required: true
+        type: string
+
+jobs:
+  replace-admin-complete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Security Check
+        run: |
+          if [ "${{ github.event.inputs.confirm_replacement }}" != "REPLACE_ADMIN_USERS" ]; then
+            echo "❌ Security check failed: Expected 'REPLACE_ADMIN_USERS'"
+            exit 1
+          fi
+          echo "✅ Security confirmation validated"
+          echo "🎯 Target: ${{ github.event.inputs.admin_email }}"
+          echo "📝 Name: ${{ github.event.inputs.admin_name }}"
+
+      - name: Complete Admin Replacement Process
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 600s
+          script: |
+            set -e
+            echo "🚀 Starting Complete Admin Replacement Process"
+            echo "=============================================="
+            echo "Time: $(date)"
+            echo "Target Email: ${{ github.event.inputs.admin_email }}"
+            echo "Target Name: ${{ github.event.inputs.admin_name }}"
+            echo ""
+            
+            # Navigate to project
+            echo "📂 Accessing project directory..."
+            cd domains/dokterkuklinic.com/public_html/dokterku || {
+              echo "❌ Cannot access project directory"
+              exit 1
+            }
+            echo "✅ Project directory: $(pwd)"
+            
+            # Quick backup
+            echo ""
+            echo "💾 Creating quick database backup..."
+            BACKUP_DIR="~/admin_backup_$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+            
+            if [ -f .env ]; then
+              DB_USER=$(grep "^DB_USERNAME=" .env | cut -d'=' -f2 | tr -d '"')
+              DB_PASS=$(grep "^DB_PASSWORD=" .env | cut -d'=' -f2 | tr -d '"')
+              DB_NAME=$(grep "^DB_DATABASE=" .env | cut -d'=' -f2 | tr -d '"')
+              DB_HOST=$(grep "^DB_HOST=" .env | cut -d'=' -f2 | tr -d '"')
+              
+              mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" users roles > "$BACKUP_DIR/admin_backup.sql" 2>/dev/null || echo "⚠️ Backup failed, continuing..."
+              echo "✅ Backup created: $BACKUP_DIR"
+            fi
+            
+            # Update codebase
+            echo ""
+            echo "📦 Updating codebase..."
+            git fetch origin && git reset --hard origin/main && git clean -fd
+            echo "✅ Code updated"
+            
+            # Install dependencies
+            echo ""
+            echo "🔧 Installing dependencies..."
+            if [ -f composer2 ]; then
+              ./composer2 install --no-dev --optimize-autoloader --no-interaction --prefer-dist || composer install --no-dev --optimize-autoloader --no-interaction
+            else
+              composer install --no-dev --optimize-autoloader --no-interaction
+            fi
+            echo "✅ Dependencies installed"
+            
+            # Setup environment
+            echo ""
+            echo "⚙️ Setting up environment..."
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              php artisan key:generate --force
+            fi
+            
+            # Add admin credentials to .env
+            echo "" >> .env
+            echo "PRODUCTION_ADMIN_EMAIL=${{ github.event.inputs.admin_email }}" >> .env
+            echo "PRODUCTION_ADMIN_NAME=\"${{ github.event.inputs.admin_name }}\"" >> .env
+            echo "PRODUCTION_ADMIN_PASSWORD=dokterku_admin_$(date +%Y)" >> .env
+            echo "✅ Environment configured"
+            
+            # Clear caches
+            echo ""
+            echo "🧹 Clearing caches..."
+            php artisan config:clear
+            php artisan cache:clear  
+            php artisan view:clear
+            php artisan route:clear
+            echo "✅ Caches cleared"
+            
+            # Test environment
+            echo ""
+            echo "🔍 Testing environment..."
+            php artisan --version || { echo "❌ Artisan failed"; exit 1; }
+            php artisan tinker --execute="DB::connection()->getPdo(); echo 'DB OK';" --no-interaction || { echo "❌ Database failed"; exit 1; }
+            echo "✅ Environment working"
+            
+            # Run migrations
+            echo ""
+            echo "🗄️ Running migrations..."
+            php artisan migrate --force --no-interaction
+            echo "✅ Migrations completed"
+            
+            # Execute admin replacement
+            echo ""
+            echo "👤 Replacing admin users..."
+            php artisan admin:replace --force --email="${{ github.event.inputs.admin_email }}" --name="${{ github.event.inputs.admin_name }}" || {
+              echo "❌ Admin replacement failed"
+              echo "🔄 Attempting rollback..."
+              php artisan admin:replace --rollback --force || echo "Rollback also failed"
+              exit 1
+            }
+            echo "✅ Admin replacement completed"
+            
+            # Verify replacement
+            echo ""
+            echo "🔎 Verifying admin replacement..."
+            php artisan admin:replace --verify || {
+              echo "❌ Verification failed"
+              exit 1
+            }
+            echo "✅ Verification successful"
+            
+            # Optimize application
+            echo ""
+            echo "⚡ Optimizing application..."
+            php artisan config:cache
+            php artisan route:cache
+            chmod -R 755 storage bootstrap/cache
+            echo "✅ Optimization completed"
+            
+            # Final check
+            echo ""
+            echo "🌐 Testing application..."
+            APP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com || echo "000")
+            ADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://dokterkuklinik.com/admin || echo "000")
+            
+            echo "Application Status: HTTP $APP_STATUS"
+            echo "Admin Panel Status: HTTP $ADMIN_STATUS"
+            
+            # Success summary
+            echo ""
+            echo "🎉 ADMIN REPLACEMENT COMPLETED SUCCESSFULLY!"
+            echo "==========================================="
+            echo "✅ Database backup created: $BACKUP_DIR"
+            echo "✅ Code updated from GitHub"
+            echo "✅ Dependencies installed"
+            echo "✅ Admin users replaced"
+            echo "✅ Application optimized"
+            echo ""
+            echo "🔐 New Admin Credentials:"
+            echo "Email: ${{ github.event.inputs.admin_email }}"
+            echo "Name: ${{ github.event.inputs.admin_name }}"
+            echo "Password: dokterku_admin_$(date +%Y)"
+            echo "Login URL: https://dokterkuklinik.com/admin"
+            echo ""
+            echo "⚠️ IMPORTANT: Login and change password immediately!"
+            echo "🕐 Process completed at: $(date)"

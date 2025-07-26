@@ -47,7 +47,8 @@ export function JaspelDashboardCard() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('/test-paramedis-dashboard-api', {
+      // Try test endpoint first
+      let response = await fetch('/test-paramedis-dashboard-api', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -57,11 +58,28 @@ export function JaspelDashboardCard() {
         }
       });
 
+      // If test endpoint fails, try API endpoint
+      if (!response.ok) {
+        console.log('Test endpoint failed, trying API endpoint...');
+        response = await fetch('/api/new-paramedis/dashboard', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+          }
+        });
+      }
+
       if (response.ok) {
         const result = await response.json();
-        console.log('🌟 WORLD-CLASS Dashboard Data:', result);
+        console.log('🌟 Dashboard Data:', result);
         setData(result);
         setLastUpdated(new Date());
+      } else {
+        console.warn('Failed to fetch dashboard data:', response.status);
       }
     } catch (error) {
       console.error('❌ Failed to fetch dashboard data:', error);

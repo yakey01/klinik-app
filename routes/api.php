@@ -427,6 +427,19 @@ Route::prefix('v2')->group(function () {
                 Route::post('/refresh-work-location', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'refreshWorkLocation']);
                 Route::get('/work-location/status', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getWorkLocationStatus']);
                 Route::post('/work-location/check-and-assign', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkAndAssignWorkLocation']);
+                
+                // DI Paramedis (Daftar Isian) endpoints
+                Route::prefix('di-paramedis')->group(function () {
+                    Route::get('/', [App\Http\Controllers\Api\V2\DiParamedisController::class, 'index']);
+                    Route::get('/summary', [App\Http\Controllers\Api\V2\DiParamedisController::class, 'summary']);
+                    Route::get('/{id}', [App\Http\Controllers\Api\V2\DiParamedisController::class, 'show']);
+                    Route::post('/', [App\Http\Controllers\Api\V2\DiParamedisController::class, 'store']);
+                    Route::put('/{id}', [App\Http\Controllers\Api\V2\DiParamedisController::class, 'update']);
+                    Route::post('/{id}/submit', [App\Http\Controllers\Api\V2\DiParamedisController::class, 'submit']);
+                    Route::post('/{id}/tindakan', [App\Http\Controllers\Api\V2\DiParamedisController::class, 'addTindakanMedis']);
+                    Route::post('/{id}/obat', [App\Http\Controllers\Api\V2\DiParamedisController::class, 'addObat']);
+                    Route::post('/{id}/signature', [App\Http\Controllers\Api\V2\DiParamedisController::class, 'uploadSignature']);
+                });
             });
 
             // Dokter dashboard - Mobile app API endpoints

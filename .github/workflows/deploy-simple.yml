@@ -1,0 +1,58 @@
+name: Deploy to Production (Simple)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PHP_VERSION: '8.2'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Build assets
+        run: |
+          npm ci
+          npm run build
+          
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ~/public_html
+            
+            # Backup current version
+            if [ -f .env ]; then
+              cp .env .env.backup
+            fi
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Install/update dependencies
+            composer install --no-dev --optimize-autoloader
+            
+            # Run migrations
+            php artisan migrate --force
+            
+            # Clear and optimize
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan queue:restart
+            
+            # Set permissions
+            chmod -R 755 storage bootstrap/cache
+            
+            echo "Deployment completed successfully!"

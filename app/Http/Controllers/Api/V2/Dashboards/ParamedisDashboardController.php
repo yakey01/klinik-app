@@ -572,8 +572,79 @@ class ParamedisDashboardController extends Controller
                 }
             }
             
+            // Calculate scheduled shifts instead of all working days
+            // "Tidak Hadir" should only count when there's a scheduled shift but no attendance
+            $scheduledShifts = 0;
+            $startDate = null;
+            $endDate = null;
+            
+            switch ($filter) {
+                case 'today':
+                    $startDate = Carbon::today();
+                    $endDate = Carbon::today();
+                    break;
+                case 'week':
+                    $startDate = Carbon::now()->startOfWeek();
+                    $endDate = Carbon::now()->endOfWeek();
+                    break;
+                case 'month':
+                default:
+                    $startDate = Carbon::now()->startOfMonth();
+                    $endDate = Carbon::now()->endOfMonth();
+                    break;
+            }
+            
+            // Count scheduled shifts (jadwal jaga) for this period
+            // BUT only count those where the shift has already ended (completed)
+            $scheduledShifts = \App\Models\JadwalJaga::where('pegawai_id', $user->id)
+                ->whereBetween('tanggal_jaga', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->with('shiftTemplate') // Load shift template to get end time
+                ->get();
+            
+            // Filter shifts to only count those that have already ended
+            $completedShifts = $scheduledShifts->filter(function ($shift) {
+                if (!$shift->shiftTemplate || !$shift->shiftTemplate->jam_pulang) {
+                    return false; // Skip shifts without end time
+                }
+                
+                $shiftDate = Carbon::parse($shift->tanggal_jaga);
+                $shiftEndTime = Carbon::parse($shift->shiftTemplate->jam_pulang);
+                
+                // Handle night shifts that end the next day (like 23:59 - 00:15)
+                $shiftStartTime = Carbon::parse($shift->shiftTemplate->jam_masuk);
+                if ($shiftEndTime->hour < 12 && $shiftStartTime->hour > 12) {
+                    // This is a night shift that crosses midnight - end time is on next day
+                    $shiftEndDateTime = $shiftDate->copy()->addDay()
+                        ->setHour($shiftEndTime->hour)
+                        ->setMinute($shiftEndTime->minute)
+                        ->setSecond(0);
+                } else {
+                    // Regular shift - end time is on same day
+                    $shiftEndDateTime = $shiftDate->copy()
+                        ->setHour($shiftEndTime->hour)
+                        ->setMinute($shiftEndTime->minute)
+                        ->setSecond(0);
+                }
+                
+                // Only count shifts that have already ended
+                return Carbon::now()->gte($shiftEndDateTime);
+            });
+            
+            // Use completed shifts as working days
+            $workingDays = $completedShifts->count();
+            
+            // If no shifts completed yet, working days should be 0
+            // This means no absent days for shifts that haven't ended
+            if ($workingDays == 0) {
+                // No completed shifts = no working days = no absent days
+                $workingDays = 0;
+            }
+            
             $attendanceStats = [
                 'total_days' => $attendanceHistory->count(),
+                'working_days' => $workingDays, // Added: actual working days (completed shifts only)
+                'scheduled_shifts' => $scheduledShifts->count(), // Added: total scheduled shifts
+                'completed_shifts' => $completedShifts->count(), // Added: shifts that have ended
                 'on_time' => $attendanceHistory->where('status', 'on_time')->count(),
                 'late' => $attendanceHistory->where('status', 'late')->count(),
                 'early_leave' => $attendanceHistory->where('status', 'early_leave')->count(),
@@ -682,20 +753,54 @@ class ParamedisDashboardController extends Controller
         try {
             $user = Auth::user();
             
-            // Get upcoming schedules for mobile app
+            // Get upcoming schedules for mobile app with shift template data
             $schedules = JadwalJaga::where('pegawai_id', $user->id)
                 ->where('tanggal_jaga', '>=', Carbon::today())
+                ->with('shiftTemplate') // Load shift template relationship
                 ->orderBy('tanggal_jaga')
                 ->limit(10)
                 ->get()
                 ->map(function ($jadwal) {
+                    // Get shift template data
+                    $waktu = '08:00 - 16:00'; // Default fallback
+                    $jenis = 'pagi'; // Default fallback
+                    
+                    if ($jadwal->shiftTemplate) {
+                        // Format time from shift template
+                        $jamMasuk = $jadwal->shiftTemplate->jam_masuk ? 
+                            Carbon::parse($jadwal->shiftTemplate->jam_masuk)->format('H:i') : '08:00';
+                        $jamPulang = $jadwal->shiftTemplate->jam_pulang ? 
+                            Carbon::parse($jadwal->shiftTemplate->jam_pulang)->format('H:i') : '16:00';
+                        $waktu = $jamMasuk . ' - ' . $jamPulang;
+                        
+                        // Determine shift type based on start time
+                        if ($jadwal->shiftTemplate->jam_masuk) {
+                            $hour = Carbon::parse($jadwal->shiftTemplate->jam_masuk)->hour;
+                            if ($hour >= 6 && $hour < 14) {
+                                $jenis = 'pagi';
+                            } elseif ($hour >= 14 && $hour < 22) {
+                                $jenis = 'siang';
+                            } else {
+                                $jenis = 'malam';
+                            }
+                        }
+                    }
+                    
+                    // Determine status
+                    $status = 'scheduled';
+                    if ($jadwal->status_jaga === 'Selesai') {
+                        $status = 'completed';
+                    } elseif ($jadwal->status_jaga === 'Batal') {
+                        $status = 'missed';
+                    }
+                    
                     return [
-                        'id' => $jadwal->id,
+                        'id' => (string) $jadwal->id,
                         'tanggal' => $jadwal->tanggal_jaga->format('Y-m-d'),
-                        'waktu' => '08:00 - 16:00', // Default fallback
+                        'waktu' => $waktu,
                         'lokasi' => $jadwal->unit_kerja ?? 'Unit Kerja',
-                        'jenis' => 'pagi', // Default fallback
-                        'status' => 'scheduled'
+                        'jenis' => $jenis,
+                        'status' => $status
                     ];
                 });
 

@@ -5,7 +5,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Bendahara\TreasurerDashboardController;
 use App\Http\Controllers\Petugas\StaffDashboardController;
-use App\Http\Controllers\NonParamedis\DashboardController as NonParamedisDashboardController;
 use App\Http\Controllers\Auth\UnifiedAuthController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
@@ -439,9 +438,9 @@ Route::get('/test-paramedis-schedules-api', function () {
     try {
         $user = auth()->user();
         
-        // Fallback to bita for testing if not authenticated
+        // Fallback to Laila for testing if not authenticated
         if (!$user) {
-            $user = \App\Models\User::find(20); // Bita for testing
+            $user = \App\Models\User::find(31); // Laila for testing
         }
         
         if (!$user) {
@@ -458,7 +457,8 @@ Route::get('/test-paramedis-schedules-api', function () {
         }
         
         // Get schedules and transform to match JadwalItem interface
-        $schedules = \App\Models\JadwalJaga::where('pegawai_id', $paramedis->id)
+        // FIXED: Use user->id instead of paramedis->id since jadwal_jaga stores user_id in pegawai_id column
+        $schedules = \App\Models\JadwalJaga::where('pegawai_id', $user->id)
             ->whereDate('tanggal_jaga', '>=', now()->startOfDay())
             ->with(['shiftTemplate'])
             ->orderBy('tanggal_jaga', 'asc')
@@ -517,9 +517,9 @@ Route::get('/test-paramedis-attendance-api', function () {
     try {
         $user = auth()->user();
         
-        // Fallback to bita for testing if not authenticated
+        // Fallback to Laila for testing if not authenticated
         if (!$user) {
-            $user = \App\Models\User::find(20); // Bita for testing
+            $user = \App\Models\User::find(31); // Laila for testing
         }
         
         if (!$user) {
@@ -552,9 +552,9 @@ Route::get('/test-paramedis-attendance-summary', function () {
         \Log::info('🔍 ATTENDANCE SUMMARY API CALLED');
         $user = auth()->user();
         
-        // Fallback to bita for testing if not authenticated
+        // Fallback to Laila for testing if not authenticated
         if (!$user) {
-            $user = \App\Models\User::find(20); // Bita for testing
+            $user = \App\Models\User::find(31); // Laila for testing
         }
         
         if (!$user) {
@@ -570,21 +570,55 @@ Route::get('/test-paramedis-attendance-summary', function () {
             ->whereYear('date', $currentYear)
             ->get();
         
-        $presentCount = $attendanceRecords->where('status', 'present')->count();
+        $presentCount = $attendanceRecords->where('status', 'on_time')->count();
         $lateCount = $attendanceRecords->where('status', 'late')->count();
         $absentCount = $attendanceRecords->where('status', 'absent')->count();
         
-        // FIXED: Calculate working days like admin attendance-recaps
-        $workingDays = 0;
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $currentMonth, $currentYear);
-        for ($day = 1; $day <= $daysInMonth; $day++) {
-            $dayOfWeek = date('N', mktime(0, 0, 0, $currentMonth, $day, $currentYear));
-            if ($dayOfWeek < 7) { // Monday(1) to Saturday(6), exclude Sunday(7)
-                $workingDays++;
+        // Use new attendance logic: count COMPLETED shifts only (time-based)
+        $scheduledShifts = \App\Models\JadwalJaga::where('pegawai_id', $user->id)
+            ->whereMonth('tanggal_jaga', $currentMonth)
+            ->whereYear('tanggal_jaga', $currentYear)
+            ->with('shiftTemplate') // Load shift template to get end time
+            ->get();
+        
+        // Filter shifts to only count those that have already ended
+        $completedShifts = $scheduledShifts->filter(function ($shift) {
+            if (!$shift->shiftTemplate || !$shift->shiftTemplate->jam_pulang) {
+                return false; // Skip shifts without end time
             }
+            
+            $shiftDate = \Carbon\Carbon::parse($shift->tanggal_jaga);
+            $shiftEndTime = \Carbon\Carbon::parse($shift->shiftTemplate->jam_pulang);
+            
+            // Handle night shifts that end the next day (like 23:59 - 00:15)
+            $shiftStartTime = \Carbon\Carbon::parse($shift->shiftTemplate->jam_masuk);
+            if ($shiftEndTime->hour < 12 && $shiftStartTime->hour > 12) {
+                // This is a night shift that crosses midnight - end time is on next day
+                $shiftEndDateTime = $shiftDate->copy()->addDay()
+                    ->setHour($shiftEndTime->hour)
+                    ->setMinute($shiftEndTime->minute)
+                    ->setSecond(0);
+            } else {
+                // Regular shift - end time is on same day
+                $shiftEndDateTime = $shiftDate->copy()
+                    ->setHour($shiftEndTime->hour)
+                    ->setMinute($shiftEndTime->minute)
+                    ->setSecond(0);
+            }
+            
+            // Only count shifts that have already ended
+            return \Carbon\Carbon::now()->gte($shiftEndDateTime);
+        });
+        
+        // Use completed shifts as working days
+        $workingDays = $completedShifts->count();
+        
+        // If no shifts completed yet, working days = 0 (no absent days)
+        if ($workingDays == 0) {
+            $workingDays = 0; // No completed shifts = no working days = no absent days
         }
         
-        $totalDays = $workingDays; // Use working days as denominator
+        $totalDays = $workingDays; // Use calculated working days as denominator
         
         // Calculate total hours from check-in/check-out times
         $totalHours = 0;
@@ -604,6 +638,9 @@ Route::get('/test-paramedis-attendance-summary', function () {
                     'late' => $lateCount,
                     'absent' => $absentCount,
                     'total_days' => $totalDays,
+                    'working_days' => $workingDays,
+                    'scheduled_shifts' => $scheduledShifts->count(),
+                    'completed_shifts' => $completedShifts->count(),
                     'total_hours' => $totalHours,
                     'attendance_rate' => $workingDays > 0 ? round(($presentCount + $lateCount) / $workingDays * 100, 1) : 0
                 ],
@@ -678,33 +715,63 @@ Route::get('/test-paramedis-dashboard-api', function () {
         $attendanceRate = 0;
         
         if ($paramedis) {
-            // FIXED: Use actual attendance records with working days logic like admin
+            // Use the new attendance logic from ParamedisDashboardController
             $attendanceRecords = \App\Models\Attendance::where('user_id', $user->id)
                 ->whereMonth('date', $currentMonth)
                 ->whereYear('date', $currentYear)
                 ->get();
             
-            $presentDays = $attendanceRecords->where('status', 'present')->count();
+            $presentDays = $attendanceRecords->where('status', 'on_time')->count();
             $lateDays = $attendanceRecords->where('status', 'late')->count();
             
-            // Calculate working days like admin attendance-recaps
-            $workingDays = 0;
-            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $currentMonth, $currentYear);
-            for ($day = 1; $day <= $daysInMonth; $day++) {
-                $dayOfWeek = date('N', mktime(0, 0, 0, $currentMonth, $day, $currentYear));
-                if ($dayOfWeek < 7) { // Monday(1) to Saturday(6), exclude Sunday(7)
-                    $workingDays++;
+            // Count COMPLETED shifts only (time-based)
+            $scheduledShifts = \App\Models\JadwalJaga::where('pegawai_id', $user->id)
+                ->whereMonth('tanggal_jaga', $currentMonth)
+                ->whereYear('tanggal_jaga', $currentYear)
+                ->with('shiftTemplate') // Load shift template to get end time
+                ->get();
+            
+            // Filter shifts to only count those that have already ended
+            $completedShifts = $scheduledShifts->filter(function ($shift) {
+                if (!$shift->shiftTemplate || !$shift->shiftTemplate->jam_pulang) {
+                    return false; // Skip shifts without end time
                 }
+                
+                $shiftDate = \Carbon\Carbon::parse($shift->tanggal_jaga);
+                $shiftEndTime = \Carbon\Carbon::parse($shift->shiftTemplate->jam_pulang);
+                
+                // Handle night shifts that end the next day (like 23:59 - 00:15)
+                $shiftStartTime = \Carbon\Carbon::parse($shift->shiftTemplate->jam_masuk);
+                if ($shiftEndTime->hour < 12 && $shiftStartTime->hour > 12) {
+                    // This is a night shift that crosses midnight - end time is on next day
+                    $shiftEndDateTime = $shiftDate->copy()->addDay()
+                        ->setHour($shiftEndTime->hour)
+                        ->setMinute($shiftEndTime->minute)
+                        ->setSecond(0);
+                } else {
+                    // Regular shift - end time is on same day
+                    $shiftEndDateTime = $shiftDate->copy()
+                        ->setHour($shiftEndTime->hour)
+                        ->setMinute($shiftEndTime->minute)
+                        ->setSecond(0);
+                }
+                
+                // Only count shifts that have already ended
+                return \Carbon\Carbon::now()->gte($shiftEndDateTime);
+            });
+            
+            // Use completed shifts as working days
+            $workingDays = $completedShifts->count();
+            
+            // If no shifts completed yet, working days = 0 (no absent days)
+            if ($workingDays == 0) {
+                $workingDays = 0; // No completed shifts = no working days = no absent days
             }
             
             // Calculate attendance rate: (present + late) / working days * 100
             $attendanceRate = $workingDays > 0 ? (($presentDays + $lateDays) / $workingDays) * 100 : 0;
             
-            // Also count shifts from jadwal jaga for display
-            $shiftsThisMonth = \App\Models\JadwalJaga::where('pegawai_id', $paramedis->id)
-                ->whereMonth('tanggal_jaga', $currentMonth)
-                ->whereYear('tanggal_jaga', $currentYear)
-                ->count();
+            $shiftsThisMonth = $scheduledShifts->count();
         }
         
         // Return dashboard data in expected format with success wrapper for Laporan component

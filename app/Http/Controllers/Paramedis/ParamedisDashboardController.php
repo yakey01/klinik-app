@@ -176,24 +176,4 @@ class ParamedisDashboardController extends Controller
         return $specialtyMap[$roleName] ?? 'Tenaga Kesehatan';
     }
 
-    // Legacy methods for compatibility
-    public function schedule(Request $request)
-    {
-        return response()->json(['message' => 'Schedule endpoint - under development']);
-    }
-
-    public function performance(Request $request)
-    {
-        return response()->json(['message' => 'Performance endpoint - under development']);
-    }
-
-    public function notifications(Request $request)
-    {
-        return response()->json(['message' => 'Notifications endpoint - under development']);
-    }
-
-    public function markNotificationRead(Request $request, $id)
-    {
-        return response()->json(['message' => 'Mark notification read - under development']);
-    }
 }

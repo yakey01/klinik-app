@@ -106,6 +106,8 @@ class AttendanceRecap extends Model
                 END) as total_working_hours'),
                 DB::raw("ROUND((CAST(COUNT(DISTINCT dp.tanggal) AS REAL) / CAST($workingDays AS REAL)) * 100, 2) as attendance_percentage")
             ])
+            ->whereNull('u.deleted_at') // Filter out soft deleted users
+            ->whereNull('d.deleted_at') // Filter out soft deleted dokters
             ->whereBetween('dp.tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->groupBy('u.id', 'u.name', 'd.nama_lengkap', 'd.jabatan')
             ->get()
@@ -124,33 +126,58 @@ class AttendanceRecap extends Model
         $endDate = $startDate->copy()->endOfMonth();
         $workingDays = self::getWorkingDaysInMonth($month, $year);
 
-        return DB::table('attendances as a')
-            ->join('users as u', 'a.user_id', '=', 'u.id')
+        // First get all active paramedis users
+        $allParamedis = DB::table('users as u')
             ->join('pegawais as p', 'u.id', '=', 'p.user_id')
-            ->select([
-                'u.id as staff_id',
-                'u.name as staff_name',
-                DB::raw("'Paramedis' as staff_type"),
-                'p.jabatan as position',
-                DB::raw("$workingDays as total_working_days"),
-                DB::raw('COUNT(DISTINCT a.date) as days_present'),
-                DB::raw('AVG(TIME(a.time_in)) as average_check_in'),
-                DB::raw('AVG(TIME(a.time_out)) as average_check_out'),
-                DB::raw('SUM(CASE 
-                    WHEN a.time_out IS NOT NULL 
-                    THEN (julianday(a.time_out) - julianday(a.time_in)) * 24 
-                    ELSE 0 
-                END) as total_working_hours'),
-                DB::raw("ROUND((CAST(COUNT(DISTINCT a.date) AS REAL) / CAST($workingDays AS REAL)) * 100, 2) as attendance_percentage")
-            ])
             ->where('p.jenis_pegawai', 'Paramedis')
-            ->whereBetween('a.date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->groupBy('u.id', 'u.name', 'p.jabatan')
-            ->get()
-            ->map(function ($item) {
-                $item->status = self::getAttendanceStatus($item->attendance_percentage);
-                return (array) $item;
-            });
+            ->whereNull('u.deleted_at')
+            ->whereNull('p.deleted_at')
+            ->select('u.id', 'u.name', 'p.jabatan')
+            ->get();
+
+        // Get all paramedis with their individual working days
+        $paramedisData = collect();
+        
+        foreach ($allParamedis as $paramedis) {
+            // Calculate working days for this specific user
+            $userWorkingDays = self::getWorkingDaysInMonth($month, $year, $paramedis->id, 'Paramedis');
+            
+            // Get attendance data for this user
+            $attendanceData = DB::table('attendances as a')
+                ->where('a.user_id', $paramedis->id)
+                ->whereBetween('a.date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->selectRaw('
+                    COUNT(DISTINCT date) as days_present,
+                    AVG(TIME(time_in)) as average_check_in,
+                    AVG(TIME(time_out)) as average_check_out,
+                    SUM(CASE 
+                        WHEN time_out IS NOT NULL 
+                        THEN (julianday(time_out) - julianday(time_in)) * 24 
+                        ELSE 0 
+                    END) as total_working_hours
+                ')
+                ->first();
+            
+            $daysPresent = $attendanceData->days_present ?? 0;
+            $attendancePercentage = $userWorkingDays > 0 ? 
+                round(($daysPresent / $userWorkingDays) * 100, 2) : 0;
+            
+            $paramedisData->push([
+                'staff_id' => $paramedis->id,
+                'staff_name' => $paramedis->name,
+                'staff_type' => 'Paramedis',
+                'position' => $paramedis->jabatan,
+                'total_working_days' => $userWorkingDays,
+                'days_present' => $daysPresent,
+                'average_check_in' => $attendanceData->average_check_in,
+                'average_check_out' => $attendanceData->average_check_out,
+                'total_working_hours' => $attendanceData->total_working_hours ?? 0,
+                'attendance_percentage' => $attendancePercentage,
+                'status' => self::getAttendanceStatus($attendancePercentage)
+            ]);
+        }
+        
+        return $paramedisData;
     }
 
     /**
@@ -182,6 +209,8 @@ class AttendanceRecap extends Model
                 DB::raw("ROUND((CAST(COUNT(DISTINCT npa.attendance_date) AS REAL) / CAST($workingDays AS REAL)) * 100, 2) as attendance_percentage")
             ])
             ->where('p.jenis_pegawai', 'non_paramedis')
+            ->whereNull('u.deleted_at') // Filter out soft deleted users
+            ->whereNull('p.deleted_at') // Filter out soft deleted pegawai
             ->whereBetween('npa.attendance_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->groupBy('u.id', 'u.name', 'p.jabatan')
             ->get()
@@ -193,19 +222,39 @@ class AttendanceRecap extends Model
 
     /**
      * Calculate working days in a month (exclude weekends)
+     * Updated to consider scheduled shifts and employee start dates
      */
-    private static function getWorkingDaysInMonth($month, $year)
+    private static function getWorkingDaysInMonth($month, $year, $userId = null, $staffType = null)
     {
         $startDate = Carbon::create($year, $month, 1);
         $endDate = $startDate->copy()->endOfMonth();
+        
+        // If we have a specific user, check their scheduled shifts first
+        if ($userId && $staffType === 'Paramedis') {
+            // Count scheduled shifts (jadwal jaga) for Paramedis
+            $scheduledShifts = \App\Models\JadwalJaga::where('pegawai_id', $userId)
+                ->whereBetween('tanggal_jaga', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->count();
+            
+            // If no scheduled shifts, return 0 working days (no absent days)
+            if ($scheduledShifts == 0) {
+                return 0;
+            }
+            
+            // Return scheduled shifts as working days
+            return $scheduledShifts;
+        }
+        
+        // Calculate working days from start date
         $workingDays = 0;
-
-        while ($startDate->lte($endDate)) {
+        $tempDate = $startDate->copy();
+        
+        while ($tempDate->lte($endDate) && $tempDate->lte(now())) {
             // Count Monday to Saturday as working days (exclude Sunday)
-            if ($startDate->dayOfWeek !== Carbon::SUNDAY) {
+            if ($tempDate->dayOfWeek !== Carbon::SUNDAY) {
                 $workingDays++;
             }
-            $startDate->addDay();
+            $tempDate->addDay();
         }
 
         return $workingDays;

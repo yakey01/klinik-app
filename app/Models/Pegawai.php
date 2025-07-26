@@ -13,6 +13,8 @@ class Pegawai extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'pegawais';
+
     protected $fillable = [
         'nik',
         'nama_lengkap',

@@ -69,8 +69,8 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         headers['Authorization'] = `Bearer ${apiToken}`;
       }
 
-      // Use test API endpoint for now (bypass authentication issues)
-      const url = '/test-paramedis-dashboard-api';
+      // Use the real API endpoint for dashboard data
+      const url = '/api/v2/dashboards/paramedis';
       
       const response = await fetch(url, {
         credentials: 'include',
@@ -149,7 +149,8 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         headers['Authorization'] = `Bearer ${apiToken}`;
       }
       
-      const response = await fetch('/test-paramedis-schedules-api', {
+      // Use the real API endpoint for schedules
+      const response = await fetch('/api/v2/dashboards/paramedis/schedules', {
         credentials: 'include',
         headers
       });

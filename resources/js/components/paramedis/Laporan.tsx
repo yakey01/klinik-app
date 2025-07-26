@@ -49,13 +49,29 @@ export function Laporan() {
         const params = new URLSearchParams();
         params.append('filter', filterPeriod);
         
-        const response = await fetch('/test-paramedis-attendance-summary', {
+        let response = await fetch('/test-paramedis-attendance-summary', {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
           }
         });
+        
+        // If test endpoint fails, try API endpoint
+        if (!response.ok) {
+          console.log('Test endpoint failed, trying API endpoint...');
+          response = await fetch('/api/paramedis/attendance/status', {
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+              'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+            }
+          });
+        }
+        
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -95,14 +111,19 @@ export function Laporan() {
   const monthlyStats = attendanceStats ? {
     totalHadir: attendanceStats.on_time || 0,
     totalTerlambat: attendanceStats.late || 0,
-    totalTidakHadir: Math.max(0, attendanceStats.total_days - attendanceStats.on_time - attendanceStats.late),
+    // Use working_days if available, otherwise fallback to old calculation
+    totalTidakHadir: attendanceStats.working_days ? 
+      Math.max(0, attendanceStats.working_days - attendanceStats.on_time - attendanceStats.late) :
+      Math.max(0, attendanceStats.total_days - attendanceStats.on_time - attendanceStats.late),
     totalJamKerja: Math.round(attendanceStats.total_hours || 0),
     rataRataJamPerHari: attendanceStats.total_days > 0 ? 
       Math.round((attendanceStats.total_hours / attendanceStats.total_days) * 10) / 10 : 0,
     tingkatKehadiran: dashboardStats?.performance?.attendance_rate ? 
       Math.round(dashboardStats.performance.attendance_rate) : 
-      (attendanceStats.total_days > 0 ? 
-        Math.round(((attendanceStats.on_time + attendanceStats.late) / attendanceStats.total_days) * 100) : 0)
+      (attendanceStats.working_days > 0 ? 
+        Math.round(((attendanceStats.on_time + attendanceStats.late) / attendanceStats.working_days) * 100) : 
+        (attendanceStats.total_days > 0 ? 
+          Math.round(((attendanceStats.on_time + attendanceStats.late) / attendanceStats.total_days) * 100) : 0))
   } : {
     totalHadir: 0,
     totalTerlambat: 0,

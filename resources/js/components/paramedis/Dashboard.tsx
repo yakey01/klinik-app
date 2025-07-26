@@ -84,12 +84,11 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
           // Check if work location data has changed
           const newLocationUpdate = data.user?.work_location?.updated_at;
           if (newLocationUpdate && newLocationUpdate !== lastLocationUpdate) {
-            console.log('🔄 Work location updated detected:', newLocationUpdate);
             setLastLocationUpdate(newLocationUpdate);
             
-            // Show notification about location update
-            if (lastLocationUpdate) {
-              console.log('📍 Location data refreshed automatically');
+            // Only log in development
+            if (process.env.NODE_ENV === 'development') {
+              console.log('📍 Location updated');
             }
           }
           
@@ -108,7 +107,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
           };
           
           setDashboardStats(transformedData);
-          console.log('✅ Dashboard data loaded successfully');
+          console.log('✅ Dashboard stats loaded');
         }
       } else {
         console.error('Failed to fetch dashboard stats:', response.status, response.statusText);
@@ -130,11 +129,10 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  // Fetch real schedule data from API with enhanced debugging
+  // Fetch real schedule data from API with optimized logging
   const fetchSchedules = async () => {
     try {
       setLoadingSchedules(true);
-      console.log('🚀 PARAMEDIS: Starting schedule fetch...');
       
       // Get CSRF token and API token for authentication
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -149,61 +147,52 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
       // Add Bearer token if available
       if (apiToken) {
         headers['Authorization'] = `Bearer ${apiToken}`;
-        console.log('🔐 PARAMEDIS: Using Bearer token authentication');
       }
-      
-      console.log('📡 PARAMEDIS: Calling /paramedis/api/schedules endpoint...');
       
       const response = await fetch('/paramedis/api/schedules', {
         credentials: 'include',
         headers
       });
       
-      console.log('📨 PARAMEDIS: Response status:', response.status);
-      console.log('📨 PARAMEDIS: Response headers:', Object.fromEntries(response.headers.entries()));
-      
       if (response.ok) {
         const schedules = await response.json();
-        console.log('✅ PARAMEDIS: Raw API response:', schedules);
-        console.log('📊 PARAMEDIS: Response type:', typeof schedules);
-        console.log('📊 PARAMEDIS: Is array:', Array.isArray(schedules));
-        console.log('📊 PARAMEDIS: Length:', schedules?.length);
+        
+        // Debug full response structure 
+        console.log('🔍 PARAMEDIS: Full API response:', schedules);
+        console.log('🔍 PARAMEDIS: Response type:', typeof schedules);
+        console.log('🔍 PARAMEDIS: Is array:', Array.isArray(schedules));
         
         // Ensure we have an array
         if (Array.isArray(schedules)) {
           setJadwalMendatang(schedules);
-          console.log('✅ PARAMEDIS: Successfully set', schedules.length, 'schedules');
+          console.log('✅ PARAMEDIS: Loaded', schedules.length, 'schedules');
           
-          // Debug each schedule item
-          schedules.forEach((schedule, index) => {
-            console.log(`📋 PARAMEDIS: Schedule ${index + 1}:`, {
-              id: schedule.id,
-              tanggal: schedule.tanggal,
-              waktu: schedule.waktu,
-              lokasi: schedule.lokasi,
-              jenis: schedule.jenis,
-              status: schedule.status
+          // Only log first schedule for debugging
+          if (schedules.length > 0) {
+            console.log('📋 PARAMEDIS: Next schedule:', {
+              tanggal: schedules[0].tanggal,
+              waktu: schedules[0].waktu,
+              lokasi: schedules[0].lokasi,
+              jenis: schedules[0].jenis
             });
-          });
+          }
         } else {
-          console.error('❌ PARAMEDIS: Response is not an array:', schedules);
+          console.error('❌ PARAMEDIS: Invalid response format:', {
+            responseType: typeof schedules,
+            responseValue: schedules,
+            isArray: Array.isArray(schedules)
+          });
           setJadwalMendatang([]);
         }
       } else {
-        const errorText = await response.text();
-        console.error('❌ PARAMEDIS: Failed to fetch schedules:', {
-          status: response.status,
-          statusText: response.statusText,
-          responseText: errorText
-        });
+        console.error('❌ PARAMEDIS: API error:', response.status);
         setJadwalMendatang([]);
       }
     } catch (error) {
-      console.error('🔥 PARAMEDIS: Error fetching schedules:', error);
+      console.error('❌ PARAMEDIS: Network error:', error);
       setJadwalMendatang([]);
     } finally {
       setLoadingSchedules(false);
-      console.log('✅ PARAMEDIS: Schedule fetch completed');
     }
   };
 
@@ -317,12 +306,10 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
     }
   };
 
-  // Debug log to see attendance data
-  console.log('🎯 Stats object:', {
-    attendance_current: stats.attendance.current,
-    attendance_rate_raw: dashboardStats?.performance?.attendance_rate,
-    performance_data: dashboardStats?.performance,
-  });
+  // Minimal debug log for attendance data (only when needed)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📊 Stats loaded:', { attendance: stats.attendance.current });
+  }
 
   return (
     <motion.div 

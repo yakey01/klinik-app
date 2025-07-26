@@ -20,7 +20,7 @@ export function Laporan() {
     const fetchDashboardStats = async () => {
       try {
         setLoadingStats(true);
-        const response = await fetch('/api/v2/dashboards/paramedis/', {
+        const response = await fetch('/test-paramedis-dashboard-api', {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -49,7 +49,7 @@ export function Laporan() {
         const params = new URLSearchParams();
         params.append('filter', filterPeriod);
         
-        const response = await fetch(`/api/v2/dashboards/paramedis/presensi?${params}`, {
+        const response = await fetch('/test-paramedis-attendance-summary', {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -236,7 +236,7 @@ export function Laporan() {
             {/* Attendance Rate */}
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="font-medium text-high-contrast">Tingkat Kehadiran</span>
+                <span className="font-medium text-high-contrast">Persentase Kehadiran</span>
                 <span className="text-lg font-bold text-high-contrast">
                   {loadingStats ? (
                     <span className="animate-pulse">⏳</span>

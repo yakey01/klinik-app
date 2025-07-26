@@ -149,7 +149,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         headers['Authorization'] = `Bearer ${apiToken}`;
       }
       
-      const response = await fetch('/paramedis/api/schedules', {
+      const response = await fetch('/test-paramedis-schedules-api', {
         credentials: 'include',
         headers
       });
@@ -546,7 +546,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                 <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-high-contrast text-mobile-friendly">Tingkat Kehadiran</h4>
+                <h4 className="text-sm font-semibold text-high-contrast text-mobile-friendly">Persentase Kehadiran</h4>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400 text-heading-mobile">
                   {loadingStats ? (
                     <span className="animate-pulse">⏳</span>

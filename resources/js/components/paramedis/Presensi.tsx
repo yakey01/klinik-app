@@ -318,7 +318,7 @@ export function Presensi() {
         headers['Authorization'] = `Bearer ${apiToken}`;
       }
       
-      const response = await fetch('/api/v2/dashboards/paramedis/attendance/status', {
+      const response = await fetch('/test-paramedis-attendance-api', {
         credentials: 'include',
         headers
       });

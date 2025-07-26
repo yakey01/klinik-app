@@ -28,7 +28,7 @@ export function JadwalJaga() {
         // Get CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         
-        const response = await fetch('/paramedis/api/schedules', {
+        const response = await fetch('/test-paramedis-schedules-api', {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',

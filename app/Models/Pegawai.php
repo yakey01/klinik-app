@@ -156,8 +156,9 @@ class Pegawai extends Model
         $username = $baseUsername;
         $counter = 1;
         
-        // Ensure username uniqueness
-        while (static::where('username', $username)->exists()) {
+        // Ensure username uniqueness - ONLY check active (non-soft-deleted) records
+        // This allows reuse of usernames from soft-deleted pegawai
+        while (static::where('username', $username)->whereNull('deleted_at')->exists()) {
             $username = $baseUsername . $counter;
             $counter++;
         }
@@ -268,6 +269,133 @@ class Pegawai extends Model
         }
     }
 
+    /**
+     * Check if username is available (excluding soft deleted records)
+     * 
+     * @param string $username
+     * @param int|null $excludeId
+     * @return array
+     */
+    public static function checkUsernameAvailability(string $username, ?int $excludeId = null): array
+    {
+        $query = static::where('username', $username)->whereNull('deleted_at');
+        
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+        
+        $existingPegawai = $query->first();
+        
+        if ($existingPegawai) {
+            return [
+                'available' => false,
+                'message' => "Username '{$username}' sudah digunakan oleh pegawai '{$existingPegawai->nama_lengkap}' (NIK: {$existingPegawai->nik}). Silakan gunakan username yang berbeda.",
+                'existing_pegawai' => [
+                    'id' => $existingPegawai->id,
+                    'nama_lengkap' => $existingPegawai->nama_lengkap,
+                    'nik' => $existingPegawai->nik,
+                    'jabatan' => $existingPegawai->jabatan
+                ]
+            ];
+        }
+        
+        // Check if username was used by soft-deleted pegawai (for info only)
+        $deletedPegawai = static::onlyTrashed()->where('username', $username)->first();
+        if ($deletedPegawai) {
+            return [
+                'available' => true,
+                'message' => "Username '{$username}' tersedia untuk digunakan. (Previously used by deleted employee: {$deletedPegawai->nama_lengkap})",
+                'reused_from_deleted' => true,
+                'deleted_pegawai' => [
+                    'nama_lengkap' => $deletedPegawai->nama_lengkap,
+                    'deleted_at' => $deletedPegawai->deleted_at
+                ]
+            ];
+        }
+        
+        return [
+            'available' => true,
+            'message' => "Username '{$username}' tersedia untuk digunakan.",
+            'reused_from_deleted' => false
+        ];
+    }
+
+    /**
+     * Soft delete override to handle username cleanup
+     */
+    public function delete()
+    {
+        // Perform soft delete
+        $result = parent::delete();
+        
+        if ($result) {
+            // Optional: Clear sensitive data but keep username for constraint reference
+            // We don't null the username because we want to track usage history
+            // The migration removes the unique constraint so usernames can be reused
+            
+            \Log::info('Pegawai soft deleted', [
+                'id' => $this->id,
+                'nama_lengkap' => $this->nama_lengkap,
+                'username' => $this->username,
+                'deleted_at' => $this->deleted_at
+            ]);
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Force delete override to handle complete cleanup
+     */
+    public function forceDelete()
+    {
+        $username = $this->username;
+        $nama = $this->nama_lengkap;
+        
+        // Perform force delete
+        $result = parent::forceDelete();
+        
+        if ($result && $username) {
+            \Log::info('Pegawai permanently deleted, username now available for reuse', [
+                'username' => $username,
+                'nama_lengkap' => $nama
+            ]);
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Restore override to handle username conflicts
+     */
+    public function restore()
+    {
+        // Check if username is now taken by another active pegawai
+        if ($this->username) {
+            $conflict = static::where('username', $this->username)
+                             ->whereNull('deleted_at')
+                             ->where('id', '!=', $this->id)
+                             ->first();
+                             
+            if ($conflict) {
+                // Generate new username for restore
+                $oldUsername = $this->username;
+                $newUsername = static::generateUsername($this->nama_lengkap);
+                $this->username = $newUsername;
+                
+                \Log::warning('Username conflict during restore, assigned new username', [
+                    'pegawai_id' => $this->id,
+                    'nama_lengkap' => $this->nama_lengkap,
+                    'old_username' => $oldUsername,
+                    'new_username' => $newUsername,
+                    'conflict_with_pegawai' => $conflict->nama_lengkap
+                ]);
+            }
+        }
+        
+        return parent::restore();
+    }
+
     protected static function boot()
     {
         parent::boot();
@@ -282,6 +410,49 @@ class Pegawai extends Model
             // If email was changed, update all associated user accounts
             if ($model->wasChanged('email') && $model->email) {
                 $model->users()->update(['email' => $model->email]);
+            }
+        });
+
+        // Hook into soft deleting event
+        static::deleting(function ($model) {
+            // Soft delete associated user accounts
+            if ($model->users()->exists()) {
+                $model->users()->each(function ($user) {
+                    $user->delete(); // Soft delete user accounts too
+                });
+                
+                \Log::info('Associated user accounts soft deleted', [
+                    'pegawai_id' => $model->id,
+                    'user_count' => $model->users()->count()
+                ]);
+            }
+        });
+
+        // Hook into force deleting event
+        static::forceDeleting(function ($model) {
+            // Force delete associated user accounts
+            if ($model->users()->withTrashed()->exists()) {
+                $model->users()->withTrashed()->forceDelete();
+                
+                \Log::info('Associated user accounts permanently deleted', [
+                    'pegawai_id' => $model->id
+                ]);
+            }
+        });
+
+        // Hook into restoring event
+        static::restoring(function ($model) {
+            // Restore associated user accounts if they exist
+            $trashedUsers = $model->users()->onlyTrashed()->get();
+            if ($trashedUsers->count() > 0) {
+                foreach ($trashedUsers as $user) {
+                    $user->restore();
+                }
+                
+                \Log::info('Associated user accounts restored', [
+                    'pegawai_id' => $model->id,
+                    'restored_user_count' => $trashedUsers->count()
+                ]);
             }
         });
     }

@@ -134,20 +134,42 @@ class PegawaiResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('username')
                                     ->label('Username Login')
-                                    ->unique(table: 'pegawais', column: 'username', ignoreRecord: true)
                                     ->nullable()
                                     ->placeholder('Auto-generate jika kosong')
-                                    ->helperText('Username untuk login (huruf, angka, spasi, titik, koma diizinkan)')
+                                    ->helperText('Username untuk login (huruf, angka, spasi, titik, koma diizinkan). Username dari pegawai yang dihapus dapat digunakan kembali.')
                                     ->rules(['nullable', 'regex:/^[a-zA-Z0-9\s.,-]+$/'])
                                     ->minLength(3)
                                     ->maxLength(50)
                                     ->suffixIcon('heroicon-m-user')
                                     ->reactive()
-                                    ->afterStateUpdated(function ($state) {
-                                        \Log::info('PegawaiResource: Username field updated', [
-                                            'new_value' => $state,
-                                            'length' => strlen($state ?? ''),
-                                            'validation_result' => preg_match('/^[a-zA-Z0-9\s.,-]+$/', $state ?? '') ? 'VALID' : 'INVALID'
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, ?string $operation, $record) {
+                                        if (empty($state)) return;
+                                        
+                                        // Check username availability using our new method
+                                        $availability = \App\Models\Pegawai::checkUsernameAvailability(
+                                            $state, 
+                                            $operation === 'edit' ? $record?->id : null
+                                        );
+                                        
+                                        if (!$availability['available']) {
+                                            $set('username', ''); // Clear invalid username
+                                            \Filament\Notifications\Notification::make()
+                                                ->title('Username Tidak Tersedia')
+                                                ->body($availability['message'])
+                                                ->danger()
+                                                ->send();
+                                        } elseif ($availability['reused_from_deleted']) {
+                                            \Filament\Notifications\Notification::make()
+                                                ->title('Username Dapat Digunakan')
+                                                ->body($availability['message'])
+                                                ->warning()
+                                                ->send();
+                                        }
+                                        
+                                        \Log::info('PegawaiResource: Username availability check', [
+                                            'username' => $state,
+                                            'available' => $availability['available'],
+                                            'reused_from_deleted' => $availability['reused_from_deleted'] ?? false
                                         ]);
                                     })
                                     ->columnSpan(3),

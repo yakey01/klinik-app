@@ -483,11 +483,9 @@ Route::get('/test-paramedis-schedules-api', function () {
                 // Format time range
                 $waktu = '00:00 - 00:00';
                 if ($jadwal->shiftTemplate) {
-                    $jamMasuk = date('H:i', strtotime($jadwal->shiftTemplate->jam_masuk));
-                    $jamKeluar = $jadwal->shiftTemplate->jam_keluar ? 
-                        date('H:i', strtotime($jadwal->shiftTemplate->jam_keluar)) : 
-                        date('H:i', strtotime($jadwal->shiftTemplate->jam_masuk . ' +8 hours'));
-                    $waktu = $jamMasuk . ' - ' . $jamKeluar;
+                    $jamMasuk = \Carbon\Carbon::parse($jadwal->shiftTemplate->jam_masuk)->format('H:i');
+                    $jamPulang = \Carbon\Carbon::parse($jadwal->shiftTemplate->jam_pulang)->format('H:i');
+                    $waktu = $jamMasuk . ' - ' . $jamPulang;
                 }
                 
                 // Map status
@@ -773,6 +771,66 @@ Route::get('/test-paramedis-dashboard-api', function () {
             'approved_jaspel' => 0,
             'today_attendance' => null,
             'growth_percent' => 0
+        ], 500);
+    }
+});
+
+// Test Naning specific jadwal jaga
+Route::get('/test-naning-schedules', function () {
+    try {
+        $user = \App\Models\User::find(13); // Naning specific
+        
+        if (!$user) {
+            return response()->json(['error' => 'Naning user not found'], 404);
+        }
+        
+        // Get paramedis record
+        $paramedis = \App\Models\Pegawai::where('user_id', $user->id)
+            ->where('jenis_pegawai', 'Paramedis')
+            ->first();
+        
+        if (!$paramedis) {
+            return response()->json(['error' => 'Naning paramedis record not found'], 404);
+        }
+        
+        // Get schedules and transform to match JadwalItem interface
+        $schedules = \App\Models\JadwalJaga::where('pegawai_id', $paramedis->id)
+            ->whereDate('tanggal_jaga', '>=', now()->startOfDay())
+            ->with(['shiftTemplate'])
+            ->orderBy('tanggal_jaga', 'asc')
+            ->limit(10)
+            ->get()
+            ->map(function($jadwal) {
+                $waktu = 'Tidak Ditentukan';
+                if ($jadwal->shiftTemplate) {
+                    $jamMasuk = \Carbon\Carbon::parse($jadwal->shiftTemplate->jam_masuk)->format('H:i');
+                    $jamPulang = \Carbon\Carbon::parse($jadwal->shiftTemplate->jam_pulang)->format('H:i');
+                    $waktu = $jamMasuk . ' - ' . $jamPulang;
+                }
+                
+                return [
+                    'id' => (string) $jadwal->id,
+                    'tanggal' => $jadwal->tanggal_jaga,
+                    'waktu' => $waktu,
+                    'lokasi' => $jadwal->unit_kerja ?? $jadwal->unit_instalasi ?? 'Tidak Ditentukan',
+                    'jenis' => strtolower($jadwal->shiftTemplate->nama_shift ?? 'reguler'),
+                    'status' => 'scheduled'
+                ];
+            });
+        
+        return response()->json([
+            'user_info' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'paramedis_id' => $paramedis->id
+            ],
+            'schedules' => $schedules->values()
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Failed to fetch Naning schedules',
+            'message' => $e->getMessage()
         ], 500);
     }
 });

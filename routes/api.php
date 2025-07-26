@@ -37,6 +37,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/health-check', [\App\Http\Controllers\Api\BendaharaController::class, 'healthCheck']);
     });
 
+    // NEW FIXED MOBILE DASHBOARD API
+    Route::prefix('mobile-dashboard')->group(function () {
+        Route::get('/jaspel-summary', [\App\Http\Controllers\Api\V2\MobileDashboardController::class, 'getJaspelSummary']);
+    });
+
+    // NEW CLEAN PARAMEDIS DASHBOARD
+    Route::prefix('new-paramedis')->middleware('role:paramedis')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Api\NewParamedisDashboardController::class, 'getDashboardData']);
+    });
+
     // Bulk Operations API
     Route::prefix('bulk')->group(function () {
         Route::post('/create', [\App\Http\Controllers\Api\V2\BulkOperationController::class, 'bulkCreate']);
@@ -169,6 +179,18 @@ Route::middleware('auth:sanctum')->group(function () {
             $todayAttendance = \App\Models\Attendance::where('user_id', $user->id)
                 ->whereDate('date', $today)
                 ->first();
+            
+            // CRITICAL LOGGING: Track what the old route is actually returning
+            \Log::critical('🚨 OLD ROUTE RESPONSE', [
+                'route' => '/api/paramedis/dashboard',
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'jaspel_monthly' => $jaspelMonthly,
+                'jaspel_weekly' => $jaspelWeekly,
+                'approved_jaspel' => $approvedJaspel,
+                'pending_jaspel' => $pendingJaspel,
+                'timestamp' => now()->toISOString()
+            ]);
             
             return response()->json([
                 'jaspel_monthly' => $jaspelMonthly,

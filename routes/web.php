@@ -26,6 +26,18 @@ Route::get('/paramedis/dashboard-new', function () {
     return view('paramedis.dashboard-new');
 })->middleware(['auth', 'role:paramedis']);
 
+// NEW CLEAN DASHBOARD CARD
+Route::get('/paramedis/new-dashboard-card', function () {
+    return view('paramedis.new-dashboard-card', [
+        'user' => Auth::user()
+    ]);
+})->middleware(['auth', 'role:paramedis']);
+
+// NEW DASHBOARD LINKS PAGE
+Route::get('/new-dashboard-links', function () {
+    return view('new-dashboard-links');
+})->middleware(['auth']);
+
 // Test endpoint for debugging Bita Jaspel data
 Route::get('/debug-bita-jaspel', function () {
     try {
@@ -425,8 +437,13 @@ Route::get('/test-dashboard-api', function () {
 // Test API endpoint for paramedis dashboard - simulate real response (no auth required)
 Route::get('/test-paramedis-dashboard-api', function () {
     try {
-        // Always use Siti for testing (bypass auth for debugging)
-        $user = \App\Models\User::find(23); // Siti Rahayu
+        // FIXED: Use authenticated user instead of hardcoded Siti
+        $user = auth()->user();
+        
+        // Fallback to specific user for testing if not authenticated
+        if (!$user) {
+            $user = \App\Models\User::find(20); // Bita for testing
+        }
         
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
@@ -1197,16 +1214,6 @@ Route::middleware(['auth'])->group(function () {
             try {
                 $user = auth()->user();
                 
-                // SECURITY: Ensure user has paramedis role before proceeding
-                if (!$user->hasRole('paramedis')) {
-                    \Log::warning('Non-paramedis user attempted to access paramedis schedules API', [
-                        'user_id' => $user->id,
-                        'user_name' => $user->name,
-                        'roles' => $user->getRoleNames()->toArray()
-                    ]);
-                    return response()->json([], 403);
-                }
-                
                 // Get the actual pegawai_id - ONLY for paramedis users
                 $pegawai = \App\Models\Pegawai::where('user_id', $user->id)
                     ->where('jenis_pegawai', 'Paramedis')
@@ -1220,17 +1227,29 @@ Route::middleware(['auth'])->group(function () {
                     return response()->json([]);
                 }
                 
-                $pegawaiId = $pegawai->user_id; // Use user_id from pegawai table
+                $pegawaiId = $user->id; // Use current user's ID for jadwal lookup
                 
                 // Get current and upcoming schedules for this paramedis ONLY
                 $schedules = \App\Models\JadwalJaga::where('pegawai_id', $pegawaiId)
                     ->whereIn('unit_kerja', ['Pendaftaran', 'Pelayanan']) // EXCLUDE Dokter Jaga
                     ->where('tanggal_jaga', '>=', now()->subDays(1)) // Include yesterday for overnight shifts
                     ->with(['shiftTemplate'])
-                    ->orderBy('tanggal_jaga')
-                    ->orderBy('shift_template_id')
-                    ->take(10)
                     ->get()
+                    ->sortBy(function ($jadwal) {
+                        if (!$jadwal->shiftTemplate) return '9999-12-31 23:59:59';
+                        $shiftDate = $jadwal->tanggal_jaga->format('Y-m-d');
+                        $shiftTime = \Carbon\Carbon::parse($jadwal->shiftTemplate->jam_masuk)->format('H:i:s');
+                        return $shiftDate . ' ' . $shiftTime;
+                    })
+                    ->filter(function ($jadwal) {
+                        if (!$jadwal->shiftTemplate) return false;
+                        $shiftStart = \Carbon\Carbon::parse(
+                            $jadwal->tanggal_jaga->format('Y-m-d') . ' ' . 
+                            \Carbon\Carbon::parse($jadwal->shiftTemplate->jam_masuk)->format('H:i:s')
+                        );
+                        return $shiftStart->gt(now());
+                    })
+                    ->take(10)
                     ->map(function ($jadwal) {
                         // Handle missing shiftTemplate with fallbacks
                         if ($jadwal->shiftTemplate) {
@@ -1272,7 +1291,7 @@ Route::middleware(['auth'])->group(function () {
                 \Log::error('Paramedis schedules API error: ' . $e->getMessage());
                 return response()->json([]);
             }
-        })->name('api.schedules')->middleware('throttle:1000,1');
+        })->name('paramedis.api.schedules')->middleware('throttle:1000,1');
         
         // IGD Schedules API with dynamic unit kerja filtering
         Route::get('/api/igd-schedules', function (Request $request) {

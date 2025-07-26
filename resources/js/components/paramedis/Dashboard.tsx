@@ -130,29 +130,80 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  // Fetch real schedule data from API
+  // Fetch real schedule data from API with enhanced debugging
   const fetchSchedules = async () => {
     try {
       setLoadingSchedules(true);
+      console.log('🚀 PARAMEDIS: Starting schedule fetch...');
+      
+      // Get CSRF token and API token for authentication
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      const apiToken = document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
+      
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      };
+      
+      // Add Bearer token if available
+      if (apiToken) {
+        headers['Authorization'] = `Bearer ${apiToken}`;
+        console.log('🔐 PARAMEDIS: Using Bearer token authentication');
+      }
+      
+      console.log('📡 PARAMEDIS: Calling /paramedis/api/schedules endpoint...');
+      
       const response = await fetch('/paramedis/api/schedules', {
         credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        }
+        headers
       });
+      
+      console.log('📨 PARAMEDIS: Response status:', response.status);
+      console.log('📨 PARAMEDIS: Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (response.ok) {
         const schedules = await response.json();
-        setJadwalMendatang(schedules);
+        console.log('✅ PARAMEDIS: Raw API response:', schedules);
+        console.log('📊 PARAMEDIS: Response type:', typeof schedules);
+        console.log('📊 PARAMEDIS: Is array:', Array.isArray(schedules));
+        console.log('📊 PARAMEDIS: Length:', schedules?.length);
+        
+        // Ensure we have an array
+        if (Array.isArray(schedules)) {
+          setJadwalMendatang(schedules);
+          console.log('✅ PARAMEDIS: Successfully set', schedules.length, 'schedules');
+          
+          // Debug each schedule item
+          schedules.forEach((schedule, index) => {
+            console.log(`📋 PARAMEDIS: Schedule ${index + 1}:`, {
+              id: schedule.id,
+              tanggal: schedule.tanggal,
+              waktu: schedule.waktu,
+              lokasi: schedule.lokasi,
+              jenis: schedule.jenis,
+              status: schedule.status
+            });
+          });
+        } else {
+          console.error('❌ PARAMEDIS: Response is not an array:', schedules);
+          setJadwalMendatang([]);
+        }
       } else {
-        console.error('Failed to fetch schedules:', response.status);
-        // Keep empty array if fetch fails
+        const errorText = await response.text();
+        console.error('❌ PARAMEDIS: Failed to fetch schedules:', {
+          status: response.status,
+          statusText: response.statusText,
+          responseText: errorText
+        });
+        setJadwalMendatang([]);
       }
     } catch (error) {
-      console.error('Error fetching schedules:', error);
-      // Keep empty array if fetch fails
+      console.error('🔥 PARAMEDIS: Error fetching schedules:', error);
+      setJadwalMendatang([]);
     } finally {
       setLoadingSchedules(false);
+      console.log('✅ PARAMEDIS: Schedule fetch completed');
     }
   };
 

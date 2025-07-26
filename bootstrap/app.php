@@ -39,6 +39,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'session.cleanup' => \App\Http\Middleware\SessionCleanupMiddleware::class,
             // Clear stale session middleware
             'clear.stale.session' => \App\Http\Middleware\ClearStaleSessionMiddleware::class,
+            // Debug API requests middleware
+            'log.api.requests' => \App\Http\Middleware\LogApiRequests::class,
         ]);
         
         // Add security headers to all responses
@@ -48,6 +50,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add session cleanup middleware to web group
         $middleware->web(append: [
             \App\Http\Middleware\ClearStaleSessionMiddleware::class,
+        ]);
+        
+        // Add API request logging to API group for debugging
+        $middleware->api(append: [
+            \App\Http\Middleware\LogApiRequests::class,
         ]);
         
         // Add rate limiting to authentication routes

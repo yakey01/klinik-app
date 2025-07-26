@@ -21,6 +21,16 @@ class ParamedisDashboardController extends Controller
      */
     public function index(Request $request)
     {
+        // TRACE LOGGING: Track exact endpoint being called
+        \Log::info('🚀 DASHBOARD ENDPOINT CALLED', [
+            'endpoint' => 'ParamedisDashboardController@index',
+            'url' => $request->url(),
+            'user_id' => Auth::id(),
+            'user_agent' => $request->userAgent(),
+            'method' => $request->method(),
+            'timestamp' => now()->toISOString()
+        ]);
+        
         try {
             $user = Auth::user();
             $paramedis = Pegawai::where('user_id', $user->id)
@@ -63,8 +73,22 @@ class ParamedisDashboardController extends Controller
                 $currentJaspelData = $enhancedService->getComprehensiveJaspelData($user, date('n'), date('Y'));
                 $lastMonthJaspelData = $enhancedService->getComprehensiveJaspelData($user, date('n') - 1, date('Y'));
                 
-                $jaspelMonth = $currentJaspelData['summary']['total_approved'];
-                $jaspelLastMonth = $lastMonthJaspelData['summary']['total_approved'];
+                $jaspelMonth = $currentJaspelData['summary']['total_paid'];
+                $jaspelLastMonth = $lastMonthJaspelData['summary']['total_paid'];
+                
+                // DEBUG LOGGING: Track exact calculation values
+                \Log::info('🔍 PARAMEDIS DASHBOARD JASPEL DEBUG', [
+                    'endpoint' => 'ParamedisDashboardController@index',
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'current_month' => date('n'),
+                    'current_year' => date('Y'),
+                    'current_jaspel_data' => $currentJaspelData,
+                    'last_month_jaspel_data' => $lastMonthJaspelData,
+                    'final_jaspel_month' => $jaspelMonth,
+                    'final_jaspel_last_month' => $jaspelLastMonth,
+                    'timestamp' => now()->toISOString()
+                ]);
                 
                 // Calculate growth percentage
                 $growthPercent = 0;
@@ -114,7 +138,8 @@ class ParamedisDashboardController extends Controller
             // Next schedule
             $nextSchedule = $this->getNextSchedule($user);
 
-            return response()->json([
+            // FINAL RESPONSE LOGGING: Track what data is actually returned
+            $responseData = [
                 'success' => true,
                 'message' => 'Dashboard data berhasil dimuat',
                 'data' => [
@@ -169,7 +194,19 @@ class ParamedisDashboardController extends Controller
                     'timestamp' => now()->toISOString(),
                     'request_id' => \Illuminate\Support\Str::uuid()->toString(),
                 ]
+            ];
+            
+            // FINAL DEBUG: Log the response being sent
+            \Log::info('📤 FINAL DASHBOARD RESPONSE', [
+                'user_id' => $user->id,
+                'jaspel_month' => $responseData['data']['stats']['jaspel_month'] ?? 'not_set',
+                'jaspel_last_month' => $responseData['data']['stats']['jaspel_last_month'] ?? 'not_set',
+                'jaspel_growth_percent' => $responseData['data']['stats']['jaspel_growth_percent'] ?? 'not_set',
+                'endpoint' => 'ParamedisDashboardController@index',
+                'timestamp' => now()->toISOString()
             ]);
+            
+            return response()->json($responseData);
 
         } catch (\Exception $e) {
             return response()->json([

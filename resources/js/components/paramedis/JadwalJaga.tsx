@@ -39,8 +39,22 @@ export function JadwalJaga() {
         
         if (response.ok) {
           const schedules = await response.json();
-          setJadwal(schedules || []);
-          console.log('✅ Paramedis schedules loaded:', schedules?.length || 0, 'items');
+          
+          // Ensure we always set an array
+          let schedulesArray = [];
+          if (Array.isArray(schedules)) {
+            schedulesArray = schedules;
+          } else if (schedules && typeof schedules === 'object') {
+            // Handle wrapped responses
+            if (schedules.data && Array.isArray(schedules.data)) {
+              schedulesArray = schedules.data;
+            } else if (schedules.schedules && Array.isArray(schedules.schedules)) {
+              schedulesArray = schedules.schedules;
+            }
+          }
+          
+          setJadwal(schedulesArray);
+          console.log('✅ Paramedis schedules loaded:', schedulesArray.length, 'items');
         } else {
           console.error('Failed to fetch paramedis schedules:', response.status);
           setError('Gagal memuat jadwal. Silakan coba lagi.');
@@ -110,9 +124,11 @@ export function JadwalJaga() {
     show: { opacity: 1, y: 0 }
   };
 
-  const scheduledCount = jadwal.filter(item => item.status === 'scheduled').length;
-  const completedCount = jadwal.filter(item => item.status === 'completed').length;
-  const missedCount = jadwal.filter(item => item.status === 'missed').length;
+  // Defensive programming: ensure jadwal is always an array
+  const safeJadwal = Array.isArray(jadwal) ? jadwal : [];
+  const scheduledCount = safeJadwal.filter(item => item.status === 'scheduled').length;
+  const completedCount = safeJadwal.filter(item => item.status === 'completed').length;
+  const missedCount = safeJadwal.filter(item => item.status === 'missed').length;
 
   return (
     <motion.div 
@@ -202,7 +218,7 @@ export function JadwalJaga() {
               </Button>
             </CardContent>
           </Card>
-        ) : jadwal.length === 0 ? (
+        ) : safeJadwal.length === 0 ? (
           <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
             <CardContent className="p-6 text-center">
               <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -211,7 +227,7 @@ export function JadwalJaga() {
             </CardContent>
           </Card>
         ) : (
-          jadwal.map((scheduleItem, index) => (
+          safeJadwal.map((scheduleItem, index) => (
           <motion.div
             key={scheduleItem.id}
             variants={item}

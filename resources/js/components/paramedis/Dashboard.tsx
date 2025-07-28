@@ -69,8 +69,8 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         headers['Authorization'] = `Bearer ${apiToken}`;
       }
 
-      // Use test API endpoint for now (bypass authentication issues)
-      const url = '/test-paramedis-dashboard-api';
+      // Use real API endpoint
+      const url = '/api/v2/dashboards/paramedis/';
       
       const response = await fetch(url, {
         credentials: 'include',
@@ -169,26 +169,40 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         console.log('📊 PARAMEDIS: Is array:', Array.isArray(schedules));
         console.log('📊 PARAMEDIS: Length:', schedules?.length);
         
-        // Ensure we have an array
+        // Ensure we have an array - handle various response formats
+        let schedulesArray = [];
+        
         if (Array.isArray(schedules)) {
-          setJadwalMendatang(schedules);
-          console.log('✅ PARAMEDIS: Successfully set', schedules.length, 'schedules');
-          
-          // Debug each schedule item
-          schedules.forEach((schedule, index) => {
-            console.log(`📋 PARAMEDIS: Schedule ${index + 1}:`, {
-              id: schedule.id,
-              tanggal: schedule.tanggal,
-              waktu: schedule.waktu,
-              lokasi: schedule.lokasi,
-              jenis: schedule.jenis,
-              status: schedule.status
-            });
-          });
+          schedulesArray = schedules;
+        } else if (schedules && typeof schedules === 'object') {
+          // Handle case where response is wrapped in an object
+          if (schedules.data && Array.isArray(schedules.data)) {
+            schedulesArray = schedules.data;
+          } else if (schedules.schedules && Array.isArray(schedules.schedules)) {
+            schedulesArray = schedules.schedules;
+          } else {
+            console.error('❌ PARAMEDIS: Response object does not contain array:', schedules);
+            schedulesArray = [];
+          }
         } else {
-          console.error('❌ PARAMEDIS: Response is not an array:', schedules);
-          setJadwalMendatang([]);
+          console.error('❌ PARAMEDIS: Response is not an array or object:', schedules);
+          schedulesArray = [];
         }
+        
+        setJadwalMendatang(schedulesArray);
+        console.log('✅ PARAMEDIS: Successfully set', schedulesArray.length, 'schedules');
+        
+        // Debug each schedule item
+        schedulesArray.forEach((schedule, index) => {
+          console.log(`📋 PARAMEDIS: Schedule ${index + 1}:`, {
+            id: schedule.id,
+            tanggal: schedule.tanggal,
+            waktu: schedule.waktu,
+            lokasi: schedule.lokasi,
+            jenis: schedule.jenis,
+            status: schedule.status
+          });
+        });
       } else {
         const errorText = await response.text();
         console.error('❌ PARAMEDIS: Failed to fetch schedules:', {

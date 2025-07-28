@@ -33,6 +33,11 @@ Route::get('/paramedis/new-dashboard-card', function () {
     ]);
 })->middleware(['auth', 'role:paramedis']);
 
+// LAPORAN PRESENSI PAGE - React Component
+Route::get('/paramedis/laporan-presensi-react', function () {
+    return view('paramedis.laporan-presensi');
+})->middleware(['auth', 'role:paramedis']);
+
 // NEW DASHBOARD LINKS PAGE
 Route::get('/new-dashboard-links', function () {
     return view('new-dashboard-links');
@@ -1285,7 +1290,8 @@ Route::middleware(['auth'])->group(function () {
                         ];
                     });
                 
-                return response()->json($schedules);
+                // Ensure we return a proper array, not a Collection
+                return response()->json($schedules->values()->toArray());
             } catch (\Exception $e) {
                 // Return empty array if there's any error
                 \Log::error('Paramedis schedules API error: ' . $e->getMessage());
@@ -1755,4 +1761,14 @@ Route::get('/test-attendance-resource', function () {
     } finally {
         \Illuminate\Support\Facades\Auth::logout();
     }
+});
+
+// Mobile app API routes with web session authentication
+Route::prefix('api/v2/dashboards/paramedis')->middleware(['auth', 'role:paramedis'])->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'index']);
+    Route::get('/attendance-recap', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getAttendanceRecap']);
+    Route::get('/schedules', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'schedules']);
+    Route::get('/attendance/status', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getAttendanceStatus']);
+    Route::post('/checkin', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkIn']);
+    Route::post('/checkout', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkOut']);
 });

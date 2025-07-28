@@ -123,9 +123,11 @@ export function JadwalJaga() {
     show: { opacity: 1, y: 0 }
   };
 
-  const scheduledCount = jadwal.filter(item => item.status === 'scheduled').length;
-  const completedCount = jadwal.filter(item => item.status === 'completed').length;
-  const missedCount = jadwal.filter(item => item.status === 'missed').length;
+  // Defensive programming: ensure jadwal is always an array
+  const safeJadwal = Array.isArray(jadwal) ? jadwal : [];
+  const scheduledCount = safeJadwal.filter(item => item.status === 'scheduled').length;
+  const completedCount = safeJadwal.filter(item => item.status === 'completed').length;
+  const missedCount = safeJadwal.filter(item => item.status === 'missed').length;
 
   return (
     <motion.div 

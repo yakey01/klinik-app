@@ -21,6 +21,9 @@ import {
   Calendar,
   MapPin
 } from 'lucide-react';
+import { Sparkline } from '../ui/sparkline';
+import { CircularProgress } from '../ui/circular-progress';
+import { TrendIndicator } from '../ui/trend-indicator';
 
 
 interface PerformanceBadge {
@@ -486,13 +489,24 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                 <CheckCircle className="w-5 h-5" />
               </div>
               <p className="metric-card-label">Kehadiran Bulan Ini</p>
-              <p className="metric-card-value">{stats.attendance.current}%</p>
-              <div className="metric-card-trend positive">
-                <TrendingUp className="w-3 h-3" />
-                <span>+{stats.attendance.change}%</span>
-              </div>
-              <div className="progress-minimal mt-3">
-                <div className="progress-minimal-fill" style={{width: `${stats.attendance.current}%`}}></div>
+              <div className="flex items-end justify-between">
+                <div className="flex-1">
+                  <p className="metric-card-value">{stats.attendance.current}%</p>
+                  <TrendIndicator 
+                    value={stats.attendance.current} 
+                    previousValue={stats.attendance.current - stats.attendance.change}
+                    format="percentage"
+                    size="sm"
+                    className="mt-1"
+                  />
+                </div>
+                <CircularProgress 
+                  value={stats.attendance.current} 
+                  size="sm"
+                  color="hsl(var(--primary-green))"
+                  strokeWidth={3}
+                  className="ml-4"
+                />
               </div>
             </>
           )}
@@ -511,9 +525,20 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               <p className="metric-card-value">
                 Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
               </p>
-              <div className={`metric-card-trend ${stats.jaspel.change > 0 ? 'positive' : 'negative'}`}>
-                {stats.jaspel.change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                <span>{stats.jaspel.change > 0 ? '+' : ''}{stats.jaspel.change}%</span>
+              <div className="flex items-center justify-between mt-2">
+                <TrendIndicator 
+                  value={stats.jaspel.thisMonth} 
+                  previousValue={stats.jaspel.lastMonth}
+                  format="currency"
+                  size="sm"
+                />
+                <Sparkline 
+                  data={[2100000, 2300000, 2000000, 2500000, 2800000, stats.jaspel.thisMonth]}
+                  color="hsl(var(--primary-blue))"
+                  height={30}
+                  width={80}
+                  className="ml-2"
+                />
               </div>
             </>
           )}
@@ -529,10 +554,34 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                 <Award className="w-5 h-5" />
               </div>
               <p className="metric-card-label">Peringkat Kinerja</p>
-              <p className="metric-card-value">#{stats.performance.attendance_rank || '--'}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                dari {stats.performance.total_staff || 0} paramedis
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="metric-card-value">#{stats.performance.attendance_rank || '--'}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    dari {stats.performance.total_staff || 0} paramedis
+                  </p>
+                </div>
+                <CircularProgress 
+                  value={stats.performance.score} 
+                  size="sm"
+                  color="hsl(var(--primary-purple))"
+                  strokeWidth={3}
+                  showValue={false}
+                />
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="flex-1 h-1 bg-purple-100 dark:bg-purple-900/30 rounded-full overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-purple-500 dark:bg-purple-400 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${stats.performance.score}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                  {stats.performance.score}%
+                </span>
+              </div>
             </>
           )}
         </div>
@@ -543,43 +592,78 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         <div className="card-minimal">
           <div className="card-minimal-header">
             <h3 className="card-minimal-title">Ringkasan Jaspel</h3>
-            <Badge className="status-badge success">
-              {stats.jaspel.change > 0 ? '+' : ''}{stats.jaspel.change}%
-            </Badge>
+            <TrendIndicator 
+              value={stats.jaspel.thisMonth} 
+              previousValue={stats.jaspel.lastMonth}
+              format="percentage"
+              size="md"
+            />
           </div>
           
           <div className="space-y-4">
-            {/* Main Amount */}
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Bulan Ini</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
-              </p>
+            {/* Main Amount with Sparkline */}
+            <div className="flex items-end justify-between">
+              <div className="flex-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Bulan Ini</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
+                </p>
+              </div>
+              <Sparkline 
+                data={[1800000, 2100000, 1900000, 2300000, 2500000, stats.jaspel.lastMonth, stats.jaspel.thisMonth]}
+                color="hsl(var(--primary-blue))"
+                height={50}
+                width={120}
+                className="ml-4"
+              />
             </div>
 
-            {/* Progress */}
+            {/* Progress with animated bar */}
             {dashboardStats?.period_info && (
               <div>
                 <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
                   <span>Progress Bulan</span>
-                  <span>{dashboardStats.period_info.month_progress}%</span>
+                  <span className="font-medium">{dashboardStats.period_info.month_progress}%</span>
                 </div>
-                <div className="progress-minimal">
-                  <div className="progress-minimal-fill" style={{width: `${dashboardStats.period_info.month_progress}%`}}></div>
+                <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-gradient-to-r from-blue-400 to-blue-600 dark:from-blue-500 dark:to-blue-700 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${dashboardStats.period_info.month_progress}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                  />
                 </div>
               </div>
             )}
 
-            {/* Stats Grid */}
+            {/* Stats Grid with mini charts */}
             <div className="grid grid-cols-2 gap-3">
               <div className="mini-metric">
-                <p className="mini-metric-label">Rata-rata Harian</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="mini-metric-label">Rata-rata Harian</p>
+                  <Sparkline 
+                    data={[45000, 52000, 48000, 55000, 51000]}
+                    color="hsl(var(--primary-green))"
+                    height={20}
+                    width={40}
+                    showArea={false}
+                  />
+                </div>
                 <p className="mini-metric-value">
                   Rp {(dashboardStats?.daily_average || 0).toLocaleString('id-ID')}
                 </p>
               </div>
               <div className="mini-metric">
-                <p className="mini-metric-label">Bulan Lalu</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="mini-metric-label">Bulan Lalu</p>
+                  <TrendIndicator 
+                    value={stats.jaspel.thisMonth} 
+                    previousValue={stats.jaspel.lastMonth}
+                    format="percentage"
+                    size="sm"
+                    showIcon={false}
+                  />
+                </div>
                 <p className="mini-metric-value">
                   Rp {stats.jaspel.lastMonth.toLocaleString('id-ID')}
                 </p>
@@ -589,13 +673,13 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
             {/* Action Button */}
             <Button 
               variant="outline" 
-              className="w-full action-button"
+              className="w-full action-button group"
             >
-              <div className="action-button-icon">
+              <div className="action-button-icon group-hover:scale-110 transition-transform">
                 <DollarSign className="w-4 h-4" />
               </div>
               <span className="action-button-text">Lihat Detail Jaspel</span>
-              <ArrowRight className="w-4 h-4 ml-auto" />
+              <ArrowRight className="w-4 h-4 ml-auto group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
         </div>

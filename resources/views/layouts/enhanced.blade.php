@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Enhanced Petugas Dashboard') - Dokterku</title>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+        // Ensure Alpine.js starts immediately when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.Alpine && !window.Alpine.store) {
+                window.Alpine.start();
+            }
+        });
+    </script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
@@ -15,6 +23,11 @@
     <!-- Enhanced Theme System -->
     <script src="{{ asset('js/theme-system.js') }}"></script>
     
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -172,6 +185,7 @@
             return {
                 sidebarOpen: false,
                 isDark: localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches),
+                debug: false,
                 
                 init() {
                     this.updateTheme();

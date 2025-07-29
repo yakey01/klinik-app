@@ -17,16 +17,16 @@
         // Force load new bundle
         var script = document.createElement('script');
         script.type = 'module';
-        script.src = '/build/assets/dokter-mobile-app-DXixV-6x.js?_=' + Date.now();
+        script.src = '/build/assets/dokter-mobile-app-B1ZYnNW5.js?_=' + Date.now();
         script.onload = function() {
-            console.log('✅ NEW BUNDLE LOADED: DXixV-6x');
+            console.log('✅ NEW BUNDLE LOADED: B1ZYnNW5');
         };
         document.head.appendChild(script);
         
         // Load CSS
         var link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = '/build/assets/css/dokter-mobile-app-CmQfbHE1.css?_=' + Date.now();
+        link.href = '/build/assets/css/dokter-mobile-app-dL8TY388.css?_=' + Date.now();
         document.head.appendChild(link);
     </script>
     

@@ -16,6 +16,25 @@ require __DIR__.'/test.php';
 require __DIR__.'/test-models.php';
 use Illuminate\Support\Facades\Auth;
 
+// Generic mobile-app route - redirects based on user role
+Route::get('/mobile-app', function () {
+    if (!auth()->check()) {
+        return redirect('/login');
+    }
+    
+    $user = auth()->user();
+    
+    // Redirect based on user role
+    if ($user->hasRole('dokter')) {
+        return redirect()->route('dokter.mobile-app');
+    } elseif ($user->hasRole('paramedis')) {
+        return redirect()->route('paramedis.mobile-app');
+    } else {
+        // Default fallback - redirect to appropriate dashboard
+        return redirect('/dashboard');
+    }
+})->name('mobile-app');
+
 // Debug work location issue
 Route::get('/debug-work-location', function () {
     return view('debug-location-issue');
@@ -864,8 +883,21 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/staff/dashboard', [StaffDashboardController::class, 'index'])->name('staff.dashboard');
     // Route removed - using standard petugas dashboard instead
     // (NO Route::get('/petugas', ...) or Route::prefix('petugas') here)
-    // Enhanced Petugas Management Routes (still available at /petugas/enhanced/*, does not override /petugas root)
+
+    // Redirect main /petugas to standard dashboard (enhanced dashboard moved to backup)
+    Route::middleware(['auth', 'role:petugas'])->get('/petugas', function () {
+        return redirect('/petugas/standard');
+    })->name('petugas.main-redirect');
+
+    // Enhanced Petugas Management Routes - MOVED TO BACKUP
+    // These routes are now disabled as enhanced dashboard was moved to backup
+    /*
     Route::middleware(['auth', 'role:petugas'])->prefix('petugas/enhanced')->name('petugas.enhanced.')->group(function () {
+        // Enhanced Dashboard
+        Route::get('/dashboard', function () {
+            return view('petugas.enhanced-dashboard');
+        })->name('dashboard');
+        
         // Patient Management
         Route::prefix('pasien')->name('pasien.')->group(function () {
             Route::get('/', [App\Http\Controllers\Petugas\Enhanced\PasienController::class, 'index'])->name('index');
@@ -938,7 +970,24 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/analytics', [App\Http\Controllers\Petugas\Enhanced\JumlahPasienController::class, 'getAnalytics'])->name('analytics');
             Route::post('/export', [App\Http\Controllers\Petugas\Enhanced\JumlahPasienController::class, 'export'])->name('export');
         });
+        
+        // Validasi Pendapatan (Revenue Validation) Management
+        Route::prefix('validasi-pendapatan')->name('validasi-pendapatan.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Petugas\Enhanced\ValidasiPendapatanController::class, 'index'])->name('index');
+            Route::get('/data', [App\Http\Controllers\Petugas\Enhanced\ValidasiPendapatanController::class, 'getData'])->name('data');
+            Route::get('/create', [App\Http\Controllers\Petugas\Enhanced\ValidasiPendapatanController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Petugas\Enhanced\ValidasiPendapatanController::class, 'store'])->name('store');
+            Route::get('/{id}', [App\Http\Controllers\Petugas\Enhanced\ValidasiPendapatanController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [App\Http\Controllers\Petugas\Enhanced\ValidasiPendapatanController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [App\Http\Controllers\Petugas\Enhanced\ValidasiPendapatanController::class, 'update'])->name('update');
+            Route::delete('/{id}', [App\Http\Controllers\Petugas\Enhanced\ValidasiPendapatanController::class, 'destroy'])->name('destroy');
+        });
+        
+        // Analytics & ML Insights Dashboard
+        Route::get('/analytics', [App\Http\Controllers\Petugas\Enhanced\AnalyticsController::class, 'index'])->name('analytics');
+        Route::get('/analytics/data', [App\Http\Controllers\Petugas\Enhanced\AnalyticsController::class, 'getAnalyticsData'])->name('analytics.data');
     });
+    */
     // Redirect DOKTER to Flutter mobile app
     Route::get('/doctor/dashboard', function () {
         return redirect('/dokter/mobile-app');

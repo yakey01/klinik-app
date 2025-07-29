@@ -18,8 +18,8 @@
     <!-- Navigation -->
     <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         <!-- Dashboard -->
-        <a href="/petugas/enhanced-dashboard" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg {{ request()->is('petugas/enhanced-dashboard*') ? 'bg-medical-50 text-medical-700 dark:bg-medical-900/50 dark:text-medical-300' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700' }} transition-colors">
-            <svg class="mr-3 h-5 w-5 {{ request()->is('petugas/enhanced-dashboard*') ? 'text-medical-500' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <a href="/petugas/enhanced/dashboard" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg {{ request()->is('petugas/enhanced/dashboard*') ? 'bg-medical-50 text-medical-700 dark:bg-medical-900/50 dark:text-medical-300' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700' }} transition-colors">
+            <svg class="mr-3 h-5 w-5 {{ request()->is('petugas/enhanced/dashboard*') ? 'text-medical-500' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v4H8V5zM8 15h8"></path>
             </svg>
@@ -40,7 +40,7 @@
                 </svg>
             </button>
             
-            <div x-show="open" class="mt-2 space-y-1 pl-8" style="display: none;">
+            <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" class="mt-2 space-y-1 pl-8">
                 <a href="/petugas/enhanced/pasien" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg {{ request()->is('petugas/enhanced/pasien') && !request()->is('petugas/enhanced/pasien/create') ? 'bg-petugas-50 text-petugas-700 dark:bg-petugas-900/30 dark:text-petugas-300' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700' }} transition-colors">
                     <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
@@ -70,7 +70,7 @@
                 </svg>
             </button>
             
-            <div x-show="open" class="mt-2 space-y-1 pl-8" style="display: none;">
+            <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" class="mt-2 space-y-1 pl-8">
                 <a href="/petugas/enhanced/tindakan" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg {{ request()->is('petugas/enhanced/tindakan') && !request()->is('petugas/enhanced/tindakan/create') ? 'bg-petugas-50 text-petugas-700 dark:bg-petugas-900/30 dark:text-petugas-300' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700' }} transition-colors">
                     <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
@@ -87,10 +87,10 @@
         </div>
 
         <!-- Financial Management -->
-        <div x-data="{ open: {{ request()->is('petugas/enhanced/pendapatan*') || request()->is('petugas/enhanced/pengeluaran*') ? 'true' : 'false' }} }">
-            <button @click="open = !open" class="w-full group flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg {{ request()->is('petugas/enhanced/pendapatan*') || request()->is('petugas/enhanced/pengeluaran*') ? 'bg-medical-50 text-medical-700 dark:bg-medical-900/50 dark:text-medical-300' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700' }} transition-colors">
+        <div x-data="{ open: {{ request()->is('petugas/enhanced/pendapatan*') || request()->is('petugas/enhanced/pengeluaran*') || request()->is('petugas/enhanced/validasi-pendapatan*') ? 'true' : 'false' }} }">
+            <button @click="open = !open" class="w-full group flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg {{ request()->is('petugas/enhanced/pendapatan*') || request()->is('petugas/enhanced/pengeluaran*') || request()->is('petugas/enhanced/validasi-pendapatan*') ? 'bg-medical-50 text-medical-700 dark:bg-medical-900/50 dark:text-medical-300' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700' }} transition-colors">
                 <div class="flex items-center">
-                    <svg class="mr-3 h-5 w-5 {{ request()->is('petugas/enhanced/pendapatan*') || request()->is('petugas/enhanced/pengeluaran*') ? 'text-medical-500' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="mr-3 h-5 w-5 {{ request()->is('petugas/enhanced/pendapatan*') || request()->is('petugas/enhanced/pengeluaran*') || request()->is('petugas/enhanced/validasi-pendapatan*') ? 'text-medical-500' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     Keuangan
@@ -100,7 +100,7 @@
                 </svg>
             </button>
             
-            <div x-show="open" class="mt-2 space-y-1 pl-8" style="display: none;">
+            <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" class="mt-2 space-y-1 pl-8">
                 <a href="/petugas/enhanced/pendapatan" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg {{ request()->is('petugas/enhanced/pendapatan*') ? 'bg-petugas-50 text-petugas-700 dark:bg-petugas-900/30 dark:text-petugas-300' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700' }} transition-colors">
                     <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
@@ -112,6 +112,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path>
                     </svg>
                     Pengeluaran
+                </a>
+                <a href="/petugas/enhanced/validasi-pendapatan" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg {{ request()->is('petugas/enhanced/validasi-pendapatan*') ? 'bg-petugas-50 text-petugas-700 dark:bg-petugas-900/30 dark:text-petugas-300' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700' }} transition-colors">
+                    <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Validasi Pendapatan
                 </a>
             </div>
         </div>
@@ -130,7 +136,7 @@
                 </svg>
             </button>
             
-            <div x-show="open" class="mt-2 space-y-1 pl-8" style="display: none;">
+            <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" class="mt-2 space-y-1 pl-8">
                 <a href="/petugas/enhanced/jumlah-pasien" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg {{ request()->is('petugas/enhanced/jumlah-pasien*') ? 'bg-petugas-50 text-petugas-700 dark:bg-petugas-900/30 dark:text-petugas-300' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700' }} transition-colors">
                     <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -168,6 +174,13 @@
                 </svg>
                 Input Tindakan
             </a>
+            
+            <a href="/petugas/enhanced/validasi-pendapatan/create" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 transition-colors">
+                <svg class="mr-3 h-4 w-4 text-gray-400 group-hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Input Pendapatan
+            </a>
         </div>
 
         <!-- Divider -->
@@ -179,7 +192,7 @@
                 System
             </h3>
             
-            <a href="/petugas" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 transition-colors">
+            <a href="/petugas/standard" class="group flex items-center px-3 py-2 text-sm font-medium rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 transition-colors">
                 <svg class="mr-3 h-4 w-4 text-gray-400 group-hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v4H8V5z"></path>

@@ -32,6 +32,16 @@ class JumlahPasienHarianResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return true;
+    }
+
 
     public static function form(Form $form): Form
     {

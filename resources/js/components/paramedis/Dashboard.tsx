@@ -534,9 +534,25 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               >
                 <CheckCircle className="w-5 h-5" />
               </motion.div>
-              <p id="attendance-label" className="metric-card-label">Kehadiran Bulan Ini</p>
-              <div className="flex items-end justify-between">
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
+                  <p id="attendance-label" className="metric-card-label">Kehadiran Bulan Ini</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Target: {stats.attendance.target}% • {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                <Suspense fallback={<div className="w-[50px] h-[50px] bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />}>
+                  <CircularProgress 
+                    value={stats.attendance.current} 
+                    size="sm"
+                    color="hsl(var(--primary-green))"
+                    strokeWidth={3}
+                  />
+                </Suspense>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between">
                   <motion.p 
                     className="metric-card-value"
                     initial={{ opacity: 0, scale: 0.5 }}
@@ -551,19 +567,16 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                       previousValue={stats.attendance.current - stats.attendance.change}
                       format="percentage"
                       size="sm"
-                      className="mt-1"
                     />
                   </Suspense>
                 </div>
-                <Suspense fallback={<div className="w-[60px] h-[60px] bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />}>
-                  <CircularProgress 
-                    value={stats.attendance.current} 
-                    size="sm"
-                    color="hsl(var(--primary-green))"
-                    strokeWidth={3}
-                    className="ml-4"
-                  />
-                </Suspense>
+                
+                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span>Hari kerja: {Math.floor(new Date().getDate() * 0.7)}/22</span>
+                  <span className={`font-medium ${stats.attendance.current >= stats.attendance.target ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    {stats.attendance.current >= stats.attendance.target ? 'Mencapai target' : `Perlu ${stats.attendance.target - stats.attendance.current}%`}
+                  </span>
+                </div>
               </div>
             </>
           )}
@@ -590,24 +603,48 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               >
                 <DollarSign className="w-5 h-5" />
               </motion.div>
-              <p className="metric-card-label">Jaspel Hari Ini</p>
-              <p className="metric-card-value">
-                Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
-              </p>
-              <div className="flex items-center justify-between mt-2">
-                <TrendIndicator 
-                  value={stats.jaspel.thisMonth} 
-                  previousValue={stats.jaspel.lastMonth}
-                  format="currency"
-                  size="sm"
-                />
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <p className="metric-card-label">Jaspel Bulan Ini</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Periode: {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
                 <Sparkline 
                   data={[2100000, 2300000, 2000000, 2500000, 2800000, stats.jaspel.thisMonth]}
                   color="hsl(var(--primary-blue))"
-                  height={30}
-                  width={80}
-                  className="ml-2"
+                  height={35}
+                  width={70}
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <p className="metric-card-value">
+                    Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
+                  </p>
+                  <TrendIndicator 
+                    value={stats.jaspel.thisMonth} 
+                    previousValue={stats.jaspel.lastMonth}
+                    format="currency"
+                    size="sm"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="space-y-1">
+                    <p className="text-gray-500 dark:text-gray-400">Rata-rata/hari</p>
+                    <p className="font-medium text-gray-700 dark:text-gray-300">
+                      Rp {Math.round(stats.jaspel.thisMonth / new Date().getDate()).toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-gray-500 dark:text-gray-400">Bulan lalu</p>
+                    <p className="font-medium text-gray-700 dark:text-gray-300">
+                      Rp {(stats.jaspel.lastMonth / 1000).toFixed(0)}K
+                    </p>
+                  </div>
+                </div>
               </div>
             </>
           )}
@@ -634,12 +671,11 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               >
                 <Award className="w-5 h-5" />
               </motion.div>
-              <p className="metric-card-label">Peringkat Kinerja</p>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="metric-card-value">#{stats.performance.attendance_rank || '--'}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    dari {stats.performance.total_staff || 0} paramedis
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <p className="metric-card-label">Peringkat Kinerja</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Evaluasi bulanan • {new Date().toLocaleDateString('id-ID', { month: 'long' })}
                   </p>
                 </div>
                 <CircularProgress 
@@ -650,18 +686,46 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                   showValue={false}
                 />
               </div>
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex-1 h-1 bg-purple-100 dark:bg-purple-900/30 rounded-full overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-purple-500 dark:bg-purple-400 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${stats.performance.score}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                  />
+              
+              <div className="space-y-3">
+                <div className="flex items-baseline justify-between">
+                  <div>
+                    <p className="metric-card-value">#{stats.performance.attendance_rank || '--'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      dari {stats.performance.total_staff || 0} paramedis
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                      {stats.performance.score}%
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">skor kinerja</p>
+                  </div>
                 </div>
-                <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                  {stats.performance.score}%
-                </span>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500 dark:text-gray-400">Progress evaluasi</span>
+                    <span className={`font-medium ${
+                      stats.performance.score >= 90 ? 'text-green-600 dark:text-green-400' :
+                      stats.performance.score >= 75 ? 'text-blue-600 dark:text-blue-400' :
+                      'text-amber-600 dark:text-amber-400'
+                    }`}>
+                      {stats.performance.score >= 90 ? 'Sangat Baik' :
+                       stats.performance.score >= 75 ? 'Baik' : 'Perlu Peningkatan'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-purple-100 dark:bg-purple-900/30 rounded-full overflow-hidden">
+                      <motion.div 
+                        className="h-full bg-gradient-to-r from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${stats.performance.score}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
           )}

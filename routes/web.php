@@ -21,6 +21,11 @@ Route::get('/debug-work-location', function () {
     return view('debug-location-issue');
 });
 
+// CSRF Refresh Route untuk mencegah 419
+Route::get('/refresh-csrf', function () {
+    return response()->json(['token' => csrf_token()]);
+})->name('refresh-csrf');
+
 // WORLD-CLASS: New Jaspel Dashboard 
 Route::get('/paramedis/dashboard-new', function () {
     return view('paramedis.dashboard-new');
@@ -1362,7 +1367,20 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('paramedis.mobile-app');
         })->name('dashboard');
         Route::get('/presensi', function () {
-            return redirect()->route('paramedis.mobile-app');
+            $user = auth()->user();
+            $token = $user->createToken('presensi-app-' . now()->timestamp)->plainTextToken;
+            
+            $hour = now()->hour;
+            $greeting = $hour < 12 ? 'Selamat Pagi' : ($hour < 17 ? 'Selamat Siang' : 'Selamat Malam');
+            
+            $userData = [
+                'name' => $user->name,
+                'email' => $user->email,
+                'greeting' => $greeting,
+                'initials' => strtoupper(substr($user->name ?? 'PA', 0, 2))
+            ];
+            
+            return view('mobile.paramedis.app', compact('token', 'userData'));
         })->name('presensi');
         Route::get('/jaspel', function () {
             return redirect()->route('paramedis.mobile-app');

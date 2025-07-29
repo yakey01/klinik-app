@@ -5,9 +5,6 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
   Activity, 
   TrendingUp, 
   TrendingDown, 
@@ -17,20 +14,14 @@ import {
   Users, 
   Award, 
   ArrowRight,
-  AlertCircle,
   Timer,
   RefreshCw,
-  Navigation
+  Navigation,
+  Clock,
+  Calendar,
+  MapPin
 } from 'lucide-react';
 
-interface JadwalItem {
-  id: string;
-  tanggal: string;
-  waktu: string;
-  lokasi: string;
-  jenis: 'pagi' | 'siang' | 'malam';
-  status: 'scheduled' | 'completed' | 'missed';
-}
 
 interface PerformanceBadge {
   name: string;
@@ -54,8 +45,6 @@ interface DashboardProps {
 export function Dashboard({ userData: propUserData }: DashboardProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [userData, setUserData] = useState<any>(null);
-  const [jadwalMendatang, setJadwalMendatang] = useState<JadwalItem[]>([]);
-  const [loadingSchedules, setLoadingSchedules] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [lastLocationUpdate, setLastLocationUpdate] = useState<string | null>(null);
@@ -143,10 +132,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
   // Manual refresh function for user
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([
-      fetchDashboardStats(true),
-      fetchSchedules()
-    ]);
+    await fetchDashboardStats(true);
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
@@ -166,9 +152,10 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
       // Get CSRF token
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
       
-      // Determine if user needs to check in or check out
-      const canCheckIn = dashboardStats?.attendance?.can_check_in ?? true;
-      const canCheckOut = dashboardStats?.attendance?.can_check_out ?? false;
+      // Enhanced logic for multiple shifts
+      const attendanceStatus = dashboardStats?.stats?.attendance_today;
+      const canCheckIn = attendanceStatus?.can_check_in ?? true;
+      const canCheckOut = attendanceStatus?.can_check_out ?? false;
       
       const endpoint = canCheckIn ? '/paramedis/web-api/checkin' : '/paramedis/web-api/checkout';
       const action = canCheckIn ? 'Check In' : 'Check Out';
@@ -299,96 +286,6 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
     setPullToRefreshDistance(0);
   };
 
-  // Fetch real schedule data from API with enhanced debugging
-  const fetchSchedules = async () => {
-    try {
-      setLoadingSchedules(true);
-      console.log('🚀 PARAMEDIS: Starting schedule fetch...');
-      
-      // Get CSRF token and API token for authentication
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-      const apiToken = document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
-      
-      const headers: Record<string, string> = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken,
-      };
-      
-      // Add Bearer token if available
-      if (apiToken) {
-        headers['Authorization'] = `Bearer ${apiToken}`;
-        console.log('🔐 PARAMEDIS: Using Bearer token authentication');
-      }
-      
-      console.log('📡 PARAMEDIS: Calling /paramedis/api/schedules endpoint...');
-      
-      const response = await fetch('/paramedis/api/schedules', {
-        credentials: 'include',
-        headers
-      });
-      
-      console.log('📨 PARAMEDIS: Response status:', response.status);
-      console.log('📨 PARAMEDIS: Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const schedules = await response.json();
-        console.log('✅ PARAMEDIS: Raw API response:', schedules);
-        console.log('📊 PARAMEDIS: Response type:', typeof schedules);
-        console.log('📊 PARAMEDIS: Is array:', Array.isArray(schedules));
-        console.log('📊 PARAMEDIS: Length:', schedules?.length);
-        
-        // Ensure we have an array - handle various response formats
-        let schedulesArray = [];
-        
-        if (Array.isArray(schedules)) {
-          schedulesArray = schedules;
-        } else if (schedules && typeof schedules === 'object') {
-          // Handle case where response is wrapped in an object
-          if (schedules.data && Array.isArray(schedules.data)) {
-            schedulesArray = schedules.data;
-          } else if (schedules.schedules && Array.isArray(schedules.schedules)) {
-            schedulesArray = schedules.schedules;
-          } else {
-            console.error('❌ PARAMEDIS: Response object does not contain array:', schedules);
-            schedulesArray = [];
-          }
-        } else {
-          console.error('❌ PARAMEDIS: Response is not an array or object:', schedules);
-          schedulesArray = [];
-        }
-        
-        setJadwalMendatang(schedulesArray);
-        console.log('✅ PARAMEDIS: Successfully set', schedulesArray.length, 'schedules');
-        
-        // Debug each schedule item
-        schedulesArray.forEach((schedule, index) => {
-          console.log(`📋 PARAMEDIS: Schedule ${index + 1}:`, {
-            id: schedule.id,
-            tanggal: schedule.tanggal,
-            waktu: schedule.waktu,
-            lokasi: schedule.lokasi,
-            jenis: schedule.jenis,
-            status: schedule.status
-          });
-        });
-      } else {
-        const errorText = await response.text();
-        console.error('❌ PARAMEDIS: Failed to fetch schedules:', {
-          status: response.status,
-          statusText: response.statusText,
-          responseText: errorText
-        });
-        setJadwalMendatang([]);
-      }
-    } catch (error) {
-      console.error('🔥 PARAMEDIS: Error fetching schedules:', error);
-      setJadwalMendatang([]);
-    } finally {
-      setLoadingSchedules(false);
-      console.log('✅ PARAMEDIS: Schedule fetch completed');
-    }
-  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -407,7 +304,6 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
     }
     
     fetchDashboardStats();
-    fetchSchedules();
 
     // Set up interval to check for location updates every 30 seconds
     const locationCheckInterval = setInterval(() => {
@@ -420,33 +316,6 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
     };
   }, []);
 
-  const getShiftColor = (jenis: string) => {
-    switch (jenis) {
-      case 'pagi': return 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white dark:from-yellow-500 dark:to-yellow-600';
-      case 'siang': return 'bg-gradient-to-r from-orange-400 to-orange-500 text-white dark:from-orange-500 dark:to-orange-600';
-      case 'malam': return 'bg-gradient-to-r from-purple-400 to-purple-500 text-white dark:from-purple-500 dark:to-purple-600';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-    }
-  };
-
-  const formatTanggal = (tanggal: string) => {
-    return new Date(tanggal).toLocaleDateString('id-ID', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
-    });
-  };
-
-  const getShiftIcon = (jenis: string) => {
-    switch (jenis) {
-      case 'pagi': return '☀️';
-      case 'siang': return '🌤️';
-      case 'malam': return '🌙';
-      default: return '⏰';
-    }
-  };
-
-  const nextSchedule = jadwalMendatang.length > 0 ? jadwalMendatang[0] : null;
 
   const container = {
     hidden: { opacity: 0 },
@@ -530,33 +399,36 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
       >
       {/* Header Welcome */}
       <motion.div variants={item}>
-        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 border-0 shadow-xl card-enhanced">
-          <CardContent className="p-6">
-            <div className="text-white">
+        <Card className="bg-gradient-to-br from-blue-600 to-purple-700 dark:from-blue-700 dark:to-purple-800 border-0 relative overflow-hidden">
+          <CardContent className="p-6 card-content-mobile relative z-10">
+            {/* Background overlay for better text contrast - only for dark mode */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/10 to-black/20"></div>
+            
+            <div className="text-white relative z-10">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-white/20 dark:bg-white/30 rounded-full flex items-center justify-center">
-                  <Activity className="w-6 h-6" />
+                <div className="w-14 h-14 bg-white/30 dark:bg-white/35 rounded-2xl flex items-center justify-center shadow-2xl backdrop-blur-lg border-2 border-white/30">
+                  <Activity className="w-7 h-7 text-white drop-shadow-lg" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-white text-heading-mobile">Dashboard</h2>
-                  <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">
-                    {propUserData?.greeting || userData?.greeting || 'Selamat datang kembali'}, {propUserData?.name || userData?.name || 'Paramedis'}
+                <div className="greeting-panel-enhanced">
+                  <h2 className="greeting-text-gradient text-2xl">Dashboard</h2>
+                  <p className="greeting-text-gradient text-base">
+                    {propUserData?.greeting || userData?.greeting || 'Selamat datang kembali'}, <span className="greeting-text-gradient font-black">{propUserData?.name || userData?.name || 'Paramedis'}</span>
                   </p>
                 </div>
               </div>
               
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">Waktu Sekarang</p>
-                  <p className="text-lg font-semibold text-white text-subheading-mobile">
+                <div className="greeting-panel-enhanced">
+                  <p className="greeting-text-gradient text-sm">Waktu Sekarang</p>
+                  <p className="greeting-text-gradient text-xl font-black">
                     {currentTime.toLocaleTimeString('id-ID', { 
                       hour: '2-digit', 
                       minute: '2-digit' 
                     })}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">
+                <div className="text-right greeting-panel-enhanced">
+                  <p className="greeting-text-gradient text-sm">
                     {currentTime.toLocaleDateString('id-ID', {
                       weekday: 'long',
                       day: 'numeric',
@@ -573,16 +445,16 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
       {/* Work Location Card - Only show if work location exists */}
       {dashboardStats?.user?.work_location && (
         <motion.div variants={item}>
-          <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-green-50/50 dark:from-gray-900 dark:to-green-950/30 backdrop-blur-sm overflow-hidden card-enhanced">
-            <CardContent className="p-6">
+          <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-green-50/50 dark:from-gray-900 dark:to-green-950/30 backdrop-blur-sm overflow-hidden card-glass-enhanced card-interactive">
+            <CardContent className="p-6 card-content-mobile">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center shadow-mobile-soft">
                     <Navigation className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-high-contrast text-subheading-mobile">Lokasi Kerja</h3>
-                    <p className="text-sm text-medium-contrast font-medium text-mobile-friendly">Area validasi presensi</p>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Lokasi Kerja</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Area validasi presensi</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -640,125 +512,19 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         </motion.div>
       )}
 
-      {/* Next Schedule Card */}
-      <motion.div variants={item}>
-        <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50/50 dark:from-gray-900 dark:to-blue-950/30 backdrop-blur-sm overflow-hidden card-enhanced">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-high-contrast text-subheading-mobile">Jadwal Jaga Berikutnya</h3>
-                  <p className="text-sm text-medium-contrast font-medium text-mobile-friendly">Shift yang akan datang</p>
-                </div>
-              </div>
-              <Badge variant="outline" className="border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 font-medium">
-                Segera
-              </Badge>
-            </div>
-
-            {loadingSchedules ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="bg-gradient-to-r from-gray-400 to-gray-500 dark:from-gray-600 dark:to-gray-700 rounded-xl p-5 text-white relative overflow-hidden"
-              >
-                <div className="flex items-center justify-center space-x-3">
-                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-sm font-medium">Memuat jadwal...</span>
-                </div>
-              </motion.div>
-            ) : nextSchedule ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl p-5 text-white relative overflow-hidden"
-              >
-                {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 dark:bg-white/15 rounded-full -translate-y-12 translate-x-12" />
-                <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/5 dark:bg-white/10 rounded-full translate-y-8 -translate-x-8" />
-                
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">{getShiftIcon(nextSchedule.jenis)}</div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-subheading-mobile">{formatTanggal(nextSchedule.tanggal)}</h4>
-                        <p className="text-blue-100 dark:text-blue-200 text-sm font-medium text-mobile-friendly">Shift {nextSchedule.jenis}</p>
-                      </div>
-                    </div>
-                    <Badge className={`${getShiftColor(nextSchedule.jenis)} text-xs font-semibold`}>
-                      {nextSchedule.jenis.charAt(0).toUpperCase() + nextSchedule.jenis.slice(1)}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Clock className="w-4 h-4 text-blue-200 dark:text-blue-300" />
-                      <span className="text-sm font-medium text-blue-100 dark:text-blue-200">
-                        {nextSchedule.waktu}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <MapPin className="w-4 h-4 text-blue-200 dark:text-blue-300" />
-                      <span className="text-sm font-medium text-blue-100 dark:text-blue-200">
-                        {nextSchedule.lokasi}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="bg-gradient-to-r from-amber-400 to-amber-500 dark:from-amber-500 dark:to-amber-600 rounded-xl p-5 text-white relative overflow-hidden"
-              >
-                <div className="flex items-center justify-center space-x-3">
-                  <AlertCircle className="w-6 h-6" />
-                  <div className="text-center">
-                    <p className="font-medium">Tidak ada jadwal jaga</p>
-                    <p className="text-sm text-amber-100 dark:text-amber-200">Hubungi admin untuk penjadwalan</p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mt-4"
-            >
-              <Button 
-                variant="outline" 
-                className="w-full hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-200 dark:hover:border-blue-700 group font-medium"
-              >
-                <span>Lihat Semua Jadwal</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </motion.div>
-          </CardContent>
-        </Card>
-      </motion.div>
 
       {/* Enhanced Performance Stats with Badges */}
       <motion.div variants={item}>
-        <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/20 backdrop-blur-sm overflow-hidden card-enhanced">
-          <CardContent className="p-6">
+        <Card className="shadow-xl border-0 bg-white dark:bg-gray-800 backdrop-blur-sm overflow-hidden">
+          <CardContent className="p-6 card-content-mobile">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <Activity className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-high-contrast text-subheading-mobile">Performa Anda</h3>
-                  <p className="text-sm text-medium-contrast font-medium text-mobile-friendly">Statistik dan pencapaian</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Performa Anda</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Statistik dan pencapaian</p>
                 </div>
               </div>
               
@@ -790,7 +556,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-xl p-4 border border-green-100 dark:border-green-800/20">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  <span className="text-sm font-semibold text-green-700 dark:text-green-300">Kehadiran</span>
+                  <span className="text-sm text-high-contrast">Kehadiran</span>
                 </div>
                 <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
                   {loadingStats ? (
@@ -799,7 +565,9 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                     `${stats.attendance.current}%`
                   )}
                 </div>
-                <Progress value={stats.attendance.current} className="h-2 mb-2 bg-green-100 dark:bg-green-900" />
+                <div className="progress-clean mb-2">
+                  <div className="progress-clean-fill" style={{width: `${stats.attendance.current}%`}}></div>
+                </div>
                 <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                   <TrendingUp className="w-3 h-3" />
                   <span className="font-semibold">+{stats.attendance.change}% dari bulan lalu</span>
@@ -810,7 +578,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Award className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">Peringkat</span>
+                  <span className="text-sm text-high-contrast">Peringkat</span>
                 </div>
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
                   {loadingStats ? (
@@ -819,10 +587,9 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                     `#${stats.performance.attendance_rank || '--'}`
                   )}
                 </div>
-                <Progress 
-                  value={stats.performance.attendance_rank ? Math.max(0, 100 - ((stats.performance.attendance_rank / stats.performance.total_staff) * 100)) : 0} 
-                  className="h-2 mb-2 bg-blue-100 dark:bg-blue-900" 
-                />
+                <div className="progress-clean mb-2">
+                  <div className="progress-clean-fill" style={{width: `${stats.performance.attendance_rank ? Math.max(0, 100 - ((stats.performance.attendance_rank / stats.performance.total_staff) * 100)) : 0}%`}}></div>
+                </div>
                 <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                   <Users className="w-3 h-3" />
                   <span className="font-semibold">dari {loadingStats ? '...' : (stats.performance.total_staff || 0)} paramedis</span>
@@ -839,7 +606,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                     <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
                       {dashboardStats.performance.punctuality_rate}%
                     </div>
-                    <div className="text-xs text-medium-contrast font-medium">Ketepatan Waktu</div>
+                    <div className="text-xs text-high-contrast">Ketepatan Waktu</div>
                   </div>
                 )}
                 
@@ -849,7 +616,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                     <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
                       {dashboardStats.performance.week_attendance}
                     </div>
-                    <div className="text-xs text-medium-contrast font-medium">Minggu Ini</div>
+                    <div className="text-xs text-high-contrast">Minggu Ini</div>
                   </div>
                 )}
                 
@@ -859,7 +626,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                     <div className="text-lg font-bold text-teal-600 dark:text-teal-400">
                       {dashboardStats.performance.total_work_hours}h
                     </div>
-                    <div className="text-xs text-medium-contrast font-medium">Total Jam</div>
+                    <div className="text-xs text-high-contrast">Total Jam</div>
                   </div>
                 )}
               </div>
@@ -874,7 +641,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                 className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-medium-contrast">Tren 3 Bulan</span>
+                  <span className="text-sm text-high-contrast">Tren 3 Bulan</span>
                   <div className={`flex items-center gap-1 text-xs ${
                     dashboardStats.performance.performance_trend.direction === 'up' ? 'text-green-600 dark:text-green-400' :
                     dashboardStats.performance.performance_trend.direction === 'down' ? 'text-red-600 dark:text-red-400' :
@@ -904,16 +671,16 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
 
       {/* Enhanced Jaspel Summary with Modern Card Design */}
       <motion.div variants={item}>
-        <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-emerald-50/50 dark:from-gray-900 dark:to-emerald-950/30 backdrop-blur-sm overflow-hidden card-enhanced group">
-          <CardContent className="p-6">
+        <Card className="shadow-xl border-0 card-frosted-clean dark:from-gray-900 dark:to-emerald-950/30 backdrop-blur-sm overflow-hidden card-interactive group">
+          <CardContent className="p-6 card-content-mobile">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-emerald-200 dark:group-hover:shadow-emerald-900/50 transition-shadow">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-mobile-strong group-hover:shadow-emerald-200 dark:group-hover:shadow-emerald-900/50 transition-shadow">
                   <DollarSign className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-high-contrast text-subheading-mobile">Jaspel Bulan Ini</h3>
-                  <p className="text-sm text-medium-contrast font-medium text-mobile-friendly">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Jaspel Bulan Ini</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
                     {dashboardStats?.period_info && (
                       <>Progress {dashboardStats.period_info.month_progress}% bulan ini</>
                     )}
@@ -924,7 +691,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               {/* Amount with Trend */}
               <div className="text-right">
                 <motion.p 
-                  className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 text-heading-mobile"
+                  className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 text-mobile-hero"
                   key={stats.jaspel.thisMonth}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -957,15 +724,14 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                 transition={{ delay: 0.3 }}
                 className="mb-6"
               >
-                <div className="flex justify-between text-xs text-medium-contrast mb-2">
+                <div className="flex justify-between text-xs text-high-contrast mb-2">
                   <span className="font-medium">Hari ke-{dashboardStats.period_info.days_passed}</span>
                   <span className="font-medium">{dashboardStats.period_info.days_in_month} hari total</span>
                 </div>
                 <div className="relative">
-                  <Progress 
-                    value={dashboardStats.period_info.month_progress} 
-                    className="h-3 bg-emerald-100/50 dark:bg-emerald-950/30" 
-                  />
+                  <div className="progress-clean">
+                    <div className="progress-clean-fill" style={{width: `${dashboardStats.period_info.month_progress}%`}}></div>
+                  </div>
                   <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-green-500/20 rounded-full"></div>
                 </div>
                 <div className="text-center mt-2">
@@ -987,7 +753,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                   <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
                     <span className="text-xs text-white font-bold">Ⓓ</span>
                   </div>
-                  <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold">Rata-rata Harian</span>
+                  <span className="text-xs text-high-contrast">Rata-rata Harian</span>
                 </div>
                 <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                   Rp {(dashboardStats?.daily_average || 0).toLocaleString('id-ID')}
@@ -1003,7 +769,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                   <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                     <span className="text-xs text-white font-bold">Ⓦ</span>
                   </div>
-                  <span className="text-xs text-green-700 dark:text-green-300 font-semibold">Estimasi Mingguan</span>
+                  <span className="text-xs text-high-contrast">Estimasi Mingguan</span>
                 </div>
                 <div className="text-lg font-bold text-green-600 dark:text-green-400">
                   Rp {(dashboardStats?.jaspel_weekly || 0).toLocaleString('id-ID')}
@@ -1019,13 +785,13 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Bulan Lalu</span>
+                  <span className="text-sm text-high-contrast">Bulan Lalu</span>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                     Rp {stats.jaspel.lastMonth.toLocaleString('id-ID')}
                   </div>
-                  <div className="text-xs text-medium-contrast">
+                  <div className="text-xs text-high-contrast">
                     Perbandingan periode
                   </div>
                 </div>
@@ -1054,14 +820,47 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
 
       {/* Quick Actions */}
       <motion.div variants={item}>
-        <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
+        <Card className="shadow-lg border-0 bg-white dark:bg-gray-800 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-high-contrast">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
               <Timer className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               Aksi Cepat
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 card-content-mobile">
+            {/* Shift Status Display */}
+            {dashboardStats?.stats?.attendance_today && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      dashboardStats.stats.attendance_today.status === 'checked_in' ? 'bg-green-500 animate-pulse' :
+                      dashboardStats.stats.attendance_today.status === 'all_shifts_completed' ? 'bg-emerald-500' :
+                      'bg-blue-500'
+                    }`}></div>
+                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Shift Status
+                    </span>
+                  </div>
+                  <div className="text-xs text-blue-600 dark:text-blue-300">
+                    {dashboardStats.stats.attendance_today.completed_shifts}/{dashboardStats.stats.attendance_today.total_shifts} selesai
+                  </div>
+                </div>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  {dashboardStats.stats.attendance_today.message}
+                </p>
+                {dashboardStats.stats.attendance_today.active_shift && (
+                  <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                    <span className="font-medium">Shift Aktif:</span> {dashboardStats.stats.attendance_today.active_shift.start_time} - {dashboardStats.stats.attendance_today.active_shift.end_time}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             <motion.div
               whileHover={{ scale: 1.01, x: 5 }}
               whileTap={{ scale: 0.99 }}
@@ -1069,7 +868,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
             >
               <Button 
                 variant="outline" 
-                className={`w-full justify-start gap-3 h-12 font-medium ${
+                className={`w-full justify-start gap-3 h-12 font-medium btn-mobile-primary focus-enhanced ${
                   checkInStatus === 'success' 
                     ? 'hover:bg-green-50 dark:hover:bg-green-950/50 hover:border-green-200 dark:hover:border-green-700 border-green-200' 
                     : checkInStatus === 'error'
@@ -1103,27 +902,15 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                 {checkInStatus === 'success' && 'Berhasil!'}
                 {checkInStatus === 'error' && 'Gagal'}
                 {checkInStatus === 'idle' && (
-                  dashboardStats?.attendance?.can_check_in 
-                    ? 'Check In Sekarang' 
-                    : dashboardStats?.attendance?.can_check_out 
+                  dashboardStats?.stats?.attendance_today?.can_check_in 
+                    ? (dashboardStats?.stats?.attendance_today?.message || 'Check In Sekarang')
+                    : dashboardStats?.stats?.attendance_today?.can_check_out 
                     ? 'Check Out Sekarang'
                     : 'Check In/Out Sekarang'
                 )}
               </Button>
             </motion.div>
             
-            <motion.div
-              whileHover={{ scale: 1.01, x: 5 }}
-              whileTap={{ scale: 0.99 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Button variant="outline" className="w-full justify-start gap-3 h-12 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:border-emerald-200 dark:hover:border-emerald-700 font-medium">
-                <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                Lihat Jadwal Minggu Ini
-              </Button>
-            </motion.div>
 
             <motion.div
               whileHover={{ scale: 1.01, x: 5 }}
@@ -1141,108 +928,6 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         </Card>
       </motion.div>
 
-      {/* Upcoming Schedules Preview */}
-      <motion.div variants={item}>
-        <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm card-enhanced">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-high-contrast">
-              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              Jadwal Minggu Ini
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadingSchedules ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
-                <span className="text-sm text-medium-contrast">Memuat jadwal...</span>
-              </div>
-            ) : jadwalMendatang.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                className="text-center py-12"
-              >
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.4 }}
-                  className="relative mb-6"
-                >
-                  <div className="relative inline-flex items-center justify-center w-24 h-24 mx-auto mb-4">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-full opacity-20 animate-pulse"></div>
-                    <div className="relative bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 rounded-full p-6 border border-emerald-100 dark:border-emerald-800/50">
-                      <Calendar className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                  </div>
-                  <div className="text-4xl mb-2">🏥</div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.4 }}
-                  className="space-y-2"
-                >
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Tidak ada jadwal minggu ini
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
-                    Jadwal jaga Anda untuk minggu ini belum tersedia. Hubungi admin untuk pengaturan jadwal.
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.4 }}
-                  className="mt-6"
-                >
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-full border border-emerald-100 dark:border-emerald-800/50">
-                    <Timer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                      Segera diperbarui
-                    </span>
-                  </div>
-                </motion.div>
-              </motion.div>
-            ) : (
-              <div className="space-y-3">
-                {jadwalMendatang.slice(0, 3).map((schedule, index) => (
-                <motion.div
-                  key={schedule.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-lg">{getShiftIcon(schedule.jenis)}</div>
-                    <div>
-                      <p className="text-sm font-medium text-high-contrast">{formatTanggal(schedule.tanggal)}</p>
-                      <p className="text-xs text-muted-foreground font-medium">{schedule.waktu}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-high-contrast">{schedule.lokasi}</p>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs font-medium ${
-                        schedule.jenis === 'pagi' ? 'border-yellow-300 dark:border-yellow-600 text-yellow-700 dark:text-yellow-400' :
-                        schedule.jenis === 'siang' ? 'border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-400' :
-                        'border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-400'
-                      }`}
-                    >
-                      {schedule.jenis}
-                    </Badge>
-                  </div>
-                </motion.div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
     </motion.div>
     </div>
   );

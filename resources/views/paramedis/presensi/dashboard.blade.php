@@ -6,40 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Presensi Harian - Dokterku Paramedis</title>
     
-    <!-- Tailwind CSS v4 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#eff6ff',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            800: '#1e40af',
-                            900: '#1e3a8a',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.5s ease-in-out',
-                        'slide-up': 'slideUp 0.6s ease-out',
-                        'bounce-in': 'bounceIn 0.8s ease-out',
-                        'pulse-slow': 'pulse 3s ease-in-out infinite',
-                        'heartbeat': 'heartbeat 1.5s ease-in-out infinite',
-                    }
-                }
-            }
-        }
-    </script>
+    @vite(['resources/css/app.css'])
     
     <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    @include('components.medical-font-head')
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -445,26 +415,26 @@
                         <!-- Action Buttons -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <button onclick="checkIn()" 
-                                    class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg {{ !$todayAttendance['has_checked_in'] && $geofenceStatus['is_valid'] ? '' : 'opacity-50 cursor-not-allowed' }}"
-                                    {{ $todayAttendance['has_checked_in'] || !$geofenceStatus['is_valid'] ? 'disabled' : '' }}>
+                                    class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg {{ $geofenceStatus['is_valid'] ? '' : 'opacity-50 cursor-not-allowed' }}"
+                                    {{ !$geofenceStatus['is_valid'] ? 'disabled' : '' }}>
                                 <div class="flex items-center justify-center gap-2">
                                     <i data-lucide="log-in" class="w-5 h-5"></i>
                                     <span>Check In</span>
                                 </div>
                                 <div class="text-xs opacity-80 mt-1">
-                                    {{ !$todayAttendance['has_checked_in'] ? 'Masuk kerja' : 'Sudah check in' }}
+                                    {{ $geofenceStatus['is_valid'] ? 'Masuk kerja shift' : 'Di luar area' }}
                                 </div>
                             </button>
                             
                             <button onclick="checkOut()" 
-                                    class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg {{ $todayAttendance['has_checked_in'] && !$todayAttendance['has_checked_out'] && $geofenceStatus['is_valid'] ? '' : 'opacity-50 cursor-not-allowed' }}"
-                                    {{ !$todayAttendance['has_checked_in'] || $todayAttendance['has_checked_out'] || !$geofenceStatus['is_valid'] ? 'disabled' : '' }}>
+                                    class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg {{ $geofenceStatus['is_valid'] ? '' : 'opacity-50 cursor-not-allowed' }}"
+                                    {{ !$geofenceStatus['is_valid'] ? 'disabled' : '' }}>
                                 <div class="flex items-center justify-center gap-2">
                                     <i data-lucide="log-out" class="w-5 h-5"></i>
                                     <span>Check Out</span>
                                 </div>
                                 <div class="text-xs opacity-80 mt-1">
-                                    {{ $todayAttendance['has_checked_in'] && !$todayAttendance['has_checked_out'] ? 'Pulang kerja' : (!$todayAttendance['has_checked_in'] ? 'Check in dulu' : 'Sudah check out') }}
+                                    {{ $geofenceStatus['is_valid'] ? 'Selesai shift' : 'Di luar area' }}
                                 </div>
                             </button>
                         </div>
@@ -875,6 +845,7 @@
             const checkInBtn = document.querySelector('button[onclick="checkIn()"]');
             const checkOutBtn = document.querySelector('button[onclick="checkOut()"]');
             
+            // Both buttons now only depend on GPS location, not check-in status
             if (checkInBtn) {
                 if (locationDetected && withinGeofence) {
                     checkInBtn.disabled = false;
@@ -896,7 +867,7 @@
             }
         }
         
-        // Real attendance functions with GPS validation
+        // Real attendance functions with GPS validation (supports multiple check-ins per day)
         function checkIn() {
             if (!locationDetected) {
                 alert('❌ Lokasi belum terdeteksi!\nSilakan deteksi GPS terlebih dahulu.');
@@ -909,7 +880,8 @@
             }
             
             const currentTime = new Date().toLocaleTimeString('id-ID');
-            alert(`🎉 Check In berhasil!\n\nWaktu: ${currentTime}\nLokasi: ${currentLatitude.toFixed(6)}, ${currentLongitude.toFixed(6)}\nJarak: ${Math.round(calculateDistance(currentLatitude, currentLongitude, clinicLat, clinicLng))}m dari klinik\n\nSelamat bekerja! 💪`);
+            const distance = Math.round(calculateDistance(currentLatitude, currentLongitude, clinicLat, clinicLng));
+            alert(`🎉 Check In shift berhasil!\n\nWaktu: ${currentTime}\nLokasi: ${currentLatitude.toFixed(6)}, ${currentLongitude.toFixed(6)}\nJarak: ${distance}m dari klinik\n\nSelamat memulai shift! 💪`);
         }
         
         function checkOut() {
@@ -924,7 +896,8 @@
             }
             
             const currentTime = new Date().toLocaleTimeString('id-ID');
-            alert(`👋 Check Out berhasil!\n\nWaktu: ${currentTime}\nLokasi: ${currentLatitude.toFixed(6)}, ${currentLongitude.toFixed(6)}\nJarak: ${Math.round(calculateDistance(currentLatitude, currentLongitude, clinicLat, clinicLng))}m dari klinik\n\nTerima kasih atas kerja kerasnya hari ini! 🙏`);
+            const distance = Math.round(calculateDistance(currentLatitude, currentLongitude, clinicLat, clinicLng));
+            alert(`👋 Check Out shift berhasil!\n\nWaktu: ${currentTime}\nLokasi: ${currentLatitude.toFixed(6)}, ${currentLongitude.toFixed(6)}\nJarak: ${distance}m dari klinik\n\nTerima kasih untuk shift ini! 🙏`);
         }
         
         // Auto-detect location on page load

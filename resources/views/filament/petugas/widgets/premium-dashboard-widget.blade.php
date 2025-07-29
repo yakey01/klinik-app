@@ -196,7 +196,7 @@
 
 <style>
 /* Premium Dashboard Custom Styles */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Self-hosted medical fonts already loaded via medical-font-head component */
 
 .premium-dashboard-container {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;

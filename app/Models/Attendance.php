@@ -155,6 +155,42 @@ class Attendance extends Model
     }
 
     /**
+     * Get all today's attendance records for user (for multiple shifts)
+     */
+    public static function getTodayAttendances(int $userId): \Illuminate\Database\Eloquent\Collection
+    {
+        return self::where('user_id', $userId)
+            ->where('date', Carbon::today())
+            ->with(['jadwalJaga'])
+            ->orderBy('time_in', 'asc')
+            ->get();
+    }
+
+    /**
+     * Get current active attendance (checked in but not out)
+     */
+    public static function getCurrentActiveAttendance(int $userId): ?self
+    {
+        return self::where('user_id', $userId)
+            ->where('date', Carbon::today())
+            ->whereNotNull('time_in')
+            ->whereNull('time_out')
+            ->latest('time_in')
+            ->first();
+    }
+
+    /**
+     * Check if user has today's scheduled shifts
+     */
+    public static function getTodayScheduledShifts(int $userId): \Illuminate\Database\Eloquent\Collection
+    {
+        return \App\Models\JadwalJaga::where('pegawai_id', $userId)
+            ->where('tanggal_jaga', Carbon::today())
+            ->orderBy('jam_mulai', 'asc')
+            ->get();
+    }
+
+    /**
      * Check if user can check out (has checked in but not out)
      */
     public function canCheckOut(): bool
@@ -182,48 +218,77 @@ class Attendance extends Model
     }
 
     /**
-     * Get attendance status for today
+     * Get attendance status for today - Enhanced for multiple shifts
      */
     public static function getTodayStatus(int $userId): array
     {
-        $attendance = self::getTodayAttendance($userId);
+        // Get current active attendance (checked in but not out)
+        $activeAttendance = self::getCurrentActiveAttendance($userId);
         
-        if (!$attendance) {
-            return [
-                'status' => 'not_checked_in',
-                'message' => 'Belum check-in hari ini',
-                'can_check_in' => true,
-                'can_check_out' => false,
-                'attendance' => null
-            ];
-        }
-        
-        if ($attendance->canCheckOut()) {
+        // If user has an active attendance, they can check out
+        if ($activeAttendance) {
             return [
                 'status' => 'checked_in',
                 'message' => 'Sudah check-in, belum check-out',
                 'can_check_in' => false,
                 'can_check_out' => true,
-                'attendance' => $attendance
+                'attendance' => $activeAttendance,
+                'active_shift' => $activeAttendance->jadwalJaga,
+                'shift_info' => $activeAttendance->jadwalJaga ? [
+                    'start_time' => $activeAttendance->jadwalJaga->jam_mulai,
+                    'end_time' => $activeAttendance->jadwalJaga->jam_selesai,
+                    'location' => $activeAttendance->jadwalJaga->lokasi ?? 'Lokasi kerja'
+                ] : null
             ];
         }
         
-        if ($attendance->hasCheckedOut()) {
+        // Get today's scheduled shifts
+        $todayShifts = self::getTodayScheduledShifts($userId);
+        $todayAttendances = self::getTodayAttendances($userId);
+        
+        // If no scheduled shifts today, still allow check-in for unscheduled work
+        if ($todayShifts->isEmpty()) {
             return [
-                'status' => 'completed',
-                'message' => 'Check-in dan check-out sudah selesai',
-                'can_check_in' => false,
+                'status' => 'no_schedule',
+                'message' => 'Tidak ada jadwal hari ini - Check-in manual',
+                'can_check_in' => true,
                 'can_check_out' => false,
-                'attendance' => $attendance
+                'attendance' => null,
+                'scheduled_shifts' => [],
+                'completed_shifts' => $todayAttendances->count()
             ];
         }
         
+        // Check which shifts are completed vs pending
+        $completedShifts = $todayAttendances->where('time_in', '!=', null)
+                                          ->where('time_out', '!=', null);
+        $pendingShifts = $todayShifts->count() - $completedShifts->count();
+        
+        // If all shifts are completed, but user might have additional unscheduled shifts
+        if ($pendingShifts <= 0) {
+            return [
+                'status' => 'all_shifts_completed',
+                'message' => "Semua shift selesai ({$completedShifts->count()}/{$todayShifts->count()}) - Check-in tambahan tersedia",
+                'can_check_in' => true, // Allow additional check-ins
+                'can_check_out' => false,
+                'attendance' => $todayAttendances->last(),
+                'scheduled_shifts' => $todayShifts,
+                'completed_shifts' => $completedShifts->count(),
+                'total_shifts' => $todayShifts->count()
+            ];
+        }
+        
+        // User has pending shifts - can check in for next shift
         return [
-            'status' => 'unknown',
-            'message' => 'Status tidak diketahui',
-            'can_check_in' => false,
+            'status' => 'has_pending_shifts',
+            'message' => "Ada {$pendingShifts} shift tersisa hari ini",
+            'can_check_in' => true,
             'can_check_out' => false,
-            'attendance' => $attendance
+            'attendance' => $todayAttendances->last(),
+            'scheduled_shifts' => $todayShifts,
+            'completed_shifts' => $completedShifts->count(),
+            'pending_shifts' => $pendingShifts,
+            'total_shifts' => $todayShifts->count()
         ];
     }
 

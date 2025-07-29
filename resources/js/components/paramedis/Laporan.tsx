@@ -73,8 +73,10 @@ export function Laporan() {
               keluar: attendance.time_out || '-',
               totalJam: attendance.work_duration || '0 jam',
               status: attendance.status === 'on_time' ? 'present' : 
-                     attendance.status === 'late' ? 'late' : 
-                     attendance.status === 'early_leave' ? 'present' : 'absent',
+                     attendance.status === 'present' ? 'present' : // Legacy support
+                     attendance.status === 'late' ? 'tidak_terpenuhi' : 
+                     attendance.status === 'early_leave' ? 'tidak_terpenuhi' : 
+                     attendance.status === 'incomplete' ? 'tidak_terpenuhi' : 'absent',
               shift: 'Shift', // Default since not in API
               lokasi: attendance.location_name_in || 'Lokasi Kerja'
             }));
@@ -113,19 +115,20 @@ export function Laporan() {
 
   // Use real attendance data from API or fallback
   const monthlyStats = attendanceStats ? {
-    totalHadir: attendanceStats.on_time || 0,
-    totalTerlambat: attendanceStats.late || 0,
-    totalTidakHadir: Math.max(0, attendanceStats.total_days - attendanceStats.on_time - attendanceStats.late),
+    // Handle both new and legacy status values
+    totalHadir: (attendanceStats.on_time || 0) + (attendanceStats.present || 0),
+    totalTidakTerpenuhi: (attendanceStats.late || 0) + (attendanceStats.early_leave || 0) + (attendanceStats.incomplete || 0),
+    totalTidakHadir: attendanceStats.absent || 0,
     totalJamKerja: Math.round(attendanceStats.total_hours || 0),
     rataRataJamPerHari: attendanceStats.total_days > 0 ? 
       Math.round((attendanceStats.total_hours / attendanceStats.total_days) * 10) / 10 : 0,
     tingkatKehadiran: dashboardStats?.performance?.attendance_rate ? 
       Math.round(dashboardStats.performance.attendance_rate) : 
       (attendanceStats.total_days > 0 ? 
-        Math.round(((attendanceStats.on_time + attendanceStats.late) / attendanceStats.total_days) * 100) : 0)
+        Math.round(((attendanceStats.on_time || 0) + (attendanceStats.present || 0)) / attendanceStats.total_days * 100) : 0)
   } : {
     totalHadir: 0,
-    totalTerlambat: 0,
+    totalTidakTerpenuhi: 0,
     totalTidakHadir: 0,
     totalJamKerja: 0,
     rataRataJamPerHari: 0,
@@ -135,7 +138,7 @@ export function Laporan() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'present': return 'bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/50 dark:to-green-800/50 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700';
-      case 'late': return 'bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/50 dark:to-yellow-800/50 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700';
+      case 'tidak_terpenuhi': return 'bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/50 dark:to-yellow-800/50 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700';
       case 'absent': return 'bg-gradient-to-r from-red-100 to-red-200 dark:from-red-900/50 dark:to-red-800/50 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700';
       default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
     }
@@ -144,7 +147,7 @@ export function Laporan() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'present': return <CheckCircle className="w-4 h-4" />;
-      case 'late': return <AlertTriangle className="w-4 h-4" />;
+      case 'tidak_terpenuhi': return <AlertTriangle className="w-4 h-4" />;
       case 'absent': return <XCircle className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
     }
@@ -238,8 +241,8 @@ export function Laporan() {
                 transition={{ duration: 0.2 }}
               >
                 <AlertTriangle className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{monthlyStats.totalTerlambat}</div>
-                <div className="text-sm text-muted-foreground font-medium">Terlambat</div>
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{monthlyStats.totalTidakTerpenuhi}</div>
+                <div className="text-sm text-muted-foreground font-medium">Tidak Terpenuhi</div>
               </motion.div>
               
               <motion.div 
@@ -384,7 +387,7 @@ export function Laporan() {
                         <Badge className={`${getStatusColor(record.status)} border flex items-center gap-1 font-medium`}>
                           {getStatusIcon(record.status)}
                           {record.status === 'present' && 'Hadir'}
-                          {record.status === 'late' && 'Terlambat'}
+                          {record.status === 'tidak_terpenuhi' && 'Tidak Terpenuhi'}
                           {record.status === 'absent' && 'Tidak Hadir'}
                         </Badge>
                       </div>

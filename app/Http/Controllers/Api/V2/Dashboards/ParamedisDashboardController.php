@@ -103,9 +103,10 @@ class ParamedisDashboardController extends Controller
                     ->where('tanggal_jaga', '<=', Carbon::now()->endOfWeek())
                     ->count();
 
-                // Attendance hari ini dengan status detail
+                // Enhanced attendance hari ini dengan status detail untuk multiple shifts
                 $attendanceStatus = Attendance::getTodayStatus($user->id);
                 $attendanceToday = $attendanceStatus['attendance'];
+                $allTodayAttendances = Attendance::getTodayAttendances($user->id);
 
                 return [
                     'patients_today' => $patientsToday,
@@ -127,7 +128,31 @@ class ParamedisDashboardController extends Controller
                             : ($attendanceToday && $attendanceToday->time_in ? Carbon::now()->diffInMinutes($attendanceToday->time_in) : null),
                         'location_in' => $attendanceToday ? $attendanceToday->location_name_in : null,
                         'location_out' => $attendanceToday ? $attendanceToday->location_name_out : null,
-                        'is_late' => $attendanceToday ? $attendanceToday->status === 'late' : false
+                        'is_late' => $attendanceToday ? $attendanceToday->status === 'late' : false,
+                        // Enhanced multi-shift data
+                        'completed_shifts' => $attendanceStatus['completed_shifts'] ?? 0,
+                        'total_shifts' => $attendanceStatus['total_shifts'] ?? 0,
+                        'pending_shifts' => $attendanceStatus['pending_shifts'] ?? 0,
+                        'all_attendances' => $allTodayAttendances->map(function($att) {
+                            return [
+                                'id' => $att->id,
+                                'time_in' => $att->time_in?->format('H:i'),
+                                'time_out' => $att->time_out?->format('H:i'),
+                                'location_in' => $att->location_name_in,
+                                'location_out' => $att->location_name_out,
+                                'duration' => $att->formatted_work_duration,
+                                'shift_info' => $att->jadwalJaga ? [
+                                    'start_time' => $att->jadwalJaga->jam_mulai,
+                                    'end_time' => $att->jadwalJaga->jam_selesai,
+                                    'location' => $att->jadwalJaga->lokasi
+                                ] : null
+                            ];
+                        }),
+                        'active_shift' => isset($attendanceStatus['active_shift']) && $attendanceStatus['active_shift'] ? [
+                            'start_time' => $attendanceStatus['active_shift']->jam_mulai,
+                            'end_time' => $attendanceStatus['active_shift']->jam_selesai,
+                            'location' => $attendanceStatus['active_shift']->lokasi ?? 'Lokasi kerja'
+                        ] : null
                     ]
                 ];
             });
@@ -584,7 +609,10 @@ class ParamedisDashboardController extends Controller
                 'on_time' => $allFilteredAttendance->where('status', 'on_time')->count(),
                 'late' => $allFilteredAttendance->where('status', 'late')->count(),
                 'early_leave' => $allFilteredAttendance->where('status', 'early_leave')->count(),
+                'incomplete' => $allFilteredAttendance->where('status', 'incomplete')->count(),
                 'absent' => $allFilteredAttendance->where('status', 'absent')->count(),
+                // Legacy support: treat 'present' as 'on_time' for backward compatibility
+                'present' => $allFilteredAttendance->where('status', 'present')->count(),
                 'total_hours' => round($totalWorkDuration / 60, 1),
                 'filter_applied' => $filter,
                 'filter_period' => $this->getFilterPeriodLabel($filter)

@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Klinik Dokterku - {{ auth()->user()->name ?? 'Non Paramedis' }}</title>
+    <!-- Self-hosted medical fonts for optimal performance -->
+    @include('components.medical-font-head')
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         
         :root {
             --primary-blue: #1e40af;

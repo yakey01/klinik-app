@@ -24,8 +24,8 @@
   --radius: 0.5rem;
   
   /* Enhanced readability variables */
-  --text-contrast-high: 220 13% 5%;
-  --text-contrast-medium: 220 13% 25%;
+  --text-contrast-high: 220 13% 15%;
+  --text-contrast-medium: 220 13% 35%;
   --surface-elevated: 0 0% 98%;
   --shadow-subtle: 0 0% 0% / 0.05;
   --shadow-medium: 0 0% 0% / 0.1;
@@ -108,22 +108,44 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Better font size hierarchy for mobile readability */
+/* Enhanced font size hierarchy for mobile readability and visual impact */
 .text-mobile-friendly {
-  font-size: clamp(14px, 4vw, 16px);
-  line-height: 1.5;
+  font-size: clamp(15px, 4vw, 17px);
+  line-height: 1.55;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .text-heading-mobile {
-  font-size: clamp(18px, 5vw, 24px);
-  line-height: 1.3;
-  font-weight: 600;
+  font-size: clamp(20px, 5.5vw, 26px);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: hsl(var(--text-contrast-high));
 }
 
 .text-subheading-mobile {
-  font-size: clamp(16px, 4.5vw, 20px);
+  font-size: clamp(17px, 4.8vw, 22px);
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: hsl(var(--text-contrast-high));
+}
+
+.text-body-emphasized {
+  font-size: clamp(16px, 4.2vw, 18px);
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: hsl(var(--text-contrast-medium));
+}
+
+.text-caption-mobile {
+  font-size: clamp(13px, 3.5vw, 15px);
   line-height: 1.4;
   font-weight: 500;
+  letter-spacing: 0.01em;
+  color: hsl(var(--text-contrast-soft));
 }
 
 .safe-area-pb {
@@ -420,34 +442,121 @@ select:focus:not(:focus-visible) {
   text-shadow: 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
-/* Enhanced card improvements for better readability and depth */
+/* Enhanced card improvements for better readability, depth, and eye-catching design */
 .card-enhanced {
-  background: hsl(var(--surface-elevated, var(--card)));
-  border: 1px solid hsl(var(--border));
-  box-shadow: 0 1px 3px 0 hsl(var(--shadow-subtle)), 
-              0 1px 2px 0 hsl(var(--shadow-medium)),
-              0 0 0 1px hsl(var(--border) / 0.05);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, hsl(var(--card-gradient-from)) 0%, hsl(var(--card-gradient-to)) 100%);
+  border: 1px solid hsl(var(--card-border-light));
+  box-shadow: 0 2px 8px 0 hsl(var(--shadow-subtle)), 
+              0 1px 3px 0 hsl(var(--shadow-medium)),
+              0 0 0 1px hsl(var(--shadow-colored)),
+              inset 0 1px 0 0 hsl(0 0% 100% / 0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .card-enhanced:hover {
-  box-shadow: 0 4px 12px 0 hsl(var(--shadow-medium)), 
-              0 2px 4px 0 hsl(var(--shadow-strong)),
-              0 0 0 1px hsl(var(--border) / 0.1);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 25px 0 hsl(var(--card-hover-shadow)), 
+              0 3px 10px 0 hsl(var(--shadow-medium)),
+              0 0 0 1px hsl(var(--primary) / 0.08),
+              inset 0 1px 0 0 hsl(0 0% 100% / 0.9);
+  transform: translateY(-2px) scale(1.005);
+  border-color: hsl(var(--primary) / 0.15);
+}
+
+.card-enhanced:hover::before {
+  opacity: 1;
 }
 
 .dark .card-enhanced {
-  background: hsl(var(--surface-elevated));
-  box-shadow: 0 1px 3px 0 hsl(var(--shadow-subtle)), 
-              0 1px 2px 0 hsl(var(--shadow-medium)),
-              0 0 0 1px hsl(var(--border) / 0.1);
+  background: linear-gradient(135deg, hsl(var(--surface-elevated)) 0%, hsl(224 15% 12%) 100%);
+  box-shadow: 0 2px 8px 0 hsl(var(--shadow-subtle)), 
+              0 1px 3px 0 hsl(var(--shadow-medium)),
+              0 0 0 1px hsl(var(--border) / 0.1),
+              inset 0 1px 0 0 hsl(0 0% 100% / 0.05);
 }
 
 .dark .card-enhanced:hover {
-  box-shadow: 0 4px 12px 0 hsl(var(--shadow-medium)), 
-              0 2px 4px 0 hsl(var(--shadow-strong)),
-              0 0 0 1px hsl(var(--border) / 0.2);
+  box-shadow: 0 8px 25px 0 hsl(var(--shadow-medium)), 
+              0 3px 10px 0 hsl(var(--shadow-strong)),
+              0 0 0 1px hsl(var(--primary) / 0.2),
+              inset 0 1px 0 0 hsl(0 0% 100% / 0.08);
+  transform: translateY(-2px) scale(1.005);
+}
+
+/* Special gradient card for featured content */
+.card-gradient-featured {
+  background: linear-gradient(135deg, 
+              hsl(var(--primary) / 0.03) 0%, 
+              hsl(var(--card)) 15%, 
+              hsl(var(--card)) 85%, 
+              hsl(var(--primary) / 0.02) 100%);
+  border: 1px solid hsl(var(--primary) / 0.1);
+  box-shadow: 0 4px 12px 0 hsl(var(--primary) / 0.04), 
+              0 2px 6px 0 hsl(var(--shadow-medium)),
+              inset 0 1px 0 0 hsl(0 0% 100% / 0.9);
+}
+
+.card-gradient-featured:hover {
+  background: linear-gradient(135deg, 
+              hsl(var(--primary) / 0.05) 0%, 
+              hsl(var(--card)) 15%, 
+              hsl(var(--card)) 85%, 
+              hsl(var(--primary) / 0.03) 100%);
+  box-shadow: 0 8px 30px 0 hsl(var(--primary) / 0.08), 
+              0 4px 12px 0 hsl(var(--shadow-medium)),
+              inset 0 1px 0 0 hsl(0 0% 100% / 1);
+  transform: translateY(-3px) scale(1.008);
+}
+
+/* Glassmorphism card variant */
+.card-glass-enhanced {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05),
+              0 1px 3px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-glass-enhanced:hover {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08),
+              0 2px 6px rgba(0, 0, 0, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+}
+
+.dark .card-glass-enhanced {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              0 1px 3px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .card-glass-enhanced:hover {
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4),
+              0 2px 6px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Enhanced theme toggle with smooth transitions */
@@ -534,4 +643,604 @@ select:focus:not(:focus-visible) {
   background: #450a0a;
   color: #fca5a5;
   border: 1px solid #dc2626;
+}
+
+/* Enhanced mobile-specific improvements for better readability */
+@media (max-width: 768px) {
+  /* Enhanced typography hierarchy for mobile */
+  .text-mobile-hero {
+    font-size: clamp(22px, 6vw, 28px);
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: hsl(var(--text-contrast-high));
+  }
+  
+  .text-mobile-title {
+    font-size: clamp(18px, 5vw, 24px);
+    line-height: 1.3;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: hsl(var(--text-contrast-high));
+  }
+  
+  .text-mobile-subtitle {
+    font-size: clamp(16px, 4.5vw, 20px);
+    line-height: 1.4;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: hsl(var(--text-contrast-medium));
+  }
+  
+  .text-mobile-body {
+    font-size: clamp(15px, 4vw, 17px);
+    line-height: 1.6;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    color: hsl(var(--text-contrast-medium));
+  }
+  
+  .text-mobile-caption {
+    font-size: clamp(13px, 3.5vw, 15px);
+    line-height: 1.5;
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    color: hsl(var(--text-contrast-soft));
+  }
+  
+  /* Card enhancements for mobile */
+  .card-enhanced {
+    border-radius: 16px;
+    margin-bottom: 1rem;
+  }
+  
+  .card-content-mobile {
+    padding: 1.5rem;
+  }
+  
+  /* Enhanced button styles for mobile */
+  .btn-mobile-primary {
+    min-height: 52px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.2);
+    transition: all 0.2s ease;
+  }
+  
+  .btn-mobile-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px hsl(var(--primary) / 0.25);
+  }
+  
+  /* Enhanced status badges for mobile */
+  .status-badge-mobile {
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    text-transform: none;
+  }
+  
+  /* Card interaction improvements */
+  .card-interactive {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+  
+  .card-interactive:active {
+    transform: translateY(1px) scale(0.998);
+  }
+  
+  /* Enhanced shadows for light mode */
+  .shadow-mobile-soft {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04),
+                0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  
+  .shadow-mobile-medium {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06),
+                0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .shadow-mobile-strong {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
+                0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* Enhanced contrast and accessibility improvements */
+.high-contrast-text {
+  color: hsl(var(--text-contrast-high));
+  font-weight: 600;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.medium-contrast-text {
+  color: hsl(var(--text-contrast-medium));
+  font-weight: 500;
+}
+
+.soft-contrast-text {
+  color: hsl(var(--text-contrast-soft));
+  font-weight: 500;
+}
+
+/* Enhanced focus states for accessibility */
+.focus-enhanced:focus-visible {
+  outline: 3px solid hsl(var(--primary) / 0.5);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Enhanced text readability for gradient backgrounds */
+.text-on-gradient {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
+               0 1px 1px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.text-on-gradient-strong {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4),
+               0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.text-on-gradient-subtle {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2),
+               0 0 1px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+/* Enhanced greeting card specific styles with stronger contrast */
+.greeting-card-overlay {
+  background: linear-gradient(
+    135deg, 
+    rgba(0, 0, 0, 0.25) 0%, 
+    rgba(0, 0, 0, 0.15) 50%, 
+    rgba(0, 0, 0, 0.2) 100%
+  );
+}
+
+.dark .greeting-card-overlay {
+  background: linear-gradient(
+    135deg, 
+    rgba(0, 0, 0, 0.35) 0%, 
+    rgba(0, 0, 0, 0.25) 50%, 
+    rgba(0, 0, 0, 0.3) 100%
+  );
+}
+
+/* Ultra high contrast white text variants for maximum readability */
+.text-white-enhanced {
+  color: rgba(255, 255, 255, 1) !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6),
+               0 1px 2px rgba(0, 0, 0, 0.4),
+               0 0 1px rgba(0, 0, 0, 0.8);
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+.text-white-strong {
+  color: rgba(255, 255, 255, 1) !important;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.7), 
+               0 2px 4px rgba(0, 0, 0, 0.5),
+               0 1px 2px rgba(0, 0, 0, 0.8),
+               0 0 1px rgba(0, 0, 0, 1);
+  font-weight: 800 !important;
+  letter-spacing: 0.025em;
+}
+
+.text-white-medium {
+  color: rgba(255, 255, 255, 1) !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5),
+               0 1px 2px rgba(0, 0, 0, 0.3),
+               0 0 1px rgba(0, 0, 0, 0.7);
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+}
+
+.text-white-subtle {
+  color: rgba(255, 255, 255, 0.98) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4),
+               0 0 1px rgba(0, 0, 0, 0.6);
+  font-weight: 600 !important;
+}
+
+/* Specialized greeting card text for maximum readability */
+.greeting-text-primary {
+  color: rgba(255, 255, 255, 1) !important;
+  text-shadow: 0 3px 8px rgba(0, 0, 0, 0.8), 
+               0 2px 6px rgba(0, 0, 0, 0.6),
+               0 1px 3px rgba(0, 0, 0, 0.9),
+               0 0 2px rgba(0, 0, 0, 1);
+  font-weight: 900 !important;
+  letter-spacing: 0.03em;
+  font-size: clamp(20px, 5.5vw, 26px) !important;
+  line-height: 1.2 !important;
+}
+
+.greeting-text-secondary {
+  color: rgba(255, 255, 255, 1) !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7),
+               0 1px 4px rgba(0, 0, 0, 0.5),
+               0 0 2px rgba(0, 0, 0, 0.9);
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+  font-size: clamp(14px, 4vw, 16px) !important;
+  line-height: 1.4 !important;
+}
+
+/* Greeting card background panel for ultimate readability */
+.greeting-text-panel {
+  background: rgba(0, 0, 0, 0.35) !important;
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  margin-bottom: 8px !important;
+}
+
+/* PNG-inspired modern card designs for light mode */
+.card-clean-png {
+  background: linear-gradient(145deg, hsl(var(--clean-white)) 0%, hsl(var(--clean-gray)) 100%);
+  border: 1px solid hsl(var(--clean-gray-medium));
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04),
+              0 4px 20px rgba(0, 0, 0, 0.06),
+              0 2px 8px rgba(0, 0, 0, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-clean-png::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+}
+
+.card-clean-png:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08),
+              0 8px 30px rgba(0, 0, 0, 0.1),
+              0 4px 15px rgba(0, 0, 0, 0.12),
+              inset 0 1px 0 rgba(255, 255, 255, 1);
+  border-color: hsl(var(--clean-blue) / 0.2);
+}
+
+/* Clean blue accent card for featured content */
+.card-clean-blue {
+  background: linear-gradient(145deg, 
+              hsl(var(--clean-blue-light)) 0%, 
+              hsl(var(--clean-white)) 20%, 
+              hsl(var(--clean-white)) 80%, 
+              hsl(var(--clean-blue-light)) 100%);
+  border: 1px solid hsl(var(--clean-blue) / 0.15);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px hsl(var(--clean-blue) / 0.06),
+              0 4px 20px hsl(var(--clean-blue) / 0.08),
+              0 2px 8px hsl(var(--clean-blue) / 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-clean-blue:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 25px 80px hsl(var(--clean-blue) / 0.12),
+              0 10px 40px hsl(var(--clean-blue) / 0.15),
+              0 5px 20px hsl(var(--clean-blue) / 0.18),
+              inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* Modern frosted glass card */
+.card-frosted-clean {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.04),
+              0 6px 25px rgba(0, 0, 0, 0.06),
+              0 3px 12px rgba(0, 0, 0, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 1),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.02);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-frosted-clean:hover {
+  background: rgba(255, 255, 255, 0.98);
+  transform: translateY(-3px);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.06),
+              0 8px 35px rgba(0, 0, 0, 0.08),
+              0 4px 18px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* PNG-inspired modern background gradient */
+.bg-clean-png-gradient {
+  background: linear-gradient(135deg, 
+              hsl(var(--clean-white)) 0%,
+              hsl(var(--clean-gray)) 25%,
+              hsl(var(--clean-blue-light)) 50%,
+              hsl(var(--clean-gray)) 75%,
+              hsl(var(--clean-white)) 100%);
+}
+
+/* Clean modern typography improvements with enhanced readability */
+.text-clean-primary {
+  color: #1f2937 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.dark .text-clean-primary {
+  color: #f9fafb !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.text-clean-secondary {
+  color: #374151 !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+.dark .text-clean-secondary {
+  color: #e5e7eb !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.text-clean-muted {
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+.dark .text-clean-muted {
+  color: #9ca3af !important;
+}
+
+/* Card header specific styles with proper dark mode support */
+.card-header-primary {
+  color: #1f2937 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  font-size: clamp(18px, 5vw, 22px) !important;
+}
+
+.dark .card-header-primary {
+  color: #f9fafb !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.card-header-secondary {
+  color: #4b5563 !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.015em;
+  line-height: 1.4;
+  font-size: clamp(14px, 4vw, 16px) !important;
+}
+
+.dark .card-header-secondary {
+  color: #d1d5db !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.card-title-black {
+  color: #1f2937 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+}
+
+.dark .card-title-black {
+  color: #f9fafb !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Duplicate definition removed - using the one above */
+
+/* Modern button styles inspired by PNG aesthetic */
+.btn-clean-primary {
+  background: linear-gradient(135deg, hsl(var(--clean-blue)) 0%, hsl(var(--primary)) 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: 0 6px 20px hsl(var(--clean-blue) / 0.2),
+              0 2px 8px hsl(var(--clean-blue) / 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-clean-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px hsl(var(--clean-blue) / 0.3),
+              0 4px 15px hsl(var(--clean-blue) / 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Clean icon containers */
+.icon-clean-container {
+  background: linear-gradient(135deg, hsl(var(--clean-blue-light)) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border: 1px solid hsl(var(--clean-blue) / 0.1);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04),
+              0 2px 8px rgba(0, 0, 0, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Clean progress bars */
+.progress-clean {
+  background: hsl(var(--clean-gray));
+  border-radius: 12px;
+  overflow: hidden;
+  height: 10px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.progress-clean-fill {
+  background: linear-gradient(90deg, hsl(var(--clean-blue)) 0%, hsl(var(--primary)) 100%);
+  border-radius: 12px;
+  height: 100%;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px hsl(var(--clean-blue) / 0.3);
+}
+
+/* World-class blue gradient greeting card for light mode ONLY */
+.greeting-card-world-class {
+  /* Default dark mode styles */
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.2);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light mode ONLY - world-class gradient with high specificity - FIXED */
+html:not(.dark) .greeting-card-world-class.greeting-card-world-class {
+  background: linear-gradient(135deg, 
+              var(--blue-gradient-1) 0%,
+              var(--blue-gradient-2) 25%,
+              var(--blue-gradient-3) 50%,
+              var(--blue-gradient-4) 75%,
+              var(--blue-accent-light) 100%) !important;
+  box-shadow: 0 20px 60px rgba(30, 58, 138, 0.25),
+              0 8px 30px rgba(59, 130, 246, 0.3),
+              0 4px 15px rgba(6, 182, 212, 0.35),
+              inset 0 2px 0 rgba(255, 255, 255, 0.4),
+              inset 0 -2px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Light mode ONLY effects */
+html:not(.dark) .greeting-card-world-class::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg,
+              transparent 0%,
+              rgba(255, 255, 255, 0.15) 25%,
+              rgba(255, 255, 255, 0.1) 50%,
+              rgba(255, 255, 255, 0.05) 75%,
+              transparent 100%);
+  pointer-events: none;
+}
+
+html:not(.dark) .greeting-card-world-class::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.1) 90deg,
+    transparent 180deg,
+    rgba(255, 255, 255, 0.05) 270deg,
+    transparent 360deg
+  );
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+
+/* Light mode hover effects - FIXED */
+html:not(.dark) .greeting-card-world-class:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 30px 80px rgba(30, 58, 138, 0.35),
+              0 12px 40px rgba(59, 130, 246, 0.4),
+              0 6px 20px rgba(6, 182, 212, 0.45),
+              inset 0 2px 0 rgba(255, 255, 255, 0.5),
+              inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+html:not(.dark) .greeting-card-world-class:hover::after {
+  opacity: 1;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Dark mode hover effects (simple) */
+.dark .greeting-card-world-class:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 15px 50px rgba(59, 130, 246, 0.3);
+}
+
+@keyframes shimmer {
+  0% { transform: rotate(0deg); opacity: 0.3; }
+  50% { transform: rotate(180deg); opacity: 0.1; }
+  100% { transform: rotate(360deg); opacity: 0.3; }
+}
+
+/* Gradient text for greeting card content */
+.greeting-text-gradient {
+  color: rgba(255, 255, 255, 0.98);
+  background: linear-gradient(135deg,
+              rgba(255, 255, 255, 1) 0%,
+              rgba(255, 255, 255, 0.95) 50%,
+              rgba(255, 255, 255, 0.9) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.4),
+               0 2px 6px rgba(0, 0, 0, 0.3),
+               0 1px 3px rgba(0, 0, 0, 0.2);
+  font-weight: 900 !important;
+  letter-spacing: -0.02em;
+}
+
+/* Fallback for browsers that don't support background-clip */
+@supports not (-webkit-background-clip: text) {
+  .greeting-text-gradient {
+    color: rgba(255, 255, 255, 0.98) !important;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.98) !important;
+  }
+}
+
+/* Enhanced greeting text panels for world-class card */
+.greeting-panel-enhanced {
+  /* Default dark mode panel */
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  margin-bottom: 8px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Light mode enhanced panels */
+html:not(.dark) .greeting-panel-enhanced {
+  background: rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 16px !important;
+  padding: 16px 20px !important;
+  margin-bottom: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }

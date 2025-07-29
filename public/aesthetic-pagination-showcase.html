@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Laporan Presensi - Aesthetic Pagination Design</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border-radius: 15px;
+        }
+        .feature-section {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .feature-section h3 {
+            color: #a8e6cf;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            margin: 10px 0;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .code-block {
+            background: #000;
+            color: #00ff88;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .demo-button {
+            background: linear-gradient(45deg, #32CD32, #228B22);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .demo-button:hover {
+            background: linear-gradient(45deg, #228B22, #32CD32);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(50, 205, 50, 0.4);
+        }
+        .design-specs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .spec-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .spec-card h4 {
+            color: #FFE135;
+            margin-top: 0;
+        }
+        .preview-image {
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            font-size: 18px;
+            margin: 20px auto;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ Laporan Presensi</h1>
+            <h2>🎨 Aesthetic Pagination Design</h2>
+            <p><strong>5 data per halaman dengan desain yang lebih estetik dan animasi yang menarik</strong></p>
+        </div>
+
+        <!-- Design Overview -->
+        <div class="feature-section">
+            <h3>🎯 Design Overview</h3>
+            <p>Pagination yang telah didesain ulang dengan fokus pada estetika modern, animasi halus, dan user experience yang lebih baik:</p>
+            
+            <div class="design-specs">
+                <div class="spec-card">
+                    <h4>📊 Data Display</h4>
+                    <ul class="feature-list">
+                        <li>✨ Default 5 data per halaman</li>
+                        <li>🎨 Gradient backgrounds</li>
+                        <li>🌟 Smooth loading animations</li>
+                        <li>📱 Responsive design</li>
+                    </ul>
+                </div>
+                
+                <div class="spec-card">
+                    <h4>🎮 Interactive Controls</h4>
+                    <ul class="feature-list">
+                        <li>🎯 Hover effects dengan scale</li>
+                        <li>🌈 Gradient button styling</li>
+                        <li>⚡ Framer Motion animations</li>
+                        <li>🔘 Active state indicators</li>
+                    </ul>
+                </div>
+                
+                <div class="spec-card">
+                    <h4>📍 Progress Indicators</h4>
+                    <ul class="feature-list">
+                        <li>📈 Animated progress bar</li>
+                        <li>🔢 Smart page numbering</li>
+                        <li>📊 Data count display</li>
+                        <li>🎨 Color-coded states</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Features -->
+        <div class="feature-section">
+            <h3>🚀 Key Features Implemented</h3>
+            
+            <div class="feature-list">
+                <li><strong>🎨 Aesthetic Pagination Controls:</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px;">
+                        <li>Gradient-styled navigation buttons dengan hover effects</li>
+                        <li>Active page number dengan gradient background dan white dot indicator</li>
+                        <li>Disabled states dengan proper visual feedback</li>
+                    </ul>
+                </li>
+                
+                <li><strong>📊 Enhanced Data Display:</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px;">
+                        <li>Informative page info dengan icon dan gradient background</li>
+                        <li>Elegant progress indicator di bawah pagination</li>
+                        <li>Smooth transitions dan loading states</li>
+                    </ul>
+                </li>
+                
+                <li><strong>🎮 Improved User Experience:</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px;">
+                        <li>Default 5 items per page untuk readability yang optimal</li>
+                        <li>Enhanced filter controls dengan gradient styling</li>
+                        <li>Per-page selector dengan emoji icons</li>
+                    </ul>
+                </li>
+                
+                <li><strong>⚡ Advanced Animations:</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px;">
+                        <li>Framer Motion untuk smooth entrance animations</li>
+                        <li>Page number buttons dengan staggered animations</li>
+                        <li>Progress bar dengan animated width changes</li>
+                    </ul>
+                </li>
+            </div>
+        </div>
+
+        <!-- Technical Implementation -->
+        <div class="feature-section">
+            <h3>⚙️ Technical Implementation</h3>
+            
+            <h4>📝 Updated States & Configuration:</h4>
+            <div class="code-block">const [perPage, setPerPage] = useState(5); // Changed from 10 to 5
+const [pagination, setPagination] = useState&lt;any&gt;(null);
+const [currentPage, setCurrentPage] = useState(1);</div>
+
+            <h4>🎨 Enhanced Styling Features:</h4>
+            <div class="code-block">// Gradient button styling
+bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700
+
+// Active page number with special effects
+bg-gradient-to-br from-indigo-500 via-blue-500 to-purple-600 text-white shadow-lg
+
+// Progress indicator with animated width
+w-8 bg-gradient-to-r from-blue-500 to-indigo-600 (for active)
+w-3 bg-blue-300 (for completed)
+w-3 bg-gray-200 (for upcoming)</div>
+
+            <h4>⚡ Animation Configuration:</h4>
+            <div class="code-block">// Entrance animation
+initial={{ opacity: 0, y: 20 }}
+animate={{ opacity: 1, y: 0 }}
+transition={{ duration: 0.3, delay: 0.2 }}
+
+// Page button animations
+whileHover={{ scale: 1.1, y: -2 }}
+whileTap={{ scale: 0.95 }}
+transition={{ duration: 0.2, delay: i * 0.05 }}</div>
+        </div>
+
+        <!-- Filter Enhancement -->
+        <div class="feature-section">
+            <h3>🎛️ Enhanced Filter Controls</h3>
+            
+            <h4>📅 Period Filter dengan Icons:</h4>
+            <div class="code-block">🌅 Hari Ini    - Today's attendance records
+📅 Minggu Ini  - This week's attendance records  
+📊 Bulan Ini   - This month's attendance records</div>
+
+            <h4>📄 Per Page Selector dengan Visual Cues:</h4>
+            <div class="code-block">✨ 5   - Optimal readability (default)
+📋 10  - Standard view
+📄 20  - Compact view
+📚 50  - Dense view</div>
+        </div>
+
+        <!-- Live Demo -->
+        <div class="feature-section">
+            <h3>🌟 Live Demo</h3>
+            <p>Test the new aesthetic pagination design in the actual paramedis dashboard:</p>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <a href="/paramedis" class="demo-button" target="_blank">
+                    🚀 Open Paramedis Dashboard
+                </a>
+            </div>
+            
+            <div class="feature-list">
+                <li><strong>Login Credentials:</strong> bita01 / bita123</li>
+                <li><strong>Navigate to:</strong> "Laporan Presensi" section</li>
+                <li><strong>Expected Experience:</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px;">
+                        <li>✨ Default 5 attendance records per page</li>
+                        <li>🎨 Beautiful gradient pagination controls</li>
+                        <li>⚡ Smooth hover and click animations</li>
+                        <li>📊 Animated progress indicator</li>
+                        <li>🎯 Enhanced filter controls with icons</li>
+                    </ul>
+                </li>
+            </div>
+        </div>
+
+        <!-- Visual Preview -->
+        <div class="feature-section">
+            <h3>👁️ Visual Design Preview</h3>
+            <div class="preview-image">
+                🎨 Aesthetic Pagination Components
+                <br>
+                📱 Responsive • ⚡ Animated • 🌈 Gradient Styled
+            </div>
+            
+            <p><strong>Key Visual Elements:</strong></p>
+            <div class="feature-list">
+                <li>🎯 <strong>Page Info:</strong> Rounded pill dengan gradient background dan Activity icon</li>
+                <li>🎮 <strong>Navigation Buttons:</strong> Gradient styling dengan hover effects dan scale animation</li>
+                <li>🔢 <strong>Page Numbers:</strong> Circle buttons dengan active state gradient dan white dot indicator</li>
+                <li>📊 <strong>Progress Bar:</strong> Animated width changes dengan color coding</li>
+                <li>🎨 <strong>Filter Controls:</strong> Enhanced styling dengan gradient backgrounds dan emoji icons</li>
+            </div>
+        </div>
+
+        <!-- Performance & UX -->
+        <div class="feature-section">
+            <h3>⚡ Performance & User Experience</h3>
+            
+            <div class="design-specs">
+                <div class="spec-card">
+                    <h4>🚀 Performance</h4>
+                    <ul class="feature-list">
+                        <li>Smooth 60fps animations</li>
+                        <li>Optimized re-renders</li>
+                        <li>Efficient pagination queries</li>
+                        <li>Responsive loading states</li>
+                    </ul>
+                </div>
+                
+                <div class="spec-card">
+                    <h4>👤 User Experience</h4>
+                    <ul class="feature-list">
+                        <li>Intuitive navigation</li>
+                        <li>Clear visual feedback</li>
+                        <li>Consistent design language</li>
+                        <li>Mobile-friendly controls</li>
+                    </ul>
+                </div>
+                
+                <div class="spec-card">
+                    <h4>♿ Accessibility</h4>
+                    <ul class="feature-list">
+                        <li>Proper disabled states</li>
+                        <li>Clear focus indicators</li>
+                        <li>Readable color contrasts</li>
+                        <li>Semantic HTML structure</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="header" style="margin-top: 40px;">
+            <h2>🎉 Design Implementation Complete!</h2>
+            <p>Pagination laporan presensi sekarang menampilkan 5 data per halaman dengan desain yang lebih estetik, animasi yang halus, dan user experience yang lebih baik.</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh timestamp
+        function updateTime() {
+            const now = new Date();
+            document.title = `✨ Aesthetic Pagination - ${now.toLocaleTimeString()}`;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+</body>
+</html>

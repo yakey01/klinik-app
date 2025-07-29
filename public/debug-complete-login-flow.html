@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Complete Login Flow Debug</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { margin: 10px 0; padding: 10px; border-left: 4px solid #ccc; }
+        .success { border-color: #4CAF50; background: #f1f8e9; }
+        .error { border-color: #f44336; background: #ffebee; }
+        .info { border-color: #2196F3; background: #e3f2fd; }
+        .warning { border-color: #ff9800; background: #fff3e0; }
+    </style>
+</head>
+<body>
+    <h1>🔬 Complete Login Flow Debug</h1>
+    <p>Testing why admin feels login fails when backend logs show success</p>
+    
+    <div id="status"></div>
+    <button onclick="debugCompleteFlow()" id="testBtn">Start Complete Debug</button>
+    
+    <script>
+        const status = document.getElementById('status');
+        const testBtn = document.getElementById('testBtn');
+        
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            status.appendChild(div);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        async function debugCompleteFlow() {
+            testBtn.disabled = true;
+            status.innerHTML = '';
+            
+            try {
+                addStatus('🔄 Starting complete login flow debug...');
+                
+                // Step 1: Clear all cookies and sessions
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                addStatus('🧹 Cleared all existing cookies and sessions');
+                
+                // Step 2: Get fresh login page
+                addStatus('📄 Getting fresh login page...');
+                let response = await fetch('/login', {
+                    method: 'GET',
+                    credentials: 'include',
+                    cache: 'no-cache'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Login page failed: ${response.status} ${response.statusText}`);
+                }
+                
+                let html = await response.text();
+                let tokenMatch = html.match(/name="_token" value="([^"]+)"/);
+                if (!tokenMatch) {
+                    addStatus('❌ CSRF token not found in login page', 'error');
+                    addStatus('🔍 Login page HTML preview: ' + html.substring(0, 500) + '...', 'warning');
+                    throw new Error('CSRF token not found in login page');
+                }
+                
+                let token = tokenMatch[1];
+                addStatus('✅ Fresh CSRF token acquired: ' + token.substring(0, 10) + '...', 'success');
+                
+                // Step 3: Perform login
+                addStatus('🔐 Attempting login with admin123...');
+                let formData = new FormData();
+                formData.append('email_or_username', 'admin@dokterku.com');
+                formData.append('password', 'admin123');
+                formData.append('_token', token);
+                
+                response = await fetch('/login', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include',
+                    redirect: 'manual'  // Don't auto-follow redirects
+                });
+                
+                addStatus(`📊 Login POST response: ${response.status} ${response.statusText}`);
+                
+                // Check all response headers
+                let headers = {};
+                for (let [key, value] of response.headers.entries()) {
+                    headers[key] = value;
+                }
+                addStatus('📋 Response headers: ' + JSON.stringify(headers, null, 2), 'info');
+                
+                if (response.status === 302) {
+                    let location = response.headers.get('location');
+                    addStatus(`📍 Redirected to: ${location || 'No location header'}`, 'success');
+                    
+                    if (location && location.includes('/admin')) {
+                        addStatus('✅ Login successful - should redirect to admin panel!', 'success');
+                        
+                        // Step 4: Follow the redirect manually
+                        addStatus('🎯 Following redirect to admin panel...');
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for cookies to be set
+                        
+                        response = await fetch(location, {
+                            method: 'GET',
+                            credentials: 'include',
+                            redirect: 'manual'
+                        });
+                        
+                        addStatus(`📊 Admin panel response: ${response.status} ${response.statusText}`);
+                        
+                        if (response.status === 200) {
+                            addStatus('✅ SUCCESS: Admin panel accessible!', 'success');
+                            let content = await response.text();
+                            
+                            // Check for common Filament admin indicators
+                            if (content.includes('Filament') || content.includes('Admin Panel') || content.includes('Dashboard')) {
+                                addStatus('✅ Admin panel content verified!', 'success');
+                                
+                                // Now test work-locations specifically
+                                addStatus('🎯 Testing work-locations access...');
+                                response = await fetch('/admin/work-locations', {
+                                    method: 'GET',
+                                    credentials: 'include'
+                                });
+                                
+                                if (response.status === 200) {
+                                    addStatus('✅ Work-locations page accessible!', 'success');
+                                    addStatus('🎉 COMPLETE SUCCESS: Login and work-locations access verified!', 'success');
+                                } else if (response.status === 404) {
+                                    addStatus('❌ Work-locations still returns 404', 'error');
+                                } else {
+                                    addStatus(`⚠️ Work-locations returned: ${response.status}`, 'warning');
+                                }
+                            } else {
+                                addStatus('⚠️ Admin panel content unexpected', 'warning');
+                                addStatus('🔍 Content preview: ' + content.substring(0, 500) + '...', 'info');
+                            }
+                        } else if (response.status === 302) {
+                            let nextLocation = response.headers.get('location');
+                            addStatus(`🔄 Admin panel redirected again to: ${nextLocation}`, 'warning');
+                            
+                            if (nextLocation && nextLocation.includes('login')) {
+                                addStatus('❌ Session not persisting - redirected back to login', 'error');
+                            }
+                        } else {
+                            addStatus(`❌ Admin panel access failed: ${response.status}`, 'error');
+                        }
+                    } else {
+                        addStatus('❌ Login redirect went to wrong location', 'error');
+                    }
+                } else if (response.status === 422) {
+                    addStatus('❌ Validation error during login', 'error');
+                    let errorText = await response.text();
+                    addStatus('🔍 Error details: ' + errorText.substring(0, 500), 'warning');
+                } else if (response.status === 419) {
+                    addStatus('❌ CSRF token mismatch', 'error');
+                } else {
+                    addStatus(`❌ Unexpected login response: ${response.status}`, 'error');
+                    let responseText = await response.text();
+                    addStatus('🔍 Response preview: ' + responseText.substring(0, 500), 'warning');
+                }
+                
+            } catch (error) {
+                addStatus(`❌ Error: ${error.message}`, 'error');
+                console.error('Debug error:', error);
+            }
+            
+            testBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>

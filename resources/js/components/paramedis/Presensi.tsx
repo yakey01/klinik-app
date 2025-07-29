@@ -411,10 +411,15 @@ export function Presensi() {
       return;
     }
 
+    // Remove restriction for multiple check-ins per day
+    // Allow paramedis to check-in multiple times for different shifts
+    // Backend should handle validation based on schedule
+    /*
     if (!attendanceStatus?.can_check_in) {
       alert(attendanceStatus?.message || 'Anda tidak dapat melakukan check-in saat ini');
       return;
     }
+    */
 
     setIsLoading(true);
     setError(null);
@@ -473,10 +478,15 @@ export function Presensi() {
       return;
     }
 
+    // Remove restriction for multiple check-outs per day
+    // Allow paramedis to check-out for each shift
+    // Backend should handle validation
+    /*
     if (!attendanceStatus?.can_check_out) {
       alert(attendanceStatus?.message || 'Anda tidak dapat melakukan check-out saat ini');
       return;
     }
+    */
 
     // Log debugging info but let server handle validation
     if (attendanceStatus?.attendance?.check_in_time) {
@@ -837,73 +847,64 @@ export function Presensi() {
               </motion.div>
             )}
 
-            {/* Check In/Out Button */}
-            <AnimatePresence mode="wait">
-              {attendanceStatus?.can_check_out ? (
-                <motion.div
-                  key="checked-in"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="space-y-4"
+            {/* Check In/Out Buttons - Always show both for multiple shifts support */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-4"
+            >
+              {/* Status Information */}
+              {attendanceStatus?.attendance?.check_in_time && (
+                <motion.div 
+                  className="flex items-center justify-center gap-2 p-4 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 rounded-xl"
+                  animate={{ scale: [1, 1.02, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <motion.div 
-                    className="flex items-center justify-center gap-2 p-4 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 rounded-xl"
-                    animate={{ scale: [1, 1.02, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                    <span className="text-green-700 dark:text-green-300 font-medium">
-                      Check-in pada {formatTime(attendanceStatus?.attendance?.check_in_time || null)}
-                    </span>
-                  </motion.div>
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Button 
-                      onClick={handleCheckOut}
-                      disabled={isLoading}
-                      className="w-full bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 hover:from-red-600 hover:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white shadow-lg h-14 text-lg font-semibold transition-all duration-300 disabled:opacity-50"
-                    >
-                      <XCircle className="w-6 h-6 mr-3" />
-                      {isLoading ? 'Processing...' : 'Check Out'}
-                    </Button>
-                  </motion.div>
+                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  <span className="text-green-700 dark:text-green-300 font-medium">
+                    Check-in terakhir: {formatTime(attendanceStatus?.attendance?.check_in_time || null)}
+                  </span>
                 </motion.div>
-              ) : attendanceStatus?.can_check_in ? (
+              )}
+
+              {/* Both buttons always visible for multiple shifts */}
+              <div className="grid grid-cols-2 gap-4">
                 <motion.div
-                  key="not-checked-in"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   <Button 
                     onClick={handleCheckIn}
                     disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 hover:from-blue-600 hover:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800 text-white shadow-lg h-14 text-lg font-semibold transition-all duration-300 disabled:opacity-50"
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 hover:from-blue-600 hover:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800 text-white shadow-lg h-14 text-base font-semibold transition-all duration-300 disabled:opacity-50"
                   >
-                    <CheckCircle className="w-6 h-6 mr-3" />
+                    <CheckCircle className="w-5 h-5 mr-2" />
                     {isLoading ? 'Processing...' : 'Check In'}
                   </Button>
                 </motion.div>
-              ) : (
+
                 <motion.div
-                  key="completed"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="p-4 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl text-center"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <CheckCircle className="w-6 h-6 text-gray-600 dark:text-gray-400 mx-auto mb-2" />
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">
-                    {attendanceStatus?.message || 'Presensi sudah selesai untuk hari ini'}
-                  </span>
+                  <Button 
+                    onClick={handleCheckOut}
+                    disabled={isLoading}
+                    className="w-full bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 hover:from-red-600 hover:to-red-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white shadow-lg h-14 text-base font-semibold transition-all duration-300 disabled:opacity-50"
+                  >
+                    <XCircle className="w-5 h-5 mr-2" />
+                    {isLoading ? 'Processing...' : 'Check Out'}
+                  </Button>
                 </motion.div>
-              )}
-            </AnimatePresence>
+              </div>
+
+              {/* Info message for multiple shifts */}
+              <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  💡 Sistem mendukung check-in/out multiple untuk jadwal jaga berbeda dalam 1 hari
+                </p>
+              </div>
+            </motion.div>
           </CardContent>
         </Card>
       </motion.div>

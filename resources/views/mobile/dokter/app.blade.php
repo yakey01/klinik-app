@@ -12,12 +12,8 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     
-    <!-- Preload critical resources -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Self-hosted medical fonts for optimal performance -->
+    @include('components.medical-font-head')
     
     <!-- ULTRAFIX: Force clear all caches before loading app -->
     <!-- DISABLED: <script src="/ultrafix.js.disabled"></script> -->

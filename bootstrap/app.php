@@ -50,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add session cleanup middleware to web group
         $middleware->web(append: [
             \App\Http\Middleware\ClearStaleSessionMiddleware::class,
+            \App\Http\Middleware\PreventPageExpired::class,
         ]);
         
         // Add API request logging to API group for debugging

@@ -1708,23 +1708,27 @@ html:not(.dark) .greeting-panel-enhanced {
   animation: checkSuccess 0.5s ease-out;
 }
 
-/* Responsive Grid System */
+/* Responsive Grid System - 2 Cards Only */
 .dashboard-grid {
   display: grid;
   gap: var(--space-4);
   grid-template-columns: 1fr;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 @media (min-width: 640px) {
   .dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
   }
 }
 
 @media (min-width: 1024px) {
   .dashboard-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-6);
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-8);
+    max-width: 600px;
   }
 }
 

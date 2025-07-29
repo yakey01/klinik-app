@@ -561,23 +561,30 @@ class ParamedisDashboardController extends Controller
                     break;
             }
 
-            // History presensi based on filter
-            $attendanceHistory = $query->orderByDesc('date')->get();
+            // Pagination parameters
+            $page = $request->get('page', 1);
+            $perPage = $request->get('per_page', 10); // Default 10 records per page
+            $perPage = min($perPage, 50); // Max 50 records per page
+            
+            // History presensi based on filter with pagination
+            $attendanceHistory = $query->orderByDesc('date')
+                ->paginate($perPage, ['*'], 'page', $page);
 
-            // Stats presensi based on filtered data
+            // Stats presensi based on filtered data (need to get all data for stats, not just paginated)
+            $allFilteredAttendance = $query->orderByDesc('date')->get();
             $totalWorkDuration = 0;
-            foreach ($attendanceHistory as $attendance) {
+            foreach ($allFilteredAttendance as $attendance) {
                 if ($attendance->work_duration) {
                     $totalWorkDuration += $attendance->work_duration;
                 }
             }
             
             $attendanceStats = [
-                'total_days' => $attendanceHistory->count(),
-                'on_time' => $attendanceHistory->where('status', 'on_time')->count(),
-                'late' => $attendanceHistory->where('status', 'late')->count(),
-                'early_leave' => $attendanceHistory->where('status', 'early_leave')->count(),
-                'absent' => $attendanceHistory->where('status', 'absent')->count(),
+                'total_days' => $allFilteredAttendance->count(),
+                'on_time' => $allFilteredAttendance->where('status', 'on_time')->count(),
+                'late' => $allFilteredAttendance->where('status', 'late')->count(),
+                'early_leave' => $allFilteredAttendance->where('status', 'early_leave')->count(),
+                'absent' => $allFilteredAttendance->where('status', 'absent')->count(),
                 'total_hours' => round($totalWorkDuration / 60, 1),
                 'filter_applied' => $filter,
                 'filter_period' => $this->getFilterPeriodLabel($filter)
@@ -604,8 +611,19 @@ class ParamedisDashboardController extends Controller
                         'can_check_in' => true,
                         'can_check_out' => false
                     ],
-                    'history' => $attendanceHistory,
-                    'stats' => $attendanceStats
+                    'history' => $attendanceHistory->items(),
+                    'stats' => $attendanceStats,
+                    'pagination' => [
+                        'current_page' => $attendanceHistory->currentPage(),
+                        'last_page' => $attendanceHistory->lastPage(),
+                        'per_page' => $attendanceHistory->perPage(),
+                        'total' => $attendanceHistory->total(),
+                        'from' => $attendanceHistory->firstItem(),
+                        'to' => $attendanceHistory->lastItem(),
+                        'has_more_pages' => $attendanceHistory->hasMorePages(),
+                        'prev_page_url' => $attendanceHistory->previousPageUrl(),
+                        'next_page_url' => $attendanceHistory->nextPageUrl()
+                    ]
                 ]
             ]);
 

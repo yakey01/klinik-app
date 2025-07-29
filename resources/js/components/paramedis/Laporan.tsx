@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Calendar, Clock, Download, BarChart3, Activity, Target, CheckCircle, XCircle, AlertTriangle, Filter } from 'lucide-react';
+import { Calendar, Clock, Download, BarChart3, Activity, Target, CheckCircle, XCircle, AlertTriangle, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export function Laporan() {
   const [dashboardStats, setDashboardStats] = useState<any>(null);
@@ -14,6 +14,9 @@ export function Laporan() {
   const [attendanceStats, setAttendanceStats] = useState<any>(null);
   const [loadingAttendance, setLoadingAttendance] = useState(true);
   const [filterPeriod, setFilterPeriod] = useState('month'); // 'month', 'week', 'today'
+  const [pagination, setPagination] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(5);
 
   useEffect(() => {
     // Fetch real dashboard stats from API
@@ -48,6 +51,8 @@ export function Laporan() {
         setLoadingAttendance(true);
         const params = new URLSearchParams();
         params.append('filter', filterPeriod);
+        params.append('page', currentPage.toString());
+        params.append('per_page', perPage.toString());
         
         const response = await fetch(`/paramedis/web-api/presensi-data?${params}`, {
           credentials: 'include',
@@ -76,6 +81,7 @@ export function Laporan() {
             
             setAttendanceData(transformedData);
             setAttendanceStats(result.data.stats);
+            setPagination(result.data.pagination);
           }
         } else {
           console.error('Failed to fetch attendance data:', response.status);
@@ -89,7 +95,21 @@ export function Laporan() {
     
     fetchDashboardStats();
     fetchAttendanceData();
+  }, [filterPeriod, currentPage, perPage]);
+
+  // Reset to page 1 when filter changes 
+  useEffect(() => {
+    setCurrentPage(1);
   }, [filterPeriod]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePerPageChange = (newPerPage: string) => {
+    setPerPage(parseInt(newPerPage));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   // Use real attendance data from API or fallback
   const monthlyStats = attendanceStats ? {
@@ -298,16 +318,27 @@ export function Laporan() {
                 <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 Riwayat Presensi
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-500" />
+              <div className="flex items-center gap-2 text-xs">
                 <Select value={filterPeriod} onValueChange={setFilterPeriod}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-28 h-8 text-xs border-gray-200 dark:border-gray-700">
                     <SelectValue placeholder="Filter" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="today">Hari Ini</SelectItem>
                     <SelectItem value="week">Minggu Ini</SelectItem>
                     <SelectItem value="month">Bulan Ini</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={perPage.toString()} onValueChange={handlePerPageChange}>
+                  <SelectTrigger className="w-12 h-8 text-xs border-gray-200 dark:border-gray-700">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -393,6 +424,83 @@ export function Laporan() {
                   </Card>
                 </motion.div>
                 ))}
+              </motion.div>
+            )}
+            
+            {/* Minimalist Pagination */}
+            {pagination && pagination.total > perPage && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+                className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700"
+              >
+                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  <span>{pagination.from || 0}-{pagination.to || 0} dari {pagination.total}</span>
+                  <span>Hal {currentPage}/{pagination.last_page}</span>
+                </div>
+                
+                <div className="flex items-center justify-center gap-1">
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || loadingAttendance}
+                    className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-colors ${
+                      currentPage === 1 || loadingAttendance
+                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-600 dark:hover:text-blue-400'
+                    }`}
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                  </button>
+
+                  {/* Page Numbers - Minimal */}
+                  {Array.from({ length: Math.min(3, pagination.last_page) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.last_page <= 3) {
+                      pageNum = i + 1;
+                    } else {
+                      if (currentPage === 1) {
+                        pageNum = i + 1;
+                      } else if (currentPage === pagination.last_page) {
+                        pageNum = pagination.last_page - 2 + i;
+                      } else {
+                        pageNum = currentPage - 1 + i;
+                      }
+                      if (pageNum < 1 || pageNum > pagination.last_page) return null;
+                    }
+                    
+                    const isActive = currentPage === pageNum;
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        disabled={loadingAttendance}
+                        className={`w-7 h-7 rounded-md text-xs font-medium transition-colors ${
+                          isActive
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === pagination.last_page || loadingAttendance}
+                    className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-colors ${
+                      currentPage === pagination.last_page || loadingAttendance
+                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-600 dark:hover:text-blue-400'
+                    }`}
+                  >
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
               </motion.div>
             )}
           </CardContent>

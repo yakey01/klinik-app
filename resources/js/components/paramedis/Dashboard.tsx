@@ -611,78 +611,35 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         <div className="card-minimal">
           <div className="card-minimal-header">
             <h3 className="card-minimal-title">Ringkasan Jaspel</h3>
-            <TrendIndicator 
-              value={stats.jaspel.thisMonth} 
-              previousValue={stats.jaspel.lastMonth}
-              format="percentage"
-              size="md"
-            />
+            <Suspense fallback={<div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />}>
+              <TrendIndicator 
+                value={stats.jaspel.thisMonth} 
+                previousValue={stats.jaspel.lastMonth}
+                format="percentage"
+                size="md"
+              />
+            </Suspense>
           </div>
           
           <div className="space-y-4">
-            {/* Main Amount with Sparkline */}
-            <div className="flex items-end justify-between">
-              <div className="flex-1">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Bulan Ini</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
-                </p>
-              </div>
-              <Sparkline 
-                data={[1800000, 2100000, 1900000, 2300000, 2500000, stats.jaspel.lastMonth, stats.jaspel.thisMonth]}
-                color="hsl(var(--primary-blue))"
-                height={50}
-                width={120}
-                className="ml-4"
-              />
+            {/* Main Amount */}
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Bulan Ini</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
+              </p>
             </div>
 
-            {/* Progress with animated bar */}
-            {dashboardStats?.period_info && (
-              <div>
-                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
-                  <span>Progress Bulan</span>
-                  <span className="font-medium">{dashboardStats.period_info.month_progress}%</span>
-                </div>
-                <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-gradient-to-r from-blue-400 to-blue-600 dark:from-blue-500 dark:to-blue-700 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${dashboardStats.period_info.month_progress}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Stats Grid with mini charts */}
+            {/* Stats Grid - Simple */}
             <div className="grid grid-cols-2 gap-3">
               <div className="mini-metric">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="mini-metric-label">Rata-rata Harian</p>
-                  <Sparkline 
-                    data={[45000, 52000, 48000, 55000, 51000]}
-                    color="hsl(var(--primary-green))"
-                    height={20}
-                    width={40}
-                    showArea={false}
-                  />
-                </div>
+                <p className="mini-metric-label">Rata-rata Harian</p>
                 <p className="mini-metric-value">
-                  Rp {(dashboardStats?.daily_average || 0).toLocaleString('id-ID')}
+                  Rp {(dashboardStats?.daily_average || Math.round(stats.jaspel.thisMonth / new Date().getDate())).toLocaleString('id-ID')}
                 </p>
               </div>
               <div className="mini-metric">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="mini-metric-label">Bulan Lalu</p>
-                  <TrendIndicator 
-                    value={stats.jaspel.thisMonth} 
-                    previousValue={stats.jaspel.lastMonth}
-                    format="percentage"
-                    size="sm"
-                    showIcon={false}
-                  />
-                </div>
+                <p className="mini-metric-label">Bulan Lalu</p>
                 <p className="mini-metric-value">
                   Rp {stats.jaspel.lastMonth.toLocaleString('id-ID')}
                 </p>

@@ -377,7 +377,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
   });
 
   return (
-    <div className="relative">
+    <div className="dashboard-container">
       {/* Pull-to-refresh indicator */}
       {isPullingToRefresh && (
         <motion.div 
@@ -392,540 +392,299 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         variants={container}
         initial="hidden"
         animate="show"
-        className="space-y-6 theme-transition pb-20"
+        className="space-y-4 pb-20"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-      {/* Header Welcome */}
+      {/* Minimalist Welcome Card */}
       <motion.div variants={item}>
-        <Card className="bg-gradient-to-br from-blue-600 to-purple-700 dark:from-blue-700 dark:to-purple-800 border-0 relative overflow-hidden">
-          <CardContent className="p-6 card-content-mobile relative z-10">
-            {/* Background overlay for better text contrast - only for dark mode */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/10 to-black/20"></div>
+        <div className="welcome-card-minimal">
+          <div className="welcome-card-content">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="welcome-greeting">
+                  {propUserData?.greeting || userData?.greeting || 'Selamat datang kembali'}
+                </p>
+                <h1 className="welcome-name">
+                  {propUserData?.name || userData?.name || 'Paramedis'}
+                </h1>
+              </div>
+              <div className="text-right">
+                <p className="welcome-time">
+                  {currentTime.toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </p>
+                <p className="welcome-date">
+                  {currentTime.toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long'
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Minimalist Work Location Card */}
+      {dashboardStats?.user?.work_location && (
+        <motion.div variants={item}>
+          <div className="card-minimal">
+            <div className="card-minimal-header">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="card-minimal-title">Lokasi Kerja</h3>
+              </div>
+              <button
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
             
-            <div className="text-white relative z-10">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-14 h-14 bg-white/30 dark:bg-white/35 rounded-2xl flex items-center justify-center shadow-2xl backdrop-blur-lg border-2 border-white/30">
-                  <Activity className="w-7 h-7 text-white drop-shadow-lg" />
-                </div>
-                <div className="greeting-panel-enhanced">
-                  <h2 className="greeting-text-gradient text-2xl">Dashboard</h2>
-                  <p className="greeting-text-gradient text-base">
-                    {propUserData?.greeting || userData?.greeting || 'Selamat datang kembali'}, <span className="greeting-text-gradient font-black">{propUserData?.name || userData?.name || 'Paramedis'}</span>
-                  </p>
-                </div>
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-semibold text-gray-900 dark:text-white">
+                  {dashboardStats.user.work_location.name}
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {dashboardStats.user.work_location.address}
+                </p>
               </div>
               
               <div className="flex items-center justify-between">
-                <div className="greeting-panel-enhanced">
-                  <p className="greeting-text-gradient text-sm">Waktu Sekarang</p>
-                  <p className="greeting-text-gradient text-xl font-black">
-                    {currentTime.toLocaleTimeString('id-ID', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </p>
-                </div>
-                <div className="text-right greeting-panel-enhanced">
-                  <p className="greeting-text-gradient text-sm">
-                    {currentTime.toLocaleDateString('id-ID', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long'
-                    })}
-                  </p>
+                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                  <span>Radius: {dashboardStats.user.work_location.radius_meters}m</span>
+                  {dashboardStats.user.work_location.is_active && (
+                    <Badge className="status-badge success">Aktif</Badge>
+                  )}
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Work Location Card - Only show if work location exists */}
-      {dashboardStats?.user?.work_location && (
-        <motion.div variants={item}>
-          <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-green-50/50 dark:from-gray-900 dark:to-green-950/30 backdrop-blur-sm overflow-hidden card-glass-enhanced card-interactive">
-            <CardContent className="p-6 card-content-mobile">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center shadow-mobile-soft">
-                    <Navigation className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Lokasi Kerja</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">Area validasi presensi</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={handleManualRefresh}
-                    disabled={isRefreshing}
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-3 text-xs hover:bg-green-50 dark:hover:bg-green-950/50 hover:border-green-200 dark:hover:border-green-700"
-                  >
-                    <RefreshCw className={`w-3 h-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    {isRefreshing ? 'Refresh...' : 'Refresh'}
-                  </Button>
-                </div>
-              </div>
-
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-xl p-4 text-white relative overflow-hidden"
-              >
-                {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 dark:bg-white/15 rounded-full -translate-y-10 translate-x-10" />
-                
-                <div className="relative z-10">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-lg">{dashboardStats.user.work_location.name}</h4>
-                      <Badge className="bg-white/20 text-white border-white/30 text-xs">
-                        {dashboardStats.user.work_location.is_active ? '✅ Aktif' : '❌ Nonaktif'}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-green-200 dark:text-green-300" />
-                      <span className="text-sm text-green-100 dark:text-green-200">
-                        {dashboardStats.user.work_location.address}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-200 rounded-full"></div>
-                        <span className="text-green-100">Radius: {dashboardStats.user.work_location.radius_meters}m</span>
-                      </div>
-                      <div className="text-green-100 text-xs">
-                        {lastLocationUpdate && `Updated: ${new Date(lastLocationUpdate).toLocaleTimeString('id-ID')}`}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </CardContent>
-          </Card>
+          </div>
         </motion.div>
       )}
 
 
-      {/* Enhanced Performance Stats with Badges */}
-      <motion.div variants={item}>
-        <Card className="shadow-xl border-0 bg-white dark:bg-gray-800 backdrop-blur-sm overflow-hidden">
-          <CardContent className="p-6 card-content-mobile">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Performa Anda</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Statistik dan pencapaian</p>
-                </div>
+      {/* Minimalist Key Metrics */}
+      <motion.div variants={item} className="dashboard-grid">
+        {/* Attendance Metric Card */}
+        <div className="metric-card">
+          {loadingStats ? (
+            <div className="skeleton-card h-32"></div>
+          ) : (
+            <>
+              <div className="metric-card-icon green">
+                <CheckCircle className="w-5 h-5" />
               </div>
-              
-              {/* Performance Badges */}
-              {dashboardStats?.performance?.badges && dashboardStats.performance.badges.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {dashboardStats.performance.badges.slice(0, 2).map((badge: PerformanceBadge, index: number) => (
-                    <motion.div
-                      key={index}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.5 + (index * 0.1) }}
-                      className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                        badge.color === 'gold' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                        badge.color === 'blue' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-                        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                      }`}
-                    >
-                      <span>{badge.icon}</span>
-                      <span className="hidden sm:inline">{badge.name}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {/* Attendance Rate */}
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-xl p-4 border border-green-100 dark:border-green-800/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  <span className="text-sm text-high-contrast">Kehadiran</span>
-                </div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
-                  {loadingStats ? (
-                    <div className="w-12 h-8 bg-green-200 dark:bg-green-800 rounded animate-pulse"></div>
-                  ) : (
-                    `${stats.attendance.current}%`
-                  )}
-                </div>
-                <div className="progress-clean mb-2">
-                  <div className="progress-clean-fill" style={{width: `${stats.attendance.current}%`}}></div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                  <TrendingUp className="w-3 h-3" />
-                  <span className="font-semibold">+{stats.attendance.change}% dari bulan lalu</span>
-                </div>
+              <p className="metric-card-label">Kehadiran Bulan Ini</p>
+              <p className="metric-card-value">{stats.attendance.current}%</p>
+              <div className="metric-card-trend positive">
+                <TrendingUp className="w-3 h-3" />
+                <span>+{stats.attendance.change}%</span>
               </div>
-
-              {/* Ranking */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Award className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm text-high-contrast">Peringkat</span>
-                </div>
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                  {loadingStats ? (
-                    <div className="w-12 h-8 bg-blue-200 dark:bg-blue-800 rounded animate-pulse"></div>
-                  ) : (
-                    `#${stats.performance.attendance_rank || '--'}`
-                  )}
-                </div>
-                <div className="progress-clean mb-2">
-                  <div className="progress-clean-fill" style={{width: `${stats.performance.attendance_rank ? Math.max(0, 100 - ((stats.performance.attendance_rank / stats.performance.total_staff) * 100)) : 0}%`}}></div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
-                  <Users className="w-3 h-3" />
-                  <span className="font-semibold">dari {loadingStats ? '...' : (stats.performance.total_staff || 0)} paramedis</span>
-                </div>
+              <div className="progress-minimal mt-3">
+                <div className="progress-minimal-fill" style={{width: `${stats.attendance.current}%`}}></div>
               </div>
-            </div>
+            </>
+          )}
+        </div>
 
-            {/* Additional Performance Metrics */}
-            {dashboardStats?.performance && (
-              <div className="grid grid-cols-3 gap-3">
-                {/* Punctuality Rate */}
-                {dashboardStats.performance.punctuality_rate !== undefined && (
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                      {dashboardStats.performance.punctuality_rate}%
-                    </div>
-                    <div className="text-xs text-high-contrast">Ketepatan Waktu</div>
-                  </div>
-                )}
-                
-                {/* Weekly Attendance */}
-                {dashboardStats.performance.week_attendance !== undefined && (
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                      {dashboardStats.performance.week_attendance}
-                    </div>
-                    <div className="text-xs text-high-contrast">Minggu Ini</div>
-                  </div>
-                )}
-                
-                {/* Work Hours */}
-                {dashboardStats.performance.total_work_hours !== undefined && (
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-teal-600 dark:text-teal-400">
-                      {dashboardStats.performance.total_work_hours}h
-                    </div>
-                    <div className="text-xs text-high-contrast">Total Jam</div>
-                  </div>
-                )}
+        {/* Jaspel Metric Card */}
+        <div className="metric-card">
+          {loadingStats ? (
+            <div className="skeleton-card h-32"></div>
+          ) : (
+            <>
+              <div className="metric-card-icon blue">
+                <DollarSign className="w-5 h-5" />
               </div>
-            )}
+              <p className="metric-card-label">Jaspel Hari Ini</p>
+              <p className="metric-card-value">
+                Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
+              </p>
+              <div className={`metric-card-trend ${stats.jaspel.change > 0 ? 'positive' : 'negative'}`}>
+                {stats.jaspel.change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                <span>{stats.jaspel.change > 0 ? '+' : ''}{stats.jaspel.change}%</span>
+              </div>
+            </>
+          )}
+        </div>
 
-            {/* Performance Trend */}
-            {dashboardStats?.performance?.performance_trend && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-high-contrast">Tren 3 Bulan</span>
-                  <div className={`flex items-center gap-1 text-xs ${
-                    dashboardStats.performance.performance_trend.direction === 'up' ? 'text-green-600 dark:text-green-400' :
-                    dashboardStats.performance.performance_trend.direction === 'down' ? 'text-red-600 dark:text-red-400' :
-                    'text-gray-600 dark:text-gray-400'
-                  }`}>
-                    {dashboardStats.performance.performance_trend.direction === 'up' ? '↗️' : 
-                     dashboardStats.performance.performance_trend.direction === 'down' ? '↘️' : '➡️'}
-                    <span>{dashboardStats.performance.performance_trend.change > 0 ? '+' : ''}{dashboardStats.performance.performance_trend.change}%</span>
-                  </div>
-                </div>
-                <div className="flex items-end gap-1 h-8">
-                  {dashboardStats.performance.performance_trend.data.map((month: any, index: number) => (
-                    <div key={index} className="flex-1 flex flex-col items-center">
-                      <div 
-                        className="w-full bg-gradient-to-t from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 rounded-sm"
-                        style={{ height: `${Math.max(4, (month.percentage / 100) * 24)}px` }}
-                      ></div>
-                      <span className="text-xs text-medium-contrast mt-1">{month.month}</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Performance Metric Card */}
+        <div className="metric-card">
+          {loadingStats ? (
+            <div className="skeleton-card h-32"></div>
+          ) : (
+            <>
+              <div className="metric-card-icon purple">
+                <Award className="w-5 h-5" />
+              </div>
+              <p className="metric-card-label">Peringkat Kinerja</p>
+              <p className="metric-card-value">#{stats.performance.attendance_rank || '--'}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                dari {stats.performance.total_staff || 0} paramedis
+              </p>
+            </>
+          )}
+        </div>
       </motion.div>
 
-      {/* Enhanced Jaspel Summary with Modern Card Design */}
+      {/* Minimalist Jaspel Summary */}
       <motion.div variants={item}>
-        <Card className="shadow-xl border-0 card-frosted-clean dark:from-gray-900 dark:to-emerald-950/30 backdrop-blur-sm overflow-hidden card-interactive group">
-          <CardContent className="p-6 card-content-mobile">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-mobile-strong group-hover:shadow-emerald-200 dark:group-hover:shadow-emerald-900/50 transition-shadow">
-                  <DollarSign className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Jaspel Bulan Ini</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    {dashboardStats?.period_info && (
-                      <>Progress {dashboardStats.period_info.month_progress}% bulan ini</>
-                    )}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Amount with Trend */}
-              <div className="text-right">
-                <motion.p 
-                  className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 text-mobile-hero"
-                  key={stats.jaspel.thisMonth}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
-                </motion.p>
-                <div className="flex items-center justify-end gap-1 text-xs mt-1">
-                  {stats.jaspel.change > 0 ? (
-                    <TrendingUp className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-                  ) : stats.jaspel.change < 0 ? (
-                    <TrendingDown className="w-3 h-3 text-red-500 dark:text-red-400" />
-                  ) : null}
-                  <span className={`font-semibold ${
-                    stats.jaspel.change > 0 ? 'text-emerald-600 dark:text-emerald-400' :
-                    stats.jaspel.change < 0 ? 'text-red-600 dark:text-red-400' :
-                    'text-gray-600 dark:text-gray-400'
-                  }`}>
-                    {stats.jaspel.change > 0 ? '+' : ''}{stats.jaspel.change}%
-                  </span>
-                </div>
-              </div>
+        <div className="card-minimal">
+          <div className="card-minimal-header">
+            <h3 className="card-minimal-title">Ringkasan Jaspel</h3>
+            <Badge className="status-badge success">
+              {stats.jaspel.change > 0 ? '+' : ''}{stats.jaspel.change}%
+            </Badge>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Main Amount */}
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Bulan Ini</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
+              </p>
             </div>
-            
-            {/* Enhanced Progress Bar */}
+
+            {/* Progress */}
             {dashboardStats?.period_info && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="mb-6"
-              >
-                <div className="flex justify-between text-xs text-high-contrast mb-2">
-                  <span className="font-medium">Hari ke-{dashboardStats.period_info.days_passed}</span>
-                  <span className="font-medium">{dashboardStats.period_info.days_in_month} hari total</span>
+              <div>
+                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
+                  <span>Progress Bulan</span>
+                  <span>{dashboardStats.period_info.month_progress}%</span>
                 </div>
-                <div className="relative">
-                  <div className="progress-clean">
-                    <div className="progress-clean-fill" style={{width: `${dashboardStats.period_info.month_progress}%`}}></div>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-green-500/20 rounded-full"></div>
-                </div>
-                <div className="text-center mt-2">
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                    {dashboardStats.period_info.month_progress}% bulan berjalan
-                  </span>
-                </div>
-              </motion.div>
-            )}
-            
-            {/* Statistics Grid with Enhanced Design */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <motion.div 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 rounded-xl p-4 border border-emerald-100/50 dark:border-emerald-800/20 group cursor-pointer"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white font-bold">Ⓓ</span>
-                  </div>
-                  <span className="text-xs text-high-contrast">Rata-rata Harian</span>
-                </div>
-                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                  Rp {(dashboardStats?.daily_average || 0).toLocaleString('id-ID')}
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-950/30 dark:to-teal-950/30 rounded-xl p-4 border border-green-100/50 dark:border-green-800/20 group cursor-pointer"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white font-bold">Ⓦ</span>
-                  </div>
-                  <span className="text-xs text-high-contrast">Estimasi Mingguan</span>
-                </div>
-                <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                  Rp {(dashboardStats?.jaspel_weekly || 0).toLocaleString('id-ID')}
-                </div>
-              </motion.div>
-            </div>
-            
-            {/* Previous Month Comparison */}
-            <motion.div 
-              whileHover={{ scale: 1.01 }}
-              className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 rounded-xl p-4 border border-emerald-100/50 dark:border-emerald-800/20"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-sm text-high-contrast">Bulan Lalu</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                    Rp {stats.jaspel.lastMonth.toLocaleString('id-ID')}
-                  </div>
-                  <div className="text-xs text-high-contrast">
-                    Perbandingan periode
-                  </div>
+                <div className="progress-minimal">
+                  <div className="progress-minimal-fill" style={{width: `${dashboardStats.period_info.month_progress}%`}}></div>
                 </div>
               </div>
-            </motion.div>
+            )}
 
-            {/* View Details Button */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="mt-4"
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="mini-metric">
+                <p className="mini-metric-label">Rata-rata Harian</p>
+                <p className="mini-metric-value">
+                  Rp {(dashboardStats?.daily_average || 0).toLocaleString('id-ID')}
+                </p>
+              </div>
+              <div className="mini-metric">
+                <p className="mini-metric-label">Bulan Lalu</p>
+                <p className="mini-metric-value">
+                  Rp {stats.jaspel.lastMonth.toLocaleString('id-ID')}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <Button 
+              variant="outline" 
+              className="w-full action-button"
             >
-              <Button 
-                variant="outline" 
-                className="w-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 group font-semibold"
-              >
-                <DollarSign className="w-4 h-4 mr-2" />
-                <span>Lihat Detail Jaspel</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </motion.div>
-          </CardContent>
-        </Card>
+              <div className="action-button-icon">
+                <DollarSign className="w-4 h-4" />
+              </div>
+              <span className="action-button-text">Lihat Detail Jaspel</span>
+              <ArrowRight className="w-4 h-4 ml-auto" />
+            </Button>
+          </div>
+        </div>
       </motion.div>
 
-      {/* Quick Actions */}
+      {/* Minimalist Quick Actions */}
       <motion.div variants={item}>
-        <Card className="shadow-lg border-0 bg-white dark:bg-gray-800 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
-              <Timer className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              Aksi Cepat
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 card-content-mobile">
-            {/* Shift Status Display */}
+        <div className="card-minimal">
+          <div className="card-minimal-header">
+            <h3 className="card-minimal-title">Aksi Cepat</h3>
+          </div>
+          
+          <div className="space-y-3">
+            {/* Shift Status */}
             {dashboardStats?.stats?.attendance_today && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800"
-              >
-                <div className="flex items-center justify-between">
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
+                    <div className={`w-2 h-2 rounded-full ${
                       dashboardStats.stats.attendance_today.status === 'checked_in' ? 'bg-green-500 animate-pulse' :
                       dashboardStats.stats.attendance_today.status === 'all_shifts_completed' ? 'bg-emerald-500' :
                       'bg-blue-500'
                     }`}></div>
-                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                      Shift Status
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {dashboardStats.stats.attendance_today.message}
                     </span>
                   </div>
-                  <div className="text-xs text-blue-600 dark:text-blue-300">
-                    {dashboardStats.stats.attendance_today.completed_shifts}/{dashboardStats.stats.attendance_today.total_shifts} selesai
-                  </div>
+                  <Badge className="text-xs">
+                    {dashboardStats.stats.attendance_today.completed_shifts}/{dashboardStats.stats.attendance_today.total_shifts}
+                  </Badge>
                 </div>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                  {dashboardStats.stats.attendance_today.message}
-                </p>
                 {dashboardStats.stats.attendance_today.active_shift && (
-                  <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
-                    <span className="font-medium">Shift Aktif:</span> {dashboardStats.stats.attendance_today.active_shift.start_time} - {dashboardStats.stats.attendance_today.active_shift.end_time}
-                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Shift: {dashboardStats.stats.attendance_today.active_shift.start_time} - {dashboardStats.stats.attendance_today.active_shift.end_time}
+                  </p>
                 )}
-              </motion.div>
+              </div>
             )}
 
-            <motion.div
-              whileHover={{ scale: 1.01, x: 5 }}
-              whileTap={{ scale: 0.99 }}
-              transition={{ duration: 0.2 }}
+            {/* Check In/Out Button */}
+            <button
+              onClick={handleCheckInOut}
+              disabled={isCheckingIn}
+              className={`action-button ${
+                checkInStatus === 'success' ? 'border-green-200 dark:border-green-700' : 
+                checkInStatus === 'error' ? 'border-red-200 dark:border-red-700' : ''
+              }`}
             >
-              <Button 
-                variant="outline" 
-                className={`w-full justify-start gap-3 h-12 font-medium btn-mobile-primary focus-enhanced ${
-                  checkInStatus === 'success' 
-                    ? 'hover:bg-green-50 dark:hover:bg-green-950/50 hover:border-green-200 dark:hover:border-green-700 border-green-200' 
-                    : checkInStatus === 'error'
-                    ? 'hover:bg-red-50 dark:hover:bg-red-950/50 hover:border-red-200 dark:hover:border-red-700 border-red-200'
-                    : 'hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-200 dark:hover:border-blue-700'
-                }`}
-                onClick={handleCheckInOut}
-                disabled={isCheckingIn}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  checkInStatus === 'success' 
-                    ? 'bg-green-100 dark:bg-green-900/50' 
-                    : checkInStatus === 'error'
-                    ? 'bg-red-100 dark:bg-red-900/50'
-                    : 'bg-blue-100 dark:bg-blue-900/50'
-                }`}>
-                  {checkInStatus === 'locating' ? (
-                    <Navigation className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
-                  ) : checkInStatus === 'submitting' ? (
-                    <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
-                  ) : checkInStatus === 'success' ? (
-                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  ) : checkInStatus === 'error' ? (
-                    <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                  ) : (
-                    <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  )}
-                </div>
+              <div className={`action-button-icon ${
+                checkInStatus === 'success' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                checkInStatus === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
+                ''
+              }`}>
+                {checkInStatus === 'locating' ? (
+                  <Navigation className="w-4 h-4 animate-pulse" />
+                ) : checkInStatus === 'submitting' ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : checkInStatus === 'success' ? (
+                  <CheckCircle className="w-4 h-4" />
+                ) : checkInStatus === 'error' ? (
+                  <XCircle className="w-4 h-4" />
+                ) : (
+                  <Clock className="w-4 h-4" />
+                )}
+              </div>
+              <span className="action-button-text">
                 {checkInStatus === 'locating' && 'Mencari Lokasi...'}
                 {checkInStatus === 'submitting' && 'Memproses...'}
                 {checkInStatus === 'success' && 'Berhasil!'}
                 {checkInStatus === 'error' && 'Gagal'}
                 {checkInStatus === 'idle' && (
                   dashboardStats?.stats?.attendance_today?.can_check_in 
-                    ? (dashboardStats?.stats?.attendance_today?.message || 'Check In Sekarang')
+                    ? 'Check In Sekarang'
                     : dashboardStats?.stats?.attendance_today?.can_check_out 
                     ? 'Check Out Sekarang'
-                    : 'Check In/Out Sekarang'
+                    : 'Check In/Out'
                 )}
-              </Button>
-            </motion.div>
-            
+              </span>
+            </button>
 
-            <motion.div
-              whileHover={{ scale: 1.01, x: 5 }}
-              whileTap={{ scale: 0.99 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Button variant="outline" className="w-full justify-start gap-3 h-12 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:border-purple-200 dark:hover:border-purple-700 font-medium">
-                <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/50 rounded-full flex items-center justify-center">
-                  <Activity className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                </div>
-                Lihat Laporan Kinerja
-              </Button>
-            </motion.div>
-          </CardContent>
-        </Card>
+            {/* Performance Report Button */}
+            <button className="action-button">
+              <div className="action-button-icon">
+                <Activity className="w-4 h-4" />
+              </div>
+              <span className="action-button-text">Lihat Laporan Kinerja</span>
+            </button>
+          </div>
+        </div>
       </motion.div>
 
     </motion.div>

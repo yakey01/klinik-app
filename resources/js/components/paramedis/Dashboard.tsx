@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -21,9 +21,11 @@ import {
   Calendar,
   MapPin
 } from 'lucide-react';
-import { Sparkline } from '../ui/sparkline';
-import { CircularProgress } from '../ui/circular-progress';
-import { TrendIndicator } from '../ui/trend-indicator';
+
+// Lazy load visualization components for better performance
+const Sparkline = lazy(() => import('../ui/sparkline').then(module => ({ default: module.Sparkline })));
+const CircularProgress = lazy(() => import('../ui/circular-progress').then(module => ({ default: module.CircularProgress })));
+const TrendIndicator = lazy(() => import('../ui/trend-indicator').then(module => ({ default: module.TrendIndicator })));
 
 
 interface PerformanceBadge {
@@ -325,52 +327,76 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.08,
+        delayChildren: 0.04
       }
     }
   };
 
   const item = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 24
+      }
+    }
   };
 
-  // Use real data from API or fallback to dummy data
-  const stats = dashboardStats ? {
-    attendance: {
-      current: Math.round(dashboardStats.performance?.attendance_rate || 0),
-      target: 90,
-      change: +5
-    },
-    performance: {
-      score: dashboardStats.performance?.patient_satisfaction || 92,
-      change: +3,
-      attendance_rank: dashboardStats.performance?.attendance_rank,
-      total_staff: dashboardStats.performance?.total_staff
-    },
-    jaspel: {
-      thisMonth: dashboardStats.stats?.jaspel_month || 0,
-      lastMonth: dashboardStats.stats?.jaspel_last_month || 0,
-      change: dashboardStats.stats?.jaspel_growth_percent || 0
-    }
-  } : {
-    attendance: {
-      current: 0,
-      target: 90,
-      change: 0
-    },
-    performance: {
-      score: 0,
-      change: 0,
-      attendance_rank: null,
-      total_staff: 0
-    },
-    jaspel: {
-      thisMonth: 0,
-      lastMonth: 0,
-      change: 0
+  const floatingAnimation = {
+    y: [0, -10, 0],
+    transition: {
+      duration: 3,
+      repeat: Infinity,
+      ease: "easeInOut"
     }
   };
+
+  // Use real data from API or fallback to dummy data - memoized for performance
+  const stats = useMemo(() => {
+    if (!dashboardStats) {
+      return {
+        attendance: {
+          current: 0,
+          target: 90,
+          change: 0
+        },
+        performance: {
+          score: 0,
+          change: 0,
+          attendance_rank: null,
+          total_staff: 0
+        },
+        jaspel: {
+          thisMonth: 0,
+          lastMonth: 0,
+          change: 0
+        }
+      };
+    }
+
+    return {
+      attendance: {
+        current: Math.round(dashboardStats.performance?.attendance_rate || 0),
+        target: 90,
+        change: +5
+      },
+      performance: {
+        score: dashboardStats.performance?.patient_satisfaction || 92,
+        change: +3,
+        attendance_rank: dashboardStats.performance?.attendance_rank,
+        total_staff: dashboardStats.performance?.total_staff
+      },
+      jaspel: {
+        thisMonth: dashboardStats.stats?.jaspel_month || 0,
+        lastMonth: dashboardStats.stats?.jaspel_last_month || 0,
+        change: dashboardStats.stats?.jaspel_growth_percent || 0
+      }
+    };
+  }, [dashboardStats]);
 
   // Debug log to see attendance data
   console.log('🎯 Stats object:', {
@@ -381,6 +407,10 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
 
   return (
     <div className="dashboard-container">
+      {/* Skip navigation link for screen readers */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg z-50">
+        Skip to main content
+      </a>
       {/* Pull-to-refresh indicator */}
       {isPullingToRefresh && (
         <motion.div 
@@ -392,6 +422,8 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
       )}
 
       <motion.div 
+        id="main-content"
+        role="main"
         variants={container}
         initial="hidden"
         animate="show"
@@ -402,7 +434,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
       >
       {/* Minimalist Welcome Card */}
       <motion.div variants={item}>
-        <div className="welcome-card-minimal">
+        <div className="welcome-card-minimal" role="banner" aria-label="Welcome section">
           <div className="welcome-card-content">
             <div className="flex items-start justify-between">
               <div>
@@ -480,47 +512,84 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
       {/* Minimalist Key Metrics */}
       <motion.div variants={item} className="dashboard-grid">
         {/* Attendance Metric Card */}
-        <div className="metric-card">
+        <motion.div 
+          className="metric-card"
+          role="article"
+          aria-labelledby="attendance-label"
+          whileHover={{ 
+            scale: 1.02,
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)"
+          }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        >
           {loadingStats ? (
             <div className="skeleton-card h-32"></div>
           ) : (
             <>
-              <div className="metric-card-icon green">
+              <motion.div 
+                className="metric-card-icon green"
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.5 }}
+              >
                 <CheckCircle className="w-5 h-5" />
-              </div>
-              <p className="metric-card-label">Kehadiran Bulan Ini</p>
+              </motion.div>
+              <p id="attendance-label" className="metric-card-label">Kehadiran Bulan Ini</p>
               <div className="flex items-end justify-between">
                 <div className="flex-1">
-                  <p className="metric-card-value">{stats.attendance.current}%</p>
-                  <TrendIndicator 
-                    value={stats.attendance.current} 
-                    previousValue={stats.attendance.current - stats.attendance.change}
-                    format="percentage"
-                    size="sm"
-                    className="mt-1"
-                  />
+                  <motion.p 
+                    className="metric-card-value"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  >
+                    {stats.attendance.current}%
+                  </motion.p>
+                  <Suspense fallback={<div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />}>
+                    <TrendIndicator 
+                      value={stats.attendance.current} 
+                      previousValue={stats.attendance.current - stats.attendance.change}
+                      format="percentage"
+                      size="sm"
+                      className="mt-1"
+                    />
+                  </Suspense>
                 </div>
-                <CircularProgress 
-                  value={stats.attendance.current} 
-                  size="sm"
-                  color="hsl(var(--primary-green))"
-                  strokeWidth={3}
-                  className="ml-4"
-                />
+                <Suspense fallback={<div className="w-[60px] h-[60px] bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />}>
+                  <CircularProgress 
+                    value={stats.attendance.current} 
+                    size="sm"
+                    color="hsl(var(--primary-green))"
+                    strokeWidth={3}
+                    className="ml-4"
+                  />
+                </Suspense>
               </div>
             </>
           )}
-        </div>
+        </motion.div>
 
         {/* Jaspel Metric Card */}
-        <div className="metric-card">
+        <motion.div 
+          className="metric-card"
+          whileHover={{ 
+            scale: 1.02,
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)"
+          }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        >
           {loadingStats ? (
             <div className="skeleton-card h-32"></div>
           ) : (
             <>
-              <div className="metric-card-icon blue">
+              <motion.div 
+                className="metric-card-icon blue"
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.5 }}
+              >
                 <DollarSign className="w-5 h-5" />
-              </div>
+              </motion.div>
               <p className="metric-card-label">Jaspel Hari Ini</p>
               <p className="metric-card-value">
                 Rp {stats.jaspel.thisMonth.toLocaleString('id-ID')}
@@ -542,17 +611,29 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               </div>
             </>
           )}
-        </div>
+        </motion.div>
 
         {/* Performance Metric Card */}
-        <div className="metric-card">
+        <motion.div 
+          className="metric-card"
+          whileHover={{ 
+            scale: 1.02,
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)"
+          }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        >
           {loadingStats ? (
             <div className="skeleton-card h-32"></div>
           ) : (
             <>
-              <div className="metric-card-icon purple">
+              <motion.div 
+                className="metric-card-icon purple"
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.5 }}
+              >
                 <Award className="w-5 h-5" />
-              </div>
+              </motion.div>
               <p className="metric-card-label">Peringkat Kinerja</p>
               <div className="flex items-center justify-between">
                 <div>
@@ -584,7 +665,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               </div>
             </>
           )}
-        </div>
+        </motion.div>
       </motion.div>
 
       {/* Minimalist Jaspel Summary */}
@@ -723,10 +804,18 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
             <button
               onClick={handleCheckInOut}
               disabled={isCheckingIn}
+              aria-label={
+                dashboardStats?.stats?.attendance_today?.can_check_in 
+                  ? 'Check in to your shift'
+                  : dashboardStats?.stats?.attendance_today?.can_check_out 
+                  ? 'Check out from your shift'
+                  : 'Check in or out'
+              }
+              aria-busy={isCheckingIn}
               className={`action-button ${
                 checkInStatus === 'success' ? 'border-green-200 dark:border-green-700' : 
                 checkInStatus === 'error' ? 'border-red-200 dark:border-red-700' : ''
-              }`}
+              } ${dashboardStats?.stats?.attendance_today?.can_check_in ? 'pulse' : ''}`}
             >
               <div className={`action-button-icon ${
                 checkInStatus === 'success' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :

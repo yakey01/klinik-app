@@ -534,14 +534,17 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               >
                 <CheckCircle className="w-5 h-5" />
               </motion.div>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <p id="attendance-label" className="metric-card-label">Kehadiran Bulan Ini</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Target: {stats.attendance.target}% • {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
-                  </p>
-                </div>
-                <Suspense fallback={<div className="w-[50px] h-[50px] bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />}>
+              <p id="attendance-label" className="metric-card-label">Kehadiran Bulan Ini</p>
+              <div className="flex items-center justify-between">
+                <motion.p 
+                  className="metric-card-value"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                >
+                  {stats.attendance.current}%
+                </motion.p>
+                <Suspense fallback={<div className="w-[60px] h-[60px] bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />}>
                   <CircularProgress 
                     value={stats.attendance.current} 
                     size="sm"
@@ -550,34 +553,15 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
                   />
                 </Suspense>
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-baseline justify-between">
-                  <motion.p 
-                    className="metric-card-value"
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                  >
-                    {stats.attendance.current}%
-                  </motion.p>
-                  <Suspense fallback={<div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />}>
-                    <TrendIndicator 
-                      value={stats.attendance.current} 
-                      previousValue={stats.attendance.current - stats.attendance.change}
-                      format="percentage"
-                      size="sm"
-                    />
-                  </Suspense>
-                </div>
-                
-                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                  <span>Hari kerja: {Math.floor(new Date().getDate() * 0.7)}/22</span>
-                  <span className={`font-medium ${stats.attendance.current >= stats.attendance.target ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {stats.attendance.current >= stats.attendance.target ? 'Mencapai target' : `Perlu ${stats.attendance.target - stats.attendance.current}%`}
-                  </span>
-                </div>
-              </div>
+              <Suspense fallback={<div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />}>
+                <TrendIndicator 
+                  value={stats.attendance.current} 
+                  previousValue={stats.attendance.current - stats.attendance.change}
+                  format="percentage"
+                  size="sm"
+                  className="mt-2"
+                />
+              </Suspense>
             </>
           )}
         </motion.div>
@@ -671,62 +655,19 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               >
                 <Award className="w-5 h-5" />
               </motion.div>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <p className="metric-card-label">Peringkat Kinerja</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Evaluasi bulanan • {new Date().toLocaleDateString('id-ID', { month: 'long' })}
-                  </p>
-                </div>
+              <p className="metric-card-label">Peringkat Kinerja</p>
+              <div className="flex items-center justify-between">
+                <p className="metric-card-value">#{stats.performance.attendance_rank || '--'}</p>
                 <CircularProgress 
                   value={stats.performance.score} 
                   size="sm"
                   color="hsl(var(--primary-purple))"
                   strokeWidth={3}
-                  showValue={false}
                 />
               </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-baseline justify-between">
-                  <div>
-                    <p className="metric-card-value">#{stats.performance.attendance_rank || '--'}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      dari {stats.performance.total_staff || 0} paramedis
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                      {stats.performance.score}%
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">skor kinerja</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 dark:text-gray-400">Progress evaluasi</span>
-                    <span className={`font-medium ${
-                      stats.performance.score >= 90 ? 'text-green-600 dark:text-green-400' :
-                      stats.performance.score >= 75 ? 'text-blue-600 dark:text-blue-400' :
-                      'text-amber-600 dark:text-amber-400'
-                    }`}>
-                      {stats.performance.score >= 90 ? 'Sangat Baik' :
-                       stats.performance.score >= 75 ? 'Baik' : 'Perlu Peningkatan'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-purple-100 dark:bg-purple-900/30 rounded-full overflow-hidden">
-                      <motion.div 
-                        className="h-full bg-gradient-to-r from-purple-400 to-purple-600 dark:from-purple-500 dark:to-purple-700 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${stats.performance.score}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                dari {stats.performance.total_staff || 0} paramedis
+              </p>
             </>
           )}
         </motion.div>

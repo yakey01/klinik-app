@@ -1373,9 +1373,9 @@ html:not(.dark) .greeting-panel-enhanced {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  padding: var(--space-5);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 180px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
 }

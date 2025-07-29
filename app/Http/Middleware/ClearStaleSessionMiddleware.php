@@ -15,8 +15,8 @@ class ClearStaleSessionMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Clear stale sessions and cookies when accessing login pages
-        if ($this->isLoginPage($request)) {
+        // Only clear stale sessions on GET requests to login pages, not POST submissions
+        if ($this->isLoginPage($request) && $request->isMethod('GET')) {
             $this->clearStaleSession($request);
         }
         

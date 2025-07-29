@@ -712,7 +712,7 @@ class ParamedisDashboardController extends Controller
 
 
     /**
-     * Get performance stats
+     * Get enhanced performance stats with real-time data
      */
     private function getPerformanceStats($paramedis)
     {
@@ -720,42 +720,106 @@ class ParamedisDashboardController extends Controller
         $year = Carbon::now()->year;
         $user = Auth::user();
         
-        // Get attendance ranking from AttendanceRecap
-        $attendanceData = \App\Models\AttendanceRecap::getRecapData($month, $year, 'Paramedis');
+        // Generate current user's recap if it doesn't exist
+        $userRecap = \App\Models\AttendanceRecap::generateForUser($user->id, $month, $year);
+        
+        // Calculate rankings for paramedis staff
+        $rankedRecaps = \App\Models\AttendanceRecap::calculateRankings($month, $year, 'Paramedis');
         
         // Find current user's ranking
-        $currentUserRank = null;
-        $totalParamedis = $attendanceData->count();
+        $currentUserRank = $userRecap->ranking ?? $rankedRecaps->count() + 1;
+        $totalParamedis = $rankedRecaps->count();
         
-        foreach ($attendanceData as $staff) {
-            if ($staff['staff_id'] == $user->id) {
-                $currentUserRank = $staff['rank'];
-                break;
-            }
-        }
+        // Get additional performance metrics
+        $thisWeekStart = Carbon::now()->startOfWeek();
+        $thisWeekAttendances = Attendance::where('user_id', $user->id)
+            ->where('date', '>=', $thisWeekStart)
+            ->count();
         
-        // Calculate attendance rate
-        $attendanceRate = $this->getAttendanceRate($user);
+        $onTimePercentage = Attendance::where('user_id', $user->id)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->where('status', 'on_time')
+            ->count();
         
-        // Debug logging
-        \Log::info('🔍 DEBUG: getPerformanceStats', [
-            'user_id' => $user->id,
-            'user_name' => $user->name,
-            'month' => $month,
-            'year' => $year,
-            'attendance_data_count' => $attendanceData->count(),
-            'current_user_rank' => $currentUserRank,
-            'total_paramedis' => $totalParamedis,
-            'attendance_rate' => $attendanceRate,
-        ]);
+        $totalAttendances = Attendance::where('user_id', $user->id)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->count();
+            
+        $punctualityRate = $totalAttendances > 0 ? round(($onTimePercentage / $totalAttendances) * 100, 1) : 0;
+        
+        // Calculate patient satisfaction based on recent tindakan
+        $recentTindakan = Tindakan::where('paramedis_id', $paramedis->id)
+            ->whereDate('tanggal_tindakan', '>=', Carbon::now()->subDays(30))
+            ->count();
+        
+        $patientSatisfaction = min(100, 85 + ($recentTindakan * 0.5)); // Base 85% + bonus for activity
         
         return [
-            'attendance_rank' => $currentUserRank ?? $totalParamedis + 1,
+            'attendance_rank' => $currentUserRank,
             'total_staff' => $totalParamedis,
-            'attendance_percentage' => round($attendanceRate, 1),
-            'patient_satisfaction' => 92,
-            'attendance_rate' => $attendanceRate
+            'attendance_percentage' => $userRecap->attendance_percentage ?? 0,
+            'attendance_rate' => $userRecap->attendance_percentage ?? 0,
+            'punctuality_rate' => $punctualityRate,
+            'patient_satisfaction' => round($patientSatisfaction, 1),
+            'week_attendance' => $thisWeekAttendances,
+            'total_work_hours' => round(($userRecap->total_work_minutes ?? 0) / 60, 1),
+            'performance_trend' => $this->calculatePerformanceTrend($user->id),
+            'badges' => $this->calculatePerformanceBadges($userRecap, $currentUserRank, $totalParamedis)
         ];
+    }
+
+    /**
+     * Calculate performance trend (last 3 months)
+     */
+    private function calculatePerformanceTrend($userId)
+    {
+        $trends = [];
+        for ($i = 2; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i);
+            $recap = \App\Models\AttendanceRecap::where('user_id', $userId)
+                ->where('year', $date->year)
+                ->where('month', $date->month)
+                ->first();
+            
+            $trends[] = [
+                'month' => $date->format('M'),
+                'percentage' => $recap->attendance_percentage ?? 0
+            ];
+        }
+        
+        // Calculate trend direction
+        $current = end($trends)['percentage'];
+        $previous = count($trends) > 1 ? $trends[count($trends) - 2]['percentage'] : $current;
+        
+        return [
+            'data' => $trends,
+            'direction' => $current > $previous ? 'up' : ($current < $previous ? 'down' : 'stable'),
+            'change' => round($current - $previous, 1)
+        ];
+    }
+
+    /**
+     * Calculate performance badges
+     */
+    private function calculatePerformanceBadges($recap, $rank, $totalStaff)
+    {
+        $badges = [];
+        
+        if ($recap && $recap->attendance_percentage >= 95) {
+            $badges[] = ['name' => 'Perfect Attendance', 'icon' => '🏆', 'color' => 'gold'];
+        }
+        
+        if ($rank <= 3 && $totalStaff > 5) {
+            $badges[] = ['name' => 'Top Performer', 'icon' => '⭐', 'color' => 'blue'];
+        }
+        
+        if ($recap && $recap->late_days == 0) {
+            $badges[] = ['name' => 'Always On Time', 'icon' => '⏰', 'color' => 'green'];
+        }
+        
+        return $badges;
     }
 
     /**
@@ -1332,5 +1396,254 @@ class ParamedisDashboardController extends Controller
             default:
                 return 'Bulan Ini';
         }
+    }
+
+    /**
+     * Enhanced Jaspel Summary API for mobile dashboard
+     */
+    public function getJaspelSummary(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $paramedis = Pegawai::where('user_id', $user->id)
+                ->where('jenis_pegawai', 'Paramedis')
+                ->first();
+            
+            if (!$paramedis) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data paramedis tidak ditemukan',
+                    'data' => null
+                ], 404);
+            }
+
+            $month = $request->get('month', Carbon::now()->month);
+            $year = $request->get('year', Carbon::now()->year);
+
+            // Use Enhanced Jaspel Service for accurate calculations
+            $enhancedService = app(\App\Services\EnhancedJaspelService::class);
+            $comprehensiveData = $enhancedService->getComprehensiveJaspelData($user, $month, $year);
+            
+            // Calculate period information
+            $startDate = Carbon::create($year, $month, 1);
+            $endDate = $startDate->copy()->endOfMonth();
+            $currentDate = Carbon::now();
+            
+            $daysInMonth = $endDate->day;
+            $daysPassed = $currentDate->month == $month && $currentDate->year == $year 
+                ? $currentDate->day 
+                : $daysInMonth;
+            $monthProgress = round(($daysPassed / $daysInMonth) * 100, 1);
+            
+            // Calculate daily and weekly averages
+            $dailyAverage = $daysPassed > 0 ? round($comprehensiveData['summary']['total_paid'] / $daysPassed, 0) : 0;
+            $weeklyEstimate = $dailyAverage * 7;
+            
+            // Get comparison with previous month
+            $previousMonth = $month == 1 ? 12 : $month - 1;
+            $previousYear = $month == 1 ? $year - 1 : $year;
+            $previousData = $enhancedService->getComprehensiveJaspelData($user, $previousMonth, $previousYear);
+            
+            $growthPercent = 0;
+            if ($previousData['summary']['total_paid'] > 0) {
+                $growthPercent = round(
+                    (($comprehensiveData['summary']['total_paid'] - $previousData['summary']['total_paid']) 
+                    / $previousData['summary']['total_paid']) * 100, 
+                    1
+                );
+            } elseif ($comprehensiveData['summary']['total_paid'] > 0) {
+                $growthPercent = 100;
+            }
+
+            // Get recent transactions (last 7 days)
+            $recentTransactions = \App\Models\Jaspel::where('user_id', $user->id)
+                ->whereDate('tanggal', '>=', Carbon::now()->subDays(7))
+                ->with(['tindakan.pasien:id,nama_pasien'])
+                ->orderByDesc('tanggal')
+                ->limit(5)
+                ->get()
+                ->map(function($jaspel) {
+                    return [
+                        'id' => $jaspel->id,
+                        'date' => $jaspel->tanggal->format('Y-m-d'),
+                        'formatted_date' => $jaspel->tanggal->format('d M'),
+                        'amount' => $jaspel->nominal,
+                        'type' => $jaspel->jenis_jaspel,
+                        'status' => $jaspel->status_validasi,
+                        'patient_name' => $jaspel->tindakan && $jaspel->tindakan->pasien 
+                            ? $jaspel->tindakan->pasien->nama_pasien 
+                            : null
+                    ];
+                });
+
+            // Calculate performance indicators
+            $approvalRate = $comprehensiveData['summary']['count_total'] > 0 
+                ? round(($comprehensiveData['summary']['count_paid'] / $comprehensiveData['summary']['count_total']) * 100, 1)
+                : 0;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jaspel summary berhasil dimuat',
+                'data' => [
+                    'summary' => [
+                        'current_month' => $comprehensiveData['summary']['total_paid'],
+                        'previous_month' => $previousData['summary']['total_paid'],
+                        'growth_percent' => $growthPercent,
+                        'daily_average' => $dailyAverage,
+                        'weekly_estimate' => $weeklyEstimate,
+                        'approval_rate' => $approvalRate
+                    ],
+                    'period_info' => [
+                        'month' => $month,
+                        'year' => $year,
+                        'month_name' => $startDate->format('F Y'),
+                        'days_in_month' => $daysInMonth,
+                        'days_passed' => $daysPassed,
+                        'month_progress' => $monthProgress,
+                        'is_current_month' => $currentDate->month == $month && $currentDate->year == $year
+                    ],
+                    'breakdown' => [
+                        'paid' => $comprehensiveData['summary']['total_paid'],
+                        'pending' => $comprehensiveData['summary']['total_pending'],
+                        'rejected' => $comprehensiveData['summary']['total_rejected'],
+                        'count_paid' => $comprehensiveData['summary']['count_paid'],
+                        'count_pending' => $comprehensiveData['summary']['count_pending'],
+                        'count_rejected' => $comprehensiveData['summary']['count_rejected'],
+                        'count_total' => $comprehensiveData['summary']['count_total']
+                    ],
+                    'recent_transactions' => $recentTransactions,
+                    'performance_indicators' => [
+                        'trend' => $growthPercent > 0 ? 'increasing' : ($growthPercent < 0 ? 'decreasing' : 'stable'),
+                        'target_achievement' => $monthProgress > 0 ? round(($dailyAverage * $daysInMonth) / max(1, $comprehensiveData['summary']['total_paid']) * 100, 1) : 0,
+                        'productivity_score' => min(100, ($comprehensiveData['summary']['count_paid'] * 2) + ($approvalRate * 0.5))
+                    ]
+                ],
+                'meta' => [
+                    'version' => '2.1',
+                    'timestamp' => now()->toISOString(),
+                    'cache_ttl' => 300, // 5 minutes
+                    'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('ParamedisDashboardController::getJaspelSummary error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat ringkasan jaspel: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get upcoming schedules with enhanced data
+     */
+    public function getUpcomingSchedules(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $limit = min($request->get('limit', 10), 20);
+            $daysAhead = $request->get('days_ahead', 14);
+            
+            $schedules = JadwalJaga::where('pegawai_id', $user->id)
+                ->where('tanggal_jaga', '>=', Carbon::today())
+                ->where('tanggal_jaga', '<=', Carbon::today()->addDays($daysAhead))
+                ->with(['shiftTemplate', 'pegawai'])
+                ->orderBy('tanggal_jaga')
+                ->limit($limit)
+                ->get()
+                ->map(function ($jadwal) {
+                    $isToday = $jadwal->tanggal_jaga->isToday();
+                    $isTomorrow = $jadwal->tanggal_jaga->isTomorrow();
+                    
+                    // Format time display
+                    $timeDisplay = 'TBA';
+                    if ($jadwal->shiftTemplate) {
+                        $startTime = Carbon::parse($jadwal->shiftTemplate->jam_masuk)->format('H:i');
+                        $endTime = Carbon::parse($jadwal->shiftTemplate->jam_keluar)->format('H:i');
+                        $timeDisplay = "{$startTime} - {$endTime}";
+                    }
+
+                    return [
+                        'id' => $jadwal->id,
+                        'date' => $jadwal->tanggal_jaga->format('Y-m-d'),
+                        'formatted_date' => $jadwal->tanggal_jaga->format('l, d F Y'),
+                        'relative_date' => $isToday ? 'Hari Ini' : ($isTomorrow ? 'Besok' : $jadwal->tanggal_jaga->diffForHumans()),
+                        'unit_kerja' => $jadwal->unit_kerja ?? 'Unit Kerja',
+                        'shift_name' => $jadwal->shiftTemplate ? $jadwal->shiftTemplate->nama_shift : 'Shift',
+                        'time_display' => $timeDisplay,
+                        'start_time' => $jadwal->shiftTemplate ? $jadwal->shiftTemplate->jam_masuk : null,
+                        'end_time' => $jadwal->shiftTemplate ? $jadwal->shiftTemplate->jam_keluar : null,
+                        'status' => $jadwal->status_jaga ?? 'scheduled',
+                        'is_today' => $isToday,
+                        'is_tomorrow' => $isTomorrow,
+                        'can_checkin' => $isToday && $jadwal->status_jaga === 'Aktif',
+                        'days_until' => $jadwal->tanggal_jaga->diffInDays(Carbon::today()),
+                        'shift_type' => $this->getShiftType($jadwal->shiftTemplate?->nama_shift),
+                        'location_info' => [
+                            'work_location' => Auth::user()->workLocation ? [
+                                'name' => Auth::user()->workLocation->name,
+                                'address' => Auth::user()->workLocation->address,
+                                'is_active' => Auth::user()->workLocation->is_active
+                            ] : null
+                        ]
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal mendatang berhasil dimuat',
+                'data' => [
+                    'schedules' => $schedules,
+                    'total_count' => $schedules->count(),
+                    'period_info' => [
+                        'days_ahead' => $daysAhead,
+                        'start_date' => Carbon::today()->format('Y-m-d'),
+                        'end_date' => Carbon::today()->addDays($daysAhead)->format('Y-m-d')
+                    ],
+                    'summary' => [
+                        'today' => $schedules->where('is_today', true)->count(),
+                        'tomorrow' => $schedules->where('is_tomorrow', true)->count(),
+                        'this_week' => $schedules->filter(function($schedule) {
+                            return Carbon::parse($schedule['date'])->isCurrentWeek();
+                        })->count()
+                    ]
+                ],
+                'meta' => [
+                    'version' => '2.1',
+                    'timestamp' => now()->toISOString(),
+                    'request_id' => \Illuminate\Support\Str::uuid()->toString(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat jadwal mendatang: ' . $e->getMessage(),
+                'data' => ['schedules' => [], 'total_count' => 0]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get shift type classification
+     */
+    private function getShiftType($shiftName)
+    {
+        if (!$shiftName) return 'unknown';
+        
+        $shiftName = strtolower($shiftName);
+        
+        if (strpos($shiftName, 'pagi') !== false) return 'morning';
+        if (strpos($shiftName, 'siang') !== false) return 'afternoon';
+        if (strpos($shiftName, 'malam') !== false) return 'night';
+        
+        return 'other';
     }
 }

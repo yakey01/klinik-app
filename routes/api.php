@@ -427,6 +427,10 @@ Route::prefix('v2')->group(function () {
                 Route::post('/refresh-work-location', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'refreshWorkLocation']);
                 Route::get('/work-location/status', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getWorkLocationStatus']);
                 Route::post('/work-location/check-and-assign', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkAndAssignWorkLocation']);
+                
+                // Enhanced Mobile Dashboard APIs
+                Route::get('/jaspel/summary', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getJaspelSummary']);
+                Route::get('/schedules/upcoming', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getUpcomingSchedules']);
             });
 
             // Dokter dashboard - Mobile app API endpoints

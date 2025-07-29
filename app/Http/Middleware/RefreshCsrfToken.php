@@ -15,11 +15,9 @@ class RefreshCsrfToken
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // For login pages, aggressively regenerate session to clear stale tokens
-        if ($request->is('*/login') || $request->routeIs('*.auth.login')) {
-            session()->invalidate();
+        // Only regenerate token for GET requests to login pages, not POST submissions
+        if (($request->is('*/login') || $request->routeIs('*.auth.login')) && $request->isMethod('GET')) {
             session()->regenerateToken();
-            session()->migrate(true);
         }
         
         $response = $next($request);

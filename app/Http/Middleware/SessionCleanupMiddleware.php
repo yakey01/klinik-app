@@ -22,7 +22,8 @@ class SessionCleanupMiddleware
         $response = $next($request);
         
         // If session is about to expire, refresh it for all panel users and dokter routes
-        if (($request->is('admin*') || $request->is('paramedis*') || $request->is('bendahara*') || $request->is('manajer*') || $request->is('petugas*') || $request->is('dokter*') || $request->is('dokter-gigi*')) && auth()->check()) {
+        // BUT skip during login/authentication flows to prevent CSRF token conflicts
+        if (($request->is('admin*') || $request->is('paramedis*') || $request->is('bendahara*') || $request->is('manajer*') || $request->is('petugas*') || $request->is('dokter*') || $request->is('dokter-gigi*')) && auth()->check() && !$this->isAuthenticationRequest($request)) {
             $this->refreshSessionIfNeeded();
         }
         
@@ -48,6 +49,26 @@ class SessionCleanupMiddleware
             // Log error but don't break the request
             \Log::warning('Session cleanup failed: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Check if this is an authentication-related request that should not have tokens refreshed
+     */
+    private function isAuthenticationRequest(Request $request): bool
+    {
+        // Skip token refresh during login, logout, and password reset flows
+        return $request->is('*/login') || 
+               $request->is('*/logout') || 
+               $request->is('*/password*') ||
+               $request->routeIs('*.auth.*') ||
+               str_contains($request->path(), '/login') ||
+               str_contains($request->path(), '/logout') ||
+               // Also skip during form submission to prevent token conflicts
+               ($request->isMethod('POST') && (
+                   $request->is('login') || 
+                   $request->is('*/login') ||
+                   $request->has('_token') // Any form with CSRF token
+               ));
     }
     
     /**

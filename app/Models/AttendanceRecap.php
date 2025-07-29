@@ -9,34 +9,134 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceRecap extends Model
 {
-    // This is a virtual model - no actual table
-    public $timestamps = false;
-    protected $table = 'attendance_recaps'; // Dummy table name for Filament
+    protected $table = 'attendance_recaps';
 
     protected $fillable = [
+        'user_id',
+        'year',
+        'month',
+        'total_working_days',
+        'present_days',
+        'late_days',
+        'absent_days',
+        'attendance_percentage',
+        'total_work_minutes',
+        'ranking',
+        // Legacy virtual fields for compatibility
         'staff_id',
         'staff_name',
         'staff_type',
         'position',
-        'total_working_days',
         'days_present',
         'average_check_in',
         'average_check_out',
         'total_working_hours',
-        'attendance_percentage',
         'status',
         'rank'
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
+        'year' => 'integer',
+        'month' => 'integer',
         'total_working_days' => 'integer',
+        'present_days' => 'integer',
+        'late_days' => 'integer',
+        'absent_days' => 'integer',
+        'attendance_percentage' => 'decimal:2',
+        'total_work_minutes' => 'integer',
+        'ranking' => 'integer',
+        // Legacy compatibility
         'days_present' => 'integer',
         'total_working_hours' => 'decimal:2',
-        'attendance_percentage' => 'decimal:2',
         'rank' => 'integer',
         'average_check_in' => 'datetime',
         'average_check_out' => 'datetime',
     ];
+
+    /**
+     * Get the user that owns the attendance recap
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Generate or update attendance recap for a user and period
+     */
+    public static function generateForUser($userId, $month = null, $year = null)
+    {
+        $month = $month ?? now()->month;
+        $year = $year ?? now()->year;
+        
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = $startDate->copy()->endOfMonth();
+        $totalWorkingDays = self::getWorkingDaysInMonth($month, $year);
+        
+        // Get attendance data for the user
+        $attendances = DB::table('attendances')
+            ->where('user_id', $userId)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->get();
+        
+        $presentDays = $attendances->count();
+        $lateDays = $attendances->where('status', 'late')->count();
+        $absentDays = max(0, $totalWorkingDays - $presentDays);
+        $attendancePercentage = $totalWorkingDays > 0 ? round(($presentDays / $totalWorkingDays) * 100, 2) : 0;
+        
+        // Calculate total work minutes
+        $totalWorkMinutes = $attendances->sum(function ($attendance) {
+            if ($attendance->time_in && $attendance->time_out) {
+                $timeIn = Carbon::parse($attendance->time_in);
+                $timeOut = Carbon::parse($attendance->time_out);
+                return $timeOut->diffInMinutes($timeIn);
+            }
+            return 0;
+        });
+        
+        // Create or update recap
+        return self::updateOrCreate(
+            ['user_id' => $userId, 'year' => $year, 'month' => $month],
+            [
+                'total_working_days' => $totalWorkingDays,
+                'present_days' => $presentDays,
+                'late_days' => $lateDays,
+                'absent_days' => $absentDays,
+                'attendance_percentage' => $attendancePercentage,
+                'total_work_minutes' => $totalWorkMinutes,
+            ]
+        );
+    }
+
+    /**
+     * Calculate rankings for all users in a period
+     */
+    public static function calculateRankings($month = null, $year = null, $staffType = null)
+    {
+        $month = $month ?? now()->month;
+        $year = $year ?? now()->year;
+        
+        $query = self::where('year', $year)
+                    ->where('month', $month)
+                    ->with('user.pegawai');
+        
+        if ($staffType) {
+            $query->whereHas('user.pegawai', function ($q) use ($staffType) {
+                $q->where('jenis_pegawai', $staffType);
+            });
+        }
+        
+        $recaps = $query->orderByDesc('attendance_percentage')->get();
+        
+        $rank = 1;
+        foreach ($recaps as $recap) {
+            $recap->update(['ranking' => $rank]);
+            $rank++;
+        }
+        
+        return $recaps;
+    }
 
     /**
      * Get attendance recap data for all staff types

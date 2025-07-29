@@ -318,7 +318,7 @@ export function Presensi() {
         headers['Authorization'] = `Bearer ${apiToken}`;
       }
       
-      const response = await fetch('/api/v2/dashboards/paramedis/attendance/status', {
+      const response = await fetch('/paramedis/web-api/presensi-data', {
         credentials: 'include',
         headers
       });
@@ -433,7 +433,7 @@ export function Presensi() {
         headers['Authorization'] = `Bearer ${apiToken}`;
       }
 
-      const response = await fetch('/api/v2/dashboards/paramedis/checkin', {
+      const response = await fetch('/paramedis/web-api/checkin', {
         method: 'POST',
         credentials: 'include',
         headers,
@@ -508,7 +508,7 @@ export function Presensi() {
         headers['Authorization'] = `Bearer ${apiToken}`;
       }
 
-      const response = await fetch('/api/v2/dashboards/paramedis/checkout', {
+      const response = await fetch('/paramedis/web-api/checkout', {
         method: 'POST',
         credentials: 'include',
         headers,

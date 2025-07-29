@@ -1763,6 +1763,18 @@ Route::get('/test-attendance-resource', function () {
     }
 });
 
+// FIXED: Web-based API routes for paramedis dashboard (solves 401/500 errors)
+Route::prefix('paramedis/web-api')->middleware(['auth', 'role:paramedis'])->group(function () {
+    Route::get('/dashboard-stats', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'index']);
+    Route::get('/presensi-data', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getPresensi']);
+    Route::get('/attendance-recap', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'getAttendanceRecap']);
+    Route::get('/schedules', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'schedules']);
+    
+    // Additional web-based API endpoints
+    Route::post('/checkin', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkIn']);
+    Route::post('/checkout', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'checkOut']);
+});
+
 // Mobile app API routes with web session authentication
 Route::prefix('api/v2/dashboards/paramedis')->middleware(['auth', 'role:paramedis'])->group(function () {
     Route::get('/', [App\Http\Controllers\Api\V2\Dashboards\ParamedisDashboardController::class, 'index']);

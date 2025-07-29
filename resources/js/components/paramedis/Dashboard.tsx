@@ -62,6 +62,9 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullToRefreshDistance, setPullToRefreshDistance] = useState(0);
   const [isPullingToRefresh, setIsPullingToRefresh] = useState(false);
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [checkInStatus, setCheckInStatus] = useState<'idle' | 'locating' | 'submitting' | 'success' | 'error'>('idle');
+  const [attendanceData, setAttendanceData] = useState<any>(null);
 
   // Fetch real dashboard stats from API - moved outside useEffect for scope
   const fetchDashboardStats = async (forceRefresh = false) => {
@@ -83,8 +86,8 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
         headers['Authorization'] = `Bearer ${apiToken}`;
       }
 
-      // Use real API endpoint
-      const url = '/api/v2/dashboards/paramedis/';
+      // Use web-based API endpoint (fixes 401/500 errors)
+      const url = '/paramedis/web-api/dashboard-stats';
       
       const response = await fetch(url, {
         credentials: 'include',
@@ -145,6 +148,132 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
       fetchSchedules()
     ]);
     setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
+  // Check-in/Check-out functionality
+  const handleCheckInOut = async () => {
+    if (isCheckingIn) return;
+    
+    setIsCheckingIn(true);
+    setCheckInStatus('locating');
+    
+    try {
+      // Get current location
+      const location = await getCurrentLocation();
+      
+      setCheckInStatus('submitting');
+      
+      // Get CSRF token
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      
+      // Determine if user needs to check in or check out
+      const canCheckIn = dashboardStats?.attendance?.can_check_in ?? true;
+      const canCheckOut = dashboardStats?.attendance?.can_check_out ?? false;
+      
+      const endpoint = canCheckIn ? '/paramedis/web-api/checkin' : '/paramedis/web-api/checkout';
+      const action = canCheckIn ? 'Check In' : 'Check Out';
+      
+      console.log(`🔄 ${action}: Starting ${action.toLowerCase()}...`);
+      console.log('📍 Location:', location);
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy || 0,
+          timestamp: new Date().toISOString()
+        })
+      });
+      
+      const result = await response.json();
+      console.log(`📨 ${action} Response:`, result);
+      
+      if (response.ok && result.success) {
+        setCheckInStatus('success');
+        setAttendanceData(result.data);
+        
+        // Refresh dashboard data after successful check-in/out
+        setTimeout(() => {
+          fetchDashboardStats(true);
+          setCheckInStatus('idle');
+        }, 2000);
+        
+        // Show success message
+        alert(`✅ ${action} berhasil!`);
+      } else {
+        throw new Error(result.message || `${action} gagal`);
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Check In/Out Error:', error);
+      setCheckInStatus('error');
+      
+      let errorMessage = 'Terjadi kesalahan';
+      if (error.message?.includes('location')) {
+        errorMessage = 'Gagal mendapatkan lokasi. Pastikan GPS aktif.';
+      } else if (error.message?.includes('radius') || error.message?.includes('jarak')) {
+        errorMessage = 'Anda berada di luar radius yang diizinkan.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`❌ ${errorMessage}`);
+      
+      setTimeout(() => {
+        setCheckInStatus('idle');
+      }, 3000);
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+  
+  // Get current location with high accuracy
+  const getCurrentLocation = (): Promise<{ latitude: number; longitude: number; accuracy?: number }> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation tidak didukung oleh browser ini'));
+        return;
+      }
+      
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      };
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          });
+        },
+        (error) => {
+          let message = 'Gagal mendapatkan lokasi';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              message = 'Akses lokasi ditolak. Harap izinkan akses lokasi.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              message = 'Informasi lokasi tidak tersedia.';
+              break;
+            case error.TIMEOUT:
+              message = 'Timeout saat mendapatkan lokasi.';
+              break;
+          }
+          reject(new Error(message));
+        },
+        options
+      );
+    });
   };
 
   // Pull-to-refresh functionality
@@ -530,7 +659,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               </Badge>
             </div>
 
-            {schedules.isLoading ? (
+            {loadingSchedules ? (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -938,11 +1067,48 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               whileTap={{ scale: 0.99 }}
               transition={{ duration: 0.2 }}
             >
-              <Button variant="outline" className="w-full justify-start gap-3 h-12 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-200 dark:hover:border-blue-700 font-medium">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <Button 
+                variant="outline" 
+                className={`w-full justify-start gap-3 h-12 font-medium ${
+                  checkInStatus === 'success' 
+                    ? 'hover:bg-green-50 dark:hover:bg-green-950/50 hover:border-green-200 dark:hover:border-green-700 border-green-200' 
+                    : checkInStatus === 'error'
+                    ? 'hover:bg-red-50 dark:hover:bg-red-950/50 hover:border-red-200 dark:hover:border-red-700 border-red-200'
+                    : 'hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-200 dark:hover:border-blue-700'
+                }`}
+                onClick={handleCheckInOut}
+                disabled={isCheckingIn}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  checkInStatus === 'success' 
+                    ? 'bg-green-100 dark:bg-green-900/50' 
+                    : checkInStatus === 'error'
+                    ? 'bg-red-100 dark:bg-red-900/50'
+                    : 'bg-blue-100 dark:bg-blue-900/50'
+                }`}>
+                  {checkInStatus === 'locating' ? (
+                    <Navigation className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+                  ) : checkInStatus === 'submitting' ? (
+                    <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                  ) : checkInStatus === 'success' ? (
+                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  ) : checkInStatus === 'error' ? (
+                    <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  )}
                 </div>
-                Check In/Out Sekarang
+                {checkInStatus === 'locating' && 'Mencari Lokasi...'}
+                {checkInStatus === 'submitting' && 'Memproses...'}
+                {checkInStatus === 'success' && 'Berhasil!'}
+                {checkInStatus === 'error' && 'Gagal'}
+                {checkInStatus === 'idle' && (
+                  dashboardStats?.attendance?.can_check_in 
+                    ? 'Check In Sekarang' 
+                    : dashboardStats?.attendance?.can_check_out 
+                    ? 'Check Out Sekarang'
+                    : 'Check In/Out Sekarang'
+                )}
               </Button>
             </motion.div>
             
@@ -985,12 +1151,12 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {schedules.isLoading ? (
+            {loadingSchedules ? (
               <div className="flex items-center justify-center py-8">
                 <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
                 <span className="text-sm text-medium-contrast">Memuat jadwal...</span>
               </div>
-            ) : schedulesData.length === 0 ? (
+            ) : jadwalMendatang.length === 0 ? (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -1042,7 +1208,7 @@ export function Dashboard({ userData: propUserData }: DashboardProps) {
               </motion.div>
             ) : (
               <div className="space-y-3">
-                {schedulesData.slice(0, 3).map((schedule, index) => (
+                {jadwalMendatang.slice(0, 3).map((schedule, index) => (
                 <motion.div
                   key={schedule.id}
                   initial={{ opacity: 0, x: -20 }}

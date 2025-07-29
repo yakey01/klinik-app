@@ -20,7 +20,7 @@ export function Laporan() {
     const fetchDashboardStats = async () => {
       try {
         setLoadingStats(true);
-        const response = await fetch('/api/v2/dashboards/paramedis/', {
+        const response = await fetch('/paramedis/web-api/dashboard-stats', {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -49,7 +49,7 @@ export function Laporan() {
         const params = new URLSearchParams();
         params.append('filter', filterPeriod);
         
-        const response = await fetch(`/api/v2/dashboards/paramedis/presensi?${params}`, {
+        const response = await fetch(`/paramedis/web-api/presensi-data?${params}`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',

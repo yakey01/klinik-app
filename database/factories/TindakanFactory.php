@@ -6,6 +6,8 @@ use App\Models\JenisTindakan;
 use App\Models\Pasien;
 use App\Models\Shift;
 use App\Models\User;
+use App\Models\Dokter;
+use App\Models\Pegawai;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -23,9 +25,9 @@ class TindakanFactory extends Factory
         return [
             'pasien_id' => Pasien::factory(),
             'jenis_tindakan_id' => JenisTindakan::factory(),
-            'dokter_id' => User::factory(),
-            'paramedis_id' => User::factory(),
-            'non_paramedis_id' => User::factory(),
+            'dokter_id' => Dokter::factory(),
+            'paramedis_id' => Pegawai::factory(),
+            'non_paramedis_id' => Pegawai::factory(),
             'shift_id' => Shift::factory(),
             'tanggal_tindakan' => fake()->dateTimeBetween('-30 days', 'now'),
             'tarif' => fake()->numberBetween(50000, 1000000),

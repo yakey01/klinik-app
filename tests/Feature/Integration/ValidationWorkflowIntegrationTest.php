@@ -12,6 +12,9 @@ use App\Models\Pendapatan;
 use App\Models\Pengeluaran;
 use App\Models\JenisTindakan;
 use App\Models\Jaspel;
+use App\Models\Shift;
+use App\Models\Pegawai;
+use App\Models\Role;
 use App\Services\CacheService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Notification;
@@ -27,14 +30,20 @@ class ValidationWorkflowIntegrationTest extends TestCase
     private User $dokterUser;
     private User $adminUser;
     private Dokter $dokter;
+    private \App\Models\Shift $shift;
+    private \App\Models\Pegawai $paramedis;
+    private \App\Models\Pegawai $nonParamedis;
     private JenisTindakan $jenisTindakan;
 
     protected function setUp(): void
-        // Roles are already created by base TestCase
     {
         parent::setUp();
         
-        // Create roles first
+        // Get roles that were created by base TestCase
+        $petugasRole = Role::where('name', 'petugas')->first();
+        $bendaharaRole = Role::where('name', 'bendahara')->first();
+        $dokterRole = Role::where('name', 'dokter')->first();
+        $adminRole = Role::where('name', 'admin')->first();
         
         // Create test users with proper roles
         $this->petugasUser = User::factory()->create([
@@ -63,6 +72,22 @@ class ValidationWorkflowIntegrationTest extends TestCase
             'aktif' => true,
         ]);
         
+        // Create shift
+        $this->shift = Shift::factory()->create([
+            'is_active' => true,
+        ]);
+        
+        // Create paramedis and non-paramedis staff
+        $this->paramedis = Pegawai::factory()->create([
+            'jenis_pegawai' => 'Paramedis',
+            'aktif' => true,
+        ]);
+        
+        $this->nonParamedis = Pegawai::factory()->create([
+            'jenis_pegawai' => 'Non-Paramedis',
+            'aktif' => true,
+        ]);
+        
         // Create jenis tindakan
         $this->jenisTindakan = JenisTindakan::factory()->create([
             'nama' => 'Konsultasi Umum',
@@ -84,6 +109,9 @@ class ValidationWorkflowIntegrationTest extends TestCase
             'pasien_id' => $patient->id,
             'jenis_tindakan_id' => $this->jenisTindakan->id,
             'dokter_id' => $this->dokter->id,
+            'paramedis_id' => $this->paramedis->id,
+            'non_paramedis_id' => $this->nonParamedis->id,
+            'shift_id' => $this->shift->id,
             'tanggal_tindakan' => Carbon::now(),
             'tarif' => $this->jenisTindakan->tarif,
             'jasa_dokter' => $this->jenisTindakan->jasa_dokter,
@@ -133,6 +161,9 @@ class ValidationWorkflowIntegrationTest extends TestCase
             'pasien_id' => $patient->id,
             'jenis_tindakan_id' => $this->jenisTindakan->id,
             'dokter_id' => $this->dokter->id,
+            'paramedis_id' => $this->paramedis->id,
+            'non_paramedis_id' => $this->nonParamedis->id,
+            'shift_id' => $this->shift->id,
             'tanggal_tindakan' => Carbon::now(),
             'tarif' => $this->jenisTindakan->tarif,
             'status' => 'selesai',
@@ -257,6 +288,9 @@ class ValidationWorkflowIntegrationTest extends TestCase
                 'pasien_id' => $patient->id,
                 'jenis_tindakan_id' => $this->jenisTindakan->id,
                 'dokter_id' => $this->dokter->id,
+                'paramedis_id' => $this->paramedis->id,
+                'non_paramedis_id' => $this->nonParamedis->id,
+                'shift_id' => $this->shift->id,
                 'tanggal_tindakan' => Carbon::now()->subDays($i),
                 'tarif' => $this->jenisTindakan->tarif,
                 'status' => 'selesai',
@@ -400,6 +434,9 @@ class ValidationWorkflowIntegrationTest extends TestCase
             'pasien_id' => $patient->id,
             'jenis_tindakan_id' => $this->jenisTindakan->id,
             'dokter_id' => $this->dokter->id,
+            'paramedis_id' => $this->paramedis->id,
+            'non_paramedis_id' => $this->nonParamedis->id,
+            'shift_id' => $this->shift->id,
             'tanggal_tindakan' => Carbon::now(),
             'tarif' => $this->jenisTindakan->tarif,
             'status' => 'selesai',
@@ -463,6 +500,9 @@ class ValidationWorkflowIntegrationTest extends TestCase
             'pasien_id' => $patient->id,
             'jenis_tindakan_id' => $this->jenisTindakan->id,
             'dokter_id' => $this->dokter->id,
+            'paramedis_id' => $this->paramedis->id,
+            'non_paramedis_id' => $this->nonParamedis->id,
+            'shift_id' => $this->shift->id,
             'tanggal_tindakan' => Carbon::now()->subDays(10),
             'tarif' => $this->jenisTindakan->tarif,
             'status' => 'selesai',
@@ -579,6 +619,9 @@ class ValidationWorkflowIntegrationTest extends TestCase
                     'pasien_id' => $patient->id,
                     'jenis_tindakan_id' => $this->jenisTindakan->id,
                     'dokter_id' => $this->dokter->id,
+                    'paramedis_id' => $this->paramedis->id,
+                    'non_paramedis_id' => $this->nonParamedis->id,
+                    'shift_id' => $this->shift->id,
                     'tanggal_tindakan' => Carbon::now()->subDays($i),
                     'tarif' => $this->jenisTindakan->tarif,
                     'status' => 'selesai',

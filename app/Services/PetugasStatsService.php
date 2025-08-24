@@ -651,7 +651,7 @@ class PetugasStatsService
                             SUM(CASE WHEN status_validasi = 'disetujui' AND DATE(validated_at) = ? THEN 1 ELSE 0 END) as approved_today,
                             SUM(CASE WHEN status_validasi = 'rejected' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as rejected_today
                         ", [$today, $today])
-                        ->from('pendapatan_harians')
+                        ->from('pendapatan_harian')
                         ->where('user_id', $userId)
                 )
                 ->union(
@@ -662,7 +662,7 @@ class PetugasStatsService
                             SUM(CASE WHEN status_validasi = 'disetujui' AND DATE(validated_at) = ? THEN 1 ELSE 0 END) as approved_today,
                             SUM(CASE WHEN status_validasi = 'rejected' AND DATE(validasi_at) = ? THEN 1 ELSE 0 END) as rejected_today
                         ", [$today, $today])
-                        ->from('pengeluaran_harians')
+                        ->from('pengeluaran_harian')
                         ->where('user_id', $userId)
                 )
                 ->get();
